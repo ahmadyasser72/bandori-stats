@@ -1,5 +1,7 @@
 ---
+import "~/styles/global.css";
 
+export const prerender = true;
 ---
 
 <html lang="en">
@@ -11,6 +13,10 @@
 		<title>Astro</title>
 	</head>
 	<body>
-		<h1>Astro</h1>
+		<h1 class="font-medium">Hello world!</h1>
 	</body>
 </html>
+
+<script>
+	console.log("Hello world!");
+</script>
