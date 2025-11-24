@@ -1,10 +1,10 @@
 import { and, eq, sql } from "drizzle-orm";
 import {
-	index,
 	integer,
 	sqliteTable,
 	sqliteView,
 	text,
+	unique,
 } from "drizzle-orm/sqlite-core";
 
 export const accounts = sqliteTable(
@@ -14,7 +14,7 @@ export const accounts = sqliteTable(
 		username: text().notNull(),
 		server: integer().notNull(),
 	},
-	(t) => [index("idx_accounts_username").on(t.username)],
+	(t) => [unique("idx_accounts_username").on(t.username)],
 );
 
 export const accountSnapshots = sqliteTable(
@@ -38,7 +38,7 @@ export const accountSnapshots = sqliteTable(
 			.default(sql`(CURRENT_DATE)`)
 			.notNull(),
 	},
-	(t) => [index("idx_snapshots_account_date").on(t.accountId, t.snapshotDate)],
+	(t) => [unique("idx_snapshots_account_date").on(t.accountId, t.snapshotDate)],
 );
 
 export const latestSnapshots = sqliteView("latest_snapshots").as((qb) => {

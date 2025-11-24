@@ -1,0 +1,25 @@
+{
+	"imports": {
+		"hono": "npm:hono",
+		"p-limit": "npm:p-limit@^7.2.0",
+		"zod": "npm:zod",
+		"@hono/zod-validator": "npm:@hono/zod-validator",
+
+		"~/": "./src/"
+	},
+	"tasks": {
+		"dev": "deno run --allow-net --watch-hmr src/main.ts",
+		"start": "deno run --allow-net src/main.ts"
+	},
+	"compilerOptions": {
+		"jsx": "precompile",
+		"jsxImportSource": "hono/jsx",
+
+		"baseUrl": ".",
+		"paths": { "~/*": ["src/*"] }
+	},
+	"deploy": {
+    "org": "notsweet",
+    "app": "bestdori-leaderboard"
+  }
+}
