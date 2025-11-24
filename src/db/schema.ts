@@ -52,18 +52,22 @@ export const latestSnapshots = sqliteView("latest_snapshots").as((qb) => {
 		.groupBy(accountSnapshots.accountId)
 		.as("latest");
 
+	type Columns = typeof accountSnapshots.$inferSelect;
+	const aliased = <C extends keyof Columns>(columnName: C) =>
+		sql<Columns[C]>`${accountSnapshots[columnName]}`.as(columnName);
+
 	return qb
 		.select({
 			accountId: accounts.id,
 			username: accounts.username,
 
-			snapshotDate: accountSnapshots.snapshotDate,
-			rank: accountSnapshots.rank,
-			clearCount: accountSnapshots.clearCount,
-			fullComboCount: accountSnapshots.fullComboCount,
-			allPerfectCount: accountSnapshots.allPerfectCount,
-			highScoreRating: accountSnapshots.highScoreRating,
-			bandRating: accountSnapshots.bandRating,
+			snapshotDate: aliased("snapshotDate"),
+			rank: aliased("rank"),
+			clearCount: aliased("clearCount"),
+			fullComboCount: aliased("fullComboCount"),
+			allPerfectCount: aliased("allPerfectCount"),
+			highScoreRating: aliased("highScoreRating"),
+			bandRating: aliased("bandRating"),
 		})
 		.from(accounts)
 		.innerJoin(latestDateSq, eq(accounts.id, latestDateSq.accountId))
