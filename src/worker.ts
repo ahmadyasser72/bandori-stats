@@ -52,13 +52,23 @@ export function createExports(manifest: SSRManifest) {
 					.flatMap(({ username, stat }) => {
 						if (!stat) return [];
 
-						const latest = latestSnapshotsByUsername[username];
-						if (latest) {
+						const snapshot = latestSnapshotsByUsername[username];
+						if (snapshot) {
+							const { server, ...newStat } = stat;
+							const { accountId, snapshotDate, ...previousStat } = snapshot;
+
+							const isStatSame = Object.entries(newStat).every(
+								([key, value]) =>
+									previousStat[key as keyof typeof newStat] === value,
+							);
+							if (isStatSame) return [];
+
 							return db
 								.insert(accountSnapshots)
 								.values({
-									...latest,
-									...stat,
+									accountId,
+									...previousStat,
+									...newStat,
 									snapshotDate: new Date().toISOString().slice(0, 10),
 								})
 								.onConflictDoUpdate({
@@ -72,7 +82,7 @@ export function createExports(manifest: SSRManifest) {
 
 						const insertNewAccount = db
 							.insert(accounts)
-							.values({ server: stat!.server, username });
+							.values({ server: stat.server, username });
 						const newAccount = db
 							.$with("new_account")
 							.as(

@@ -56,7 +56,6 @@ export const latestSnapshots = sqliteView("latest_snapshots").as((qb) => {
 		.select({
 			accountId: accounts.id,
 			username: accounts.username,
-			server: accounts.server,
 
 			snapshotDate: accountSnapshots.snapshotDate,
 			rank: accountSnapshots.rank,
