@@ -1,22 +1,12 @@
 ---
-import "~/styles/global.css";
+import BaseLayout from "~/layouts/base-layout.astro";
 
 export const prerender = true;
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
+<BaseLayout>
+	<div class="absolute inset-0 flex flex-col justify-center text-center">
 		<h1 class="font-medium">Hello world!</h1>
-	</body>
-</html>
-
-<script>
-	console.log("Hello world!");
-</script>
+		<a href="/latest" class="link">Latest</a>
+	</div>
+</BaseLayout>
