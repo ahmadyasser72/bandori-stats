@@ -1,1 +1,1 @@
-export const LEADERBOARD_LIMIT = 20;
+export const LEADERBOARD_LIMIT = 50;
