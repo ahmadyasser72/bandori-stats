@@ -2,7 +2,7 @@ import { logger, wait } from "@trigger.dev/sdk";
 import { limitFunction } from "p-limit";
 
 export const bestdori = limitFunction(
-	async <T>(path: string, query: Record<string, string>): Promise<T> => {
+	async (path: string, query: Record<string, string>) => {
 		const url = new URL(path, "https://bestdori.com/");
 		url.search = new URLSearchParams(query).toString();
 
@@ -30,7 +30,7 @@ export const bestdori = limitFunction(
 				continue;
 			}
 
-			return response.json() as Promise<T>;
+			return response.json();
 		}
 	},
 	{ concurrency: 2 },
