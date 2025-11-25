@@ -14,16 +14,7 @@ const config = {
 		"prettier-plugin-tailwindcss",
 	],
 	overrides: [{ files: "*.astro", options: { parser: "astro" } }],
-	tailwindFunctions: ["clsx"],
-	importOrder: [
-		"^astro",
-		"",
-		"<THIRD_PARTY_MODULES>",
-		"",
-		"^@/(contents|scripts)/",
-		"^~/(.*)$",
-		"^[./]",
-	],
+	importOrder: ["^astro", "", "<THIRD_PARTY_MODULES>", "", "^~/(.*)$", "^[./]"],
 };
 
 export default config;

@@ -1,0 +1,20 @@
+{
+	"name": "@bandori-stats/database",
+	"type": "module",
+	"private": true,
+	"exports": {
+		".": "./src/db.ts",
+		"./schema": "./src/schema.ts"
+	},
+	"scripts": {
+		"db:push": "drizzle-kit push",
+		"db:push:prod": "NODE_ENV=production drizzle-kit push"
+	},
+	"devDependencies": {
+		"drizzle-kit": "^0.31.7"
+	},
+	"dependencies": {
+		"@libsql/client": "^0.15.15",
+		"drizzle-orm": "^0.44.7"
+	}
+}

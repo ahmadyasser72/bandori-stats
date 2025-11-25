@@ -17,12 +17,13 @@ jobs:
 
       - name: Build site
         run: bun run build
+        working-directory: site/
       - name: Upload site build artifact
         uses: actions/upload-artifact@v4
         with:
           name: site
           include-hidden-files: true
-          path: dist/
+          path: site/dist/
 
   deploy:
     needs: build
@@ -40,7 +41,7 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: site
-          path: dist/
+          path: site/dist/
 
       - name: Deploy to Cloudflare Workers
         id: deploy-cloudflare-worker
@@ -49,3 +50,4 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: ${{ github.ref == 'refs/heads/main' && 'deploy' || 'versions upload' }}
+          workingDirectory: site/

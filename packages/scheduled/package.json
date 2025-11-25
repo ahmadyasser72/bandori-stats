@@ -1,0 +1,14 @@
+{
+	"name": "@bandori-stats/scheduled",
+	"type": "module",
+	"private": true,
+	"devDependencies": {
+		"@trigger.dev/build": "4.1.2"
+	},
+	"dependencies": {
+		"@bandori-stats/database": "workspace:*",
+		"@trigger.dev/sdk": "4.1.2",
+		"p-limit": "^7.2.0",
+		"zod": "^4.1.13"
+	}
+}

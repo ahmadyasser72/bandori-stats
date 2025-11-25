@@ -17,10 +17,9 @@ pnpm-debug.log*
 .env
 .env.production
 
-# macOS-specific files
+# misc
 .DS_Store
-
-# jetbrains setting folder
 .idea/
-
+.trigger/
 .wrangler/
+local.db
