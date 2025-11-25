@@ -1,4 +1,4 @@
-import { logger, schemaTask } from "@trigger.dev/sdk/v3";
+import { AbortTaskRunError, logger, schemaTask } from "@trigger.dev/sdk/v3";
 import z from "zod";
 
 import { bestdori } from "~/bestdori";
@@ -36,9 +36,12 @@ export const getStats = schemaTask({
 	schema: z.object({ username: z.string().nonempty() }),
 	run: async ({ username }) => {
 		logger.debug("fetching stats", { username });
-		const { accounts } = StatsResponse.parse(
+		const { success, data, error } = StatsResponse.safeParse(
 			await bestdori("api/user/sync", { username }),
 		);
+
+		if (!success) throw new AbortTaskRunError(error.message);
+		const { accounts } = data;
 
 		return (
 			accounts
