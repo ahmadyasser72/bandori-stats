@@ -25,7 +25,11 @@ export const populateDatabase = schedules.task({
 		logger.log("fetching leaderboard usernames");
 		const leaderboardUsernames = await getLeaderboard
 			.batchTriggerAndWait(
-				LEADERBOARD_TYPES.map((type) => ({ payload: { type } })),
+				Array.from({ length: 4 }).flatMap((_, page) =>
+					LEADERBOARD_TYPES.map((type) => ({
+						payload: { type, limit: 20, offset: page * 20 },
+					})),
+				),
 			)
 			.then(({ runs }) =>
 				runs
