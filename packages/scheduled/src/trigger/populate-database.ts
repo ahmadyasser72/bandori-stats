@@ -30,7 +30,11 @@ export const populateDatabase = schedules.task({
 					Array.from({ length: 4 }).flatMap((_, page) =>
 						LEADERBOARD_TYPES.map((type) => ({
 							payload: { type, limit: 20, offset: page * 20 },
-							options: { tags: `leaderboard/${type}/${page}` },
+							options: {
+								tags: `leaderboard/${type}/${page}`,
+								idempotencyKey: `leaderboard-${type}-${page}`,
+								idempotencyKeyTTL: "1d",
+							},
 						})),
 					),
 				),
@@ -51,7 +55,11 @@ export const populateDatabase = schedules.task({
 			await getStats.batchTriggerAndWait(
 				usernames.map((username) => ({
 					payload: { username },
-					options: { tags: `user/${username}` },
+					options: {
+						tags: `user/${username}`,
+						idempotencyKey: `stats-${username}`,
+						idempotencyKeyTTL: "1d",
+					},
 				})),
 			)
 		).runs
