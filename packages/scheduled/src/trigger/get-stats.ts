@@ -13,19 +13,21 @@ const LEADERBOARD_STATS = [
 ] as const;
 export type LeaderboardStat = (typeof LEADERBOARD_STATS)[number];
 
+const statValue = z.number().nonnegative().optional();
 const StatsResponse = z.strictObject({
 	result: z.literal(true),
 	accounts: z.array(
-		z
-			.strictObject({
-				server: z.number().nonnegative(),
-			})
-			.and(
-				z.record(
-					z.enum(LEADERBOARD_STATS),
-					z.number().nonnegative().optional(),
-				),
-			),
+		z.strictObject({
+			server: z.number().nonnegative(),
+			uid: statValue,
+			hsr: statValue,
+			dtr: statValue,
+			allPerfectCount: statValue,
+			fullComboCount: statValue,
+			clearCount: statValue,
+			rank: statValue,
+			titles: z.array(z.number().nonnegative()).optional(),
+		}),
 	),
 });
 
