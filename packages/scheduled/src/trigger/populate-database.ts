@@ -5,6 +5,7 @@ import {
 	latestSnapshots,
 } from "@bandori-stats/database/schema";
 import { logger, schedules } from "@trigger.dev/sdk/v3";
+import { shuffle } from "fast-shuffle";
 
 import { getLeaderboard, LEADERBOARD_TYPES } from "./get-leaderboard";
 import { getStats } from "./get-stats";
@@ -25,10 +26,12 @@ export const populateDatabase = schedules.task({
 		logger.log("fetching leaderboard usernames");
 		const leaderboardUsernames = await getLeaderboard
 			.batchTriggerAndWait(
-				Array.from({ length: 4 }).flatMap((_, page) =>
-					LEADERBOARD_TYPES.map((type) => ({
-						payload: { type, limit: 20, offset: page * 20 },
-					})),
+				shuffle(
+					Array.from({ length: 4 }).flatMap((_, page) =>
+						LEADERBOARD_TYPES.map((type) => ({
+							payload: { type, limit: 20, offset: page * 20 },
+						})),
+					),
 				),
 			)
 			.then(({ runs }) =>
@@ -37,12 +40,12 @@ export const populateDatabase = schedules.task({
 					.filter((it) => it !== null),
 			);
 
-		const usernames = [
+		const usernames = shuffle([
 			...new Set([
 				...leaderboardUsernames,
 				...Object.keys(latestSnapshotsByUsername),
 			]),
-		];
+		]);
 
 		logger.log("fetching all stats", { usernames });
 		const stats = await getStats
