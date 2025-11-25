@@ -7,8 +7,7 @@
 		"./schema": "./src/schema.ts"
 	},
 	"scripts": {
-		"db:push": "drizzle-kit push",
-		"db:push:prod": "NODE_ENV=production drizzle-kit push"
+		"db:push": "drizzle-kit push"
 	},
 	"devDependencies": {
 		"drizzle-kit": "^0.31.7"

@@ -1,4 +1,4 @@
-import { createDrizzle, eq, sql } from "@bandori-stats/database";
+import { db, eq, sql } from "@bandori-stats/database";
 import {
 	accounts,
 	accountSnapshots,
@@ -14,8 +14,6 @@ export const populateDatabase = schedules.task({
 	machine: "micro",
 	cron: "0 0 * * *",
 	run: async (payload) => {
-		const db = await createDrizzle();
-
 		logger.log("querying latest snapshots");
 		const latestSnapshotsByUsername = await db
 			.select()
