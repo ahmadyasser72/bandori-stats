@@ -24,21 +24,20 @@ export const populateDatabase = schedules.task({
 			.then((entries) => Object.fromEntries(entries));
 
 		logger.log("fetching leaderboard usernames");
-		const leaderboardUsernames = await getLeaderboard
-			.batchTriggerAndWait(
+		const leaderboardUsernames = (
+			await getLeaderboard.batchTriggerAndWait(
 				shuffle(
 					Array.from({ length: 4 }).flatMap((_, page) =>
 						LEADERBOARD_TYPES.map((type) => ({
 							payload: { type, limit: 20, offset: page * 20 },
+							options: { tags: `leaderboard/${type}/${page}` },
 						})),
 					),
 				),
 			)
-			.then(({ runs }) =>
-				runs
-					.flatMap((it) => (it.ok ? it.output : null))
-					.filter((it) => it !== null),
-			);
+		).runs
+			.flatMap((run) => (run.ok ? run.output : null))
+			.filter((result) => result !== null);
 
 		const usernames = shuffle([
 			...new Set([
@@ -48,15 +47,16 @@ export const populateDatabase = schedules.task({
 		]);
 
 		logger.log("fetching all stats", { usernames });
-		const stats = await getStats
-			.batchTriggerAndWait(
-				usernames.map((username) => ({ payload: { username } })),
+		const stats = (
+			await getStats.batchTriggerAndWait(
+				usernames.map((username) => ({
+					payload: { username },
+					options: { tags: `user/${username}` },
+				})),
 			)
-			.then(({ runs }) =>
-				runs
-					.map((it) => (it.ok ? it.output : null))
-					.filter((it) => it !== null),
-			);
+		).runs
+			.map((run) => (run.ok ? run.output : null))
+			.filter((result) => result !== null);
 
 		const snapshotDate = payload.timestamp.toISOString().slice(0, 10);
 		logger.info("using snapshotDate", { snapshotDate });
