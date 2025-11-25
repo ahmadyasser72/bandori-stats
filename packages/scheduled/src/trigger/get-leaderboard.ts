@@ -1,7 +1,7 @@
 import { AbortTaskRunError, logger, schemaTask } from "@trigger.dev/sdk";
 import z from "zod";
 
-import { bestdori } from "~/bestdori";
+import { bestdori, bestdoriQueue } from "~/bestdori";
 import type { LeaderboardStat } from "./get-stats";
 
 export const LEADERBOARD_TYPES = [
@@ -40,6 +40,7 @@ const LeaderboardResponse = z.strictObject({
 
 export const getLeaderboard = schemaTask({
 	id: "get-leaderboard",
+	queue: bestdoriQueue,
 	schema: z.object({
 		type: z.enum(LEADERBOARD_TYPES),
 		limit: z.number().min(20).max(50).default(50),

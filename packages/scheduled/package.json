@@ -9,7 +9,6 @@
 		"@bandori-stats/database": "workspace:*",
 		"@trigger.dev/sdk": "4.1.2",
 		"fast-shuffle": "^6.1.1",
-		"p-limit": "^7.2.0",
 		"zod": "^4.1.13"
 	}
 }

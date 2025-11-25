@@ -1,7 +1,7 @@
 import { AbortTaskRunError, logger, schemaTask } from "@trigger.dev/sdk/v3";
 import z from "zod";
 
-import { bestdori } from "~/bestdori";
+import { bestdori, bestdoriQueue } from "~/bestdori";
 
 const LEADERBOARD_STATS = [
 	"hsr",
@@ -33,6 +33,7 @@ const StatsResponse = z.strictObject({
 
 export const getStats = schemaTask({
 	id: "get-stats",
+	queue: bestdoriQueue,
 	schema: z.object({ username: z.string().nonempty() }),
 	run: async ({ username }) => {
 		logger.debug("fetching stats", { username });
