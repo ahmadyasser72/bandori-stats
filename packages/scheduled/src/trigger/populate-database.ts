@@ -11,7 +11,6 @@ import { getStats } from "./get-stats";
 
 export const populateDatabase = schedules.task({
 	id: "populate-database",
-	machine: "micro",
 	cron: "0 0 * * *",
 	run: async (payload) => {
 		logger.log("querying latest snapshots");
