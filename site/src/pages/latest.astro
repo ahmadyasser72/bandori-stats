@@ -1,5 +1,5 @@
 ---
-import { db, gt } from "@bandori-stats/database/client";
+import { db, gt } from "@bandori-stats/database";
 import { latestSnapshots } from "@bandori-stats/database/schema";
 
 import BaseLayout from "~/layouts/base-layout.astro";
@@ -40,7 +40,7 @@ const entries = await nextPage();
 		<table class="table-xs table">
 			<thead>
 				<tr class="bg-base-100 sticky top-0 z-10">
-					<th class="bg-base-100 sticky left-0">Username</th>
+					<th>Username</th>
 					<th>Last updated</th>
 					<th>Rank</th>
 					<th>Cleared</th>
@@ -58,8 +58,10 @@ const entries = await nextPage();
 							<tr
 								{...(idx === pageSize - 1 ? nextPageHtmxProps(accountId) : {})}
 							>
-								<th class="bg-base-100/20 sticky left-0 shadow-sm backdrop-blur-sm">
-									<p class="w-36 wrap-break-word">{username}</p>
+								<th class="bg-base-100/20 sticky left-0 pl-0 shadow-sm">
+									<p class="w-36 overflow-clip text-ellipsis">
+										<span class="bg-base-100 px-4">{username}</span>
+									</p>
 								</th>
 								<td>{snapshotDate}</td>
 
