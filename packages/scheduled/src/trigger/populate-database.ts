@@ -1,9 +1,5 @@
 import { db, eq, sql } from "@bandori-stats/database";
-import {
-	accounts,
-	accountSnapshots,
-	latestSnapshots,
-} from "@bandori-stats/database/schema";
+import { accounts, accountSnapshots } from "@bandori-stats/database/schema";
 import { logger, schedules } from "@trigger.dev/sdk/v3";
 import { shuffle } from "fast-shuffle";
 
@@ -15,11 +11,12 @@ export const populateDatabase = schedules.task({
 	cron: "0 0 * * *",
 	run: async (payload) => {
 		logger.log("querying latest snapshots");
-		const latestSnapshotsByUsername = await db
-			.select()
-			.from(latestSnapshots)
+		const latestSnapshotsByUsername = await db.query.accounts
+			.findMany({ with: { latestSnapshot: true } })
 			.then((rows) =>
-				rows.map(({ username, ...rest }) => [username, rest] as const),
+				rows.map(
+					({ username, latestSnapshot }) => [username, latestSnapshot] as const,
+				),
 			)
 			.then((entries) => Object.fromEntries(entries));
 

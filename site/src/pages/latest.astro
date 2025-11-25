@@ -1,6 +1,5 @@
 ---
-import { db, gt } from "@bandori-stats/database";
-import { latestSnapshots } from "@bandori-stats/database/schema";
+import { db } from "@bandori-stats/database";
 
 import BaseLayout from "~/layouts/base-layout.astro";
 
@@ -10,14 +9,22 @@ const pageSize = 25;
 const nextPage = async () => {
 	const cursor = Number(params.get("cursor") ?? NaN);
 
-	return db
-		.select()
-		.from(latestSnapshots)
-		.where(
-			!Number.isNaN(cursor) ? gt(latestSnapshots.accountId, cursor) : undefined,
-		)
-		.orderBy(latestSnapshots.accountId)
-		.limit(pageSize);
+	return db.query.accounts
+		.findMany({
+			columns: { id: true, username: true },
+			with: { latestSnapshot: true },
+			where: ({ id }, { gt }) =>
+				!Number.isNaN(cursor) ? gt(id, cursor) : undefined,
+			orderBy: ({ id }) => id,
+			limit: pageSize,
+		})
+		.then((entries) =>
+			entries
+				.map(({ id, username, latestSnapshot }) =>
+					latestSnapshot ? { id, username, latestSnapshot } : null,
+				)
+				.filter((entry) => entry !== null),
+		);
 };
 
 const nextPageHtmxProps = (cursor: number) => {
@@ -33,6 +40,14 @@ const nextPageHtmxProps = (cursor: number) => {
 };
 
 const entries = await nextPage();
+const statKeys = [
+	"highScoreRating",
+	"bandRating",
+	"clearCount",
+	"allPerfectCount",
+	"fullComboCount",
+	"rank",
+] as const;
 ---
 
 <BaseLayout>
@@ -53,26 +68,26 @@ const entries = await nextPage();
 
 			<tbody>
 				{
-					entries.map(
-						({ username, snapshotDate, accountId, ...stats }, idx) => (
-							<tr
-								{...(idx === pageSize - 1 ? nextPageHtmxProps(accountId) : {})}
-							>
-								<th class="bg-base-100/20 sticky left-0 pl-0 shadow-sm">
-									<p class="w-36 overflow-clip text-ellipsis">
-										<span class="bg-base-100 px-4">{username}</span>
-									</p>
-								</th>
-								<td>{snapshotDate}</td>
+					entries.map(({ id, username, latestSnapshot }, idx) => (
+						<tr {...(idx === pageSize - 1 ? nextPageHtmxProps(id) : {})}>
+							<th class="bg-base-100/20 sticky left-0 pl-0 shadow-sm">
+								<p class="w-36 overflow-clip text-ellipsis">
+									<span class="bg-base-100 px-4">{username}</span>
+								</p>
+							</th>
+							<td>{latestSnapshot.snapshotDate}</td>
 
-								{Object.values(stats).map((stat) => (
-									<td>
-										{stat ? stat : <b class="text-base-content/40">Private</b>}
-									</td>
-								))}
-							</tr>
-						),
-					)
+							{statKeys.map((stat) => (
+								<td>
+									{latestSnapshot[stat] ? (
+										latestSnapshot[stat]
+									) : (
+										<b class="text-base-content/40">Private</b>
+									)}
+								</td>
+							))}
+						</tr>
+					))
 				}
 			</tbody>
 		</table>

@@ -1,10 +1,11 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, relations, sql } from "drizzle-orm";
 import {
 	integer,
 	sqliteTable,
 	sqliteView,
 	text,
 	unique,
+	type AnySQLiteColumn,
 } from "drizzle-orm/sqlite-core";
 
 export const accounts = sqliteTable(
@@ -13,9 +14,26 @@ export const accounts = sqliteTable(
 		id: integer().primaryKey({ autoIncrement: true }),
 		username: text().notNull(),
 		server: integer().notNull(),
+
+		latestSnapshotId: integer().references(
+			(): AnySQLiteColumn => accountSnapshots.id,
+			{ onDelete: "set null" },
+		),
 	},
-	(t) => [unique("idx_accounts_username").on(t.username)],
+	(t) => [
+		unique("idx_accounts_username").on(t.username),
+		unique("idx_latest_snapshot").on(t.latestSnapshotId),
+	],
 );
+
+export const accountsRelations = relations(accounts, ({ one, many }) => ({
+	latestSnapshot: one(accountSnapshots, {
+		fields: [accounts.latestSnapshotId],
+		references: [accountSnapshots.id],
+		relationName: "latestSnapshot",
+	}),
+	snapshots: many(accountSnapshots, { relationName: "allSnapshots" }),
+}));
 
 export const accountSnapshots = sqliteTable(
 	"account_snapshots",
@@ -41,41 +59,13 @@ export const accountSnapshots = sqliteTable(
 	(t) => [unique("idx_snapshots_account_date").on(t.accountId, t.snapshotDate)],
 );
 
-export const latestSnapshots = sqliteView("latest_snapshots").as((qb) => {
-	// Subquery: latest date per account
-	const latestDateSq = qb
-		.select({
-			accountId: accountSnapshots.accountId,
-			latestDate: sql`MAX(${accountSnapshots.snapshotDate})`.as("latestDate"),
-		})
-		.from(accountSnapshots)
-		.groupBy(accountSnapshots.accountId)
-		.as("latest");
-
-	type Columns = typeof accountSnapshots.$inferSelect;
-	const aliased = <C extends keyof Columns>(columnName: C) =>
-		sql<Columns[C]>`${accountSnapshots[columnName]}`.as(columnName);
-
-	return qb
-		.select({
-			accountId: accounts.id,
-			username: accounts.username,
-
-			snapshotDate: aliased("snapshotDate"),
-			rank: aliased("rank"),
-			clearCount: aliased("clearCount"),
-			fullComboCount: aliased("fullComboCount"),
-			allPerfectCount: aliased("allPerfectCount"),
-			highScoreRating: aliased("highScoreRating"),
-			bandRating: aliased("bandRating"),
-		})
-		.from(accounts)
-		.innerJoin(latestDateSq, eq(accounts.id, latestDateSq.accountId))
-		.innerJoin(
-			accountSnapshots,
-			and(
-				eq(accountSnapshots.accountId, latestDateSq.accountId),
-				eq(accountSnapshots.snapshotDate, latestDateSq.latestDate),
-			),
-		);
-});
+export const accountSnapshotsRelations = relations(
+	accountSnapshots,
+	({ one }) => ({
+		account: one(accounts, {
+			fields: [accountSnapshots.accountId],
+			references: [accounts.id],
+			relationName: "snapshotAccount",
+		}),
+	}),
+);
