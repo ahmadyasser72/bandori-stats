@@ -56,7 +56,18 @@ export const accountSnapshots = sqliteTable(
 			.default(sql`(CURRENT_DATE)`)
 			.notNull(),
 	},
-	(t) => [unique("idx_snapshots_account_date").on(t.accountId, t.snapshotDate)],
+	(t) => [
+		unique("idx_snapshots_date").on(t.accountId, t.snapshotDate),
+		unique("idx_snapshots_stat").on(
+			t.accountId,
+			t.rank,
+			t.clearCount,
+			t.fullComboCount,
+			t.allPerfectCount,
+			t.highScoreRating,
+			t.bandRating,
+		),
+	],
 );
 
 export const accountSnapshotsRelations = relations(
