@@ -4,6 +4,7 @@ import { logger, schemaTask } from "@trigger.dev/sdk";
 import z from "zod";
 
 import { getStats } from "./get-stats";
+import { SELECT_STAT_COLUMNS } from "./shared";
 
 export const insertSnapshot = schemaTask({
 	id: "insert-snapshot",
@@ -31,18 +32,7 @@ export const insertSnapshot = schemaTask({
 		const existing = await db.query.accounts.findFirst({
 			columns: { id: true },
 			where: (t, { eq }) => eq(t.username, username),
-			with: {
-				latestSnapshot: {
-					columns: {
-						highScoreRating: true,
-						bandRating: true,
-						allPerfectCount: true,
-						fullComboCount: true,
-						clearCount: true,
-						rank: true,
-					},
-				},
-			},
+			with: { latestSnapshot: { columns: SELECT_STAT_COLUMNS } },
 		});
 
 		const updateLatestSnapshotId = (accountId: number, snapshotId: number) =>
@@ -76,12 +66,15 @@ export const insertSnapshot = schemaTask({
 				})
 				.returning({ id: accountSnapshots.id });
 
-			if (newSnapshot)
+			if (newSnapshot) {
 				await updateLatestSnapshotId(existing.id, newSnapshot.id);
+				return { snapshotId: newSnapshot.id };
+			}
 
 			return;
 		}
 
+		logger.log("inserting new account", { username });
 		const [newAccount] = await db
 			.insert(accounts)
 			.values({ server: stats.server, username })
@@ -100,5 +93,6 @@ export const insertSnapshot = schemaTask({
 			.returning({ id: accountSnapshots.id });
 
 		await updateLatestSnapshotId(accountId, newSnapshot!.id);
+		return { snapshotId: newSnapshot!.id };
 	},
 });

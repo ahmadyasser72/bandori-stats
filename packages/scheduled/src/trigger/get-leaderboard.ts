@@ -1,28 +1,18 @@
-import { AbortTaskRunError, logger, schemaTask } from "@trigger.dev/sdk";
+import { AbortTaskRunError, schemaTask } from "@trigger.dev/sdk";
 import z from "zod";
 
 import { bestdori, bestdoriQueue } from "~/bestdori";
 import type { LeaderboardStat } from "./get-stats";
+import { STAT_COLUMNS, type StatName } from "./shared";
 
-export const LEADERBOARD_TYPES = [
-	"high-score-rating",
-	"band-rating",
-	"all-perfect",
-	"full-combo",
-	"cleared",
-	"rank",
-] as const;
-
-type LeaderboardType = (typeof LEADERBOARD_TYPES)[number];
-
-const leaderboardTypeMap = {
-	"high-score-rating": "hsr",
-	"band-rating": "dtr",
-	"all-perfect": "allPerfectCount",
-	"full-combo": "fullComboCount",
-	cleared: "clearCount",
+const leaderboardTypeMap: Record<StatName, LeaderboardStat> = {
+	highScoreRating: "hsr",
+	bandRating: "dtr",
+	allPerfectCount: "allPerfectCount",
+	fullComboCount: "fullComboCount",
+	clearCount: "clearCount",
 	rank: "rank",
-} satisfies Record<LeaderboardType, LeaderboardStat>;
+};
 
 const LeaderboardResponse = z.strictObject({
 	result: z.literal(true),
@@ -42,12 +32,11 @@ export const getLeaderboard = schemaTask({
 	id: "get-leaderboard",
 	queue: bestdoriQueue,
 	schema: z.object({
-		type: z.enum(LEADERBOARD_TYPES),
+		type: z.enum(STAT_COLUMNS),
 		limit: z.number().min(20).max(50).default(50),
 		offset: z.number().nonnegative().default(0),
 	}),
 	run: async ({ type, limit, offset }) => {
-		logger.debug("fetching leaderboard", { type });
 		const { success, data, error } = LeaderboardResponse.safeParse(
 			await bestdori("api/sync/list/player", {
 				server: "1",

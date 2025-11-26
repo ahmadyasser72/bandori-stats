@@ -1,13 +1,14 @@
 import { db } from "@bandori-stats/database";
-import { schedules } from "@trigger.dev/sdk/v3";
+import { logger, schedules } from "@trigger.dev/sdk/v3";
 import dayjs from "dayjs";
 import { shuffle } from "fast-shuffle";
 
-import { getLeaderboard, LEADERBOARD_TYPES } from "./get-leaderboard";
+import { getLeaderboard } from "./get-leaderboard";
 import { populateDatabase } from "./populate-database";
+import { STAT_COLUMNS } from "./shared";
 
-export const queuePopulateDatabase = schedules.task({
-	id: "queue-populate-database",
+export const enqueuePopulateDatabase = schedules.task({
+	id: "enqueue-populate-database",
 	cron: "0 0 * * *",
 	run: async (payload) => {
 		const existingUsernames = await db.query.accounts
@@ -18,7 +19,7 @@ export const queuePopulateDatabase = schedules.task({
 			await getLeaderboard.batchTriggerAndWait(
 				shuffle(
 					Array.from({ length: 4 }).flatMap((_, page) =>
-						LEADERBOARD_TYPES.map((type) => ({
+						STAT_COLUMNS.map((type) => ({
 							payload: { type, limit: 20, offset: page * 20 },
 							options: {
 								delay: dayjs()
@@ -47,6 +48,7 @@ export const queuePopulateDatabase = schedules.task({
 			Array.from({ length: 24 }, (): string[] => []),
 		);
 
+		logger.log("enqueue usernames", { chunks: usernameChunks, date });
 		await populateDatabase.batchTrigger(
 			usernameChunks.map((usernames, idx) => ({
 				payload: { usernames, date },

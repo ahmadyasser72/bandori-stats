@@ -4,7 +4,7 @@
 	"private": true,
 	"exports": {
 		".": "./src/db.ts",
-		"./schema": "./src/schema.ts"
+		"./schema": "./src/schema/index.ts"
 	},
 	"scripts": {
 		"db:push": "drizzle-kit push"

@@ -27,6 +27,7 @@
 		"noPropertyAccessFromIndexSignature": false,
 
 		"baseUrl": ".",
-		"paths": { "~/*": ["./src/*"] }
+		"paths": { "~/*": ["./src/*"] },
+		"types": ["../../object.d.ts"]
 	}
 }
