@@ -47,7 +47,7 @@ export const queuePopulateDatabase = schedules.task({
 			Array.from({ length: 24 }, (): string[] => []),
 		);
 
-		populateDatabase.batchTrigger(
+		await populateDatabase.batchTrigger(
 			usernameChunks.map((usernames, idx) => ({
 				payload: { usernames, date },
 				options: {

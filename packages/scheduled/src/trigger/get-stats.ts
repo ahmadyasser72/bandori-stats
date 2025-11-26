@@ -47,7 +47,6 @@ export const getStats = schemaTask({
 		return (
 			accounts
 				.map((stat) => ({
-					username,
 					server: stat.server,
 					highScoreRating: stat.hsr ?? null,
 					bandRating: stat.dtr ?? null,

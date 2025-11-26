@@ -3,23 +3,31 @@ import { accounts, accountSnapshots } from "@bandori-stats/database/schema";
 import { logger, schemaTask } from "@trigger.dev/sdk";
 import z from "zod";
 
-const statValue = z.number().nonnegative().nullable();
+import { getStats } from "./get-stats";
+
 export const insertSnapshot = schemaTask({
 	id: "insert-snapshot",
 	schema: z.strictObject({
-		server: z.number().nonnegative(),
 		username: z.string().nonempty(),
 		date: z.iso.date(),
-		stats: z.strictObject({
-			highScoreRating: statValue,
-			bandRating: statValue,
-			allPerfectCount: statValue,
-			fullComboCount: statValue,
-			clearCount: statValue,
-			rank: statValue,
-		}),
 	}),
-	run: async ({ server, username, date, stats }) => {
+	run: async ({ username, date }) => {
+		const stats = await getStats
+			.triggerAndWait(
+				{ username },
+				{
+					tags: `stats/${username}`,
+					idempotencyKey: `stats-${username}`,
+					idempotencyKeyTTL: "1d",
+				},
+			)
+			.unwrap();
+
+		if (!stats) {
+			logger.log("stats unavailable", { username });
+			return;
+		}
+
 		const existing = await db.query.accounts.findFirst({
 			columns: { id: true },
 			where: (t, { eq }) => eq(t.username, username),
@@ -76,7 +84,7 @@ export const insertSnapshot = schemaTask({
 
 		const [newAccount] = await db
 			.insert(accounts)
-			.values({ server, username })
+			.values({ server: stats.server, username })
 			.onConflictDoNothing()
 			.returning({ id: accounts.id });
 
