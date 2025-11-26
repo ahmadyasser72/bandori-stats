@@ -45,7 +45,7 @@ export const populateDatabase = schedules.task({
 				usernames.map((username) => ({
 					payload: { username },
 					options: {
-						tags: `user/${username}`,
+						tags: `stats/${username}`,
 						idempotencyKey: `stats-${username}`,
 						idempotencyKeyTTL: "1d",
 					},
