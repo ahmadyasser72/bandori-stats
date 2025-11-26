@@ -1,4 +1,5 @@
 import { schemaTask } from "@trigger.dev/sdk";
+import dayjs from "dayjs";
 import z from "zod";
 
 import { getStats } from "./get-stats";
@@ -10,12 +11,15 @@ export const populateDatabase = schemaTask({
 		usernames: z.array(z.string().nonempty()).nonempty(),
 		date: z.iso.date(),
 	}),
-	run: async ({ usernames, date }) => {
+	run: async ({ usernames, date }, { ctx }) => {
 		const stats = (
 			await getStats.batchTriggerAndWait(
 				usernames.map((username) => ({
 					payload: { username },
 					options: {
+						delay: dayjs(ctx.run.startedAt)
+							.add(Math.random() * 60)
+							.toDate(),
 						tags: `stats/${username}`,
 						idempotencyKey: `stats-${username}`,
 						idempotencyKeyTTL: "1d",
