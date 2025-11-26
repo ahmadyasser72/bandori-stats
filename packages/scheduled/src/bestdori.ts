@@ -1,10 +1,9 @@
-import { queue, wait } from "@trigger.dev/sdk";
+import { queue } from "@trigger.dev/sdk";
 
 export const bestdori = async (path: string, query: Record<string, string>) => {
 	const url = new URL(path, "https://bestdori.com/");
 	url.search = new URLSearchParams(query).toString();
 
-	await wait.for({ seconds: 5 + Math.random() });
 	const response = await fetch(url);
 	const contentType = response.headers.get("content-type") ?? "";
 	if (!response.ok || !contentType.startsWith("application/json"))

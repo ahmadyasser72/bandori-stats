@@ -21,6 +21,9 @@ export const queuePopulateDatabase = schedules.task({
 						LEADERBOARD_TYPES.map((type) => ({
 							payload: { type, limit: 20, offset: page * 20 },
 							options: {
+								delay: dayjs()
+									.add(Math.random() * 240, "seconds")
+									.toDate(),
 								tags: `leaderboard/${type}/${page}`,
 								idempotencyKey: `leaderboard-${type}-${page}`,
 								idempotencyKeyTTL: "1d",
