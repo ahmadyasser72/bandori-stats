@@ -36,8 +36,8 @@ export const updateZScore = schemaTask({
 
 		const data = Object.fromEntries(
 			STAT_COLUMNS.flatMap((column) => [
-				[`sum_${column}` as const, current ? current[`sum_${column}`] : 0],
-				[`sum_${column}2` as const, current ? current[`sum_${column}2`] : 0],
+				[`sum_${column}` as const, current ? current[`sum_${column}`] : 0n],
+				[`sum_${column}2` as const, current ? current[`sum_${column}2`] : 0n],
 			]),
 		);
 
@@ -70,8 +70,8 @@ export const updateZScore = schemaTask({
 
 				const previousSnapshot = previousSnapshots.get(username);
 				for (const column of STAT_COLUMNS) {
-					const value = latestSnapshot[column] ?? 0;
-					const prev = previousSnapshot?.[column] ?? 0;
+					const value = BigInt(latestSnapshot[column] ?? 0);
+					const prev = BigInt(previousSnapshot?.[column] ?? 0);
 					data[`sum_${column}`]! += value - prev;
 					data[`sum_${column}2`]! += value * value - prev * prev;
 				}
@@ -92,7 +92,7 @@ export const updateZScore = schemaTask({
 
 				rowCount += 1;
 				for (const column of STAT_COLUMNS) {
-					const value = latestSnapshot[column] ?? 0;
+					const value = BigInt(latestSnapshot[column] ?? 0);
 					data[`sum_${column}`]! += value;
 					data[`sum_${column}2`]! += value * value;
 				}
@@ -100,7 +100,7 @@ export const updateZScore = schemaTask({
 
 			const to = { ...data, latestSnapshotId, rowCount };
 			logger.log("set z-score", { to });
-			await db.insert(zScore).values(to as never);
+			await db.insert(zScore).values(to);
 		}
 	},
 });

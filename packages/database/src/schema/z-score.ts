@@ -1,5 +1,5 @@
-import { relations, sql } from "drizzle-orm";
-import { integer, real, sqliteTable } from "drizzle-orm/sqlite-core";
+import { relations } from "drizzle-orm";
+import { blob, integer, sqliteTable } from "drizzle-orm/sqlite-core";
 
 import { accountSnapshots } from ".";
 
@@ -16,16 +16,8 @@ const STAT_COLUMNS = Object.fromEntries(
 	).flatMap(
 		(column) =>
 			[
-				[`sum_${column}`, real().notNull()],
-				[`sum_${column}2`, real().notNull()],
-				[
-					`mean_${column}`,
-					real()
-						.notNull()
-						.generatedAlwaysAs(sql.raw(`sum_${column} / rowCount`), {
-							mode: "stored",
-						}),
-				],
+				[`sum_${column}`, blob({ mode: "bigint" }).notNull()],
+				[`sum_${column}2`, blob({ mode: "bigint" }).notNull()],
 			] as const,
 	),
 );
