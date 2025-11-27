@@ -2,6 +2,9 @@
 	"name": "@bandori-stats/scheduled",
 	"type": "module",
 	"private": true,
+	"scripts": {
+		"deploy": "trigger deploy"
+	},
 	"devDependencies": {
 		"@trigger.dev/build": "4.1.2",
 		"trigger.dev": "^4.1.2"
