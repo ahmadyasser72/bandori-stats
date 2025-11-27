@@ -17,7 +17,7 @@ export const populateDatabase = schemaTask({
 				payload: { username, date },
 				options: {
 					delay: dayjs(ctx.run.startedAt)
-						.add(Math.random() * 55)
+						.add(Math.random() * 55, "minutes")
 						.toDate(),
 					tags: `${username}/${date}`,
 					idempotencyKey: `insert-${username}:${date}`,
