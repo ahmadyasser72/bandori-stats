@@ -1,9 +1,9 @@
+import { STAT_COLUMNS, type StatName } from "@bandori-stats/database/constants";
 import { AbortTaskRunError, schemaTask } from "@trigger.dev/sdk";
 import z from "zod";
 
 import { bestdori, bestdoriQueue } from "~/bestdori";
 import type { LeaderboardStat } from "./get-stats";
-import { STAT_COLUMNS, type StatName } from "./shared";
 
 const leaderboardTypeMap: Record<StatName, LeaderboardStat> = {
 	highScoreRating: "hsr",

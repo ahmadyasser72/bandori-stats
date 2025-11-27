@@ -1,11 +1,11 @@
 import { db } from "@bandori-stats/database";
+import { STAT_COLUMNS } from "@bandori-stats/database/constants";
 import { logger, schedules } from "@trigger.dev/sdk/v3";
 import dayjs from "dayjs";
 import { shuffle } from "fast-shuffle";
 
 import { getLeaderboard } from "./get-leaderboard";
 import { populateDatabase } from "./populate-database";
-import { STAT_COLUMNS } from "./shared";
 
 export const enqueuePopulateDatabase = schedules.task({
 	id: "enqueue-populate-database",

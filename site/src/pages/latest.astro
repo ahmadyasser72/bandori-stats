@@ -1,18 +1,27 @@
 ---
 import { db } from "@bandori-stats/database";
+import {
+	SELECT_STAT_COLUMNS,
+	STAT_COLUMNS,
+} from "@bandori-stats/database/constants";
+import { titleCase } from "text-case";
 
 import BaseLayout from "~/layouts/base-layout.astro";
 
 const params = Astro.url.searchParams;
 
-const pageSize = 25;
+const pageSize = 50;
 const nextPage = async () => {
 	const cursor = Number(params.get("cursor") ?? NaN);
 
 	return db.query.accounts
 		.findMany({
 			columns: { id: true, username: true },
-			with: { latestSnapshot: true },
+			with: {
+				latestSnapshot: {
+					columns: { ...SELECT_STAT_COLUMNS, snapshotDate: true },
+				},
+			},
 			where: ({ id }, { gt }) =>
 				!Number.isNaN(cursor) ? gt(id, cursor) : undefined,
 			orderBy: ({ id }) => id,
@@ -40,14 +49,6 @@ const nextPageHtmxProps = (cursor: number) => {
 };
 
 const entries = await nextPage();
-const statKeys = [
-	"highScoreRating",
-	"bandRating",
-	"clearCount",
-	"allPerfectCount",
-	"fullComboCount",
-	"rank",
-] as const;
 ---
 
 <BaseLayout>
@@ -57,12 +58,7 @@ const statKeys = [
 				<tr class="bg-base-100 sticky top-0 z-10">
 					<th>Username</th>
 					<th>Last updated</th>
-					<th>Rank</th>
-					<th>Cleared</th>
-					<th>Full Combo</th>
-					<th>All Perfect</th>
-					<th>High Score Rating</th>
-					<th>Band Rating</th>
+					{STAT_COLUMNS.map((column) => <th>{titleCase(column)}</th>)}
 				</tr>
 			</thead>
 
@@ -77,10 +73,10 @@ const statKeys = [
 							</th>
 							<td>{latestSnapshot.snapshotDate}</td>
 
-							{statKeys.map((stat) => (
+							{STAT_COLUMNS.map((column) => (
 								<td>
-									{latestSnapshot[stat] ? (
-										latestSnapshot[stat]
+									{latestSnapshot[column] ? (
+										latestSnapshot[column]
 									) : (
 										<b class="text-base-content/40">Private</b>
 									)}

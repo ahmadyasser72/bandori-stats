@@ -4,6 +4,7 @@
 	"private": true,
 	"exports": {
 		".": "./src/db.ts",
+		"./constants": "./src/constants.ts",
 		"./schema": "./src/schema/index.ts"
 	},
 	"scripts": {

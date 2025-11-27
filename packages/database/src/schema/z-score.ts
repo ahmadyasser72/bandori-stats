@@ -7,17 +7,9 @@ import {
 } from "drizzle-orm/sqlite-core";
 
 import { accountSnapshots } from ".";
+import { STAT_COLUMNS, type StatName } from "../constants";
 
-const STAT_COLUMNS = [
-	"rank",
-	"clearCount",
-	"fullComboCount",
-	"allPerfectCount",
-	"highScoreRating",
-	"bandRating",
-] as const;
-
-const statColumns = <K extends (typeof STAT_COLUMNS)[number]>(column: K) => ({
+const statColumns = <K extends StatName>(column: K) => ({
 	...Object.fromEntries([[`n_${column}` as const, integer().notNull()]]),
 	...Object.fromEntries([
 		[`mean_${column}` as const, real().notNull()],

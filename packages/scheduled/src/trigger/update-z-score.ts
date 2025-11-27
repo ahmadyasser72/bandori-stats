@@ -1,9 +1,11 @@
 import { db } from "@bandori-stats/database";
+import {
+	SELECT_STAT_COLUMNS,
+	STAT_COLUMNS,
+} from "@bandori-stats/database/constants";
 import { zScore } from "@bandori-stats/database/schema";
 import { logger, schemaTask } from "@trigger.dev/sdk";
 import z from "zod";
-
-import { SELECT_STAT_COLUMNS, STAT_COLUMNS } from "./shared";
 
 export const updateZScore = schemaTask({
 	id: "update-z-score",

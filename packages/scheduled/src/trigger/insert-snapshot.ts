@@ -1,10 +1,10 @@
 import { db, eq } from "@bandori-stats/database";
+import { SELECT_STAT_COLUMNS } from "@bandori-stats/database/constants";
 import { accounts, accountSnapshots } from "@bandori-stats/database/schema";
 import { logger, schemaTask } from "@trigger.dev/sdk";
 import z from "zod";
 
 import { getStats } from "./get-stats";
-import { SELECT_STAT_COLUMNS } from "./shared";
 
 export const insertSnapshot = schemaTask({
 	id: "insert-snapshot",
