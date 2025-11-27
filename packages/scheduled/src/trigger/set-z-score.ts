@@ -7,8 +7,8 @@ import { zScore } from "@bandori-stats/database/schema";
 import { logger, schemaTask } from "@trigger.dev/sdk";
 import z from "zod";
 
-export const updateZScore = schemaTask({
-	id: "update-z-score",
+export const setZScore = schemaTask({
+	id: "set-z-score",
 	schema: z.strictObject({ latestSnapshotId: z.number().nonnegative() }),
 	run: async ({ latestSnapshotId }) => {
 		const current = await db.query.zScore.findFirst({
@@ -112,7 +112,7 @@ export const updateZScore = schemaTask({
 
 		const to = { ...data, latestSnapshotId };
 		logger.log("set z-score", { from: current, to });
-		const set = current ? db.update(zScore).set : db.insert(zScore).values;
-		await set(to);
+		if (current) await db.update(zScore).set(to);
+		else await db.insert(zScore).values(to);
 	},
 });

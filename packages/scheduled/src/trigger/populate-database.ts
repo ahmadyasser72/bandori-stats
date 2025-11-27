@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 import z from "zod";
 
 import { insertSnapshot } from "./insert-snapshot";
-import { updateZScore } from "./update-z-score";
+import { setZScore } from "./set-z-score";
 
 export const populateDatabase = schemaTask({
 	id: "populate-database",
@@ -42,7 +42,7 @@ export const populateDatabase = schemaTask({
 				latestSnapshotId = Math.max(latestSnapshotId, run.output.snapshotId);
 		}
 
-		await updateZScore.trigger(
+		await setZScore.trigger(
 			{ latestSnapshotId },
 			{ tags: `update-z-score-${date}/${dayjs().get("hours")}` },
 		);
