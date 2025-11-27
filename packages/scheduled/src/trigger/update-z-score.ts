@@ -12,18 +12,18 @@ export const updateZScore = schemaTask({
 		const current = await db.query.zScore.findFirst({
 			columns: {
 				latestSnapshotId: true,
-				rowCount: true,
 				...Object.fromEntries(
 					STAT_COLUMNS.flatMap((column) => [
-						[`sum_${column}` as const, true],
-						[`sum_${column}2` as const, true],
+						[`n_${column}` as const, true],
+						[`mean_${column}` as const, true],
+						[`m2_${column}` as const, true],
 					]),
 				),
 			},
 		});
 
-		const rows = await db.query.accounts.findMany({
-			columns: { username: true },
+		const accountRows = await db.query.accounts.findMany({
+			columns: { id: true, username: true },
 			where: (t, { and, gt, lte }) =>
 				current
 					? and(
@@ -31,76 +31,86 @@ export const updateZScore = schemaTask({
 							lte(t.latestSnapshotId, latestSnapshotId),
 						)
 					: lte(t.latestSnapshotId, latestSnapshotId),
-			with: { latestSnapshot: { columns: SELECT_STAT_COLUMNS } },
+			with: {
+				latestSnapshot: { columns: { ...SELECT_STAT_COLUMNS, id: true } },
+			},
 		});
 
 		const data = Object.fromEntries(
 			STAT_COLUMNS.flatMap((column) => [
-				[`sum_${column}` as const, current ? current[`sum_${column}`] : 0n],
-				[`sum_${column}2` as const, current ? current[`sum_${column}2`] : 0n],
+				[`n_${column}` as const, current ? current[`n_${column}`] : 0],
+				[`mean_${column}` as const, current ? current[`mean_${column}`] : 0],
+				[`m2_${column}` as const, current ? current[`m2_${column}`] : 0],
 			]),
 		);
 
+		const previousSnapshots = new Map<
+			number,
+			Required<(typeof accountRows)[number]["latestSnapshot"]>
+		>();
+
 		if (current) {
-			const previousSnapshots = await db.query.accounts
-				.findMany({
-					columns: { username: true },
-					where: (t, { and, inArray, lte }) =>
-						and(
-							lte(t.latestSnapshotId, current.latestSnapshotId),
-							inArray(
-								t.username,
-								rows.map(({ username }) => username),
-							),
+			const previousSnapshotRows = await db.query.accountSnapshots.findMany({
+				columns: { ...SELECT_STAT_COLUMNS, accountId: true, id: true },
+				where: (t, { and, inArray, lte }) =>
+					and(
+						lte(t.id, current.latestSnapshotId),
+						inArray(
+							t.accountId,
+							accountRows.map(({ id }) => id),
 						),
-					with: { latestSnapshot: { columns: SELECT_STAT_COLUMNS } },
-				})
-				.then(
-					(snapshots) =>
-						new Map(
-							snapshots.map(({ username, latestSnapshot }) => [
-								username,
-								latestSnapshot,
-							]),
-						),
-				);
+					),
+			});
 
-			for (const { username, latestSnapshot } of rows) {
-				if (!latestSnapshot) continue;
-
-				const previousSnapshot = previousSnapshots.get(username);
-				for (const column of STAT_COLUMNS) {
-					const value = BigInt(latestSnapshot[column] ?? 0);
-					const prev = BigInt(previousSnapshot?.[column] ?? 0);
-					data[`sum_${column}`]! += value - prev;
-					data[`sum_${column}2`]! += value * value - prev * prev;
-				}
+			for (const { accountId, ...snapshot } of previousSnapshotRows) {
+				const existing = previousSnapshots.get(accountId);
+				if (!existing || existing.id < snapshot.id)
+					previousSnapshots.set(accountId, snapshot);
 			}
-
-			const to = {
-				...data,
-				latestSnapshotId,
-				rowCount: current.rowCount + rows.length - previousSnapshots.size,
-			};
-
-			logger.log("update z-score", { from: current, to });
-			await db.update(zScore).set(to);
-		} else {
-			let rowCount = 0;
-			for (const { latestSnapshot } of rows) {
-				if (!latestSnapshot) continue;
-
-				rowCount += 1;
-				for (const column of STAT_COLUMNS) {
-					const value = BigInt(latestSnapshot[column] ?? 0);
-					data[`sum_${column}`]! += value;
-					data[`sum_${column}2`]! += value * value;
-				}
-			}
-
-			const to = { ...data, latestSnapshotId, rowCount };
-			logger.log("set z-score", { to });
-			await db.insert(zScore).values(to);
 		}
+
+		for (const { id, latestSnapshot } of accountRows) {
+			if (!latestSnapshot) continue;
+
+			const previousSnapshot = previousSnapshots.get(id);
+			for (const column of STAT_COLUMNS) {
+				const newValue = latestSnapshot[column];
+				if (newValue === null) continue;
+				const oldValue = previousSnapshot?.[column] ?? null;
+
+				let n = data[`n_${column}`]!;
+				let mean = data[`mean_${column}`]!;
+				let m2 = data[`m2_${column}`]!;
+
+				if (oldValue !== null) {
+					if (n > 1) {
+						const delta = oldValue - mean;
+						mean -= delta / (n - 1);
+						m2 -= delta * (oldValue - mean);
+					} else {
+						mean = 0;
+						m2 = 0;
+					}
+
+					n -= 1;
+				}
+
+				{
+					const delta = newValue - mean;
+					n += 1;
+					mean += delta / n;
+					m2 += delta * (newValue - mean);
+				}
+
+				data[`n_${column}`] = n;
+				data[`mean_${column}`] = mean;
+				data[`m2_${column}`] = m2;
+			}
+		}
+
+		const to = { ...data, latestSnapshotId };
+		logger.log("set z-score", { from: current, to });
+		const set = current ? db.update(zScore).set : db.insert(zScore).values;
+		await set(to);
 	},
 });
