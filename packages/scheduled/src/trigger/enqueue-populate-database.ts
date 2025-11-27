@@ -23,11 +23,9 @@ export const enqueuePopulateDatabase = schedules.task({
 							payload: { type, limit: 20, offset: page * 20 },
 							options: {
 								delay: dayjs()
-									.add(Math.random() * 240, "seconds")
+									.add(Math.random() * 300, "seconds")
 									.toDate(),
 								tags: `leaderboard/${type}/${page}`,
-								idempotencyKey: `leaderboard-${type}-${page}`,
-								idempotencyKeyTTL: "1d",
 							},
 						})),
 					),
@@ -53,10 +51,10 @@ export const enqueuePopulateDatabase = schedules.task({
 			usernameChunks.map((usernames, idx) => ({
 				payload: { usernames, date },
 				options: {
-					delay: dayjs().add(idx, "hours").toDate(),
+					delay: dayjs().add(idx, "hours").startOf("hours").toDate(),
+					ttl: dayjs().endOf("days").diff(dayjs(), "seconds"),
 					tags: `populate-database/${date}/${idx}`,
 					idempotencyKey: `populate-database:${date}:${idx}`,
-					idempotencyKeyTTL: "1d",
 				},
 			})),
 		);

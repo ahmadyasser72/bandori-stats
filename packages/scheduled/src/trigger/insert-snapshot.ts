@@ -14,14 +14,7 @@ export const insertSnapshot = schemaTask({
 	}),
 	run: async ({ username, date }) => {
 		const stats = await getStats
-			.triggerAndWait(
-				{ username },
-				{
-					tags: `stats/${username}`,
-					idempotencyKey: `stats-${username}`,
-					idempotencyKeyTTL: "1d",
-				},
-			)
+			.triggerAndWait({ username }, { tags: `stats/${username}` })
 			.unwrap();
 
 		if (!stats) {

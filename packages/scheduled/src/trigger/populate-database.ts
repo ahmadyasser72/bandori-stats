@@ -11,17 +11,20 @@ export const populateDatabase = schemaTask({
 		usernames: z.array(z.string().nonempty()).nonempty(),
 		date: z.iso.date(),
 	}),
-	run: async ({ usernames, date }, { ctx }) => {
+	run: async ({ usernames, date }) => {
+		const minutesLeft = dayjs()
+			.endOf("hours")
+			.subtract(5, "minute")
+			.diff(dayjs(), "minutes", true);
+
 		const results = await insertSnapshot.batchTriggerAndWait(
 			usernames.map((username) => ({
 				payload: { username, date },
 				options: {
-					delay: dayjs(ctx.run.startedAt)
-						.add(Math.random() * 55, "minutes")
+					delay: dayjs()
+						.add(Math.random() * minutesLeft, "minutes")
 						.toDate(),
-					tags: `${username}/${date}`,
-					idempotencyKey: `insert-${username}:${date}`,
-					idempotencyKeyTTL: "1d",
+					tags: `snapshot-${username}/${date}`,
 				},
 			})),
 		);
@@ -39,6 +42,9 @@ export const populateDatabase = schemaTask({
 				latestSnapshotId = Math.max(latestSnapshotId, run.output.snapshotId);
 		}
 
-		await updateZScore.trigger({ latestSnapshotId });
+		await updateZScore.trigger(
+			{ latestSnapshotId },
+			{ tags: `update-z-score-${date}/${dayjs().get("hours")}` },
+		);
 	},
 });
