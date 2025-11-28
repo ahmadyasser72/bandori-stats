@@ -18,15 +18,17 @@ export const populateDatabase = schemaTask({
 			.diff(dayjs(), "minutes", true);
 
 		const results = await insertSnapshot.batchTriggerAndWait(
-			usernames.map((username) => ({
-				payload: { username, date },
-				options: {
-					delay: dayjs()
-						.add(Math.random() * minutesLeft, "minutes")
-						.toDate(),
-					tags: `snapshot_${username}`,
-				},
-			})),
+			usernames
+				.map((username) => ({
+					payload: { username, date },
+					options: {
+						delay: dayjs()
+							.add(Math.random() * minutesLeft, "minutes")
+							.toDate(),
+						tags: `snapshot_${username}`,
+					},
+				}))
+				.sort((a, b) => b.options.delay.valueOf() - a.options.delay.valueOf()),
 		);
 
 		let latestSnapshotId = 0;
