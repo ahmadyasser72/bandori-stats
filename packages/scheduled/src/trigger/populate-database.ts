@@ -28,7 +28,7 @@ export const populateDatabase = schemaTask({
 						tags: `snapshot_${username}`,
 					},
 				}))
-				.sort((a, b) => b.options.delay.valueOf() - a.options.delay.valueOf()),
+				.sort((a, b) => a.options.delay.valueOf() - b.options.delay.valueOf()),
 		);
 
 		let latestSnapshotId = 0;
