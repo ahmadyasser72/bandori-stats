@@ -42,6 +42,10 @@ export const populateDatabase = schemaTask({
 				latestSnapshotId = Math.max(latestSnapshotId, run.output.snapshotId);
 		}
 
-		await setZScore.trigger({ latestSnapshotId }, { tags: `z-score_${date}` });
+		if (latestSnapshotId > 0)
+			await setZScore.trigger(
+				{ latestSnapshotId },
+				{ tags: `z-score_${date}` },
+			);
 	},
 });

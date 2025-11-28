@@ -9,7 +9,7 @@ import z from "zod";
 
 export const setZScore = schemaTask({
 	id: "set-z-score",
-	schema: z.strictObject({ latestSnapshotId: z.number().nonnegative() }),
+	schema: z.strictObject({ latestSnapshotId: z.number().positive() }),
 	run: async ({ latestSnapshotId }) => {
 		const current = await db.query.zScore.findFirst({
 			columns: {
