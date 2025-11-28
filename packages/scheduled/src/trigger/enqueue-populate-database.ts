@@ -10,32 +10,29 @@ import { populateDatabase } from "./populate-database";
 export const enqueuePopulateDatabase = schedules.task({
 	id: "enqueue-populate-database",
 	cron: "0 0 * * *",
-	run: async (payload) => {
+	run: async () => {
 		const existingUsernames = await db.query.accounts
 			.findMany({ columns: { username: true } })
 			.then((rows) => rows.map(({ username }) => username));
 
 		const leaderboardUsernames = (
 			await getLeaderboard.batchTriggerAndWait(
-				shuffle(
-					Array.from({ length: 4 }).flatMap((_, page) =>
-						STAT_COLUMNS.map((type) => ({
-							payload: { type, limit: 20, offset: page * 20 },
-							options: {
-								delay: dayjs()
-									.add(Math.random() * 300, "seconds")
-									.toDate(),
-								tags: `leaderboard/${type}/${page}`,
-							},
-						})),
-					),
+				Array.from({ length: 4 }).flatMap((_, page) =>
+					STAT_COLUMNS.map((type) => ({
+						payload: { type, limit: 20, offset: page * 20 },
+						options: {
+							delay: dayjs()
+								.add(Math.random() * 300, "seconds")
+								.toDate(),
+						},
+					})),
 				),
 			)
 		).runs
 			.flatMap((run) => (run.ok ? run.output : null))
 			.filter((result) => result !== null);
 
-		const date = payload.timestamp.toISOString().slice(0, 10);
+		const date = dayjs().format("YYYY-MM-DD");
 		const usernameChunks = shuffle([
 			...new Set([...leaderboardUsernames, ...existingUsernames]),
 		]).reduce(
@@ -53,7 +50,7 @@ export const enqueuePopulateDatabase = schedules.task({
 				options: {
 					delay: dayjs().add(idx, "hours").startOf("hours").toDate(),
 					ttl: dayjs().endOf("days").diff(dayjs(), "seconds"),
-					tags: `populate-database/${date}/${idx}`,
+					tags: `populate-database_${date}`,
 					idempotencyKey: `populate-database:${date}:${idx}`,
 				},
 			})),

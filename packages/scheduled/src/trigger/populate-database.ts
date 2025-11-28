@@ -24,7 +24,7 @@ export const populateDatabase = schemaTask({
 					delay: dayjs()
 						.add(Math.random() * minutesLeft, "minutes")
 						.toDate(),
-					tags: `snapshot-${username}/${date}`,
+					tags: `snapshot_${username}_${date}`,
 				},
 			})),
 		);
@@ -42,9 +42,6 @@ export const populateDatabase = schemaTask({
 				latestSnapshotId = Math.max(latestSnapshotId, run.output.snapshotId);
 		}
 
-		await setZScore.trigger(
-			{ latestSnapshotId },
-			{ tags: `update-z-score-${date}/${dayjs().get("hours")}` },
-		);
+		await setZScore.trigger({ latestSnapshotId }, { tags: `z-score_${date}` });
 	},
 });

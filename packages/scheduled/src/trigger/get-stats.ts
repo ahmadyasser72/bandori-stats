@@ -1,4 +1,5 @@
-import { AbortTaskRunError, schemaTask } from "@trigger.dev/sdk/v3";
+import { STAT_COLUMNS } from "@bandori-stats/database/constants";
+import { AbortTaskRunError, schemaTask, tags } from "@trigger.dev/sdk/v3";
 import z from "zod";
 
 import { bestdori, bestdoriQueue } from "~/bestdori";
@@ -36,15 +37,18 @@ export const getStats = schemaTask({
 	queue: bestdoriQueue,
 	schema: z.object({ username: z.string().nonempty() }),
 	run: async ({ username }) => {
+		await tags.add(`fetch-stats_${username}`);
 		const { success, data, error } = StatsResponse.safeParse(
 			await bestdori("api/user/sync", { username }),
 		);
 
-		if (!success) throw new AbortTaskRunError(error.message);
-		const { accounts } = data;
+		if (!success) {
+			await tags.add("schema_error");
+			throw new AbortTaskRunError(error.message);
+		}
 
-		return (
-			accounts
+		const stats =
+			data.accounts
 				.map((stat) => ({
 					server: stat.server,
 					highScoreRating: stat.hsr ?? null,
@@ -54,7 +58,16 @@ export const getStats = schemaTask({
 					clearCount: stat.clearCount ?? null,
 					rank: stat.rank ?? null,
 				}))
-				.find(({ server }) => server === 1) ?? null
-		);
+				.find(({ server }) => server === 1) ?? null;
+
+		if (stats !== null) {
+			const statTags = STAT_COLUMNS.map(
+				(column) => `${column}_${stats[column] ?? "private"}`,
+			);
+
+			await tags.add(statTags);
+		}
+
+		return stats;
 	},
 });

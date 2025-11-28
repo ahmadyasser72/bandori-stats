@@ -1,5 +1,5 @@
 import { STAT_COLUMNS, type StatName } from "@bandori-stats/database/constants";
-import { AbortTaskRunError, schemaTask } from "@trigger.dev/sdk";
+import { AbortTaskRunError, schemaTask, tags } from "@trigger.dev/sdk";
 import z from "zod";
 
 import { bestdori, bestdoriQueue } from "~/bestdori";
@@ -37,6 +37,7 @@ export const getLeaderboard = schemaTask({
 		offset: z.number().nonnegative().default(0),
 	}),
 	run: async ({ type, limit, offset }) => {
+		await tags.add(`fetch-leaderboard_${type}_${offset}+${limit}`);
 		const { success, data, error } = LeaderboardResponse.safeParse(
 			await bestdori("api/sync/list/player", {
 				server: "1",
@@ -46,9 +47,16 @@ export const getLeaderboard = schemaTask({
 			}),
 		);
 
-		if (!success) throw new AbortTaskRunError(error.message);
-		const { rows } = data;
+		if (!success) {
+			await tags.add("schema_error");
+			throw new AbortTaskRunError(error.message);
+		}
 
-		return rows.map((row) => row.user.username);
+		if (offset === 0 && data.rows.length > 0) {
+			const top1 = data.rows[0]!;
+			await tags.add(`top-1_${top1.user.username}`);
+		}
+
+		return data.rows.map((row) => row.user.username);
 	},
 });
