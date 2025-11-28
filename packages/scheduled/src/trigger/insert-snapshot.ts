@@ -1,5 +1,6 @@
 import { db, eq } from "@bandori-stats/database";
 import {
+	ABBREVIATED_STAT_COLUMNS,
 	SELECT_STAT_COLUMNS,
 	STAT_COLUMNS,
 } from "@bandori-stats/database/constants";
@@ -39,6 +40,7 @@ export const insertSnapshot = schemaTask({
 					to: snapshotId,
 				});
 
+			await tags.add(`snapshot_${date}`);
 			await db
 				.update(accounts)
 				.set({ latestSnapshotId: snapshotId })
@@ -70,15 +72,18 @@ export const insertSnapshot = schemaTask({
 			);
 
 			if (difference.delta === 0) {
-				await tags.add("diff_nothing");
-				logger.log("skipped as nothing has changed", { username, stats, date });
+				logger.log("skipped", { username, stats, date });
 				return;
 			} else {
 				const differenceTags = Object.entries(difference.detailed)
 					.filter(([, delta]) => delta > 0)
-					.map(([column, delta]) => `diff_${column}_+${delta}`);
+					.map(
+						([column, delta]) =>
+							`diff_${ABBREVIATED_STAT_COLUMNS[column]}+${delta}`,
+					);
 
-				await tags.add([...differenceTags]);
+				await tags.add(differenceTags);
+				logger.info("snapshot diff", { difference });
 			}
 
 			const snapshot = { ...existing.latestSnapshot, ...stats };

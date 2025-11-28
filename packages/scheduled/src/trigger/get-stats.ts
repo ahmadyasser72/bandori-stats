@@ -1,4 +1,7 @@
-import { STAT_COLUMNS } from "@bandori-stats/database/constants";
+import {
+	ABBREVIATED_STAT_COLUMNS,
+	STAT_COLUMNS,
+} from "@bandori-stats/database/constants";
 import { AbortTaskRunError, schemaTask, tags } from "@trigger.dev/sdk/v3";
 import z from "zod";
 
@@ -37,7 +40,7 @@ export const getStats = schemaTask({
 	queue: bestdoriQueue,
 	schema: z.object({ username: z.string().nonempty() }),
 	run: async ({ username }) => {
-		await tags.add(`fetch-stats_${username}`);
+		await tags.add(`stats_${username}`);
 		const { success, data, error } = StatsResponse.safeParse(
 			await bestdori("api/user/sync", { username }),
 		);
@@ -62,7 +65,8 @@ export const getStats = schemaTask({
 
 		if (stats !== null) {
 			const statTags = STAT_COLUMNS.map(
-				(column) => `${column}_${stats[column] ?? "private"}`,
+				(column) =>
+					`${ABBREVIATED_STAT_COLUMNS[column]}_${stats[column] ?? "private"}`,
 			);
 
 			await tags.add(statTags);

@@ -9,6 +9,15 @@ export const STAT_COLUMNS = [
 
 export type StatName = (typeof STAT_COLUMNS)[number];
 
+export const ABBREVIATED_STAT_COLUMNS: Record<StatName, string> = {
+	highScoreRating: "HSR",
+	bandRating: "BR",
+	allPerfectCount: "AP",
+	fullComboCount: "FC",
+	clearCount: "CLEAR",
+	rank: "RANK",
+};
+
 export const SELECT_STAT_COLUMNS: Record<StatName, true> = {
 	highScoreRating: true,
 	bandRating: true,

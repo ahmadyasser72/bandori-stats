@@ -50,8 +50,8 @@ export const enqueuePopulateDatabase = schedules.task({
 				options: {
 					delay: dayjs().add(idx, "hours").startOf("hours").toDate(),
 					ttl: dayjs().endOf("days").diff(dayjs(), "seconds"),
-					tags: `populate-database_${date}`,
-					idempotencyKey: `populate-database:${date}:${idx}`,
+					tags: `populate_${date}`,
+					idempotencyKey: `populate:${date}:${idx}`,
 				},
 			})),
 		);

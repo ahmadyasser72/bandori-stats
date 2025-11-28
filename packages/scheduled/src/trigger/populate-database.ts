@@ -1,4 +1,4 @@
-import { AbortTaskRunError, logger, schemaTask } from "@trigger.dev/sdk";
+import { AbortTaskRunError, logger, schemaTask, tags } from "@trigger.dev/sdk";
 import dayjs from "dayjs";
 import z from "zod";
 
@@ -24,7 +24,7 @@ export const populateDatabase = schemaTask({
 					delay: dayjs()
 						.add(Math.random() * minutesLeft, "minutes")
 						.toDate(),
-					tags: `snapshot_${username}_${date}`,
+					tags: `snapshot_${username}`,
 				},
 			})),
 		);
@@ -42,10 +42,9 @@ export const populateDatabase = schemaTask({
 				latestSnapshotId = Math.max(latestSnapshotId, run.output.snapshotId);
 		}
 
-		if (latestSnapshotId > 0)
-			await setZScore.trigger(
-				{ latestSnapshotId },
-				{ tags: `z-score_${date}` },
-			);
+		if (latestSnapshotId > 0) {
+			await tags.add(`zScore_update`);
+			await setZScore.trigger({ latestSnapshotId }, { tags: `zScore_${date}` });
+		}
 	},
 });
