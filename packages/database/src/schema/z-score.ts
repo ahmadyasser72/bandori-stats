@@ -1,4 +1,4 @@
-import { relations, sql } from "drizzle-orm";
+import { eq, isNotNull, relations, sql } from "drizzle-orm";
 import {
 	integer,
 	real,
@@ -6,7 +6,7 @@ import {
 	sqliteView,
 } from "drizzle-orm/sqlite-core";
 
-import { accountSnapshots } from ".";
+import { accounts, accountSnapshots } from ".";
 import { STAT_COLUMNS, type StatName } from "../constants";
 
 const statColumns = <K extends StatName>(column: K) => ({
@@ -47,8 +47,12 @@ export const zScoreStats = sqliteView("z_score_stats").as((qb) =>
 			...Object.fromEntries(
 				STAT_COLUMNS.flatMap((column) => [
 					[
+						`mean_${column}` as const,
+						sql<number>`${zScore[`mean_${column}`]}`.as(`mean_${column}`),
+					],
+					[
 						`variance_${column}` as const,
-						sql`
+						sql<number>`
 							CASE
 								WHEN ${zScore[`n_${column}`]} > 1
 								THEN ${zScore[`m2_${column}`]} / (${zScore[`n_${column}`]} - 1)
@@ -58,7 +62,7 @@ export const zScoreStats = sqliteView("z_score_stats").as((qb) =>
 					],
 					[
 						`stddev_${column}` as const,
-						sql`
+						sql<number>`
 							CASE
 								WHEN ${zScore[`n_${column}`]} > 1
 								THEN sqrt(${zScore[`m2_${column}`]} / (${zScore[`n_${column}`]} - 1))
@@ -70,4 +74,31 @@ export const zScoreStats = sqliteView("z_score_stats").as((qb) =>
 			),
 		})
 		.from(zScore),
+);
+
+export const accountLeaderboard = sqliteView("account_leaderboard").as((qb) =>
+	qb
+		.select({
+			acccountId: accounts.id,
+			username: accounts.username,
+			...Object.fromEntries(
+				STAT_COLUMNS.map((column) => [column, accountSnapshots[column]]),
+			),
+			...Object.fromEntries(
+				STAT_COLUMNS.map((column) => [
+					`score_${column}` as const,
+					sql<number>`
+						(COALESCE(${accountSnapshots[column]}, 0) - ${zScoreStats[`mean_${column}`]})
+						/ ${zScoreStats[`stddev_${column}`]}
+					`.as(`score_${column}`),
+				]),
+			),
+		})
+		.from(accounts)
+		.where(isNotNull(accounts.latestSnapshotId))
+		.leftJoin(
+			accountSnapshots,
+			eq(accounts.latestSnapshotId, accountSnapshots.id),
+		)
+		.crossJoin(zScoreStats),
 );
