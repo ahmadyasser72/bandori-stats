@@ -1,44 +1,42 @@
 ---
 import { db } from "@bandori-stats/database";
-import {
-	SELECT_STAT_COLUMNS,
-	STAT_COLUMNS,
-} from "@bandori-stats/database/constants";
+import { STAT_COLUMNS } from "@bandori-stats/database/constants";
+import { accountLeaderboard } from "@bandori-stats/database/schema";
 import { titleCase } from "text-case";
+import { z } from "zod";
 
 import BaseLayout from "~/layouts/base-layout.astro";
+import { sum } from "~/lib/math";
 
 const params = Astro.url.searchParams;
 
 const pageSize = 50;
-const nextPage = async () => {
-	const cursor = Number(params.get("cursor") ?? NaN);
+const page = z.coerce.number().positive().catch(1).parse(params.get("page"));
+const offset = (page - 1) * pageSize;
 
-	return db.query.accounts
-		.findMany({
-			columns: { id: true, username: true },
-			with: {
-				latestSnapshot: {
-					columns: { ...SELECT_STAT_COLUMNS, snapshotDate: true },
-				},
-			},
-			where: ({ id }, { gt }) =>
-				!Number.isNaN(cursor) ? gt(id, cursor) : undefined,
-			orderBy: ({ id }) => id,
-			limit: pageSize,
-		})
-		.then((entries) =>
-			entries
-				.map(({ id, username, latestSnapshot }) =>
-					latestSnapshot ? { id, username, latestSnapshot } : null,
-				)
-				.filter((entry) => entry !== null),
-		);
-};
+const rows = await db
+	.select()
+	.from(accountLeaderboard)
+	.then((entries) =>
+		entries
+			.map(({ acccountId, username, ...rest }) => ({
+				acccountId,
+				username,
+				stats: Object.fromEntries(
+					STAT_COLUMNS.map((column) => [column, rest[column]]),
+				),
+				scores: sum(STAT_COLUMNS.map((column) => rest[`score_${column}`])),
+			}))
+			.sort((a, b) => b.scores - a.scores),
+	);
 
-const nextPageHtmxProps = (cursor: number) => {
+const pageRows = rows
+	.slice(offset, offset + pageSize)
+	.map((it, idx) => ({ ...it, top: offset + idx + 1 }));
+
+const nextPageHtmxProps = () => {
 	const nextPageUrl = new URL(Astro.url);
-	nextPageUrl.searchParams.set("cursor", cursor.toString());
+	nextPageUrl.searchParams.set("page", (page + 1).toString());
 
 	return {
 		"hx-get": nextPageUrl.href,
@@ -47,8 +45,6 @@ const nextPageHtmxProps = (cursor: number) => {
 		"hx-trigger": "intersect once",
 	};
 };
-
-const entries = await nextPage();
 ---
 
 <BaseLayout>
@@ -56,31 +52,27 @@ const entries = await nextPage();
 		<table class="table-xs table">
 			<thead>
 				<tr class="bg-base-100 sticky top-0 z-10">
+					<th></th>
 					<th>Username</th>
-					<th>Last updated</th>
+
 					{STAT_COLUMNS.map((column) => <th>{titleCase(column)}</th>)}
 				</tr>
 			</thead>
 
 			<tbody>
 				{
-					entries.map(({ id, username, latestSnapshot }, idx) => (
-						<tr {...(idx === pageSize - 1 ? nextPageHtmxProps(id) : {})}>
+					pageRows.map(({ username, stats, top }, idx) => (
+						<tr {...(idx === pageSize - 1 ? nextPageHtmxProps() : {})}>
+							<th>#{top.toString().padStart(3, "0")}</th>
+
 							<th class="bg-base-100/20 sticky left-0 pl-0 shadow-sm">
 								<p class="w-36 overflow-clip text-ellipsis">
 									<span class="bg-base-100 px-4">{username}</span>
 								</p>
 							</th>
-							<td>{latestSnapshot.snapshotDate}</td>
 
-							{STAT_COLUMNS.map((column) => (
-								<td>
-									{latestSnapshot[column] ? (
-										latestSnapshot[column]
-									) : (
-										<b class="text-base-content/40">Private</b>
-									)}
-								</td>
+							{Object.values(stats).map((value) => (
+								<td>{value ?? <b class="text-base-content/40">Private</b>}</td>
 							))}
 						</tr>
 					))

@@ -17,7 +17,8 @@
 		"daisyui": "^5.5.5",
 		"htmx.org": "^2.0.8",
 		"tailwindcss": "^4.1.17",
-		"text-case": "^1.2.9"
+		"text-case": "^1.2.9",
+		"zod": "^4.1.13"
 	},
 	"devDependencies": {
 		"@astrojs/check": "^0.9.5",
