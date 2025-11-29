@@ -14,6 +14,12 @@ const pageSize = 50;
 const page = z.coerce.number().positive().catch(1).parse(params.get("page"));
 const offset = (page - 1) * pageSize;
 
+const rankBy = z
+	.array(z.enum(STAT_COLUMNS))
+	.nonempty()
+	.catch(() => [...STAT_COLUMNS])
+	.parse(params.getAll("by"));
+
 const rows = await db
 	.select()
 	.from(accountLeaderboard)
@@ -25,7 +31,11 @@ const rows = await db
 				stats: Object.fromEntries(
 					STAT_COLUMNS.map((column) => [column, rest[column]]),
 				),
-				scores: sum(STAT_COLUMNS.map((column) => rest[`score_${column}`])),
+				scores: sum(
+					STAT_COLUMNS.filter((column) => rankBy.includes(column)).map(
+						(column) => rest[`score_${column}`],
+					),
+				),
 			}))
 			.sort((a, b) => b.scores - a.scores),
 	);
@@ -51,6 +61,30 @@ const nextPageHtmxProps = () => {
 	<div class="absolute inset-0 overflow-x-auto">
 		<table class="table-xs table">
 			<thead>
+				<tr>
+					<th></th>
+					<th>Rank by</th>
+
+					{
+						STAT_COLUMNS.map((column) => (
+							<td>
+								<input
+									type="checkbox"
+									class="btn checked:btn-accent not-checked:btn-outline btn-xs border"
+									name="by"
+									value={column}
+									checked={rankBy.includes(column)}
+									aria-label={titleCase(column)}
+									hx-get
+									hx-include="closest tr"
+									hx-target="tbody"
+									hx-select="tbody"
+									hx-swap="outerHTML"
+								/>
+							</td>
+						))
+					}
+				</tr>
 				<tr class="bg-base-100 sticky top-0 z-10">
 					<th></th>
 					<th>Username</th>
