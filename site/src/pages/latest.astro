@@ -61,7 +61,7 @@ const nextPageHtmxProps = () => {
 	<div class="absolute inset-0 overflow-x-auto">
 		<table class="table-xs table">
 			<thead>
-				<tr>
+				<tr hx-disabled-elt="input">
 					<th></th>
 					<th>Rank by</th>
 
@@ -80,6 +80,7 @@ const nextPageHtmxProps = () => {
 									hx-target="tbody"
 									hx-select="tbody"
 									hx-swap="outerHTML"
+									hx-trigger="change delay:500ms"
 								/>
 							</td>
 						))
