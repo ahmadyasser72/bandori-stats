@@ -61,7 +61,7 @@ const nextPageHtmxProps = () => {
 	<div class="absolute inset-0 overflow-x-auto">
 		<table class="table-xs table">
 			<thead>
-				<tr hx-disabled-elt="input">
+				<tr hx-disabled-elt="input" hx-indicator="#full-loader, tbody">
 					<th></th>
 					<th>Rank by</th>
 
@@ -115,11 +115,27 @@ const nextPageHtmxProps = () => {
 			</tbody>
 		</table>
 
-		<img
-			id="infinite-loader"
-			class="htmx-indicator mx-auto my-4 size-12"
-			src="/spinners/bars.svg"
-			alt="Loading..."
-		/>
+		<div id="full-loader" class="htmx-indicator center fixed">
+			<img
+				src="/spinners/grid.svg"
+				alt="Loading entries..."
+				class="mx-auto mt-[20%]"
+			/>
+		</div>
+
+		<div class="my-4 flex justify-center">
+			<img
+				id="infinite-loader"
+				class="htmx-indicator size-12"
+				src="/spinners/bars.svg"
+				alt="Loading more entries..."
+			/>
+		</div>
 	</div>
 </BaseLayout>
+
+<style>
+	tbody.htmx-request {
+		opacity: 50%;
+	}
+</style>

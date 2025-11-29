@@ -9,10 +9,15 @@
 }
 
 .htmx-indicator {
-	@apply hidden;
+	display: none;
 
 	&.htmx-request,
 	.htmx-request & {
-		@apply block;
+		display: unset;
 	}
+}
+
+.absolute.center,
+.fixed.center {
+	@apply top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2;
 }
