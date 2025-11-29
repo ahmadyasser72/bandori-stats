@@ -94,7 +94,7 @@ const nextPageHtmxProps = () => {
 				</tr>
 			</thead>
 
-			<tbody>
+			<tbody hx-indicator="#infinite-loader">
 				{
 					pageRows.map(({ username, stats, top }, idx) => (
 						<tr {...(idx === pageSize - 1 ? nextPageHtmxProps() : {})}>
@@ -114,5 +114,12 @@ const nextPageHtmxProps = () => {
 				}
 			</tbody>
 		</table>
+
+		<img
+			id="infinite-loader"
+			class="htmx-indicator mx-auto my-4 size-12"
+			src="/spinners/bars.svg"
+			alt="Loading..."
+		/>
 	</div>
 </BaseLayout>

@@ -7,3 +7,12 @@
 		rootscrollgutter,
 		properties /* https://github.com/saadeghi/daisyui/issues/3882 */;
 }
+
+.htmx-indicator {
+	@apply hidden;
+
+	&.htmx-request,
+	.htmx-request & {
+		@apply block;
+	}
+}
