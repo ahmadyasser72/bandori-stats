@@ -55,7 +55,7 @@ export const getLeaderboard = schemaTask({
 		if (offset === 0 && data.rows.length > 2) {
 			const topTags = Array.from(
 				{ length: 3 },
-				(_, idx) => `top${idx}_${data.rows[idx]!.user.username}`,
+				(_, idx) => `top${idx + 1}_${data.rows[idx]!.user.username}`,
 			);
 
 			await tags.add(topTags);
