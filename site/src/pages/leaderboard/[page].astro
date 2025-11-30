@@ -4,7 +4,7 @@ import { STAT_COLUMNS } from "@bandori-stats/database/constants";
 import { accountLeaderboard } from "@bandori-stats/database/schema";
 import { z } from "zod";
 
-import { sum } from "~/lib/math";
+import { formatNumber, sum } from "~/lib/math";
 
 export const partial = true;
 
@@ -82,7 +82,13 @@ const nextPageHtmxProps = {
 			<td>{lastUpdated}</td>
 
 			{Object.values(stats).map((value) => (
-				<td>{value ?? <b class="text-base-content/40">Private</b>}</td>
+				<td>
+					{value ? (
+						formatNumber(value)
+					) : (
+						<b class="text-base-content/40">Private</b>
+					)}
+				</td>
 			))}
 		</tr>
 	))

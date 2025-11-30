@@ -1,6 +1,8 @@
 ---
 import { titleCase } from "text-case";
 
+import { formatNumber } from "~/lib/math";
+
 interface Props {
 	label: string;
 	value: number | null;
@@ -8,7 +10,7 @@ interface Props {
 }
 
 const { label, value, previousValue } = Astro.props;
-const displayedValue = value ?? "Private";
+const displayedValue = value !== null ? formatNumber(value) : "Private";
 const diff =
 	previousValue !== null && value !== null ? value - previousValue : 0;
 ---
@@ -25,5 +27,5 @@ const diff =
 >
 	{titleCase(label.replace("Count", ""))} &middot;{" "}
 	{displayedValue}
-	{diff > 0 && ` (+${diff})`}
+	{diff > 0 && ` (+${formatNumber(diff)})`}
 </span>
