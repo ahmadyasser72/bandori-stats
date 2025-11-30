@@ -59,15 +59,23 @@ const nextPageHtmxProps = {
 			<th>#{top.toString().padStart(3, "0")}</th>
 
 			<th class="bg-base-100/20 sticky left-0 pl-0">
-				<p class="w-36 overflow-clip text-ellipsis">
+				<p class="inline-flex">
 					<span
 						hx-get={`/leaderboard/stats/${acccountId}`}
 						hx-target="#stats-dialog"
 						hx-swap="outerHTML"
-						class="bg-base-100 link px-4"
+						hx-indicator={`#stats-loader-${acccountId}`}
+						class="bg-base-100 link max-w-36 overflow-clip px-4 text-ellipsis"
 					>
 						{username}
 					</span>
+
+					<img
+						id={`stats-loader-${acccountId}`}
+						class="htmx-indicator size-4"
+						src="/spinners/bars.svg"
+						alt="Loading..."
+					/>
 				</p>
 			</th>
 
