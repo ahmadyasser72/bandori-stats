@@ -16,7 +16,7 @@ const rankBy = z
 	.array(z.enum(STAT_COLUMNS))
 	.nonempty()
 	.catch(() => [...STAT_COLUMNS])
-	.parse(Astro.url.searchParams.getAll("by"));
+	.parse(Astro.url.searchParams.getAll("rank_by"));
 
 const rows = await db
 	.select()
