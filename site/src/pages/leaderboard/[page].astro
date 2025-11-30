@@ -1,0 +1,76 @@
+---
+import { db } from "@bandori-stats/database";
+import { STAT_COLUMNS } from "@bandori-stats/database/constants";
+import { accountLeaderboard } from "@bandori-stats/database/schema";
+import { z } from "zod";
+
+import { sum } from "~/lib/math";
+
+export const partial = true;
+
+const pageSize = 50;
+const page = z.coerce.number().positive().catch(1).parse(Astro.params.page);
+const offset = (page - 1) * pageSize;
+
+const rankBy = z
+	.array(z.enum(STAT_COLUMNS))
+	.nonempty()
+	.catch(() => [...STAT_COLUMNS])
+	.parse(Astro.url.searchParams.getAll("by"));
+
+const rows = await db
+	.select()
+	.from(accountLeaderboard)
+	.then((entries) =>
+		entries
+			.map(({ acccountId, username, lastUpdated, ...rest }) => ({
+				acccountId,
+				username,
+				lastUpdated,
+				stats: Object.fromEntries(
+					STAT_COLUMNS.map((column) => [column, rest[column]]),
+				),
+				scores: sum(
+					STAT_COLUMNS.filter((column) => rankBy.includes(column)).map(
+						(column) => rest[`score_${column}`],
+					),
+				),
+			}))
+			.sort((a, b) => b.scores - a.scores),
+	);
+
+const pageRows = rows
+	.slice(offset, offset + pageSize)
+	.map((it, idx) => ({ ...it, top: offset + idx + 1 }));
+
+const hasNextPage = offset + pageSize < rows.length;
+const nextPageUrl = new URL(Astro.url);
+nextPageUrl.pathname = `/leaderboard/${page + 1}`;
+const nextPageHtmxProps = {
+	"hx-get": nextPageUrl.href,
+	"hx-swap": "outerHTML",
+	"hx-trigger": "intersect once",
+};
+---
+
+{
+	pageRows.map(({ username, lastUpdated, stats, top }) => (
+		<tr>
+			<th>#{top.toString().padStart(3, "0")}</th>
+
+			<th class="bg-base-100/20 sticky left-0 pl-0">
+				<p class="w-36 overflow-clip text-ellipsis">
+					<span class="bg-base-100 px-4">{username}</span>
+				</p>
+			</th>
+
+			<td>{lastUpdated}</td>
+
+			{Object.values(stats).map((value) => (
+				<td>{value ?? <b class="text-base-content/40">Private</b>}</td>
+			))}
+		</tr>
+	))
+}
+
+{hasNextPage && <tr {...nextPageHtmxProps} />}
