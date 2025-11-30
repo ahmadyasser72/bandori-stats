@@ -1,0 +1,29 @@
+---
+import { titleCase } from "text-case";
+
+interface Props {
+	label: string;
+	value: number | null;
+	previousValue: number | null;
+}
+
+const { label, value, previousValue } = Astro.props;
+const displayedValue = value ?? "Private";
+const diff =
+	previousValue !== null && value !== null ? value - previousValue : 0;
+---
+
+<span
+	class:list={[
+		"badge badge-sm",
+		value === null
+			? "badge-neutral"
+			: diff > 0
+				? "badge-secondary"
+				: "badge-primary",
+	]}
+>
+	{titleCase(label.replace("Count", ""))} &middot;{" "}
+	{displayedValue}
+	{diff > 0 && ` (+${diff})`}
+</span>

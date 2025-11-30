@@ -54,13 +54,20 @@ const nextPageHtmxProps = {
 ---
 
 {
-	pageRows.map(({ username, lastUpdated, stats, top }) => (
+	pageRows.map(({ acccountId, username, lastUpdated, stats, top }) => (
 		<tr>
 			<th>#{top.toString().padStart(3, "0")}</th>
 
 			<th class="bg-base-100/20 sticky left-0 pl-0">
 				<p class="w-36 overflow-clip text-ellipsis">
-					<span class="bg-base-100 px-4">{username}</span>
+					<span
+						hx-get={`/leaderboard/stats/${acccountId}`}
+						hx-target="#stats-dialog"
+						hx-swap="outerHTML"
+						class="bg-base-100 link px-4"
+					>
+						{username}
+					</span>
 				</p>
 			</th>
 

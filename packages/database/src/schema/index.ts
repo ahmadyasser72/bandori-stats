@@ -35,7 +35,7 @@ export const accountsRelations = relations(accounts, ({ one, many }) => ({
 		references: [accountSnapshots.id],
 		relationName: "latestSnapshot",
 	}),
-	snapshots: many(accountSnapshots, { relationName: "allSnapshots" }),
+	snapshots: many(accountSnapshots, { relationName: "snapshotAccount" }),
 }));
 
 export const accountSnapshots = sqliteTable(
