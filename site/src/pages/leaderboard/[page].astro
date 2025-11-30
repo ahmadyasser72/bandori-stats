@@ -43,19 +43,18 @@ const pageRows = rows
 	.slice(offset, offset + pageSize)
 	.map((it, idx) => ({ ...it, top: offset + idx + 1 }));
 
-const hasNextPage = offset + pageSize < rows.length;
 const nextPageUrl = new URL(Astro.url);
 nextPageUrl.pathname = `/leaderboard/${page + 1}`;
 const nextPageHtmxProps = {
 	"hx-get": nextPageUrl.href,
-	"hx-swap": "outerHTML",
+	"hx-swap": "afterend",
 	"hx-trigger": "intersect once",
 };
 ---
 
 {
-	pageRows.map(({ acccountId, username, lastUpdated, stats, top }) => (
-		<tr>
+	pageRows.map(({ acccountId, username, lastUpdated, stats, top }, idx) => (
+		<tr {...(idx === pageSize - 1 ? nextPageHtmxProps : {})}>
 			<th>#{top.toString().padStart(3, "0")}</th>
 
 			<th class="bg-base-100/20 sticky left-0 pl-0">
@@ -93,5 +92,3 @@ const nextPageHtmxProps = {
 		</tr>
 	))
 }
-
-{hasNextPage && <tr {...nextPageHtmxProps} />}
