@@ -25,9 +25,10 @@ const rows = await db
 	.from(accountLeaderboard)
 	.then((entries) =>
 		entries
-			.map(({ acccountId, username, ...rest }) => ({
+			.map(({ acccountId, username, lastUpdated, ...rest }) => ({
 				acccountId,
 				username,
+				lastUpdated,
 				stats: Object.fromEntries(
 					STAT_COLUMNS.map((column) => [column, rest[column]]),
 				),
@@ -63,6 +64,7 @@ const nextPageHtmxProps = () => {
 			<thead>
 				<tr hx-disabled-elt="input" hx-indicator="#full-loader, tbody">
 					<th></th>
+					<th></th>
 					<th>Rank by</th>
 
 					{
@@ -89,6 +91,7 @@ const nextPageHtmxProps = () => {
 				<tr class="bg-base-100 sticky top-0 z-10">
 					<th></th>
 					<th>Username</th>
+					<th>Last Updated</th>
 
 					{STAT_COLUMNS.map((column) => <th>{titleCase(column)}</th>)}
 				</tr>
@@ -96,15 +99,17 @@ const nextPageHtmxProps = () => {
 
 			<tbody hx-indicator="#infinite-loader">
 				{
-					pageRows.map(({ username, stats, top }, idx) => (
+					pageRows.map(({ username, lastUpdated, stats, top }, idx) => (
 						<tr {...(idx === pageSize - 1 ? nextPageHtmxProps() : {})}>
 							<th>#{top.toString().padStart(3, "0")}</th>
 
-							<th class="bg-base-100/20 sticky left-0 pl-0 shadow-sm">
+							<th class="bg-base-100/20 sticky left-0 pl-0">
 								<p class="w-36 overflow-clip text-ellipsis">
 									<span class="bg-base-100 px-4">{username}</span>
 								</p>
 							</th>
+
+							<td>{lastUpdated}</td>
 
 							{Object.values(stats).map((value) => (
 								<td>{value ?? <b class="text-base-content/40">Private</b>}</td>

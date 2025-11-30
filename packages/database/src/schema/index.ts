@@ -151,6 +151,9 @@ export const accountLeaderboard = sqliteView("account_leaderboard").as((qb) =>
 		.select({
 			acccountId: accounts.id,
 			username: accounts.username,
+			lastUpdated: sql<string>`${accountSnapshots.snapshotDate}`.as(
+				"lastUpdated",
+			),
 			...Object.fromEntries(
 				STAT_COLUMNS.map((column) => [
 					column,
