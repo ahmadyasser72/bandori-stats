@@ -63,13 +63,11 @@ import BaseLayout from "~/layouts/base-layout.astro";
 			</tfoot>
 		</table>
 
-		<div class="center fixed">
-			<img
-				id="full-loader"
-				src="/spinners/grid.svg"
-				alt="Loading entries..."
-				class="htmx-indicator mx-auto mt-[20%]"
-			/>
+		<div
+			id="full-loader"
+			class="htmx-indicator center rounded-box fixed bg-white/80 p-4"
+		>
+			<img src="/spinners/grid.svg" alt="Loading entries..." />
 		</div>
 	</div>
 </BaseLayout>
