@@ -8,13 +8,8 @@
 		properties /* https://github.com/saadeghi/daisyui/issues/3882 */;
 }
 
-.htmx-indicator {
-	display: none;
-
-	&.htmx-request,
-	.htmx-request & {
-		display: unset;
-	}
+.htmx-indicator:not(.htmx-request) {
+	@apply hidden;
 }
 
 .absolute.center,

@@ -51,7 +51,7 @@ const nextPageHtmxProps = () => {
 
 	return {
 		"hx-get": nextPageUrl.href,
-		"hx-select": "tbody > tr",
+		"hx-select": "tbody > tr:not(.infinite-placeholder)",
 		"hx-swap": "afterend",
 		"hx-trigger": "intersect once",
 	};
@@ -97,7 +97,7 @@ const nextPageHtmxProps = () => {
 				</tr>
 			</thead>
 
-			<tbody hx-indicator="#infinite-loader">
+			<tbody hx-indicator=".infinite-placeholder">
 				{
 					pageRows.map(({ username, lastUpdated, stats, top }, idx) => (
 						<tr {...(idx === pageSize - 1 ? nextPageHtmxProps() : {})}>
@@ -117,30 +117,34 @@ const nextPageHtmxProps = () => {
 						</tr>
 					))
 				}
+
+				{
+					Array.from({ length: 2 }, () => (
+						<tr class="infinite-placeholder htmx-indicator">
+							{Array.from({ length: 3 + STAT_COLUMNS.length }, () => (
+								<td>
+									<div class="skeleton h-4" />
+								</td>
+							))}
+						</tr>
+					))
+				}
 			</tbody>
 		</table>
 
-		<div id="full-loader" class="htmx-indicator center fixed">
+		<div class="center fixed">
 			<img
+				id="full-loader"
 				src="/spinners/grid.svg"
 				alt="Loading entries..."
-				class="mx-auto mt-[20%]"
-			/>
-		</div>
-
-		<div class="my-4 flex justify-center">
-			<img
-				id="infinite-loader"
-				class="htmx-indicator size-12"
-				src="/spinners/bars.svg"
-				alt="Loading more entries..."
+				class="htmx-indicator mx-auto mt-[20%]"
 			/>
 		</div>
 	</div>
-</BaseLayout>
 
-<style>
-	tbody.htmx-request {
-		opacity: 50%;
-	}
-</style>
+	<style>
+		tbody.htmx-request {
+			opacity: 50%;
+		}
+	</style>
+</BaseLayout>
