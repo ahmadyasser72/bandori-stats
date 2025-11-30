@@ -23,7 +23,6 @@ import BaseLayout from "~/layouts/base-layout.astro";
 									name="by"
 									value={column}
 									aria-label={titleCase(column)}
-									checked
 									hx-get="/leaderboard/1"
 									hx-include="closest tr"
 									hx-sync="closest tr:replace"
