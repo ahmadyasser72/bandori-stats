@@ -21,5 +21,11 @@ import "~/styles/global.css";
 	</body>
 </html>
 
-<script src="htmx.org"></script>
+<script>
+	import htmx from "htmx.org";
+
+	htmx.onLoad((node) => {
+		if (node instanceof HTMLDialogElement) node.show();
+	});
+</script>
 <script src="iconify-icon"></script>

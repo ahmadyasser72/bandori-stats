@@ -21,7 +21,10 @@ const isNotFound = !account || account.snapshots.length === 0;
 if (isNotFound) Astro.response.status = 404;
 ---
 
-<dialog id="stats-dialog" class="modal modal-bottom sm:modal-middle" open>
+<dialog
+	class="modal modal-bottom sm:modal-middle"
+	hx-on:close="this.ontransitionend = this.remove"
+>
 	<div class="modal-box">
 		<form method="dialog">
 			<button class="btn btn-sm btn-circle btn-ghost absolute top-2 right-2">
