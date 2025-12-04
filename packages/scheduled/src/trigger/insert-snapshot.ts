@@ -40,7 +40,10 @@ export const insertSnapshot = schemaTask({
 					to: snapshotId,
 				});
 
-			await tags.add(["snapshot_update", `snapshot_${date}`]);
+			await tags.add([
+				!!existing ? "snapshot_update" : "snapshot_new",
+				`snapshot_${date}`,
+			]);
 			await db
 				.update(accounts)
 				.set({ latestSnapshotId: snapshotId })
