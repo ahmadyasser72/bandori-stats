@@ -2,16 +2,18 @@
 import { db } from "@bandori-stats/database";
 import { STAT_COLUMNS } from "@bandori-stats/database/constants";
 import { accountLeaderboard } from "@bandori-stats/database/schema";
+import dayjs from "dayjs";
 
 import { formatNumber, sum } from "~/lib/math";
-import { PAGE, RANK_BY } from "./_params";
+import { parseSearchParams } from "./_params";
 
 export const partial = true;
 
+const { page, rank_by, sort_latest } = parseSearchParams(
+	Astro.url.searchParams,
+);
 const pageSize = 50;
-const page = PAGE.parse(Astro.params.page);
 const offset = (page - 1) * pageSize;
-const rankBy = RANK_BY.parse(Astro.url.searchParams.getAll("rank_by"));
 
 const rows = await db
 	.select()
@@ -26,20 +28,22 @@ const rows = await db
 					STAT_COLUMNS.map((column) => [column, rest[column]]),
 				),
 				scores: sum(
-					STAT_COLUMNS.filter((column) => rankBy.includes(column)).map(
+					STAT_COLUMNS.filter((column) => rank_by.includes(column)).map(
 						(column) => rest[`score_${column}`],
 					),
 				),
 			}))
-			.sort((a, b) => b.scores - a.scores),
+			.sort((a, b) => b.scores - a.scores)
+			.map((it, idx) => ({ ...it, top: idx + 1 })),
 	);
 
-const pageRows = rows
-	.slice(offset, offset + pageSize)
-	.map((it, idx) => ({ ...it, top: offset + idx + 1 }));
+if (sort_latest)
+	rows.sort((a, b) => dayjs(b.lastUpdated).diff(dayjs(a.lastUpdated)));
+
+const pageRows = rows.slice(offset, offset + pageSize);
 
 const nextPageUrl = new URL(Astro.url);
-nextPageUrl.pathname = `/leaderboard/${page + 1}`;
+nextPageUrl.searchParams.set("page", (page + 1).toString());
 const nextPageHtmxProps = {
 	"hx-get": nextPageUrl.href,
 	"hx-swap": "afterend",
@@ -60,7 +64,7 @@ const nextPageHtmxProps = {
 						hx-swap="beforeend"
 						hx-indicator={`#stats-loader-${acccountId}`}
 						class="bg-base-100 link max-w-36 overflow-clip pr-2 pl-4 text-ellipsis"
-						style={idx < 20 && `view-transition-name: username-${username};`}
+						style={idx < 30 && `view-transition-name: username-${username};`}
 					>
 						{username}
 					</span>
@@ -80,7 +84,7 @@ const nextPageHtmxProps = {
 				<td
 					class:list={[
 						(value === null && "font-medium opacity-40") ||
-							(!rankBy.includes(key) && "line-through opacity-60"),
+							(!rank_by.includes(key) && "line-through opacity-60"),
 					]}
 				>
 					{value ? formatNumber(value) : "Private"}

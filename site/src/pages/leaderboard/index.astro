@@ -3,9 +3,9 @@ import { STAT_COLUMNS } from "@bandori-stats/database/constants";
 import { titleCase } from "text-case";
 
 import BaseLayout from "~/layouts/base-layout.astro";
-import { RANK_BY } from "./_params";
+import { parseSearchParams } from "./_params";
 
-const rankBy = RANK_BY.parse(Astro.url.searchParams.getAll("rank_by"));
+const { rank_by, sort_latest } = parseSearchParams(Astro.url.searchParams);
 ---
 
 <BaseLayout>
@@ -15,17 +15,40 @@ const rankBy = RANK_BY.parse(Astro.url.searchParams.getAll("rank_by"));
 		</div>
 
 		<table class="table-xs table-zebra table">
-			<thead>
-				<tr
-					hx-target="tbody"
-					hx-disabled-elt="input"
-					hx-indicator="#full-loader, tbody"
-					hx-swap="innerHTML transition:true"
-					class="bg-base-100 sticky top-0 z-10"
-				>
+			<thead
+				hx-target="tbody"
+				hx-disabled-elt="input, label.btn"
+				hx-indicator="#full-loader, tbody"
+				hx-swap="innerHTML transition:true"
+				hx-trigger="change delay:500ms"
+				hx-include="closest tr"
+				hx-sync="closest tr:replace"
+				hx-on:htmx-before-request="this.closest('#scroll-container').scrollTo({ top: 0, behavior: 'smooth'})"
+			>
+				<tr class="bg-base-100 sticky top-0 z-10">
 					<th class="min-w-10"></th>
 					<th class="min-w-42">Username</th>
-					<th class="min-w-24">Last Updated</th>
+					<th class="min-w-24">
+						<input
+							id="sort_latest"
+							type="checkbox"
+							name="sort_latest"
+							class="peer sr-only"
+							checked={sort_latest}
+							aria-label="Sort by last updated"
+							hx-get="/leaderboard/rows"
+						/>
+						<label
+							for="sort_latest"
+							class="btn btn-xs not-peer-checked:btn-ghost peer-checked:btn-secondary"
+						>
+							Last Updated
+							<iconify-icon
+								icon="lucide:arrow-down-1-0"
+								width="none"
+								class="size-3"></iconify-icon>
+						</label>
+					</th>
 
 					{
 						STAT_COLUMNS.map((column) => (
@@ -35,13 +58,9 @@ const rankBy = RANK_BY.parse(Astro.url.searchParams.getAll("rank_by"));
 									class="btn btn-xs btn-accent not-checked:btn-neutral not-checked:line-through"
 									name="rank_by"
 									value={column}
-									checked={rankBy.includes(column)}
+									checked={rank_by.includes(column)}
 									aria-label={titleCase(column)}
-									hx-get="/leaderboard/1"
-									hx-trigger="change delay:500ms"
-									hx-include="closest tr"
-									hx-sync="closest tr:replace"
-									hx-on:htmx-before-request="this.closest('#scroll-container').scrollTo({ top: 0, behavior: 'smooth'})"
+									hx-get="/leaderboard/rows"
 								/>
 							</th>
 						))
@@ -50,7 +69,7 @@ const rankBy = RANK_BY.parse(Astro.url.searchParams.getAll("rank_by"));
 			</thead>
 
 			<tbody hx-indicator=".infinite-placeholder">
-				<tr hx-get="/leaderboard/1" hx-trigger="revealed" hx-swap="outerHTML"
+				<tr hx-get="/leaderboard/rows" hx-trigger="revealed" hx-swap="outerHTML"
 				></tr>
 			</tbody>
 
