@@ -60,7 +60,7 @@ const nextPageHtmxProps = {
 						hx-swap="beforeend"
 						hx-indicator={`#stats-loader-${acccountId}`}
 						class="bg-base-100 link max-w-36 overflow-clip pr-2 pl-4 text-ellipsis"
-						style={`view-transition-name: username-${username};`}
+						style={idx < 20 && `view-transition-name: username-${username};`}
 					>
 						{username}
 					</span>
