@@ -6,6 +6,8 @@ import BaseLayout from "~/layouts/base-layout.astro";
 import { parseSearchParams } from "./_params";
 
 const { rank_by, sort_latest } = parseSearchParams(Astro.url.searchParams);
+
+const rowsLink = new URL("/leaderboard/rows", Astro.url).href;
 ---
 
 <BaseLayout>
@@ -32,11 +34,12 @@ const { rank_by, sort_latest } = parseSearchParams(Astro.url.searchParams);
 						<input
 							id="sort_latest"
 							type="checkbox"
-							name="sort_latest"
 							class="peer sr-only"
+							name="sort_latest"
+							value="true"
 							checked={sort_latest}
 							aria-label="Sort by last updated"
-							hx-get="/leaderboard/rows"
+							hx-get={rowsLink}
 						/>
 						<label
 							for="sort_latest"
@@ -60,7 +63,7 @@ const { rank_by, sort_latest } = parseSearchParams(Astro.url.searchParams);
 									value={column}
 									checked={rank_by.includes(column)}
 									aria-label={titleCase(column)}
-									hx-get="/leaderboard/rows"
+									hx-get={rowsLink}
 								/>
 							</th>
 						))
@@ -69,8 +72,10 @@ const { rank_by, sort_latest } = parseSearchParams(Astro.url.searchParams);
 			</thead>
 
 			<tbody hx-indicator=".infinite-placeholder">
-				<tr hx-get="/leaderboard/rows" hx-trigger="revealed" hx-swap="outerHTML"
-				></tr>
+				<tr
+					hx-get={rowsLink + Astro.url.search}
+					hx-trigger="revealed"
+					hx-swap="outerHTML"></tr>
 			</tbody>
 
 			<tfoot>

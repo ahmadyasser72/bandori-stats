@@ -8,8 +8,8 @@ const schema = {
 		.nonempty()
 		.catch(() => [...STAT_COLUMNS]),
 	sort_latest: z
-		.literal("on")
-		.transform((it) => it === "on")
+		.literal("true")
+		.transform((it) => it === "true")
 		.catch(false),
 };
 

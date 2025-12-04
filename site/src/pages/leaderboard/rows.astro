@@ -12,6 +12,12 @@ export const partial = true;
 const { page, rank_by, sort_latest } = parseSearchParams(
 	Astro.url.searchParams,
 );
+
+const replaceUrl = new URL("/leaderboard", Astro.url);
+replaceUrl.searchParams.set("sort_latest", String(sort_latest));
+rank_by.forEach((it) => replaceUrl.searchParams.append("rank_by", it));
+Astro.response.headers.set("hx-replace-url", replaceUrl.href);
+
 const pageSize = 50;
 const offset = (page - 1) * pageSize;
 
