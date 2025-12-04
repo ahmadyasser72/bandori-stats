@@ -42,7 +42,7 @@ const nextPageUrl = new URL(Astro.url);
 nextPageUrl.pathname = `/leaderboard/${page + 1}`;
 const nextPageHtmxProps = {
 	"hx-get": nextPageUrl.href,
-	"hx-swap": "afterend",
+	"hx-swap": "afterend transition:false",
 	"hx-trigger": "intersect once",
 };
 ---
@@ -60,7 +60,7 @@ const nextPageHtmxProps = {
 						hx-swap="beforeend"
 						hx-indicator={`#stats-loader-${acccountId}`}
 						class="bg-base-100 link max-w-36 overflow-clip pr-2 pl-4 text-ellipsis"
-						style={`view-transition-name: username_${username};`}
+						style={`view-transition-name: username-${username};`}
 					>
 						{username}
 					</span>
@@ -76,13 +76,14 @@ const nextPageHtmxProps = {
 
 			<td>{lastUpdated}</td>
 
-			{Object.values(stats).map((value) => (
-				<td>
-					{value ? (
-						formatNumber(value)
-					) : (
-						<b class="text-base-content/40">Private</b>
-					)}
+			{Object.entries(stats).map(([key, value]) => (
+				<td
+					class:list={[
+						(value === null && "font-medium opacity-40") ||
+							(!rankBy.includes(key) && "line-through opacity-60"),
+					]}
+				>
+					{value ? formatNumber(value) : "Private"}
 				</td>
 			))}
 		</tr>
