@@ -9,6 +9,7 @@ import { logger, schemaTask, tags } from "@trigger.dev/sdk";
 import z from "zod";
 
 import { getStats } from "./get-stats";
+import { updateZScore } from "./update-z-score";
 
 export const insertSnapshot = schemaTask({
 	id: "insert-snapshot",
@@ -48,6 +49,12 @@ export const insertSnapshot = schemaTask({
 				.update(accounts)
 				.set({ latestSnapshotId: snapshotId })
 				.where(eq(accounts.id, accountId));
+
+			const { server, ...current } = stats;
+			await updateZScore.trigger({
+				current,
+				previous: existing?.latestSnapshot ?? null,
+			});
 		};
 
 		if (existing && existing.latestSnapshot) {
@@ -104,10 +111,8 @@ export const insertSnapshot = schemaTask({
 				})
 				.returning({ id: accountSnapshots.id });
 
-			if (newSnapshot) {
+			if (newSnapshot)
 				await updateLatestSnapshotId(existing.id, newSnapshot.id);
-				return { snapshotId: newSnapshot.id };
-			}
 
 			return;
 		}
@@ -132,6 +137,5 @@ export const insertSnapshot = schemaTask({
 			.returning({ id: accountSnapshots.id });
 
 		await updateLatestSnapshotId(accountId, newSnapshot!.id);
-		return { snapshotId: newSnapshot!.id };
 	},
 });

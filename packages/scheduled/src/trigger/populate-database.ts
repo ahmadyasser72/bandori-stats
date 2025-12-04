@@ -1,9 +1,8 @@
-import { AbortTaskRunError, logger, schemaTask, tags } from "@trigger.dev/sdk";
+import { schemaTask } from "@trigger.dev/sdk";
 import dayjs from "dayjs";
 import z from "zod";
 
 import { insertSnapshot } from "./insert-snapshot";
-import { setZScore } from "./set-z-score";
 
 export const populateDatabase = schemaTask({
 	id: "populate-database",
@@ -17,7 +16,7 @@ export const populateDatabase = schemaTask({
 			.subtract(5, "minute")
 			.diff(dayjs(), "minutes", true);
 
-		const results = await insertSnapshot.batchTriggerAndWait(
+		await insertSnapshot.batchTrigger(
 			usernames
 				.map((username) => ({
 					payload: { username, date },
@@ -30,23 +29,5 @@ export const populateDatabase = schemaTask({
 				}))
 				.sort((a, b) => a.options.delay.valueOf() - b.options.delay.valueOf()),
 		);
-
-		let latestSnapshotId = 0;
-		for (const run of results.runs) {
-			if (!run.ok) {
-				logger.error("Batch task run error", { error: run.error });
-				throw new AbortTaskRunError(
-					"Aborting to update z-score since one of the run fails",
-				);
-			}
-
-			if (run.output !== undefined)
-				latestSnapshotId = Math.max(latestSnapshotId, run.output.snapshotId);
-		}
-
-		if (latestSnapshotId > 0) {
-			await tags.add(`zScore_update`);
-			await setZScore.trigger({ latestSnapshotId }, { tags: `zScore_${date}` });
-		}
 	},
 });

@@ -86,11 +86,6 @@ export const accountSnapshotsRelations = relations(
 
 export const zScore = sqliteTable("z_score", {
 	id: integer().notNull().primaryKey(),
-	latestSnapshotId: integer()
-		.notNull()
-		.references(() => accountSnapshots.id, {
-			onDelete: "cascade",
-		}),
 
 	...Object.fromEntries(
 		STAT_COLUMNS.map((column) => [`n_${column}` as const, integer().notNull()]),
@@ -103,17 +98,9 @@ export const zScore = sqliteTable("z_score", {
 	),
 });
 
-export const zScoreRelations = relations(zScore, ({ one }) => ({
-	latestSnapshot: one(accountSnapshots, {
-		fields: [zScore.latestSnapshotId],
-		references: [accountSnapshots.id],
-	}),
-}));
-
 export const zScoreStats = sqliteView("z_score_stats").as((qb) =>
 	qb
 		.select({
-			latestSnapshotId: zScore.latestSnapshotId,
 			...Object.fromEntries(
 				STAT_COLUMNS.flatMap((column) => [
 					[
