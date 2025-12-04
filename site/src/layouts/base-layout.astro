@@ -24,7 +24,6 @@ import "~/styles/global.css";
 <script>
 	import htmx from "htmx.org";
 
-	htmx.config.globalViewTransitions = true;
 	htmx.onLoad((node) => {
 		if (node instanceof HTMLDialogElement) node.show();
 	});

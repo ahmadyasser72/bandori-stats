@@ -42,7 +42,7 @@ const nextPageUrl = new URL(Astro.url);
 nextPageUrl.pathname = `/leaderboard/${page + 1}`;
 const nextPageHtmxProps = {
 	"hx-get": nextPageUrl.href,
-	"hx-swap": "afterend transition:false",
+	"hx-swap": "afterend",
 	"hx-trigger": "intersect once",
 };
 ---

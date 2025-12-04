@@ -20,6 +20,7 @@ const rankBy = RANK_BY.parse(Astro.url.searchParams.getAll("rank_by"));
 					hx-target="tbody"
 					hx-disabled-elt="input"
 					hx-indicator="#full-loader, tbody"
+					hx-swap="innerHTML transition:true"
 					class="bg-base-100 sticky top-0 z-10"
 				>
 					<th class="min-w-10"></th>
