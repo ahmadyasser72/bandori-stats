@@ -49,9 +49,12 @@ export const insertSnapshot = schemaTask({
 				.update(accounts)
 				.set({ latestSnapshotId: snapshotId })
 				.where(eq(accounts.id, accountId));
+		};
 
+		const updateSnapshotZScore = async () => {
 			const { server, ...current } = stats;
 			await updateZScore.trigger({
+				date,
 				current,
 				previous: existing?.latestSnapshot ?? null,
 			});
@@ -114,6 +117,7 @@ export const insertSnapshot = schemaTask({
 			if (newSnapshot)
 				await updateLatestSnapshotId(existing.id, newSnapshot.id);
 
+			await updateSnapshotZScore();
 			return;
 		}
 
@@ -137,5 +141,6 @@ export const insertSnapshot = schemaTask({
 			.returning({ id: accountSnapshots.id });
 
 		await updateLatestSnapshotId(accountId, newSnapshot!.id);
+		await updateSnapshotZScore();
 	},
 });

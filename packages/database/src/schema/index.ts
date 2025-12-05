@@ -9,7 +9,7 @@ import {
 	type AnySQLiteColumn,
 } from "drizzle-orm/sqlite-core";
 
-import { STAT_COLUMNS, type StatName } from "../constants";
+import { STAT_COLUMNS } from "../constants";
 
 export const accounts = sqliteTable(
 	"accounts",
@@ -86,6 +86,7 @@ export const accountSnapshotsRelations = relations(
 
 export const zScore = sqliteTable("z_score", {
 	id: integer().notNull().primaryKey(),
+	date: text().notNull().unique(),
 
 	...Object.fromEntries(
 		STAT_COLUMNS.map((column) => [`n_${column}` as const, integer().notNull()]),
@@ -97,71 +98,3 @@ export const zScore = sqliteTable("z_score", {
 		]),
 	),
 });
-
-export const zScoreStats = sqliteView("z_score_stats").as((qb) =>
-	qb
-		.select({
-			...Object.fromEntries(
-				STAT_COLUMNS.flatMap((column) => [
-					[
-						`mean_${column}` as const,
-						sql<number>`${zScore[`mean_${column}`]}`.as(`mean_${column}`),
-					],
-					[
-						`variance_${column}` as const,
-						sql<number>`
-							CASE
-								WHEN ${zScore[`n_${column}`]} > 1
-								THEN ${zScore[`m2_${column}`]} / (${zScore[`n_${column}`]} - 1)
-								ELSE 0
-							END
-						`.as(`variance_${column}`),
-					],
-					[
-						`stddev_${column}` as const,
-						sql<number>`
-							CASE
-								WHEN ${zScore[`n_${column}`]} > 1
-								THEN sqrt(${zScore[`m2_${column}`]} / (${zScore[`n_${column}`]} - 1))
-								ELSE 0
-							END
-						`.as(`stddev_${column}`),
-					],
-				]),
-			),
-		})
-		.from(zScore),
-);
-
-export const accountLeaderboard = sqliteView("account_leaderboard").as((qb) =>
-	qb
-		.select({
-			acccountId: accounts.id,
-			username: accounts.username,
-			lastUpdated: sql<string>`${accountSnapshots.snapshotDate}`.as(
-				"lastUpdated",
-			),
-			...Object.fromEntries(
-				STAT_COLUMNS.map((column) => [
-					column,
-					sql<number | null>`${accountSnapshots[column]}`.as(column),
-				]),
-			),
-			...Object.fromEntries(
-				STAT_COLUMNS.map((column) => [
-					`score_${column}` as const,
-					sql<number>`
-						(COALESCE(${accountSnapshots[column]}, 0) - ${zScoreStats[`mean_${column}`]})
-						/ ${zScoreStats[`stddev_${column}`]}
-					`.as(`score_${column}`),
-				]),
-			),
-		})
-		.from(accounts)
-		.where(isNotNull(accounts.latestSnapshotId))
-		.leftJoin(
-			accountSnapshots,
-			eq(accounts.latestSnapshotId, accountSnapshots.id),
-		)
-		.crossJoin(zScoreStats),
-);

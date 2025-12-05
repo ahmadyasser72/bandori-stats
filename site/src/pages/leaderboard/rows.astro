@@ -1,7 +1,10 @@
 ---
-import { db } from "@bandori-stats/database";
-import { STAT_COLUMNS } from "@bandori-stats/database/constants";
-import { accountLeaderboard } from "@bandori-stats/database/schema";
+import { db, sql } from "@bandori-stats/database";
+import {
+	SELECT_STAT_COLUMNS,
+	STAT_COLUMNS,
+} from "@bandori-stats/database/constants";
+import { zScore } from "@bandori-stats/database/schema";
 import dayjs from "dayjs";
 
 import { formatNumber, sum } from "~/lib/math";
@@ -21,21 +24,54 @@ Astro.response.headers.set("hx-replace-url", replaceUrl.href);
 const pageSize = 50;
 const offset = (page - 1) * pageSize;
 
-const rows = await db
-	.select()
-	.from(accountLeaderboard)
+const stats = (await db.query.zScore.findFirst({
+	columns: {
+		date: true,
+		...Object.fromEntries(
+			STAT_COLUMNS.map((column) => [`mean_${column}`, true]),
+		),
+	},
+	where: (t, { lte }) => lte(t.date, dayjs().format("YYYY-MM-DD")),
+	orderBy: (t, { desc }) => desc(t.date),
+	extras: Object.fromEntries(
+		STAT_COLUMNS.map((column) => [
+			`stddev_${column}` as const,
+			sql<number>`
+				CASE
+					WHEN ${zScore[`n_${column}`]} > 1
+					THEN sqrt(${zScore[`m2_${column}`]} / (${zScore[`n_${column}`]} - 1))
+					ELSE 0
+				END
+			`.as(`stddev_${column}`),
+		]),
+	),
+}))!;
+
+const rows = await db.query.accounts
+	.findMany({
+		columns: { id: true, username: true },
+		with: {
+			snapshots: {
+				limit: 1,
+				columns: { ...SELECT_STAT_COLUMNS, snapshotDate: true },
+				orderBy: (t, { desc }) => desc(t.snapshotDate),
+				where: (t, { lte }) => lte(t.snapshotDate, stats.date),
+			},
+		},
+	})
 	.then((entries) =>
 		entries
-			.map(({ acccountId, username, lastUpdated, ...rest }) => ({
-				acccountId,
+			.filter(({ snapshots }) => snapshots.length > 0)
+			.map(({ id, username, snapshots: [{ snapshotDate, ...snapshot }] }) => ({
+				id,
 				username,
-				lastUpdated,
-				stats: Object.fromEntries(
-					STAT_COLUMNS.map((column) => [column, rest[column]]),
-				),
+				lastUpdated: snapshotDate,
+				stats: snapshot,
 				scores: sum(
 					STAT_COLUMNS.filter((column) => rank_by.includes(column)).map(
-						(column) => rest[`score_${column}`],
+						(column) =>
+							((snapshot[column] ?? 0) - stats[`mean_${column}`]) /
+							stats[`stddev_${column}`],
 					),
 				),
 			}))
@@ -58,25 +94,25 @@ const nextPageHtmxProps = {
 ---
 
 {
-	pageRows.map(({ acccountId, username, lastUpdated, stats, top }, idx) => (
+	pageRows.map(({ id, username, lastUpdated, stats, top }, idx) => (
 		<tr {...(idx === pageSize - 1 ? nextPageHtmxProps : {})}>
 			<th>#{top.toString().padStart(3, "0")}</th>
 
 			<th class="bg-base-100/20 sticky left-0 z-10 pl-0">
 				<p class="inline-flex">
 					<span
-						hx-get={`/leaderboard/stats/${acccountId}`}
+						hx-get={`/leaderboard/stats/${id}`}
 						hx-target="body"
 						hx-swap="beforeend"
-						hx-indicator={`#stats-loader-${acccountId}`}
+						hx-indicator={`#stats-loader-${id}`}
 						class="bg-base-100 link max-w-36 overflow-clip pr-2 pl-4 text-ellipsis"
-						style={idx < 30 && `view-transition-name: username-${username};`}
+						style={idx < 30 && `view-transition-name: account-${id};`}
 					>
 						{username}
 					</span>
 
 					<iconify-icon
-						id={`stats-loader-${acccountId}`}
+						id={`stats-loader-${id}`}
 						icon="svg-spinners:3-dots-scale"
 						width="16"
 						class="htmx-indicator"
