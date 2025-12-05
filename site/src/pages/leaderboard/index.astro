@@ -29,7 +29,7 @@ const availableDates = await db.query.zScore.findMany({
 				hx-get={rowsLink}
 				hx-target="tbody"
 				hx-disabled-elt="input, label.btn, select"
-				hx-indicator="#full-loader, tbody"
+				hx-indicator="#app-loader, tbody"
 				hx-swap="innerHTML transition:true"
 			>
 				{
@@ -46,7 +46,7 @@ const availableDates = await db.query.zScore.findMany({
 			<thead
 				hx-target="tbody"
 				hx-disabled-elt="input, label.btn, select"
-				hx-indicator="#full-loader, tbody"
+				hx-indicator="#app-loader, tbody"
 				hx-swap="innerHTML transition:true"
 				hx-trigger="change delay:500ms"
 				hx-sync="closest tr:replace"
@@ -114,10 +114,5 @@ const availableDates = await db.query.zScore.findMany({
 				}
 			</tfoot>
 		</table>
-
-		<div id="full-loader" class="htmx-indicator center fixed">
-			<iconify-icon icon="svg-spinners:bars-scale-fade" width="96"
-			></iconify-icon>
-		</div>
 	</div>
 </BaseLayout>

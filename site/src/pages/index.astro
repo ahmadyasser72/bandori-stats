@@ -5,8 +5,24 @@ export const prerender = true;
 ---
 
 <BaseLayout>
-	<div class="absolute inset-0 flex flex-col justify-center text-center">
+	<div class="absolute inset-0 flex flex-col justify-center gap-2 text-center">
 		<h1 class="font-medium">bandori-stats</h1>
-		<a href="/leaderboard" class="link">Leaderboard</a>
+
+		<div
+			hx-boost="true"
+			hx-indicator="#app-loader, closest main"
+			class="flex flex-wrap justify-center gap-y-1 divide-x *:px-4"
+		>
+			<a href="/leaderboard" class="link">Leaderboard</a>
+			<a
+				href="https://github.com/ahmadyasser72/bandori-stats"
+				target="_blank"
+				rel="noopener noreferrer"
+				class="link inline-flex items-center gap-1"
+			>
+				Source code
+				<iconify-icon icon="lucide:github" width="20"></iconify-icon>
+			</a>
+		</div>
 	</div>
 </BaseLayout>
