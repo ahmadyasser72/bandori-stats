@@ -19,7 +19,7 @@ const [{ minDate, maxDate }] = await db
 <BaseLayout>
 	<div
 		id="scroll-container"
-		hx-include="[name='rank_by'], [name='sort_latest'], [name='date']"
+		hx-include="[name='rank_by'], [name='sort_latest'], [name='date'], [name='search_username']"
 		class="absolute inset-0 overflow-x-auto"
 	>
 		<div class="sticky left-0 z-20 flex items-center gap-2 p-4 pb-2 sm:px-8">
@@ -42,7 +42,7 @@ const [{ minDate, maxDate }] = await db
 		<table class="table-xs table-zebra table">
 			<thead
 				hx-target="tbody"
-				hx-disabled-elt="input, label.btn, select"
+				hx-disabled-elt="input, .btn"
 				hx-indicator="#app-loader, tbody"
 				hx-swap="innerHTML transition:true"
 				hx-trigger="change delay:500ms"
@@ -51,7 +51,37 @@ const [{ minDate, maxDate }] = await db
 			>
 				<tr class="bg-base-100 sticky top-0 z-20">
 					<th class="min-w-10"></th>
-					<th class="min-w-42">Username</th>
+
+					<th class="min-w-42">
+						<div
+							id="search_username_popover"
+							popover
+							class="dropdown peer bg-base-100 rounded-box z-1 mt-1 px-2 py-1 shadow-sm"
+							style="position-anchor: --anchor-search-username; view-transition-name: search-username-popover;"
+							hx-on:htmx-after-request="this.hidePopover()"
+						>
+							<input
+								type="search"
+								class="input input-xs w-32"
+								name="search_username"
+								placeholder="search..."
+								hx-get={rowsLink}
+								hx-trigger="input changed delay:1s"
+							/>
+						</div>
+
+						<button
+							class="btn btn-xs peer-has-placeholder-shown:btn-ghost peer-has-not-placeholder-shown:btn-primary"
+							popovertarget="search_username_popover"
+							style="anchor-name: --anchor-search-username"
+						>
+							Username
+
+							<iconify-icon icon="lucide:search" width="none" class="size-3"
+							></iconify-icon>
+						</button>
+					</th>
+
 					<th class="min-w-24">
 						<input
 							id="sort_latest"

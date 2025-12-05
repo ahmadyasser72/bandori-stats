@@ -13,6 +13,10 @@ export const schema = {
 		.literal("true")
 		.transform((it) => it === "true")
 		.catch(false),
+	search_username: z
+		.string()
+		.nullable()
+		.transform((it) => it?.toLowerCase()),
 };
 
 export const parseSearchParams = (s: URLSearchParams) => ({
@@ -20,4 +24,5 @@ export const parseSearchParams = (s: URLSearchParams) => ({
 	page: schema.page.parse(s.get("page")),
 	rank_by: schema.rank_by.parse(s.getAll("rank_by")),
 	sort_latest: schema.sort_latest.parse(s.get("sort_latest")),
+	search_username: schema.search_username.parse(s.get("search_username")),
 });

@@ -12,7 +12,7 @@ import { parseSearchParams } from "./_params";
 
 export const partial = true;
 
-const { date, page, rank_by, sort_latest } = parseSearchParams(
+const { date, page, rank_by, sort_latest, search_username } = parseSearchParams(
 	Astro.url.searchParams,
 );
 
@@ -81,7 +81,11 @@ const rows = await db.query.accounts
 				),
 			}))
 			.sort((a, b) => b.scores - a.scores)
-			.map((it, idx) => ({ ...it, top: idx + 1 })),
+			.map((it, idx) => ({ ...it, top: idx + 1 }))
+			.filter(
+				({ username }) =>
+					!search_username || username.toLowerCase().includes(search_username),
+			),
 	);
 
 if (sort_latest)
