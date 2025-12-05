@@ -16,13 +16,17 @@ const { date, page, rank_by, sort_latest } = parseSearchParams(
 	Astro.url.searchParams,
 );
 
-const replaceUrl = new URL("/leaderboard", Astro.url);
-replaceUrl.searchParams.set("sort_latest", String(sort_latest));
-rank_by.forEach((it) => replaceUrl.searchParams.append("rank_by", it));
-Astro.response.headers.set("hx-replace-url", replaceUrl.href);
+{
+	const replaceUrl = new URL("/leaderboard", Astro.url);
+	replaceUrl.searchParams.set("sort_latest", String(sort_latest));
+	rank_by.forEach((it) => replaceUrl.searchParams.append("rank_by", it));
+	Astro.response.headers.set("hx-replace-url", replaceUrl.href);
 
-const pageSize = 50;
-const offset = (page - 1) * pageSize;
+	Astro.response.headers.set(
+		"cache-control",
+		"max-age=300, stale-while-revalidate=60",
+	);
+}
 
 const stats = (await db.query.zScore.findFirst({
 	columns: {
@@ -82,6 +86,8 @@ const rows = await db.query.accounts
 if (sort_latest)
 	rows.sort((a, b) => dayjs(b.lastUpdated).diff(dayjs(a.lastUpdated)));
 
+const pageSize = 50;
+const offset = (page - 1) * pageSize;
 const pageRows = rows.slice(offset, offset + pageSize);
 
 const nextPageUrl = new URL(Astro.url);
