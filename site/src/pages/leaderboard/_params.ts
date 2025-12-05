@@ -2,7 +2,7 @@ import { STAT_COLUMNS } from "@bandori-stats/database/constants";
 import dayjs from "dayjs";
 import z from "zod";
 
-const schema = {
+export const schema = {
 	date: z.iso.date().catch(dayjs().format("YYYY-MM-DD")),
 	page: z.coerce.number().positive().catch(1),
 	rank_by: z
