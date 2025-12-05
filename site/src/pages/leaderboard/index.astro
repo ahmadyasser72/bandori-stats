@@ -1,4 +1,5 @@
 ---
+import { db } from "@bandori-stats/database";
 import { STAT_COLUMNS } from "@bandori-stats/database/constants";
 import { titleCase } from "text-case";
 
@@ -8,22 +9,43 @@ import { parseSearchParams } from "./_params";
 const { rank_by, sort_latest } = parseSearchParams(Astro.url.searchParams);
 
 const rowsLink = new URL("/leaderboard/rows", Astro.url).href;
+const availableDates = await db.query.zScore.findMany({
+	columns: { date: true },
+	orderBy: (t, { desc }) => desc(t.date),
+});
 ---
 
 <BaseLayout>
 	<div id="scroll-container" class="absolute inset-0 overflow-x-auto">
 		<div class="sticky left-0 z-20 flex items-center gap-2 p-4 pb-2 sm:px-8">
 			<h1 class="text-xl font-bold">Leaderboard</h1>
+			<select
+				class="select select-xs select-ghost w-28"
+				name="date"
+				hx-get={rowsLink}
+				hx-target="tbody"
+				hx-disabled-elt="input, label.btn, select"
+				hx-indicator="#full-loader, tbody"
+				hx-swap="innerHTML transition:true"
+			>
+				{
+					availableDates.map(({ date }, idx) => (
+						<option value={date} selected={idx === 0}>
+							{date}
+						</option>
+					))
+				}
+			</select>
 		</div>
 
 		<table class="table-xs table-zebra table">
 			<thead
 				hx-target="tbody"
-				hx-disabled-elt="input, label.btn"
+				hx-disabled-elt="input, label.btn, select"
 				hx-indicator="#full-loader, tbody"
 				hx-swap="innerHTML transition:true"
 				hx-trigger="change delay:500ms"
-				hx-include="closest tr"
+				hx-include="closest tr, [name='date']"
 				hx-sync="closest tr:replace"
 				hx-on:htmx-before-request="this.closest('#scroll-container').scrollTo({ top: 0, behavior: 'smooth'})"
 			>

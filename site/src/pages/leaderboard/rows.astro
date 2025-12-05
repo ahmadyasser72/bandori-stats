@@ -12,7 +12,7 @@ import { parseSearchParams } from "./_params";
 
 export const partial = true;
 
-const { page, rank_by, sort_latest } = parseSearchParams(
+const { date, page, rank_by, sort_latest } = parseSearchParams(
 	Astro.url.searchParams,
 );
 
@@ -31,7 +31,7 @@ const stats = (await db.query.zScore.findFirst({
 			STAT_COLUMNS.map((column) => [`mean_${column}`, true]),
 		),
 	},
-	where: (t, { lte }) => lte(t.date, dayjs().format("YYYY-MM-DD")),
+	where: (t, { lte }) => lte(t.date, date),
 	orderBy: (t, { desc }) => desc(t.date),
 	extras: Object.fromEntries(
 		STAT_COLUMNS.map((column) => [
