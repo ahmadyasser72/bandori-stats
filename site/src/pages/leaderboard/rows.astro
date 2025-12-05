@@ -111,7 +111,7 @@ const nextPageHtmxProps = {
 						hx-get={`/leaderboard/stats/${id}_${date}`}
 						hx-target="body"
 						hx-swap="beforeend"
-						hx-indicator={`#stats-loader-${id}`}
+						hx-indicator="next iconify-icon"
 						class="bg-base-100 link max-w-36 overflow-clip pr-2 pl-4 text-ellipsis"
 						style={idx < 30 && `view-transition-name: account-${id};`}
 					>
@@ -119,7 +119,6 @@ const nextPageHtmxProps = {
 					</span>
 
 					<iconify-icon
-						id={`stats-loader-${id}`}
 						icon="svg-spinners:3-dots-scale"
 						width="16"
 						class="htmx-indicator"
