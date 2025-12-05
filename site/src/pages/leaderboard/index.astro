@@ -1,6 +1,7 @@
 ---
-import { db } from "@bandori-stats/database";
+import { db, max, min } from "@bandori-stats/database";
 import { STAT_COLUMNS } from "@bandori-stats/database/constants";
+import { zScore } from "@bandori-stats/database/schema";
 import { titleCase } from "text-case";
 
 import BaseLayout from "~/layouts/base-layout.astro";
@@ -9,10 +10,10 @@ import { parseSearchParams } from "./_params";
 const { rank_by, sort_latest } = parseSearchParams(Astro.url.searchParams);
 
 const rowsLink = new URL("/leaderboard/rows", Astro.url).href;
-const availableDates = await db.query.zScore.findMany({
-	columns: { date: true },
-	orderBy: (t, { desc }) => desc(t.date),
-});
+
+const [{ minDate, maxDate }] = await db
+	.select({ minDate: min(zScore.date), maxDate: max(zScore.date) })
+	.from(zScore);
 ---
 
 <BaseLayout>
@@ -23,23 +24,19 @@ const availableDates = await db.query.zScore.findMany({
 	>
 		<div class="sticky left-0 z-20 flex items-center gap-2 p-4 pb-2 sm:px-8">
 			<h1 class="text-xl font-bold">Leaderboard</h1>
-			<select
-				class="select select-xs select-ghost w-28"
+			<input
+				type="date"
+				min={minDate}
+				max={maxDate}
+				class="input input-xs input-ghost w-28"
 				name="date"
+				value={maxDate}
 				hx-get={rowsLink}
 				hx-target="tbody"
 				hx-disabled-elt="input, label.btn, select"
 				hx-indicator="#app-loader, tbody"
 				hx-swap="innerHTML transition:true"
-			>
-				{
-					availableDates.map(({ date }, idx) => (
-						<option value={date} selected={idx === 0}>
-							{date}
-						</option>
-					))
-				}
-			</select>
+			/>
 		</div>
 
 		<table class="table-xs table-zebra table">
