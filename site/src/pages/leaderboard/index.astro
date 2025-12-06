@@ -1,7 +1,6 @@
 ---
-import { db, max, min } from "@bandori-stats/database";
 import { STAT_COLUMNS } from "@bandori-stats/database/constants";
-import { zScore } from "@bandori-stats/database/schema";
+import { redis } from "@bandori-stats/database/redis";
 import { titleCase } from "text-case";
 
 import BaseLayout from "~/layouts/base-layout.astro";
@@ -11,9 +10,17 @@ const { rank_by, sort_latest } = parseSearchParams(Astro.url.searchParams);
 
 const rowsLink = new URL("/leaderboard/rows", Astro.url).href;
 
-const [{ minDate, maxDate }] = await db
-	.select({ minDate: min(zScore.date), maxDate: max(zScore.date) })
-	.from(zScore);
+const { minDate, maxDate } = await (async () => {
+	const [, keys] = await redis.scan(0, {
+		match: `leaderboard:*:${STAT_COLUMNS[0]}`,
+		type: "zset",
+	});
+
+	const dates = keys
+		.map((key) => key.split(":")[1])
+		.sort((a, b) => a.localeCompare(b));
+	return { minDate: dates[0], maxDate: dates.at(-1)! };
+})();
 ---
 
 <BaseLayout>

@@ -1,10 +1,7 @@
 ---
-import { db, sql } from "@bandori-stats/database";
-import {
-	SELECT_STAT_COLUMNS,
-	STAT_COLUMNS,
-} from "@bandori-stats/database/constants";
-import { zScore } from "@bandori-stats/database/schema";
+import { db } from "@bandori-stats/database";
+import { SELECT_STAT_COLUMNS } from "@bandori-stats/database/constants";
+import { redis } from "@bandori-stats/database/redis";
 import dayjs from "dayjs";
 
 import { formatNumber, sum } from "~/lib/math";
@@ -29,28 +26,17 @@ const { date, page, rank_by, sort_latest, search_username } = parseSearchParams(
 		);
 }
 
-const stats = (await db.query.zScore.findFirst({
-	columns: {
-		date: true,
-		...Object.fromEntries(
-			STAT_COLUMNS.map((column) => [`mean_${column}`, true]),
-		),
-	},
-	where: (t, { lte }) => lte(t.date, date),
-	orderBy: (t, { desc }) => desc(t.date),
-	extras: Object.fromEntries(
-		STAT_COLUMNS.map((column) => [
-			`stddev_${column}` as const,
-			sql<number>`
-				CASE
-					WHEN ${zScore[`n_${column}`]} > 1
-					THEN sqrt(${zScore[`m2_${column}`]} / (${zScore[`n_${column}`]} - 1))
-					ELSE 0
-				END
-			`.as(`stddev_${column}`),
-		]),
-	),
-}))!;
+const leaderboard = await (async () => {
+	const p = redis.pipeline();
+	rank_by.forEach((column) =>
+		p.zrange(`leaderboard:${date}:${column}`, 0, "+inf", { byScore: true }),
+	);
+
+	const entries = await p.exec<number[][]>();
+	return Object.fromEntries(
+		rank_by.map((column, idx) => [column, entries[idx].reverse()]),
+	);
+})();
 
 const rows = await db.query.accounts
 	.findMany({
@@ -60,26 +46,34 @@ const rows = await db.query.accounts
 				limit: 1,
 				columns: { ...SELECT_STAT_COLUMNS, snapshotDate: true },
 				orderBy: (t, { desc }) => desc(t.snapshotDate),
-				where: (t, { lte }) => lte(t.snapshotDate, stats.date),
+				where: (t, { lte }) => lte(t.snapshotDate, date),
 			},
 		},
 	})
 	.then((entries) =>
 		entries
 			.filter(({ snapshots }) => snapshots.length > 0)
-			.map(({ id, username, snapshots: [{ snapshotDate, ...snapshot }] }) => ({
-				id,
-				username,
-				lastUpdated: snapshotDate,
-				stats: snapshot,
-				scores: sum(
-					STAT_COLUMNS.filter((column) => rank_by.includes(column)).map(
-						(column) =>
-							((snapshot[column] ?? 0) - stats[`mean_${column}`]) /
-							stats[`stddev_${column}`],
-					),
-				),
-			}))
+			.map(
+				({
+					id,
+					username,
+					snapshots: [{ snapshotDate: lastUpdated, ...stats }],
+				}) => ({
+					id,
+					username,
+					lastUpdated,
+					stats,
+					scores:
+						sum(
+							rank_by.map((column) => {
+								if (!stats[column]) return 0;
+
+								const rankings = leaderboard[column];
+								return 1 - rankings.indexOf(id) / (rankings.length - 1);
+							}),
+						) / rank_by.length,
+				}),
+			)
 			.sort((a, b) => b.scores - a.scores)
 			.map((it, idx) => ({ ...it, top: idx + 1 }))
 			.filter(

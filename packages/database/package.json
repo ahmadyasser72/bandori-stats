@@ -4,6 +4,7 @@
 	"private": true,
 	"exports": {
 		".": "./src/db.ts",
+		"./redis": "./src/redis.ts",
 		"./constants": "./src/constants.ts",
 		"./schema": "./src/schema/index.ts"
 	},
@@ -15,6 +16,7 @@
 	},
 	"dependencies": {
 		"@libsql/client": "^0.15.15",
+		"@upstash/redis": "^1.35.7",
 		"drizzle-orm": "^0.44.7"
 	}
 }

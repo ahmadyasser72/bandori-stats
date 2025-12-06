@@ -1,15 +1,11 @@
-import { eq, isNotNull, relations, sql } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
 	integer,
-	real,
 	sqliteTable,
-	sqliteView,
 	text,
 	unique,
 	type AnySQLiteColumn,
 } from "drizzle-orm/sqlite-core";
-
-import { STAT_COLUMNS } from "../constants";
 
 export const accounts = sqliteTable(
 	"accounts",
@@ -83,18 +79,3 @@ export const accountSnapshotsRelations = relations(
 		}),
 	}),
 );
-
-export const zScore = sqliteTable("z_score", {
-	id: integer().notNull().primaryKey(),
-	date: text().notNull().unique(),
-
-	...Object.fromEntries(
-		STAT_COLUMNS.map((column) => [`n_${column}` as const, integer().notNull()]),
-	),
-	...Object.fromEntries(
-		STAT_COLUMNS.flatMap((column) => [
-			[`mean_${column}` as const, real().notNull()],
-			[`m2_${column}` as const, real().notNull()],
-		]),
-	),
-});
