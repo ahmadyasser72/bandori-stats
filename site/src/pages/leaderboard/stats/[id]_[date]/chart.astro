@@ -1,0 +1,172 @@
+---
+import { db, sql } from "@bandori-stats/database";
+import {
+	SELECT_STAT_COLUMNS,
+	STAT_COLUMNS,
+	type StatName,
+} from "@bandori-stats/database/constants";
+import { zScore } from "@bandori-stats/database/schema";
+import { titleCase } from "text-case";
+
+import { useRadarChart } from "~/lib/chart";
+import { formatNumber } from "~/lib/math";
+import { schema } from "../../_params";
+
+const id = Number(Astro.params.id);
+const date = schema.date.parse(Astro.params.date);
+const account = await db.query.accounts.findFirst({
+	columns: { username: true },
+	with: {
+		snapshots: {
+			limit: 1,
+			columns: { ...SELECT_STAT_COLUMNS },
+			orderBy: (t, { desc }) => desc(t.snapshotDate),
+			where: (t, { lte }) => lte(t.snapshotDate, date),
+		},
+	},
+	where: (t, { eq }) => eq(t.id, id),
+});
+
+const isNotFound = !account || account.snapshots.length === 0;
+if (isNotFound) Astro.response.status = 404;
+
+const chart = await (async () => {
+	if (isNotFound) return;
+
+	const stats = (await db.query.zScore.findFirst({
+		columns: {
+			date: true,
+			...Object.fromEntries(
+				STAT_COLUMNS.flatMap((column) => [
+					[`mean_${column}`, true],
+					[`n_${column}`, true],
+				]),
+			),
+		},
+		where: (t, { lte }) => lte(t.date, date),
+		orderBy: (t, { desc }) => desc(t.date),
+		extras: Object.fromEntries(
+			STAT_COLUMNS.map((column) => [
+				`stddev_${column}` as const,
+				sql<number>`
+          CASE
+            WHEN ${zScore[`n_${column}`]} > 1
+            THEN sqrt(${zScore[`m2_${column}`]} / (${zScore[`n_${column}`]} - 1))
+            ELSE 0
+          END
+        `.as(`stddev_${column}`),
+			]),
+		),
+	}))!;
+
+	const normalize = (value: number, column: StatName) =>
+		(value - stats[`mean_${column}`]) / stats[`stddev_${column}`];
+
+	const computed = await db.query.accounts
+		.findMany({
+			columns: {},
+			with: {
+				snapshots: {
+					limit: 1,
+					columns: SELECT_STAT_COLUMNS,
+					orderBy: (t, { desc }) => desc(t.snapshotDate),
+					where: (t, { lte }) => lte(t.snapshotDate, date),
+				},
+			},
+		})
+		.then((entries) => {
+			const snapshots = entries.flatMap(({ snapshots }) => snapshots);
+
+			return Object.fromEntries(
+				STAT_COLUMNS.flatMap((column) => {
+					const values = snapshots
+						.map((snapshot) => snapshot[column])
+						.filter((value) => value !== null)
+						.sort((a, b) => b - a);
+
+					return [
+						[`min_${column}` as const, values.at(-1)!],
+						[`max_${column}` as const, values.at(0)!],
+						[
+							`top_${column}` as const,
+							1 + values.indexOf(account.snapshots[0][column] ?? NaN),
+						],
+					];
+				}),
+			);
+		});
+
+	return useRadarChart({
+		type: "radar",
+		options: {
+			elements: { point: { radius: 5 } },
+			scales: { r: { min: 0, max: 1, ticks: { display: false } } },
+			plugins: { tooltip: { enabled: true } },
+		},
+		data: {
+			labels: STAT_COLUMNS.map((column) =>
+				titleCase(column.replace(/Count$/, "")),
+			),
+			datasets: [
+				{
+					label: `${account.username} (${date})`,
+					fill: true,
+					normalized: true,
+					parsing: { key: "value" },
+					data: STAT_COLUMNS.map((column) => {
+						const value = account.snapshots[0][column];
+						const min = normalize(computed[`min_${column}`], column);
+						const max = normalize(computed[`max_${column}`], column);
+
+						return {
+							tooltip:
+								value === null
+									? "Private"
+									: `${formatNumber(value)} (#${computed[`top_${column}`]})`,
+							value:
+								value === null
+									? 0
+									: (normalize(value, column) - min) / (max - min),
+						};
+					}),
+				},
+			],
+		},
+	});
+})();
+---
+
+<dialog
+	class="modal modal-bottom sm:modal-middle"
+	hx-on:close="this.ontransitionend = this.remove"
+>
+	<div class="modal-box">
+		<form method="dialog">
+			<button class="btn btn-sm btn-circle btn-ghost absolute top-2 right-2">
+				✕
+			</button>
+		</form>
+
+		{
+			isNotFound ? (
+				<h2 class="text-lg font-bold">Stats not found</h2>
+			) : (
+				<>
+					<h2 class="text-lg font-bold">
+						Stats chart for {account.username} ({date})
+					</h2>
+
+					<main hx-target="this" class="mt-4 flex flex-col gap-4">
+						<div class="relative mx-auto aspect-square w-96 max-w-full">
+							<canvas {...chart} />
+						</div>
+					</main>
+				</>
+			)
+		}
+	</div>
+
+	<form method="dialog" class="contents">
+		<button class="modal-backdrop">Close</button>
+	</form>
+</dialog>

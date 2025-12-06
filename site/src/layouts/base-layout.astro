@@ -29,8 +29,32 @@ import "~/styles/global.css";
 <script>
 	import htmx from "htmx.org";
 
-	htmx.onLoad((node) => {
+	import { registerRadarChart } from "~/lib/chart";
+
+	htmx.onLoad(async (node) => {
+		if (!(node instanceof HTMLElement)) return;
 		if (node instanceof HTMLDialogElement) node.show();
+
+		{
+			const canvas = node.querySelector("canvas[data-radar-chart]");
+			if (!(canvas instanceof HTMLCanvasElement)) return;
+
+			const Chart = await registerRadarChart();
+			const config = JSON.parse(
+				canvas.dataset.radarChart!,
+			) as ConstructorParameters<typeof Chart>[1];
+
+			if (!!config.options?.plugins?.tooltip) {
+				config.options.plugins.tooltip.callbacks = {
+					label: (context) => {
+						// @ts-ignore trust
+						return context.raw.tooltip;
+					},
+				};
+			}
+
+			new Chart(canvas, config);
+		}
 	});
 </script>
 <script src="iconify-icon"></script>
