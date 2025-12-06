@@ -12,6 +12,8 @@ import { useRadarChart } from "~/lib/chart";
 import { formatNumber } from "~/lib/math";
 import { schema } from "../../_params";
 
+export const partial = true;
+
 const id = Number(Astro.params.id);
 const date = schema.date.parse(Astro.params.date);
 const account = await db.query.accounts.findFirst({
