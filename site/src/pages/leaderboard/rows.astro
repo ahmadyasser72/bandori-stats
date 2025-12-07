@@ -16,7 +16,11 @@ const { date, page, rank_by, sort_latest, search_username } = parseSearchParams(
 {
 	const replaceUrl = new URL("/leaderboard", Astro.url);
 	replaceUrl.searchParams.set("sort_latest", String(sort_latest));
-	rank_by.forEach((it) => replaceUrl.searchParams.append("rank_by", it));
+	if (!rank_by.default) {
+		rank_by.items.forEach((it) =>
+			replaceUrl.searchParams.append("rank_by", it),
+		);
+	}
 	Astro.response.headers.set("hx-replace-url", replaceUrl.href);
 
 	if (import.meta.env.PROD)
@@ -28,13 +32,13 @@ const { date, page, rank_by, sort_latest, search_username } = parseSearchParams(
 
 const leaderboard = await (async () => {
 	const p = redis.pipeline();
-	rank_by.forEach((column) =>
+	rank_by.items.forEach((column) =>
 		p.zrange(`leaderboard:${date}:${column}`, 0, "+inf", { byScore: true }),
 	);
 
 	const entries = await p.exec<number[][]>();
 	return Object.fromEntries(
-		rank_by.map((column, idx) => [column, entries[idx].reverse()]),
+		rank_by.items.map((column, idx) => [column, entries[idx].reverse()]),
 	);
 })();
 
@@ -65,13 +69,13 @@ const rows = await db.query.accounts
 					stats,
 					scores:
 						sum(
-							rank_by.map((column) => {
+							rank_by.items.map((column) => {
 								if (!stats[column]) return 0;
 
 								const rankings = leaderboard[column];
 								return 1 - rankings.indexOf(id) / (rankings.length - 1);
 							}),
-						) / rank_by.length,
+						) / rank_by.items.length,
 				}),
 			)
 			.sort((a, b) => b.scores - a.scores)
@@ -130,7 +134,7 @@ const nextPageHtmxProps = {
 				<td
 					class:list={[
 						(value === null && "font-medium opacity-40") ||
-							(!rank_by.includes(key) && "line-through opacity-60"),
+							(!rank_by.items.includes(key) && "line-through opacity-60"),
 					]}
 				>
 					{value ? formatNumber(value) : "Private"}

@@ -58,7 +58,7 @@ const { minDate, maxDate } = await (async () => {
 				hx-sync="closest tr:replace"
 				hx-on:htmx-before-request="this.closest('#scroll-container').scrollTo({ top: 0, behavior: 'smooth'})"
 			>
-				<tr class="bg-base-100 sticky top-0 z-20">
+				<tr class="group bg-base-100 sticky top-0 z-20">
 					<th class="min-w-10"></th>
 
 					<th class="min-w-42">
@@ -119,10 +119,10 @@ const { minDate, maxDate } = await (async () => {
 							<th>
 								<input
 									type="checkbox"
-									class="btn btn-xs btn-accent not-checked:btn-neutral not-checked:line-through"
+									class="rank-by btn btn-xs checked:btn-accent not-group-has-[.rank-by:checked]:not-checked:btn-ghost group-has-[.rank-by:checked]:not-checked:btn-neutral group-has-[.rank-by:checked]:not-checked:line-through"
 									name="rank_by"
 									value={column}
-									checked={rank_by.includes(column)}
+									checked={!rank_by.default && rank_by.items.includes(column)}
 									aria-label={titleCase(column)}
 									hx-get={rowsLink}
 								/>

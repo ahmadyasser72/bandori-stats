@@ -5,10 +5,10 @@ import z from "zod";
 export const schema = {
 	date: z.iso.date().catch(dayjs().format("YYYY-MM-DD")),
 	page: z.coerce.number().positive().catch(1),
-	rank_by: z
-		.array(z.enum(STAT_COLUMNS))
-		.nonempty()
-		.catch(() => [...STAT_COLUMNS]),
+	rank_by: z.array(z.enum(STAT_COLUMNS)).transform((items) => ({
+		items: items.length === 0 ? STAT_COLUMNS : items,
+		default: items.length === 0,
+	})),
 	sort_latest: z
 		.literal("true")
 		.transform((it) => it === "true")
