@@ -1,6 +1,7 @@
 ---
 import { STAT_COLUMNS } from "@bandori-stats/database/constants";
 import { redis } from "@bandori-stats/database/redis";
+import dayjs from "dayjs";
 import { titleCase } from "text-case";
 
 import BaseLayout from "~/layouts/base-layout.astro";
@@ -11,15 +12,16 @@ const { rank_by, sort_latest } = parseSearchParams(Astro.url.searchParams);
 const rowsLink = new URL("/leaderboard/rows", Astro.url).href;
 
 const { minDate, maxDate } = await (async () => {
-	const [, keys] = await redis.scan(0, {
+	const [, [first]] = await redis.scan("0", {
+		count: 1,
 		match: `leaderboard:*:${STAT_COLUMNS[0]}`,
 		type: "zset",
 	});
 
-	const dates = keys
-		.map((key) => key.split(":")[1])
-		.sort((a, b) => a.localeCompare(b));
-	return { minDate: dates[0], maxDate: dates.at(-1)! };
+	return {
+		minDate: first.split(":")[1],
+		maxDate: dayjs().format("YYYY-MM-DD"),
+	};
 })();
 ---
 
