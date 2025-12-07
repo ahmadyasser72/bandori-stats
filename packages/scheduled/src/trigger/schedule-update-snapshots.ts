@@ -1,5 +1,5 @@
 import { db } from "@bandori-stats/database";
-import { schedules } from "@trigger.dev/sdk";
+import { schedules, tags } from "@trigger.dev/sdk";
 import dayjs from "dayjs";
 import { createShuffle } from "fast-shuffle";
 
@@ -32,7 +32,7 @@ export const scheduleUpdateSnapshots = schedules.task({
 							);
 						})(),
 					})),
-				).filter((_, idx) => idx % now.get("hours") === 0),
+				).filter((_, idx) => idx % now.hour() === 0),
 			);
 
 		const untilNextHour = now.endOf("hours").diff(dayjs());
@@ -50,5 +50,10 @@ export const scheduleUpdateSnapshots = schedules.task({
 				}))
 				.sort((a, b) => a.options.delay.valueOf() - b.options.delay.valueOf()),
 		);
+
+		await tags.add([
+			`chunk_${now.format("HH:mm")}`,
+			`chunkSize_${usernames.length}`,
+		]);
 	},
 });
