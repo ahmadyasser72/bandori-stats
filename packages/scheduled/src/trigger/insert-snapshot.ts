@@ -79,16 +79,18 @@ export const insertSnapshot = schemaTask({
 			await tags.add("snapshot_new");
 		}
 
-		if (accountId && snapshotId) {
-			await db
-				.update(accounts)
-				.set({ latestSnapshotId: snapshotId })
-				.where(eq(accounts.id, accountId));
-
+		if (accountId) {
 			await updateLeaderboard.trigger({
 				date,
 				snapshots: { accountId, ...stats },
 			});
+
+			if (snapshotId) {
+				await db
+					.update(accounts)
+					.set({ latestSnapshotId: snapshotId })
+					.where(eq(accounts.id, accountId));
+			}
 		}
 	},
 });
