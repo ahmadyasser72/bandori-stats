@@ -26,13 +26,12 @@ export const scheduleUpdateSnapshots = schedules.task({
 							const updatedLastMonth = now.diff(lastUpdated, "months") < 1;
 							const updatedLastWeek = now.diff(lastUpdated, "weeks") < 1;
 
-							return (
-								updatedLastWeek ||
-								idx % (updatedLastMonth ? now.day() : now.date()) === 0
-							);
+							return updatedLastWeek || updatedLastMonth
+								? idx % 7 === now.day()
+								: idx % now.daysInMonth() === now.date();
 						})(),
 					})),
-				).filter((_, idx) => idx % now.hour() === 0),
+				).filter((_, idx) => idx % 24 === now.hour()),
 			);
 
 		const untilNextHour = now.endOf("hours").diff(dayjs());
