@@ -70,7 +70,7 @@ export const updateStats = schemaTask({
 		} else {
 			const [newAccount] = await db
 				.insert(accounts)
-				.values({ server: 1, username })
+				.values({ username })
 				.onConflictDoNothing()
 				.returning({ id: accounts.id });
 			accountId = newAccount ? newAccount.id : existing!.id;

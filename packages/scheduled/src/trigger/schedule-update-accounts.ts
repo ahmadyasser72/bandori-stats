@@ -35,7 +35,7 @@ export const scheduleUpdateAccounts = schedules.task({
 		logger.log("inserting accounts", { length: usernames.length, usernames });
 		const result = await db
 			.insert(accounts)
-			.values(usernames.map((username) => ({ username, server: 1 })))
+			.values(usernames.map((username) => ({ username })))
 			.onConflictDoNothing({ target: [accounts.username] });
 
 		await tags.add([
