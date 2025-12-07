@@ -56,15 +56,16 @@ const chart = await (async () => {
 							const value = account.snapshots[0][column];
 
 							const leaderboard = `leaderboard:${date}:${column}`;
-							const rank = await redis.zrevrank(leaderboard, account.id);
 							const n = await redis.zcard(leaderboard);
+							const rank =
+								(await redis.zrevrank(leaderboard, account.id)) ?? n - 1;
 
 							return {
-								tooltip:
-									value === null
-										? "Private"
-										: `${formatNumber(value)} (#${rank})`,
-								value: value === null || rank === null ? 0 : 1 - rank / (n - 1),
+								tooltip: [
+									value === null ? "Private" : formatNumber(value),
+									`(#${rank + 1})`,
+								].join(" "),
+								value: value === null ? 0 : 1 - rank / (n - 1),
 							};
 						}),
 					),
