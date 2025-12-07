@@ -16,20 +16,29 @@ export const updateStats = schemaTask({
 	schema: z.strictObject({
 		username: z.string().nonempty(),
 		date: z.iso.date(),
+		onlyLeaderboard: z.boolean(),
 	}),
-	run: async ({ username, date }) => {
-		const stats = await bestdoriStats.triggerAndWait({ username }).unwrap();
+	run: async ({ username, date, onlyLeaderboard }) => {
+		const snapshot = await (async () => {
+			const existing = await db.query.accounts.findFirst({
+				columns: { id: true, latestSnapshotId: true },
+				where: (t, { eq }) => eq(t.username, username),
+				with: { latestSnapshot: { columns: SELECT_STAT_COLUMNS } },
+			});
+
+			const stats = onlyLeaderboard
+				? (existing?.latestSnapshot ?? null)
+				: await bestdoriStats.triggerAndWait({ username }).unwrap();
+
+			return { stats, existing };
+		})();
+
+		const { existing, stats } = snapshot;
 
 		if (!stats) {
 			await tags.add("snapshot_unavailable");
 			return;
 		}
-
-		const existing = await db.query.accounts.findFirst({
-			columns: { id: true, latestSnapshotId: true },
-			where: (t, { eq }) => eq(t.username, username),
-			with: { latestSnapshot: { columns: SELECT_STAT_COLUMNS } },
-		});
 
 		let accountId: number | undefined = existing?.id;
 		let snapshotId: number | undefined = undefined;
@@ -61,7 +70,7 @@ export const updateStats = schemaTask({
 		} else {
 			const [newAccount] = await db
 				.insert(accounts)
-				.values({ server: stats.server, username })
+				.values({ server: 1, username })
 				.onConflictDoNothing()
 				.returning({ id: accounts.id });
 			accountId = newAccount ? newAccount.id : existing!.id;
@@ -74,8 +83,8 @@ export const updateStats = schemaTask({
 					snapshotDate: date,
 				})
 				.returning({ id: accountSnapshots.id });
-			snapshotId = newSnapshot!.id;
 
+			snapshotId = newSnapshot!.id;
 			await tags.add("snapshot_new");
 		}
 

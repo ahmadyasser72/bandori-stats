@@ -14,6 +14,9 @@ export const accounts = sqliteTable(
 		username: text().notNull(),
 		server: integer().notNull(),
 
+		lastUpdated: text()
+			.$default(() => sql`(CURRENT_DATE)`)
+			.$onUpdate(() => sql`(CURRENT_DATE)`),
 		latestSnapshotId: integer().references(
 			(): AnySQLiteColumn => accountSnapshots.id,
 			{ onDelete: "set null" },
