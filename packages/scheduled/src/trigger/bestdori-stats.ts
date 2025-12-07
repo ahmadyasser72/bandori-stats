@@ -35,8 +35,8 @@ const StatsResponse = z.strictObject({
 	),
 });
 
-export const getStats = schemaTask({
-	id: "get-stats",
+export const bestdoriStats = schemaTask({
+	id: "bestdori-stats",
 	queue: bestdoriQueue,
 	schema: z.object({ username: z.string().nonempty() }),
 	run: async ({ username }) => {
@@ -63,14 +63,12 @@ export const getStats = schemaTask({
 				}))
 				.find(({ server }) => server === 1) ?? null;
 
-		if (stats !== null) {
-			const statTags = STAT_COLUMNS.map(
+		await tags.add(
+			STAT_COLUMNS.map(
 				(column) =>
-					`${ABBREVIATED_STAT_COLUMNS[column]}_${stats[column] ?? "private"}`,
-			);
-
-			await tags.add(statTags);
-		}
+					`${ABBREVIATED_STAT_COLUMNS[column]}_${stats === null ? "unavailable" : (stats[column] ?? "private")}`,
+			),
+		);
 
 		return stats;
 	},

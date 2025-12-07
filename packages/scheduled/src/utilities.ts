@@ -1,6 +1,4 @@
-import { STAT_COLUMNS, type StatName } from "@bandori-stats/database/constants";
-
-type Stat = Record<StatName, number | null>;
+import { STAT_COLUMNS, type Stat } from "@bandori-stats/database/constants";
 
 export const calculateStatDiff = (from: Stat, to: Stat) =>
 	STAT_COLUMNS.reduce(

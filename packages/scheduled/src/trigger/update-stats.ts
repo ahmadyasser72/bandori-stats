@@ -8,17 +8,17 @@ import { schemaTask, tags } from "@trigger.dev/sdk";
 import z from "zod";
 
 import { calculateStatDiff } from "~/utilities";
-import { getStats } from "./get-stats";
+import { bestdoriStats } from "./bestdori-stats";
 import { updateLeaderboard } from "./update-leaderboard";
 
-export const insertSnapshot = schemaTask({
-	id: "insert-snapshot",
+export const updateStats = schemaTask({
+	id: "update-stats",
 	schema: z.strictObject({
 		username: z.string().nonempty(),
 		date: z.iso.date(),
 	}),
 	run: async ({ username, date }) => {
-		const stats = await getStats.triggerAndWait({ username }).unwrap();
+		const stats = await bestdoriStats.triggerAndWait({ username }).unwrap();
 
 		if (!stats) {
 			await tags.add("snapshot_unavailable");

@@ -3,7 +3,7 @@ import { AbortTaskRunError, schemaTask, tags } from "@trigger.dev/sdk";
 import z from "zod";
 
 import { bestdori, bestdoriQueue } from "~/bestdori";
-import type { LeaderboardStat } from "./get-stats";
+import type { LeaderboardStat } from "./bestdori-stats";
 
 const leaderboardTypeMap: Record<StatName, LeaderboardStat> = {
 	highScoreRating: "hsr",
@@ -28,8 +28,8 @@ const LeaderboardResponse = z.strictObject({
 	),
 });
 
-export const getLeaderboard = schemaTask({
-	id: "get-leaderboard",
+export const bestdoriLeaderboard = schemaTask({
+	id: "bestdori-leaderboard",
 	queue: bestdoriQueue,
 	schema: z.object({
 		type: z.enum(STAT_COLUMNS),
@@ -54,7 +54,7 @@ export const getLeaderboard = schemaTask({
 
 		if (offset === 0 && data.rows.length > 2) {
 			const topTags = Array.from(
-				{ length: 3 },
+				{ length: 5 },
 				(_, idx) => `top${idx + 1}_${data.rows[idx]!.user.username}`,
 			);
 

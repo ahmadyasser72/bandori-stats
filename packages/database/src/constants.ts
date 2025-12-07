@@ -8,6 +8,7 @@ export const STAT_COLUMNS = [
 ] as const;
 
 export type StatName = (typeof STAT_COLUMNS)[number];
+export type Stat = Record<StatName, number | null>;
 
 export const ABBREVIATED_STAT_COLUMNS: Record<StatName, string> = {
 	highScoreRating: "HSR",
