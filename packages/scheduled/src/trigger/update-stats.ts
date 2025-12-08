@@ -16,9 +16,9 @@ export const updateStats = schemaTask({
 	schema: z.strictObject({
 		username: z.string().nonempty(),
 		date: z.iso.date(),
-		onlyLeaderboard: z.boolean(),
+		refetch: z.boolean(),
 	}),
-	run: async ({ username, date, onlyLeaderboard }) => {
+	run: async ({ username, date, refetch }) => {
 		const snapshot = await (async () => {
 			const existing = await db.query.accounts.findFirst({
 				columns: { id: true },
@@ -33,9 +33,9 @@ export const updateStats = schemaTask({
 				},
 			});
 
-			const stats = onlyLeaderboard
-				? (existing?.snapshots.pop() ?? null)
-				: await bestdoriStats.triggerAndWait({ username }).unwrap();
+			const stats = refetch
+				? await bestdoriStats.triggerAndWait({ username }).unwrap()
+				: (existing?.snapshots.pop() ?? null);
 
 			return { stats, existing };
 		})();

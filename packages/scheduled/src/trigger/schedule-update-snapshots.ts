@@ -19,16 +19,19 @@ export const scheduleUpdateSnapshots = schedules.task({
 				shuffle(
 					entries.map((account, idx) => ({
 						username: account.username,
-						onlyLeaderboard: (() => {
+						refetch: (() => {
 							if (account.lastUpdated === null) return true;
 
 							const lastUpdated = dayjs(account.lastUpdated);
 							const updatedLastMonth = now.diff(lastUpdated, "months") < 1;
 							const updatedLastWeek = now.diff(lastUpdated, "weeks") < 1;
 
-							return updatedLastWeek || updatedLastMonth
-								? idx % 7 === now.day()
-								: idx % now.daysInMonth() === now.date();
+							return (
+								updatedLastWeek ||
+								(updatedLastMonth
+									? idx % 7 === now.day()
+									: idx % now.daysInMonth() === now.date())
+							);
 						})(),
 					})),
 				).filter((_, idx) => idx % 24 === now.hour()),
@@ -37,8 +40,8 @@ export const scheduleUpdateSnapshots = schedules.task({
 		const untilNextHour = now.endOf("hours").diff(dayjs());
 		await updateStats.batchTrigger(
 			usernames
-				.map(({ username, onlyLeaderboard }) => ({
-					payload: { username, date, onlyLeaderboard },
+				.map(({ username, refetch }) => ({
+					payload: { username, date, refetch },
 					options: {
 						delay: dayjs()
 							.add(Math.random() * untilNextHour)
