@@ -8,8 +8,8 @@ import { updateStats } from "./update-stats";
 export const scheduleUpdateSnapshots = schedules.task({
 	id: "schedule-update-snapshots",
 	cron: "5 * * * *", // every hour at 5 minutes
-	run: async () => {
-		const now = dayjs();
+	run: async (context) => {
+		const now = dayjs(context.timestamp);
 		const date = now.format("YYYY-MM-DD");
 
 		const shuffle = createShuffle(dayjs(date).unix());
@@ -37,22 +37,22 @@ export const scheduleUpdateSnapshots = schedules.task({
 				).filter((_, idx) => idx % 24 === now.hour()),
 			);
 
-		const untilNextHour = now.endOf("hours").diff(dayjs());
+		const untilNextHour = now.endOf("hours").diff(now);
 		await updateStats.batchTrigger(
 			usernames
 				.map(({ username, refetch }) => ({
 					payload: { username, date, refetch },
 					options: {
-						delay: dayjs()
-							.add(Math.random() * untilNextHour)
-							.toDate(),
-						tags: `snapshot_${username}`,
+						delay: now.add(Math.random() * untilNextHour).toDate(),
+						tags: `account_${username}`,
 						idempotencyKey: `snapshot_${username}_${date}`,
 					},
 				}))
 				.sort((a, b) => a.options.delay.valueOf() - b.options.delay.valueOf()),
 		);
 
-		await tags.add([`chunk_${now.format("HH")}`, `chunk_${usernames.length}`]);
+		const hour = now.format("HH");
+		const size = usernames.length;
+		await tags.add([`chunk_#${hour}`, `chunkSize_${size}`]);
 	},
 });

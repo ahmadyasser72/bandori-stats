@@ -19,6 +19,8 @@ export const updateStats = schemaTask({
 		refetch: z.boolean(),
 	}),
 	run: async ({ username, date, refetch }) => {
+		if (!refetch) await tags.add("snapshot_nofetch");
+
 		const snapshot = await (async () => {
 			const existing = await db.query.accounts.findFirst({
 				columns: { id: true },

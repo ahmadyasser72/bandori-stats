@@ -1,6 +1,6 @@
 import { STAT_COLUMNS } from "@bandori-stats/database/constants";
 import { redis } from "@bandori-stats/database/redis";
-import { schemaTask } from "@trigger.dev/sdk";
+import { schemaTask, tags } from "@trigger.dev/sdk";
 import z from "zod";
 
 const snapshotSchema = z.strictObject({
@@ -32,5 +32,6 @@ export const updateLeaderboard = schemaTask({
 		}
 
 		await p.exec();
+		await tags.add(`leaderboard_${date}`);
 	},
 });

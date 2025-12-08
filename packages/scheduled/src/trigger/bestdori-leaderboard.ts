@@ -37,7 +37,7 @@ export const bestdoriLeaderboard = schemaTask({
 		offset: z.number().nonnegative().default(0),
 	}),
 	run: async ({ type, limit, offset }) => {
-		await tags.add(`leaderboard_${type}`);
+		await tags.add(`leaderboard_${type}:${offset}-${offset + limit}`);
 		const { success, data, error } = LeaderboardResponse.safeParse(
 			await bestdori("api/sync/list/player", {
 				server: "1",
@@ -53,12 +53,12 @@ export const bestdoriLeaderboard = schemaTask({
 		}
 
 		if (offset === 0 && data.rows.length > 2) {
-			const topTags = Array.from(
-				{ length: 5 },
-				(_, idx) => `top${idx + 1}_${data.rows[idx]!.user.username}`,
+			await tags.add(
+				Array.from(
+					{ length: 5 },
+					(_, idx) => `top${idx + 1}_${data.rows[idx]!.user.username}`,
+				),
 			);
-
-			await tags.add(topTags);
 		}
 
 		return data.rows.map((row) => row.user);

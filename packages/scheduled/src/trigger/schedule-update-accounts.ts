@@ -10,16 +10,14 @@ export const scheduleUpdateAccounts = schedules.task({
 	id: "schedule-update-accounts",
 	cron: "0 0 1 * *", // every 1st day of month
 	run: async (context) => {
-		const timestamp = dayjs(context.timestamp);
-		const untilNextSnapshotUpdate = timestamp.add(4.5, "minutes").diff(dayjs());
+		const now = dayjs(context.timestamp);
+		const untilNextSnapshotUpdate = now.add(4.5, "minutes").diff(now);
 		const { runs } = await bestdoriLeaderboard.batchTriggerAndWait(
 			Array.from({ length: 4 }).flatMap((_, page) =>
 				STAT_COLUMNS.map((type) => ({
 					payload: { type, limit: 50, offset: page * 50 },
 					options: {
-						delay: dayjs()
-							.add(Math.random() * untilNextSnapshotUpdate)
-							.toDate(),
+						delay: now.add(Math.random() * untilNextSnapshotUpdate).toDate(),
 					},
 				})),
 			),
@@ -51,6 +49,10 @@ export const scheduleUpdateAccounts = schedules.task({
 			results.reduce((acc, { rowsAffected }) => acc + rowsAffected, 0),
 		);
 
-		await tags.add([`accounts_${data.length}`, `accounts_+${rowsAffected}`]);
+		await tags.add([
+			`accounts_${now.format("MMM")}`,
+			`accounts_${data.length}`,
+			`accounts_+${rowsAffected}`,
+		]);
 	},
 });
