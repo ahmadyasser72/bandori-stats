@@ -22,12 +22,6 @@ const { date, page, rank_by, sort_latest, search_username } = parseSearchParams(
 		);
 	}
 	Astro.response.headers.set("hx-replace-url", replaceUrl.href);
-
-	if (import.meta.env.PROD)
-		Astro.response.headers.set(
-			"cache-control",
-			"max-age=300, stale-while-revalidate=60",
-		);
 }
 
 const leaderboard = await (async () => {
