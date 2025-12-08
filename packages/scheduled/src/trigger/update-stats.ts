@@ -7,7 +7,7 @@ import { accounts, accountSnapshots } from "@bandori-stats/database/schema";
 import { schemaTask, tags } from "@trigger.dev/sdk";
 import z from "zod";
 
-import { calculateStatDiff } from "~/utilities";
+import { compareStats } from "~/utilities";
 import { bestdoriStats } from "./bestdori-stats";
 import { updateLeaderboard } from "./update-leaderboard";
 
@@ -44,29 +44,33 @@ export const updateStats = schemaTask({
 		let snapshotId: number | undefined = undefined;
 
 		if (existing && existing.latestSnapshot) {
-			const diff = calculateStatDiff(existing.latestSnapshot, stats);
+			const [from, to] = [existing.latestSnapshot, stats];
+			const { delta, difference } = compareStats(from, to);
+			if (delta === 0) {
+				await tags.add("diff_none");
+				return;
+			}
 
-			if (diff.delta > 0) {
-				const diffTags = Object.entries(diff.details)
+			await tags.add(
+				Object.entries(difference)
 					.filter(([, delta]) => delta > 0)
 					.map(
 						([column, delta]) =>
 							`diff_${ABBREVIATED_STAT_COLUMNS[column]}+${delta}`,
-					);
-				await tags.add(diffTags);
+					),
+			);
 
-				const [newSnapshot] = await db
-					.insert(accountSnapshots)
-					.values({ accountId: existing.id, ...stats, snapshotDate: date })
-					.onConflictDoUpdate({
-						target: [accountSnapshots.accountId, accountSnapshots.snapshotDate],
-						set: stats,
-					})
-					.returning({ id: accountSnapshots.id });
+			const [newSnapshot] = await db
+				.insert(accountSnapshots)
+				.values({ accountId: existing.id, ...stats, snapshotDate: date })
+				.onConflictDoUpdate({
+					target: [accountSnapshots.accountId, accountSnapshots.snapshotDate],
+					set: stats,
+				})
+				.returning({ id: accountSnapshots.id });
 
-				snapshotId = newSnapshot?.id;
-				await tags.add("snapshot_update");
-			}
+			snapshotId = newSnapshot?.id;
+			await tags.add("snapshot_update");
 		} else {
 			const [newAccount] = await db
 				.insert(accounts)
@@ -88,18 +92,16 @@ export const updateStats = schemaTask({
 			await tags.add("snapshot_new");
 		}
 
-		if (accountId) {
+		if (accountId && snapshotId) {
+			await db
+				.update(accounts)
+				.set({ latestSnapshotId: snapshotId })
+				.where(eq(accounts.id, accountId));
+
 			await updateLeaderboard.trigger({
 				date,
 				snapshots: { accountId, ...stats },
 			});
-
-			if (snapshotId) {
-				await db
-					.update(accounts)
-					.set({ latestSnapshotId: snapshotId })
-					.where(eq(accounts.id, accountId));
-			}
 		}
 	},
 });

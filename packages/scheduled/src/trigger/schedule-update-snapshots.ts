@@ -50,9 +50,6 @@ export const scheduleUpdateSnapshots = schedules.task({
 				.sort((a, b) => a.options.delay.valueOf() - b.options.delay.valueOf()),
 		);
 
-		await tags.add([
-			`chunk_${now.format("HH:mm")}`,
-			`chunkSize_${usernames.length}`,
-		]);
+		await tags.add([`chunk_${now.format("HH")}`, `chunk_${usernames.length}`]);
 	},
 });

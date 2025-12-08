@@ -18,5 +18,5 @@ export default defineConfig({
 	},
 
 	dirs: ["./src/trigger"],
-	ignorePatterns: ["bestdori-*.ts"],
+	ignorePatterns: ["**/bestdori-*.ts"],
 });
