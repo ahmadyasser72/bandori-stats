@@ -1,4 +1,4 @@
-import { db, eq } from "@bandori-stats/database";
+import { db } from "@bandori-stats/database";
 import {
 	ABBREVIATED_STAT_COLUMNS,
 	SELECT_STAT_COLUMNS,
@@ -21,13 +21,20 @@ export const updateStats = schemaTask({
 	run: async ({ username, date, onlyLeaderboard }) => {
 		const snapshot = await (async () => {
 			const existing = await db.query.accounts.findFirst({
-				columns: { id: true, latestSnapshotId: true },
+				columns: { id: true },
 				where: (t, { eq }) => eq(t.username, username),
-				with: { latestSnapshot: { columns: SELECT_STAT_COLUMNS } },
+				with: {
+					snapshots: {
+						limit: 1,
+						columns: SELECT_STAT_COLUMNS,
+						orderBy: (t, { desc }) => desc(t.snapshotDate),
+						where: (t, { lte }) => lte(t.snapshotDate, date),
+					},
+				},
 			});
 
 			const stats = onlyLeaderboard
-				? (existing?.latestSnapshot ?? null)
+				? (existing?.snapshots.pop() ?? null)
 				: await bestdoriStats.triggerAndWait({ username }).unwrap();
 
 			return { stats, existing };
@@ -43,8 +50,8 @@ export const updateStats = schemaTask({
 		let accountId: number | undefined = existing?.id;
 		let snapshotId: number | undefined = undefined;
 
-		if (existing && existing.latestSnapshot) {
-			const [from, to] = [existing.latestSnapshot, stats];
+		if (existing && existing.snapshots[0]) {
+			const [from, to] = [existing.snapshots[0], stats];
 			const { delta, difference } = compareStats(from, to);
 			if (delta === 0) {
 				await tags.add("diff_none");
@@ -93,11 +100,6 @@ export const updateStats = schemaTask({
 		}
 
 		if (accountId && snapshotId) {
-			await db
-				.update(accounts)
-				.set({ latestSnapshotId: snapshotId })
-				.where(eq(accounts.id, accountId));
-
 			await updateLeaderboard.trigger({
 				date,
 				snapshots: { accountId, ...stats },
