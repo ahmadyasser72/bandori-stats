@@ -61,6 +61,6 @@ export const bestdoriLeaderboard = schemaTask({
 			await tags.add(topTags);
 		}
 
-		return data.rows.map((row) => row.user.username);
+		return data.rows.map((row) => row.user);
 	},
 });

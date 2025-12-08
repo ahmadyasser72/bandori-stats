@@ -52,8 +52,8 @@ export const bestdoriStats = schemaTask({
 
 		const stats =
 			data.accounts
+				.filter(({ server }) => server === 1)
 				.map((stat) => ({
-					server: stat.server,
 					highScoreRating: stat.hsr ?? null,
 					bandRating: stat.dtr ?? null,
 					allPerfectCount: stat.allPerfectCount ?? null,
@@ -61,7 +61,7 @@ export const bestdoriStats = schemaTask({
 					clearCount: stat.clearCount ?? null,
 					rank: stat.rank ?? null,
 				}))
-				.find(({ server }) => server === 1) ?? null;
+				.at(0) ?? null;
 
 		await tags.add(
 			STAT_COLUMNS.map(

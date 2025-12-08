@@ -25,22 +25,32 @@ export const scheduleUpdateAccounts = schedules.task({
 			),
 		);
 
-		const usernameSet = new Set<string>();
+		const usernameNickname = new Map<string, string | null>();
 		for (const run of runs) {
 			if (!run.ok) throw new AbortTaskRunError(`Run #${run.id} failed`);
-			for (const username of run.output) usernameSet.add(username);
+			for (const { username, nickname } of run.output)
+				usernameNickname.set(username, nickname);
 		}
 
-		const usernames = [...usernameSet];
-		logger.log("inserting accounts", { length: usernames.length, usernames });
-		const result = await db
-			.insert(accounts)
-			.values(usernames.map((username) => ({ username })))
-			.onConflictDoNothing({ target: [accounts.username] });
+		const data = [...usernameNickname.entries()].map(
+			([username, nickname]) => ({ username, nickname }),
+		);
+		logger.log("inserting accounts", { size: data.length, data });
 
-		await tags.add([
-			`accounts_${usernames.length}`,
-			`accounts_+${result.rowsAffected}`,
-		]);
+		const rowsAffected = await Promise.all(
+			data.map((account) =>
+				db
+					.insert(accounts)
+					.values(account)
+					.onConflictDoUpdate({
+						target: accounts.username,
+						set: { nickname: account.nickname },
+					}),
+			),
+		).then((results) =>
+			results.reduce((acc, { rowsAffected }) => acc + rowsAffected, 0),
+		);
+
+		await tags.add([`accounts_${data.length}`, `accounts_+${rowsAffected}`]);
 	},
 });
