@@ -5,6 +5,7 @@ import {
 	STAT_COLUMNS,
 } from "@bandori-stats/database/constants";
 import { redis } from "@bandori-stats/database/redis";
+import dayjs from "dayjs";
 import { titleCase } from "text-case";
 
 import { useRadarChart } from "~/lib/chart";
@@ -19,10 +20,10 @@ const account = await db.query.accounts.findFirst({
 	columns: { id: true, username: true },
 	with: {
 		snapshots: {
-			limit: 1,
-			columns: { ...SELECT_STAT_COLUMNS },
-			orderBy: (t, { desc }) => desc(t.snapshotDate),
-			where: (t, { lte }) => lte(t.snapshotDate, date),
+			limit: 2,
+			columns: { ...SELECT_STAT_COLUMNS, snapshotDate: true },
+			orderBy: (t, { asc }) => asc(t.snapshotDate),
+			where: (t, { gte }) => gte(t.snapshotDate, date),
 		},
 	},
 	where: (t, { eq }) => eq(t.id, id),
@@ -54,8 +55,13 @@ const chart = await (async () => {
 					data: await Promise.all(
 						STAT_COLUMNS.map(async (column) => {
 							const value = account.snapshots[0][column];
+							const mostRecentDate = (
+								account.snapshots.length === 2
+									? dayjs(account.snapshots[1].snapshotDate).subtract(1, "days")
+									: dayjs()
+							).format("YYYY-MM-DD");
 
-							const leaderboard = `leaderboard:${date}:${column}`;
+							const leaderboard = `leaderboard:${mostRecentDate}:${column}`;
 							const n = await redis.zcard(leaderboard);
 							const rank = value
 								? await redis.zcount(leaderboard, `(${value}`, "+inf")
