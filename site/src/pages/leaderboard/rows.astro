@@ -24,20 +24,20 @@ const { date, page, rank_by, sort_latest, search_username } = parseSearchParams(
 	Astro.response.headers.set("hx-replace-url", replaceUrl.href);
 }
 
-const leaderboard = await (async () => {
-	const p = redis.pipeline();
-	rank_by.items.forEach((column) =>
-		p.zrange(`leaderboard:${date}:${column}`, 0, "+inf", { byScore: true }),
-	);
+const getRows = async () => {
+	const leaderboard = await (async () => {
+		const p = redis.pipeline();
+		rank_by.items.forEach((column) =>
+			p.zrange(`leaderboard:${date}:${column}`, 0, "+inf", { byScore: true }),
+		);
 
-	const entries = await p.exec<number[][]>();
-	return Object.fromEntries(
-		rank_by.items.map((column, idx) => [column, entries[idx].reverse()]),
-	);
-})();
+		const entries = await p.exec<number[][]>();
+		return Object.fromEntries(
+			rank_by.items.map((column, idx) => [column, entries[idx].reverse()]),
+		);
+	})();
 
-const rows = await db.query.accounts
-	.findMany({
+	const rows = await db.query.accounts.findMany({
 		columns: { id: true, username: true },
 		with: {
 			snapshots: {
@@ -47,41 +47,47 @@ const rows = await db.query.accounts
 				where: (t, { lte }) => lte(t.snapshotDate, date),
 			},
 		},
-	})
-	.then((entries) =>
-		entries
-			.filter(({ snapshots }) => snapshots.length > 0)
-			.map(
-				({
-					id,
-					username,
-					snapshots: [{ snapshotDate: lastUpdated, ...stats }],
-				}) => ({
-					id,
-					username,
-					lastUpdated,
-					stats,
-					scores:
-						sum(
-							rank_by.items.map((column) => {
-								if (!stats[column]) return 0;
+	});
 
-								const rankings = leaderboard[column];
-								return 1 - rankings.indexOf(id) / (rankings.length - 1);
-							}),
-						) / rank_by.items.length,
-				}),
-			)
-			.sort((a, b) => b.scores - a.scores)
-			.map((it, idx) => ({ ...it, top: idx + 1 }))
-			.filter(
-				({ username }) =>
-					!search_username || username.toLowerCase().includes(search_username),
-			),
+	return rows
+		.filter(({ snapshots }) => snapshots.length > 0)
+		.map(({ snapshots: [{ snapshotDate, ...stats }], ...account }) => {
+			const scores =
+				sum(
+					rank_by.items.map((column) => {
+						if (!stats[column]) return 0;
+
+						const rankings = leaderboard[column];
+						return 1 - rankings.indexOf(account.id) / (rankings.length - 1);
+					}),
+				) / rank_by.items.length;
+
+			return { ...account, snapshotDate, stats, scores };
+		})
+		.sort((a, b) => b.scores - a.scores)
+		.map((it, idx) => ({ ...it, top: idx + 1 }));
+};
+
+const rows = await (async () => {
+	type Rows = Awaited<ReturnType<typeof getRows>>;
+	const cacheKey = `${date}:${[...rank_by.items].sort().join("|")}`;
+
+	const results = await redis
+		.get<Rows>(cacheKey)
+		.then((cached) => cached ?? getRows());
+	await redis.set(cacheKey, results, {
+		ex: dayjs().endOf("hours").diff(dayjs(), "seconds"),
+	});
+
+	const filtered = results.filter(
+		({ username }) =>
+			!search_username || username.toLowerCase().includes(search_username),
 	);
 
-if (sort_latest)
-	rows.sort((a, b) => dayjs(b.lastUpdated).diff(dayjs(a.lastUpdated)));
+	return sort_latest
+		? filtered.sort((a, b) => dayjs(b.snapshotDate).diff(dayjs(a.snapshotDate)))
+		: filtered;
+})();
 
 const pageSize = 25;
 const offset = (page - 1) * pageSize;
@@ -103,7 +109,7 @@ const nextPageHtmxProps = (() => {
 ---
 
 {
-	pageRows.map(({ id, username, lastUpdated, stats, top }, idx) => (
+	pageRows.map(({ id, username, snapshotDate, stats, top }, idx) => (
 		// trigger infinite loader on the 5th last row
 		<tr {...(idx === pageSize - 5 ? nextPageHtmxProps : {})}>
 			<th>#{top.toString().padStart(3, "0")}</th>
@@ -129,7 +135,7 @@ const nextPageHtmxProps = (() => {
 				</p>
 			</th>
 
-			<td>{lastUpdated}</td>
+			<td>{snapshotDate}</td>
 
 			{Object.entries(stats).map(([key, value]) => (
 				<td
