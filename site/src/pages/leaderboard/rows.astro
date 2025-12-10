@@ -83,22 +83,28 @@ const rows = await db.query.accounts
 if (sort_latest)
 	rows.sort((a, b) => dayjs(b.lastUpdated).diff(dayjs(a.lastUpdated)));
 
-const pageSize = 50;
+const pageSize = 25;
 const offset = (page - 1) * pageSize;
 const pageRows = rows.slice(offset, offset + pageSize);
 
-const nextPageUrl = new URL(Astro.url);
-nextPageUrl.searchParams.set("page", (page + 1).toString());
-const nextPageHtmxProps = {
-	"hx-get": nextPageUrl.href,
-	"hx-swap": "afterend",
-	"hx-trigger": "intersect once",
-};
+const nextPageHtmxProps = (() => {
+	if (offset + pageSize > rows.length) return {};
+
+	const nextPageUrl = new URL(Astro.url);
+	nextPageUrl.searchParams.set("page", (page + 1).toString());
+	return {
+		"hx-get": nextPageUrl.href,
+		"hx-target": "closest tbody",
+		"hx-swap": "beforeend",
+		"hx-trigger": "intersect once",
+	};
+})();
 ---
 
 {
 	pageRows.map(({ id, username, lastUpdated, stats, top }, idx) => (
-		<tr {...(idx === pageSize - 1 ? nextPageHtmxProps : {})}>
+		// trigger infinite loader on the 5th last row
+		<tr {...(idx === pageSize - 5 ? nextPageHtmxProps : {})}>
 			<th>#{top.toString().padStart(3, "0")}</th>
 
 			<th class="bg-base-100/20 sticky left-0 z-10 pl-0">
