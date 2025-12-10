@@ -18,6 +18,7 @@ const account = await db.query.accounts.findFirst({
 		snapshots: {
 			columns: { ...SELECT_STAT_COLUMNS, snapshotDate: true },
 			where: (t, { lte }) => lte(t.snapshotDate, date),
+			orderBy: (t, { desc }) => desc(t.snapshotDate),
 		},
 	},
 	where: (t, { eq }) => eq(t.id, id),
