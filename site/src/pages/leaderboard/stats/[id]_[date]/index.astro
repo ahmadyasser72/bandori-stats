@@ -18,7 +18,6 @@ const account = await db.query.accounts.findFirst({
 		snapshots: {
 			columns: { ...SELECT_STAT_COLUMNS, snapshotDate: true },
 			where: (t, { lte }) => lte(t.snapshotDate, date),
-			orderBy: (t, { desc }) => desc(t.snapshotDate),
 		},
 	},
 	where: (t, { eq }) => eq(t.id, id),
@@ -52,7 +51,7 @@ if (isNotFound) Astro.response.status = 404;
 						hx-target="body"
 						hx-swap="beforeend"
 						hx-disabled-elt="button"
-						class="mt-4 flex flex-col gap-4"
+						class="mt-4 flex flex-col-reverse gap-4"
 					>
 						{account.snapshots.map(({ snapshotDate, ...stats }, idx) => (
 							<div class="flex gap-2">
