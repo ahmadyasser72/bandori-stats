@@ -91,6 +91,7 @@ const nextPageHtmxProps = (() => {
 	if (offset + pageSize > rows.length) return {};
 
 	const nextPageUrl = new URL(Astro.url);
+	nextPageUrl.search = "";
 	nextPageUrl.searchParams.set("page", (page + 1).toString());
 	return {
 		"hx-get": nextPageUrl.href,
