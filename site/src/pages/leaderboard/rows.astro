@@ -24,20 +24,24 @@ const { date, page, rank_by, sort_latest, search_username } = parseSearchParams(
 	Astro.response.headers.set("hx-replace-url", replaceUrl.href);
 }
 
-const getRows = async () => {
-	const leaderboard = await (async () => {
-		const p = redis.pipeline();
-		rank_by.items.forEach((column) =>
-			p.zrange(`leaderboard:${date}:${column}`, 0, "+inf", { byScore: true }),
-		);
+const leaderboard = await (async () => {
+	const p = redis.pipeline();
+	for (const column of rank_by.items) {
+		const key = `leaderboard:${date}:${column}`;
+		p.zrange(key, 0, "+inf", { byScore: true, withScores: true });
+	}
 
-		const entries = await p.exec<number[][]>();
-		return Object.fromEntries(
-			rank_by.items.map((column, idx) => [column, entries[idx].reverse()]),
-		);
-	})();
+	const entries = await p.exec<number[][]>();
+	return Object.fromEntries(
+		rank_by.items.map((column, idx) => [
+			column,
+			entries[idx].reverse().filter((_, idx) => idx % 2 === 0),
+		]),
+	);
+})();
 
-	const rows = await db.query.accounts.findMany({
+const getRows = async () =>
+	db.query.accounts.findMany({
 		columns: { id: true, username: true },
 		with: {
 			snapshots: {
@@ -49,7 +53,18 @@ const getRows = async () => {
 		},
 	});
 
-	return rows
+const rows = await (async () => {
+	type Rows = Awaited<ReturnType<typeof getRows>>;
+	const cacheKey = `query:${date}`;
+
+	const rows = await redis
+		.get<Rows>(cacheKey)
+		.then((cached) => cached ?? getRows());
+	await redis.set(cacheKey, rows, {
+		ex: dayjs().endOf("hours").diff(dayjs(), "seconds"),
+	});
+
+	const results = rows
 		.filter(({ snapshots }) => snapshots.length > 0)
 		.map(({ snapshots: [{ snapshotDate, ...stats }], ...account }) => {
 			const scores =
@@ -58,7 +73,7 @@ const getRows = async () => {
 						if (!stats[column]) return 0;
 
 						const rankings = leaderboard[column];
-						return 1 - rankings.indexOf(account.id) / (rankings.length - 1);
+						return 1 - rankings.indexOf(stats[column]) / (rankings.length - 1);
 					}),
 				) / rank_by.items.length;
 
@@ -66,18 +81,6 @@ const getRows = async () => {
 		})
 		.sort((a, b) => b.scores - a.scores)
 		.map((it, idx) => ({ ...it, top: idx + 1 }));
-};
-
-const rows = await (async () => {
-	type Rows = Awaited<ReturnType<typeof getRows>>;
-	const cacheKey = `${date}:${[...rank_by.items].sort().join("|")}`;
-
-	const results = await redis
-		.get<Rows>(cacheKey)
-		.then((cached) => cached ?? getRows());
-	await redis.set(cacheKey, results, {
-		ex: dayjs().endOf("hours").diff(dayjs(), "seconds"),
-	});
 
 	const filtered = results.filter(
 		({ username }) =>

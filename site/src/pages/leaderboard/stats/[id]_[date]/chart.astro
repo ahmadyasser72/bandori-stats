@@ -57,8 +57,9 @@ const chart = await (async () => {
 
 							const leaderboard = `leaderboard:${date}:${column}`;
 							const n = await redis.zcard(leaderboard);
-							const rank =
-								(await redis.zrevrank(leaderboard, account.id)) ?? n - 1;
+							const rank = value
+								? await redis.zcount(leaderboard, `(${value}`, "+inf")
+								: n - 1;
 
 							return {
 								tooltip: [
