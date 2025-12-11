@@ -79,10 +79,19 @@ const rows = await (async () => {
 
 			return { ...account, snapshotDate, stats, scores };
 		})
-		.sort((a, b) => b.scores - a.scores)
-		.map((it, idx) => ({ ...it, top: idx + 1 }));
+		.sort((a, b) => b.scores - a.scores);
 
-	const filtered = results.filter(
+	const resultsWithRank = results.reduce<
+		((typeof results)[number] & { top: number })[]
+	>((acc, next, idx) => {
+		const lastResult = acc.at(-1);
+		const top = lastResult?.scores === next.scores ? lastResult.top : idx + 1;
+
+		acc.push({ ...next, top });
+		return acc;
+	}, []);
+
+	const filtered = resultsWithRank.filter(
 		({ username }) =>
 			!search_username || username.toLowerCase().includes(search_username),
 	);
