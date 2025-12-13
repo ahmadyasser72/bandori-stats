@@ -126,25 +126,26 @@ const nextPageHtmxProps = (() => {
 		<tr {...(idx === pageSize - 5 ? nextPageHtmxProps : {})}>
 			<th>#{top.toString().padStart(3, "0")}</th>
 
-			<th class="bg-base-100/20 sticky left-0 z-10 pl-0">
-				<p class="inline-flex">
-					<span
-						hx-get={`/leaderboard/stats/${id}_${date}`}
-						hx-target="body"
-						hx-swap="beforeend"
-						hx-indicator="next iconify-icon"
-						class="bg-base-100 link max-w-36 overflow-clip pr-2 pl-4 text-ellipsis"
-						style={idx < 30 && `view-transition-name: account-${id};`}
-					>
-						{username}
-					</span>
+			<th
+				hx-disinherit="hx-indicator"
+				class="bg-base-100/20 sticky left-0 z-10 pl-0"
+			>
+				<span
+					hx-get={`/leaderboard/stats/${id}_${date}`}
+					hx-target="body"
+					hx-swap="beforeend"
+					class="bg-base-100 link max-w-36 overflow-clip pr-2 pl-4 text-ellipsis"
+					style={idx < 30 && `view-transition-name: account-${id};`}
+				>
+					{username}
 
 					<iconify-icon
+						inline
 						icon="svg-spinners:3-dots-scale"
-						width="16"
-						class="htmx-indicator"
+						width="none"
+						class="htmx-indicator ml-2 size-3"
 					/>
-				</p>
+				</span>
 			</th>
 
 			<td>{snapshotDate}</td>

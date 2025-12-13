@@ -48,14 +48,14 @@ if (isNotFound) Astro.response.status = 404;
 					<div
 						hx-target="body"
 						hx-swap="beforeend"
-						hx-disabled-elt="button"
+						hx-disabled-elt=".snapshot-button"
 						class="mt-4 flex flex-col-reverse gap-4"
 					>
 						{account.snapshots.map(({ snapshotDate, ...stats }, idx) => (
 							<div class="flex gap-2">
 								<button
 									hx-get={`/leaderboard/stats/${id}_${snapshotDate}/chart`}
-									class="btn btn-sm btn-accent"
+									class="snapshot-button btn btn-sm btn-accent"
 								>
 									{snapshotDate}
 

@@ -42,7 +42,6 @@ const { minDate, maxDate } = await (async () => {
 				value={maxDate}
 				hx-get={rowsLink}
 				hx-target="tbody"
-				hx-disabled-elt="input, label.btn, select"
 				hx-indicator="#app-loader, tbody"
 				hx-swap="innerHTML transition:true"
 			/>
@@ -51,7 +50,6 @@ const { minDate, maxDate } = await (async () => {
 		<table class="table-xs table-zebra table">
 			<thead
 				hx-target="tbody"
-				hx-disabled-elt="input, .btn"
 				hx-indicator="#app-loader, tbody"
 				hx-swap="innerHTML transition:true"
 				hx-trigger="change delay:500ms"
@@ -65,7 +63,7 @@ const { minDate, maxDate } = await (async () => {
 						<div
 							id="search_username_popover"
 							popover
-							class="dropdown peer bg-base-100 rounded-box z-1 mt-1 px-2 py-1 shadow-sm"
+							class="dropdown peer bg-base-100 rounded-box z-10 mt-1 px-2 py-1 shadow-sm"
 							style="position-anchor: --anchor-search-username; view-transition-name: search-username-popover;"
 							hx-on:htmx-after-request="this.hidePopover()"
 						>

@@ -14,10 +14,6 @@
 	@apply hidden;
 }
 
-.htmx-request:not(.htmx-indicator) {
-	@apply opacity-50;
-}
-
 .absolute.center,
 .fixed.center {
 	@apply top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2;
