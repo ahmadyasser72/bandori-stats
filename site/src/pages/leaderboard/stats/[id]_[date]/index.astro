@@ -37,11 +37,12 @@ if (isNotFound) Astro.response.status = 404;
 
 		{
 			isNotFound ? (
-				<h2 class="text-lg font-bold">Stats not found</h2>
+				<h2 class="text-lg font-medium">Stats not found</h2>
 			) : (
 				<>
-					<h2 class="text-lg font-bold">
-						Stats history for {account.username}
+					<h2 class="text-lg font-medium">
+						Stats history &bullet;
+						<span class="underline">{account.username}</span>
 					</h2>
 
 					<div

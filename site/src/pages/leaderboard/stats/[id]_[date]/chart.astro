@@ -32,6 +32,12 @@ const account = await db.query.accounts.findFirst({
 const isNotFound = !account || account.snapshots.length === 0;
 if (isNotFound) Astro.response.status = 404;
 
+const latestLeaderboard = (
+	!isNotFound && account.snapshots.length === 2
+		? dayjs(account.snapshots[1].snapshotDate).subtract(1, "days")
+		: dayjs()
+).format("YYYY-MM-DD");
+
 const chart = await (async () => {
 	if (isNotFound) return;
 
@@ -41,13 +47,8 @@ const chart = await (async () => {
 	const data = await Promise.all(
 		STAT_COLUMNS.map(async (column) => {
 			const value = account.snapshots[0][column];
-			const mostRecentDate = (
-				account.snapshots.length === 2
-					? dayjs(account.snapshots[1].snapshotDate).subtract(1, "days")
-					: dayjs()
-			).format("YYYY-MM-DD");
 
-			const key = `leaderboard:${mostRecentDate}:${column}`;
+			const key = `leaderboard:${latestLeaderboard}:${column}`;
 			const n = await redis.zcard(key);
 			const rank = value ? await redis.zcount(key, `(${value}`, "+inf") : n - 1;
 
@@ -94,12 +95,24 @@ const chart = await (async () => {
 
 		{
 			isNotFound ? (
-				<h2 class="text-lg font-bold">Stats not found</h2>
+				<h3 class="text-lg font-medium">Stats not found</h3>
 			) : (
 				<>
-					<h2 class="text-lg font-bold">
-						Stats chart for {account.username} ({date})
-					</h2>
+					<h3 class="text-lg">
+						Stats at
+						{date === latestLeaderboard ? (
+							date
+						) : (
+							<div
+								class="tooltip tooltip-bottom"
+								data-tip={`with ${latestLeaderboard} leaderboard`}
+							>
+								<span class="underline decoration-dotted">{date}</span>
+							</div>
+						)}
+						&bullet;
+						<span class="font-medium">{account.username}</span>
+					</h3>
 
 					<main hx-target="this" class="mt-4 flex flex-col gap-4">
 						<div class="relative mx-auto aspect-square w-96 max-w-full">
