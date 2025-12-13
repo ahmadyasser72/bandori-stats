@@ -27,10 +27,7 @@ const isNotFound = !account || account.snapshots.length === 0;
 if (isNotFound) Astro.response.status = 404;
 ---
 
-<dialog
-	class="modal modal-bottom sm:modal-middle"
-	hx-on:close="this.ontransitionend = this.remove"
->
+<dialog class="modal modal-bottom sm:modal-middle">
 	<div class="modal-box max-sm:max-h-4/5">
 		<form method="dialog">
 			<button class="btn btn-sm btn-circle btn-ghost absolute top-2 right-2">
@@ -64,7 +61,12 @@ if (isNotFound) Astro.response.status = 404;
 									<iconify-icon
 										icon="lucide:chart-area"
 										width="none"
-										class="size-4"
+										class="htmx-indicator-replace size-4"
+									/>
+									<iconify-icon
+										icon="svg-spinners:90-ring-with-bg"
+										width="none"
+										class="htmx-indicator size-4"
 									/>
 								</button>
 								<div class="flex flex-1 flex-wrap gap-1">

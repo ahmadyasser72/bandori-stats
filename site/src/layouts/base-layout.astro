@@ -29,32 +29,23 @@ import "~/styles/global.css";
 <script>
 	import htmx from "htmx.org";
 
-	import { registerRadarChart } from "~/lib/chart";
-
 	htmx.onLoad(async (node) => {
 		if (!(node instanceof HTMLElement)) return;
-		if (node instanceof HTMLDialogElement) node.show();
-
-		{
-			const canvas = node.querySelector("canvas[data-radar-chart]");
-			if (!(canvas instanceof HTMLCanvasElement)) return;
-
-			const Chart = await registerRadarChart();
-			const config = JSON.parse(
-				canvas.dataset.radarChart!,
-			) as ConstructorParameters<typeof Chart>[1];
-
-			if (!!config.options?.plugins?.tooltip) {
-				config.options.plugins.tooltip.callbacks = {
-					label: (context) => {
-						// @ts-ignore trust
-						return context.raw.tooltip;
-					},
-				};
-			}
-
-			new Chart(canvas, config);
+		if (node instanceof HTMLDialogElement) {
+			node.show();
+			node.addEventListener("close", () => {
+				node.addEventListener("transitionend", () => node.remove());
+			});
 		}
+	});
+
+	htmx.on("htmx:afterProcessNode", async (e) => {
+		const event = e as Event & { detail: { elt: HTMLElement } };
+		const canvas = event.detail.elt.querySelector("canvas[data-radar-chart]");
+		if (!(canvas instanceof HTMLCanvasElement)) return;
+
+		const { useRadarChart } = await import("~/lib/chart");
+		await useRadarChart(canvas, JSON.parse(canvas.dataset.radarChart!));
 	});
 </script>
 <script src="iconify-icon"></script>

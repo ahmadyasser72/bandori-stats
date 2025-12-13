@@ -1,23 +1,24 @@
-import type { Chart } from "chart.js";
+import {
+	Chart,
+	Colors,
+	Filler,
+	LineElement,
+	PointElement,
+	RadarController,
+	RadialLinearScale,
+	Tooltip,
+} from "chart.js";
 
-export const useRadarChart = (
+export const defineRadarChart = (
 	config: ConstructorParameters<typeof Chart>[1],
 ) => ({
 	"data-radar-chart": JSON.stringify(config),
 });
 
-export const registerRadarChart = async () => {
-	const {
-		Chart,
-		Colors,
-		Filler,
-		LineElement,
-		PointElement,
-		RadarController,
-		RadialLinearScale,
-		Tooltip,
-	} = await import("chart.js");
-
+export const useRadarChart = async (
+	canvas: HTMLCanvasElement,
+	config: ConstructorParameters<typeof Chart>[1],
+) => {
 	Chart.register(
 		Colors,
 		Filler,
@@ -28,5 +29,14 @@ export const registerRadarChart = async () => {
 		Tooltip,
 	);
 
-	return Chart;
+	if (!!config.options?.plugins?.tooltip) {
+		config.options.plugins.tooltip.callbacks = {
+			label: (context) => {
+				// @ts-ignore trust
+				return context.raw.tooltip;
+			},
+		};
+	}
+
+	return new Chart(canvas, config);
 };

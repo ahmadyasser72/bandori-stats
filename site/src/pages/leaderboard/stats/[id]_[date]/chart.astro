@@ -8,7 +8,7 @@ import { redis } from "@bandori-stats/database/redis";
 import dayjs from "dayjs";
 import { titleCase } from "text-case";
 
-import { useRadarChart } from "~/lib/chart";
+import { defineRadarChart } from "~/lib/chart";
 import { formatNumber } from "~/lib/math";
 import { schema } from "../../_params";
 
@@ -35,47 +35,48 @@ if (isNotFound) Astro.response.status = 404;
 const chart = await (async () => {
 	if (isNotFound) return;
 
-	return useRadarChart({
+	const labels = STAT_COLUMNS.map((column) =>
+		titleCase(column.replace(/Count$/, "")),
+	);
+	const data = await Promise.all(
+		STAT_COLUMNS.map(async (column) => {
+			const value = account.snapshots[0][column];
+			const mostRecentDate = (
+				account.snapshots.length === 2
+					? dayjs(account.snapshots[1].snapshotDate).subtract(1, "days")
+					: dayjs()
+			).format("YYYY-MM-DD");
+
+			const key = `leaderboard:${mostRecentDate}:${column}`;
+			const n = await redis.zcard(key);
+			const rank = value ? await redis.zcount(key, `(${value}`, "+inf") : n - 1;
+
+			return {
+				tooltip: [
+					value === null ? "Private" : formatNumber(value),
+					`(#${rank + 1})`,
+				].join(" "),
+				value: value === null ? 0 : 1 - rank / (n - 1),
+			};
+		}),
+	);
+
+	return defineRadarChart({
 		type: "radar",
 		options: {
-			elements: { point: { radius: 5 } },
+			elements: { point: { radius: 5, hitRadius: 3 } },
 			scales: { r: { min: 0, max: 1, ticks: { display: false } } },
 			plugins: { tooltip: { enabled: true } },
 		},
 		data: {
-			labels: STAT_COLUMNS.map((column) =>
-				titleCase(column.replace(/Count$/, "")),
-			),
+			labels,
 			datasets: [
 				{
 					label: `${account.username} (${date})`,
 					fill: true,
 					normalized: true,
 					parsing: { key: "value" },
-					data: await Promise.all(
-						STAT_COLUMNS.map(async (column) => {
-							const value = account.snapshots[0][column];
-							const mostRecentDate = (
-								account.snapshots.length === 2
-									? dayjs(account.snapshots[1].snapshotDate).subtract(1, "days")
-									: dayjs()
-							).format("YYYY-MM-DD");
-
-							const leaderboard = `leaderboard:${mostRecentDate}:${column}`;
-							const n = await redis.zcard(leaderboard);
-							const rank = value
-								? await redis.zcount(leaderboard, `(${value}`, "+inf")
-								: n - 1;
-
-							return {
-								tooltip: [
-									value === null ? "Private" : formatNumber(value),
-									`(#${rank + 1})`,
-								].join(" "),
-								value: value === null ? 0 : 1 - rank / (n - 1),
-							};
-						}),
-					),
+					data,
 				},
 			],
 		},
@@ -83,10 +84,7 @@ const chart = await (async () => {
 })();
 ---
 
-<dialog
-	class="modal modal-bottom sm:modal-middle"
-	hx-on:close="this.ontransitionend = this.remove"
->
+<dialog class="modal modal-bottom sm:modal-middle">
 	<div class="modal-box">
 		<form method="dialog">
 			<button class="btn btn-sm btn-circle btn-ghost absolute top-2 right-2">
@@ -105,7 +103,12 @@ const chart = await (async () => {
 
 					<main hx-target="this" class="mt-4 flex flex-col gap-4">
 						<div class="relative mx-auto aspect-square w-96 max-w-full">
-							<canvas {...chart} />
+							<canvas {...chart} class="bg-base-100" />
+							<iconify-icon
+								icon="svg-spinners:3-dots-rotate"
+								width="none"
+								class="center absolute -z-10 size-24"
+							/>
 						</div>
 					</main>
 				</>

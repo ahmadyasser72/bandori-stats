@@ -8,7 +8,9 @@
 		properties /* https://github.com/saadeghi/daisyui/issues/3882 */;
 }
 
-.htmx-indicator:not(.htmx-request) {
+:not(.htmx-request) > .htmx-indicator:not(.htmx-request),
+.htmx-indicator-replace.htmx-request,
+.htmx-request > .htmx-indicator-replace {
 	@apply hidden;
 }
 
