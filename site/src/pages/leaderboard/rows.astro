@@ -153,8 +153,8 @@ const nextPageHtmxProps = (() => {
 			{Object.entries(stats).map(([key, value]) => (
 				<td
 					class:list={[
-						(value === null && "font-medium opacity-40") ||
-							(!rank_by.items.includes(key) && "line-through opacity-60"),
+						(!rank_by.items.includes(key) && "line-through opacity-60") ||
+							(value === null && "font-medium opacity-40"),
 					]}
 				>
 					{value ? formatNumber(value) : "Private"}
