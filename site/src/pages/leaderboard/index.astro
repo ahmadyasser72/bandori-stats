@@ -1,10 +1,10 @@
 ---
 import { STAT_COLUMNS } from "@bandori-stats/database/constants";
 import { redis } from "@bandori-stats/database/redis";
-import dayjs from "dayjs";
 import { titleCase } from "text-case";
 
 import BaseLayout from "~/layouts/base-layout.astro";
+import dayjs from "~/lib/date";
 import { parseSearchParams } from "./_params";
 
 const { rank_by, sort_latest } = parseSearchParams(Astro.url.searchParams);
@@ -20,7 +20,7 @@ const { minDate, maxDate } = await (async () => {
 
 	return {
 		minDate: first.split(":")[1],
-		maxDate: dayjs().format("YYYY-MM-DD"),
+		maxDate: dayjs.utc().format("YYYY-MM-DD"),
 	};
 })();
 ---

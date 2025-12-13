@@ -5,10 +5,10 @@ import {
 	STAT_COLUMNS,
 } from "@bandori-stats/database/constants";
 import { redis } from "@bandori-stats/database/redis";
-import dayjs from "dayjs";
 import { titleCase } from "text-case";
 
 import { defineRadarChart } from "~/lib/chart";
+import dayjs from "~/lib/date";
 import { formatNumber } from "~/lib/math";
 import { schema } from "../../_params";
 
@@ -35,7 +35,7 @@ if (isNotFound) Astro.response.status = 404;
 const latestLeaderboard = (
 	!isNotFound && account.snapshots.length === 2
 		? dayjs(account.snapshots[1].snapshotDate).subtract(1, "days")
-		: dayjs()
+		: dayjs.utc()
 ).format("YYYY-MM-DD");
 
 const chart = await (async () => {

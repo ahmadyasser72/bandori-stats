@@ -2,8 +2,8 @@
 import { db } from "@bandori-stats/database";
 import { SELECT_STAT_COLUMNS } from "@bandori-stats/database/constants";
 import { redis } from "@bandori-stats/database/redis";
-import dayjs from "dayjs";
 
+import dayjs from "~/lib/date";
 import { formatNumber, sum } from "~/lib/math";
 import { parseSearchParams } from "./_params";
 
