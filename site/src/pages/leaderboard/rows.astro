@@ -42,7 +42,7 @@ const leaderboard = await (async () => {
 
 const getRows = async () =>
 	db.query.accounts.findMany({
-		columns: { id: true, username: true },
+		columns: { id: true, username: true, nickname: true },
 		with: {
 			snapshots: {
 				limit: 1,
@@ -55,7 +55,7 @@ const getRows = async () =>
 
 const rows = await (async () => {
 	type Rows = Awaited<ReturnType<typeof getRows>>;
-	const cacheKey = `query:${date}`;
+	const cacheKey = `queryw:${date}`;
 
 	const rows = await redis
 		.get<Rows>(cacheKey)
@@ -76,8 +76,10 @@ const rows = await (async () => {
 						return 1 - rankings.indexOf(stats[column]) / (rankings.length - 1);
 					}),
 				) / rank_by.items.length;
+			const hasNickname =
+				account.nickname && account.nickname !== account.username;
 
-			return { ...account, snapshotDate, stats, scores };
+			return { ...account, snapshotDate, stats, scores, hasNickname };
 		})
 		.sort((a, b) => b.scores - a.scores);
 
@@ -92,8 +94,10 @@ const rows = await (async () => {
 	}, []);
 
 	const filtered = resultsWithRank.filter(
-		({ username }) =>
-			!search_username || username.toLowerCase().includes(search_username),
+		({ username, nickname }) =>
+			!search_username ||
+			username.toLowerCase().includes(search_username) ||
+			nickname?.toLowerCase().includes(search_username),
 	);
 
 	return sort_latest
@@ -101,7 +105,7 @@ const rows = await (async () => {
 		: filtered;
 })();
 
-const pageSize = 25;
+const pageSize = 20;
 const offset = (page - 1) * pageSize;
 const pageRows = rows.slice(offset, offset + pageSize);
 
@@ -121,45 +125,75 @@ const nextPageHtmxProps = (() => {
 ---
 
 {
-	pageRows.map(({ id, username, snapshotDate, stats, top }, idx) => (
-		// trigger infinite loader on the 5th last row
-		<tr {...(idx === pageSize - 5 ? nextPageHtmxProps : {})}>
-			<th>#{top.toString().padStart(3, "0")}</th>
+	pageRows.map(
+		(
+			{ id, username, nickname, hasNickname, snapshotDate, stats, top },
+			idx,
+		) => (
+			// trigger infinite loader on the 5th last row
+			<tr {...(idx === pageSize - 5 ? nextPageHtmxProps : {})} class="group">
+				<th>#{top.toString().padStart(3, "0")}</th>
 
-			<th
-				hx-disinherit="hx-indicator"
-				class="bg-base-100/20 sticky left-0 z-10 pl-0"
-			>
-				<span
-					hx-get={`/leaderboard/stats/${id}_${date}`}
-					hx-target="body"
-					hx-swap="beforeend"
-					class="bg-base-100 link max-w-36 overflow-clip pr-2 pl-4 text-ellipsis"
-					style={idx < 30 && `view-transition-name: account-${id};`}
-				>
-					{username}
-
-					<iconify-icon
-						inline
-						icon="svg-spinners:3-dots-scale"
-						width="none"
-						class="htmx-indicator ml-2 size-3"
-					/>
-				</span>
-			</th>
-
-			<td>{snapshotDate}</td>
-
-			{Object.entries(stats).map(([key, value]) => (
-				<td
-					class:list={[
-						(!rank_by.items.includes(key) && "line-through opacity-60") ||
-							(value === null && "font-medium opacity-40"),
-					]}
-				>
-					{value ? formatNumber(value) : "Private"}
+				<td class="bg-base-100/20 sticky left-0 z-10 pl-0">
+					<span
+						class="flex items-center font-medium"
+						style={page === 1 && `view-transition-name: account-${id};`}
+					>
+						<div class="flex flex-col -space-y-0.5">
+							{hasNickname && (
+								<div>
+									<span class="group-even:bg-base-200 group-odd:bg-base-100 line-clamp-1 max-w-36 overflow-clip px-2 break-all text-ellipsis">
+										{nickname}
+									</span>
+								</div>
+							)}
+							<div>
+								<span
+									class:list={[
+										"group-even:bg-base-200 group-odd:bg-base-100 line-clamp-1 max-w-36 overflow-clip px-2 text-ellipsis",
+										hasNickname && "text-base-content/60",
+									]}
+								>
+									@{username}
+								</span>
+							</div>
+						</div>
+					</span>
 				</td>
-			))}
-		</tr>
-	))
+				<td hx-disinherit="hx-indicator">
+					<button
+						hx-get={`/leaderboard/stats/${id}_${date}`}
+						hx-target="body"
+						hx-swap="beforeend"
+						hx-disabled-elt=".stats-history"
+						class="stats-history btn btn-primary btn-sm btn-circle"
+					>
+						<iconify-icon
+							icon="lucide:history"
+							width="none"
+							class="htmx-indicator-replace size-4"
+						/>
+						<iconify-icon
+							icon="svg-spinners:90-ring-with-bg"
+							width="none"
+							class="htmx-indicator size-4"
+						/>
+					</button>
+				</td>
+
+				<td>{snapshotDate}</td>
+
+				{Object.entries(stats).map(([key, value]) => (
+					<td
+						class:list={[
+							(!rank_by.items.includes(key) && "line-through opacity-60") ||
+								(value === null && "font-medium opacity-40"),
+						]}
+					>
+						{value ? formatNumber(value) : "Private"}
+					</td>
+				))}
+			</tr>
+		),
+	)
 }

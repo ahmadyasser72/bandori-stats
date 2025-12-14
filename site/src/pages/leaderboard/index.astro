@@ -47,7 +47,7 @@ const { minDate, maxDate } = await (async () => {
 			/>
 		</div>
 
-		<table class="table-xs table-zebra table">
+		<table class="table-sm table-zebra table">
 			<thead
 				hx-target="tbody"
 				hx-indicator="#app-loader, tbody"
@@ -57,37 +57,40 @@ const { minDate, maxDate } = await (async () => {
 				hx-on:htmx-before-request="this.closest('#scroll-container').scrollTo({ top: 0, behavior: 'smooth'})"
 			>
 				<tr class="group bg-base-100 sticky top-0 z-20">
-					<th class="min-w-10"></th>
+					<th class="min-w-14"></th>
 
-					<th class="min-w-42">
+					<th class="min-w-40">
 						<div
 							id="search_username_popover"
 							popover
-							class="dropdown peer bg-base-100 rounded-box z-10 mt-1 px-2 py-1 shadow-sm"
+							class="dropdown join peer bg-base-100 rounded-box z-10 mt-1 px-2 py-1 shadow-sm"
 							style="position-anchor: --anchor-search-username; view-transition-name: search-username-popover;"
-							hx-on:htmx-after-request="this.hidePopover()"
+							hx-on:htmx-before-request="this.hidePopover()"
 						>
 							<input
 								type="search"
-								class="input input-xs w-32"
+								class="input join-item input-sm w-36"
 								name="search_username"
-								placeholder="search..."
+								placeholder="Search..."
 								hx-get={rowsLink}
-								hx-trigger="input changed delay:1s"
+								hx-trigger="blur changed, click from:next"
 							/>
+							<button class="btn btn-sm join-item">Go</button>
 						</div>
 
 						<button
-							class="btn btn-xs peer-has-placeholder-shown:btn-ghost peer-has-not-placeholder-shown:btn-primary"
+							class="btn btn-sm peer-has-placeholder-shown:btn-ghost not-peer-has-placeholder-shown:btn-secondary"
 							popovertarget="search_username_popover"
 							style="anchor-name: --anchor-search-username"
 						>
 							Username
 
-							<iconify-icon icon="lucide:search" width="none" class="size-3"
+							<iconify-icon icon="lucide:search" width="none" class="size-4"
 							></iconify-icon>
 						</button>
 					</th>
+
+					<th class="min-w-14"></th>
 
 					<th class="min-w-24">
 						<input
@@ -102,13 +105,13 @@ const { minDate, maxDate } = await (async () => {
 						/>
 						<label
 							for="sort_latest"
-							class="btn btn-xs not-peer-checked:btn-ghost peer-checked:btn-secondary"
+							class="btn btn-sm not-peer-checked:btn-ghost peer-checked:btn-secondary"
 						>
 							Last Updated
 							<iconify-icon
 								icon="lucide:arrow-down-1-0"
 								width="none"
-								class="size-3"></iconify-icon>
+								class="size-4"></iconify-icon>
 						</label>
 					</th>
 
@@ -117,11 +120,11 @@ const { minDate, maxDate } = await (async () => {
 							<th>
 								<input
 									type="checkbox"
-									class="rank-by btn btn-xs checked:btn-accent not-group-has-[.rank-by:checked]:not-checked:btn-ghost group-has-[.rank-by:checked]:not-checked:btn-neutral group-has-[.rank-by:checked]:not-checked:line-through"
+									class="rank-by btn btn-sm checked:btn-accent not-group-has-[.rank-by:checked]:not-checked:btn-ghost group-has-[.rank-by:checked]:not-checked:btn-neutral group-has-[.rank-by:checked]:not-checked:line-through"
 									name="rank_by"
 									value={column}
 									checked={!rank_by.default && rank_by.items.includes(column)}
-									aria-label={titleCase(column)}
+									aria-label={titleCase(column.replace(/Count$/, ""))}
 									hx-get={rowsLink}
 								/>
 							</th>
@@ -138,9 +141,9 @@ const { minDate, maxDate } = await (async () => {
 				{
 					Array.from({ length: 12 }, () => (
 						<tr class="infinite-placeholder htmx-indicator">
-							{Array.from({ length: 3 + STAT_COLUMNS.length }, () => (
+							{Array.from({ length: 4 + STAT_COLUMNS.length }, () => (
 								<td>
-									<div class="skeleton h-4" />
+									<div class="skeleton h-8" />
 								</td>
 							))}
 						</tr>

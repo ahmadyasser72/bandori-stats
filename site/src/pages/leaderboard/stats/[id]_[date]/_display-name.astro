@@ -1,0 +1,22 @@
+---
+interface Props {
+	username: string;
+	nickname: string | null;
+}
+
+const { username, nickname } = Astro.props;
+const hasNickname = nickname && nickname !== username;
+---
+
+<span class="font-medium">
+	{
+		hasNickname ? (
+			<>
+				{nickname}
+				<span class="text-base-content/60 ml-2 text-base">@{username}</span>
+			</>
+		) : (
+			`@${username}`
+		)
+	}
+</span>
