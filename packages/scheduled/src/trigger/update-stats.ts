@@ -37,13 +37,12 @@ export const updateStats = schemaTask({
 
 			const stats = refetch
 				? await bestdoriStats.triggerAndWait({ username }).unwrap()
-				: (existing?.snapshots.pop() ?? null);
+				: (existing?.snapshots.at(-1) ?? null);
 
 			return { stats, existing };
 		})();
 
 		const { existing, stats } = snapshot;
-
 		if (!stats) {
 			await tags.add("snapshot_unavailable");
 			return;
