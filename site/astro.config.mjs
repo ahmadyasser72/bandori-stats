@@ -38,10 +38,6 @@ export default defineConfig({
 				},
 			},
 		},
-		css: {
-			transformer:
-				process.env.NODE_ENV === "development" ? "postcss" : "lightningcss",
-		},
 	},
 	devToolbar: { enabled: false },
 });
