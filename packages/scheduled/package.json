@@ -6,12 +6,12 @@
 		"deploy": "trigger deploy"
 	},
 	"devDependencies": {
-		"@trigger.dev/build": "4.1.2",
+		"@trigger.dev/build": "4.3.0",
 		"trigger.dev": "^4.1.2"
 	},
 	"dependencies": {
 		"@bandori-stats/database": "workspace:*",
-		"@trigger.dev/sdk": "4.1.2",
+		"@trigger.dev/sdk": "4.3.0",
 		"dayjs": "^1.11.19",
 		"fast-shuffle": "^6.1.1",
 		"zod": "^4.1.13"
