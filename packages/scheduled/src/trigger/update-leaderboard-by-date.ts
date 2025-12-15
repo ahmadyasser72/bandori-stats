@@ -16,8 +16,8 @@ export const updateLeaderboardByDate = schemaTask({
 					snapshots: {
 						limit: 1,
 						columns: { ...SELECT_STAT_COLUMNS, accountId: true },
-						where: (t, { lte }) => lte(t.snapshotDate, date),
-						orderBy: (t, { desc }) => desc(t.snapshotDate),
+						where: { snapshotDate: { lte: date } },
+						orderBy: { snapshotDate: "desc" },
 					},
 				},
 			})

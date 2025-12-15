@@ -1,4 +1,4 @@
-import { relations, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import {
 	integer,
 	sqliteTable,
@@ -27,15 +27,6 @@ export const accounts = sqliteTable(
 		unique("idx_latest_snapshot").on(t.latestSnapshotId),
 	],
 );
-
-export const accountsRelations = relations(accounts, ({ one, many }) => ({
-	latestSnapshot: one(accountSnapshots, {
-		fields: [accounts.latestSnapshotId],
-		references: [accountSnapshots.id],
-		relationName: "latestSnapshot",
-	}),
-	snapshots: many(accountSnapshots, { relationName: "snapshotAccount" }),
-}));
 
 export const accountSnapshots = sqliteTable(
 	"account_snapshots",
@@ -70,15 +61,4 @@ export const accountSnapshots = sqliteTable(
 			t.bandRating,
 		),
 	],
-);
-
-export const accountSnapshotsRelations = relations(
-	accountSnapshots,
-	({ one }) => ({
-		account: one(accounts, {
-			fields: [accountSnapshots.accountId],
-			references: [accounts.id],
-			relationName: "snapshotAccount",
-		}),
-	}),
 );

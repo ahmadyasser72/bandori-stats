@@ -47,8 +47,8 @@ const getRows = async () =>
 			snapshots: {
 				limit: 1,
 				columns: { ...SELECT_STAT_COLUMNS, snapshotDate: true },
-				orderBy: (t, { desc }) => desc(t.snapshotDate),
-				where: (t, { lte }) => lte(t.snapshotDate, date),
+				where: { snapshotDate: { lte: date } },
+				orderBy: { snapshotDate: "desc" },
 			},
 		},
 	});

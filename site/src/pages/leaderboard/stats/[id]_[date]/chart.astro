@@ -23,11 +23,11 @@ const account = await db.query.accounts.findFirst({
 		snapshots: {
 			limit: 2,
 			columns: { ...SELECT_STAT_COLUMNS, snapshotDate: true },
-			orderBy: (t, { asc }) => asc(t.snapshotDate),
-			where: (t, { gte }) => gte(t.snapshotDate, date),
+			where: { snapshotDate: { gte: date } },
+			orderBy: { snapshotDate: "asc" },
 		},
 	},
-	where: (t, { eq }) => eq(t.id, id),
+	where: { id },
 });
 
 const isNotFound = !account || account.snapshots.length === 0;

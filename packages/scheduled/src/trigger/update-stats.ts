@@ -24,13 +24,13 @@ export const updateStats = schemaTask({
 		const snapshot = await (async () => {
 			const existing = await db.query.accounts.findFirst({
 				columns: { id: true },
-				where: (t, { eq }) => eq(t.username, username),
+				where: { username },
 				with: {
 					snapshots: {
 						limit: 1,
 						columns: SELECT_STAT_COLUMNS,
-						orderBy: (t, { desc }) => desc(t.snapshotDate),
-						where: (t, { lte }) => lte(t.snapshotDate, date),
+						where: { snapshotDate: { lte: date } },
+						orderBy: { snapshotDate: "desc" },
 					},
 				},
 			});
