@@ -1,8 +1,5 @@
 import { db } from "@bandori-stats/database";
-import {
-	ABBREVIATED_STAT_COLUMNS,
-	SELECT_STAT_COLUMNS,
-} from "@bandori-stats/database/constants";
+import { ABBREVIATED_STAT_COLUMNS } from "@bandori-stats/database/constants";
 import { accounts, accountSnapshots } from "@bandori-stats/database/schema";
 import { schemaTask, tags } from "@trigger.dev/sdk";
 import z from "zod";
@@ -28,7 +25,7 @@ export const updateStats = schemaTask({
 				with: {
 					snapshots: {
 						limit: 1,
-						columns: SELECT_STAT_COLUMNS,
+						columns: { stats: true },
 						where: { snapshotDate: { lte: date } },
 						orderBy: { snapshotDate: "desc" },
 					},
@@ -37,7 +34,7 @@ export const updateStats = schemaTask({
 
 			const stats = refetch
 				? await bestdoriStats.triggerAndWait({ username }).unwrap()
-				: (existing?.snapshots.at(-1) ?? null);
+				: (existing?.snapshots.at(-1)?.stats ?? null);
 
 			return { stats, existing };
 		})();
@@ -52,7 +49,7 @@ export const updateStats = schemaTask({
 		let snapshotId: number | undefined = undefined;
 
 		if (existing && existing.snapshots[0]) {
-			const [from, to] = [existing.snapshots[0], stats];
+			const [from, to] = [existing.snapshots[0].stats, stats];
 			const { delta, difference } = compareStats(from, to);
 			if (delta === 0) {
 				await tags.add("diff_none");
@@ -70,10 +67,10 @@ export const updateStats = schemaTask({
 
 			const [newSnapshot] = await db
 				.insert(accountSnapshots)
-				.values({ accountId: existing.id, ...stats, snapshotDate: date })
+				.values({ accountId: existing.id, stats, snapshotDate: date })
 				.onConflictDoUpdate({
 					target: [accountSnapshots.accountId, accountSnapshots.snapshotDate],
-					set: stats,
+					set: { stats },
 				})
 				.returning({ id: accountSnapshots.id });
 
@@ -89,11 +86,7 @@ export const updateStats = schemaTask({
 
 			const [newSnapshot] = await db
 				.insert(accountSnapshots)
-				.values({
-					accountId: accountId,
-					...stats,
-					snapshotDate: date,
-				})
+				.values({ accountId, stats, snapshotDate: date })
 				.returning({ id: accountSnapshots.id });
 
 			snapshotId = newSnapshot!.id;
@@ -103,7 +96,7 @@ export const updateStats = schemaTask({
 		if (accountId && snapshotId) {
 			await updateLeaderboard.trigger({
 				date,
-				snapshots: { accountId, ...stats },
+				snapshots: { accountId, stats },
 			});
 		}
 	},

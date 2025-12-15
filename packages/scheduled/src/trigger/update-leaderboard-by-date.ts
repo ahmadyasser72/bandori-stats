@@ -1,5 +1,4 @@
 import { db } from "@bandori-stats/database";
-import { SELECT_STAT_COLUMNS } from "@bandori-stats/database/constants";
 import { schemaTask } from "@trigger.dev/sdk";
 import z from "zod";
 
@@ -15,7 +14,7 @@ export const updateLeaderboardByDate = schemaTask({
 				with: {
 					snapshots: {
 						limit: 1,
-						columns: { ...SELECT_STAT_COLUMNS, accountId: true },
+						columns: { accountId: true, stats: true },
 						where: { snapshotDate: { lte: date } },
 						orderBy: { snapshotDate: "desc" },
 					},

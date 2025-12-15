@@ -1,32 +1,17 @@
 import { sql } from "drizzle-orm";
-import {
-	integer,
-	sqliteTable,
-	text,
-	unique,
-	type AnySQLiteColumn,
-} from "drizzle-orm/sqlite-core";
+import { integer, sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
 
-export const accounts = sqliteTable(
-	"accounts",
-	{
-		id: integer().primaryKey({ autoIncrement: true }),
-		username: text().notNull(),
-		nickname: text(),
+import type { Stat } from "../constants";
 
-		lastUpdated: text()
-			.$default(() => sql`(CURRENT_DATE)`)
-			.$onUpdate(() => sql`(CURRENT_DATE)`),
-		latestSnapshotId: integer().references(
-			(): AnySQLiteColumn => accountSnapshots.id,
-			{ onDelete: "set null" },
-		),
-	},
-	(t) => [
-		unique("idx_accounts_username").on(t.username),
-		unique("idx_latest_snapshot").on(t.latestSnapshotId),
-	],
-);
+export const accounts = sqliteTable("accounts", {
+	id: integer().primaryKey({ autoIncrement: true }),
+	username: text().unique().notNull(),
+	nickname: text(),
+
+	lastUpdated: text()
+		.$default(() => sql`(CURRENT_DATE)`)
+		.$onUpdate(() => sql`(CURRENT_DATE)`),
+});
 
 export const accountSnapshots = sqliteTable(
 	"account_snapshots",
@@ -37,13 +22,7 @@ export const accountSnapshots = sqliteTable(
 			.notNull()
 			.references(() => accounts.id, { onDelete: "cascade" }),
 
-		rank: integer(),
-		clearCount: integer(),
-		fullComboCount: integer(),
-		allPerfectCount: integer(),
-
-		highScoreRating: integer(),
-		bandRating: integer(),
+		stats: text({ mode: "json" }).$type<Stat>().notNull(),
 
 		snapshotDate: text()
 			.default(sql`(CURRENT_DATE)`)
@@ -51,14 +30,6 @@ export const accountSnapshots = sqliteTable(
 	},
 	(t) => [
 		unique("idx_snapshots_date").on(t.accountId, t.snapshotDate),
-		unique("idx_snapshots_stat").on(
-			t.accountId,
-			t.rank,
-			t.clearCount,
-			t.fullComboCount,
-			t.allPerfectCount,
-			t.highScoreRating,
-			t.bandRating,
-		),
+		unique("idx_snapshots_stat").on(t.accountId, t.stats),
 	],
 );

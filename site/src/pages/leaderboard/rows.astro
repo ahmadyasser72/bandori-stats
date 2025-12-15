@@ -1,6 +1,5 @@
 ---
 import { db } from "@bandori-stats/database";
-import { SELECT_STAT_COLUMNS } from "@bandori-stats/database/constants";
 import { redis } from "@bandori-stats/database/redis";
 
 import dayjs from "~/lib/date";
@@ -46,7 +45,7 @@ const getRows = async () =>
 		with: {
 			snapshots: {
 				limit: 1,
-				columns: { ...SELECT_STAT_COLUMNS, snapshotDate: true },
+				columns: { stats: true, snapshotDate: true },
 				where: { snapshotDate: { lte: date } },
 				orderBy: { snapshotDate: "desc" },
 			},
@@ -66,7 +65,7 @@ const rows = await (async () => {
 
 	const results = rows
 		.filter(({ snapshots }) => snapshots.length > 0)
-		.map(({ snapshots: [{ snapshotDate, ...stats }], ...account }) => {
+		.map(({ snapshots: [{ snapshotDate, stats }], ...account }) => {
 			const scores =
 				sum(
 					rank_by.items.map((column) => {

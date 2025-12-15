@@ -18,12 +18,3 @@ export const ABBREVIATED_STAT_COLUMNS: Record<StatName, string> = {
 	clearCount: "CLEAR",
 	rank: "RANK",
 };
-
-export const SELECT_STAT_COLUMNS: Record<StatName, true> = {
-	highScoreRating: true,
-	bandRating: true,
-	allPerfectCount: true,
-	fullComboCount: true,
-	clearCount: true,
-	rank: true,
-};

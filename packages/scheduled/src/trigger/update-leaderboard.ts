@@ -5,8 +5,10 @@ import z from "zod";
 
 const snapshotSchema = z.strictObject({
 	accountId: z.number().nonnegative(),
-	...Object.fromEntries(
-		STAT_COLUMNS.map((column) => [column, z.number().nullable()]),
+	stats: z.strictObject(
+		Object.fromEntries(
+			STAT_COLUMNS.map((column) => [column, z.number().nullable()]),
+		),
 	),
 });
 
@@ -23,7 +25,7 @@ export const updateLeaderboard = schemaTask({
 
 		for (const column of STAT_COLUMNS) {
 			const key = `leaderboard:${date}:${column}`;
-			for (const { accountId, ...stats } of snapshots) {
+			for (const { accountId, stats } of snapshots) {
 				const score = stats[column];
 				if (!score) continue;
 

@@ -1,9 +1,6 @@
 ---
 import { db } from "@bandori-stats/database";
-import {
-	SELECT_STAT_COLUMNS,
-	STAT_COLUMNS,
-} from "@bandori-stats/database/constants";
+import { STAT_COLUMNS } from "@bandori-stats/database/constants";
 import { redis } from "@bandori-stats/database/redis";
 import { titleCase } from "text-case";
 
@@ -22,7 +19,7 @@ const account = await db.query.accounts.findFirst({
 	with: {
 		snapshots: {
 			limit: 2,
-			columns: { ...SELECT_STAT_COLUMNS, snapshotDate: true },
+			columns: { stats: true, snapshotDate: true },
 			where: { snapshotDate: { gte: date } },
 			orderBy: { snapshotDate: "asc" },
 		},
@@ -47,7 +44,7 @@ const chart = await (async () => {
 	);
 	const data = await Promise.all(
 		STAT_COLUMNS.map(async (column) => {
-			const value = account.snapshots[0][column];
+			const value = account.snapshots[0].stats[column];
 
 			const key = `leaderboard:${latestLeaderboard}:${column}`;
 			const n = await redis.zcard(key);
