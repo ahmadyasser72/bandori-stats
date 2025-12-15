@@ -1,4 +1,4 @@
-import { db } from "@bandori-stats/database";
+import { db, eq } from "@bandori-stats/database";
 import { ABBREVIATED_STAT_COLUMNS } from "@bandori-stats/database/constants";
 import { accounts, accountSnapshots } from "@bandori-stats/database/schema";
 import { schemaTask, tags } from "@trigger.dev/sdk";
@@ -98,6 +98,11 @@ export const updateStats = schemaTask({
 				date,
 				snapshots: { accountId, stats },
 			});
+
+			await db
+				.update(accounts)
+				.set({ lastUpdated: date })
+				.where(eq(accounts.id, accountId));
 		}
 	},
 });
