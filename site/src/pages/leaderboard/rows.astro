@@ -1,5 +1,6 @@
 ---
 import { db } from "@bandori-stats/database";
+import { STAT_COLUMNS } from "@bandori-stats/database/constants";
 import { redis } from "@bandori-stats/database/redis";
 
 import dayjs from "~/lib/date";
@@ -182,16 +183,18 @@ const nextPageHtmxProps = (() => {
 
 				<td>{snapshotDate}</td>
 
-				{Object.entries(stats).map(([key, value]) => (
-					<td
-						class:list={[
-							(!rank_by.items.includes(key) && "line-through opacity-60") ||
-								(value === null && "font-medium opacity-40"),
-						]}
-					>
-						{value ? formatNumber(value) : "Private"}
-					</td>
-				))}
+				{STAT_COLUMNS.map((key) => ({ key, value: stats[key] })).map(
+					({ key, value }) => (
+						<td
+							class:list={[
+								(!rank_by.items.includes(key) && "line-through opacity-60") ||
+									(value === null && "font-medium opacity-40"),
+							]}
+						>
+							{value ? formatNumber(value) : "Private"}
+						</td>
+					),
+				)}
 			</tr>
 		),
 	)
