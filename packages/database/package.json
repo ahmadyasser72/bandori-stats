@@ -12,11 +12,11 @@
 		"db:push": "drizzle-kit push"
 	},
 	"devDependencies": {
-		"drizzle-kit": "^1.0.0-beta.2-3a98f3a"
+		"drizzle-kit": "1.0.0-beta.2-f9236e3"
 	},
 	"dependencies": {
-		"@libsql/client": "^0.15.15",
-		"@upstash/redis": "^1.35.7",
-		"drizzle-orm": "^1.0.0-beta.2-3a98f3a"
+		"@libsql/client": "0.15.15",
+		"@upstash/redis": "1.35.8",
+		"drizzle-orm": "1.0.0-beta.2-f9236e3"
 	}
 }
