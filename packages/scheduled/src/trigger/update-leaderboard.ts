@@ -3,20 +3,18 @@ import { redis } from "@bandori-stats/database/redis";
 import { schemaTask, tags } from "@trigger.dev/sdk";
 import z from "zod";
 
-const snapshotSchema = z.strictObject({
+import { StatsSchema } from "~/schema";
+
+const SnapshotSchema = z.strictObject({
 	accountId: z.number().nonnegative(),
-	stats: z.strictObject(
-		Object.fromEntries(
-			STAT_COLUMNS.map((column) => [column, z.number().nullable()]),
-		),
-	),
+	stats: StatsSchema,
 });
 
 export const updateLeaderboard = schemaTask({
 	id: "update-leaderboard",
 	schema: z.strictObject({
 		snapshots: z
-			.union([snapshotSchema, z.array(snapshotSchema).nonempty()])
+			.union([SnapshotSchema, z.array(SnapshotSchema).nonempty()])
 			.transform((it) => (Array.isArray(it) ? it : [it])),
 		date: z.iso.date(),
 	}),
