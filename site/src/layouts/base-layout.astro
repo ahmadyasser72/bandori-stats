@@ -47,9 +47,9 @@ import "~/styles/global.css";
 			node.classList.contains("skeleton") &&
 			node.classList.contains("border")
 		) {
-			node.addEventListener("load", () => {
-				node.classList.remove("skeleton", "border");
-			});
+			const done = () => node.classList.remove("skeleton", "border");
+			if (node.complete) done();
+			else node.addEventListener("load", done, { once: true });
 		}
 	});
 
