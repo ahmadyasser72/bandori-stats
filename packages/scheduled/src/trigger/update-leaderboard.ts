@@ -1,5 +1,6 @@
 import { STAT_COLUMNS } from "@bandori-stats/database/constants";
 import { redis } from "@bandori-stats/database/redis";
+import { Octokit } from "@octokit/core";
 import { schemaTask, tags } from "@trigger.dev/sdk";
 import z from "zod";
 
@@ -18,7 +19,7 @@ export const updateLeaderboard = schemaTask({
 			.transform((it) => (Array.isArray(it) ? it : [it])),
 		date: z.iso.date(),
 	}),
-	run: async ({ date, snapshots }) => {
+	run: async ({ date, snapshots }, { ctx }) => {
 		const p = redis.pipeline();
 		for (const column of STAT_COLUMNS) {
 			const key = `leaderboard:${date}:${column}`;
@@ -35,7 +36,26 @@ export const updateLeaderboard = schemaTask({
 		const [title1, ...titles] = snapshots.flatMap(
 			({ stats }) => stats.titles ?? [],
 		);
-		await redis.sadd("leaderboard:titles", title1!, ...titles);
+		const addedTitles = await redis.sadd(
+			"leaderboard:titles",
+			title1!,
+			...titles,
+		);
+
+		if (addedTitles > 0 && !!ctx.environment.git?.ghUsername) {
+			const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+
+			await octokit.request(
+				"POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches",
+				{
+					owner: ctx.environment.git.ghUsername,
+					repo: "bandori-stats",
+					workflow_id: "deploy-cloudflare-worker",
+					ref: "main",
+					headers: { "X-GitHub-Api-Version": "2022-11-28" },
+				},
+			);
+		}
 
 		await tags.add(`leaderboard_${date}`);
 	},
