@@ -22,25 +22,20 @@ export const updateLeaderboard = schemaTask({
 	run: async ({ date, snapshots }, { ctx }) => {
 		const p = redis.pipeline();
 		for (const column of STAT_COLUMNS) {
-			const key = `leaderboard:${date}:${column}`;
-			const [score1, ...scores] = snapshots
+			const scores = snapshots
 				.filter(({ stats }) => !!stats[column])
 				.map(({ accountId, stats }) => ({
 					member: accountId,
 					score: stats[column]!,
 				}));
-			p.zadd(key, score1!, ...scores);
+			// @ts-ignore
+			p.zadd(`leaderboard:${date}:${column}`, ...scores);
 		}
 		await p.exec();
 
-		const [title1, ...titles] = snapshots.flatMap(
-			({ stats }) => stats.titles ?? [],
-		);
-		const addedTitles = await redis.sadd(
-			"leaderboard:titles",
-			title1!,
-			...titles,
-		);
+		const titles = snapshots.flatMap(({ stats }) => stats.titles ?? []);
+		// @ts-ignore
+		const addedTitles = await redis.sadd("leaderboard:titles", ...titles);
 
 		if (addedTitles > 0 && !!ctx.environment.git?.ghUsername) {
 			const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
