@@ -55,7 +55,7 @@ const getRows = async () =>
 
 const rows = await (async () => {
 	type Rows = Awaited<ReturnType<typeof getRows>>;
-	const cacheKey = `queryw:${date}`;
+	const cacheKey = `query:${date}`;
 
 	const rows = await redis
 		.get<Rows>(cacheKey)

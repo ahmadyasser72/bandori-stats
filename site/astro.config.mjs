@@ -29,6 +29,7 @@ export default defineConfig({
 
 	vite: {
 		plugins: [tailwindcss()],
+		ssr: { external: ["node:fs", "node:path", "sharp"] },
 
 		build: {
 			rollupOptions: {

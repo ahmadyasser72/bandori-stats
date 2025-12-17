@@ -1,0 +1,59 @@
+---
+import { db } from "@bandori-stats/database";
+
+import { schema } from "../../_params";
+
+export const partial = true;
+
+const id = Number(Astro.params.id);
+const date = schema.date.parse(Astro.params.date);
+const account = await db.query.accounts.findFirst({
+	columns: { id: true, username: true, nickname: true },
+	with: {
+		snapshots: {
+			limit: 1,
+			columns: { stats: true },
+			where: { snapshotDate: { lte: date } },
+			orderBy: { snapshotDate: "desc" },
+		},
+	},
+	where: { id },
+});
+
+const isNotFound =
+	!account ||
+	account.snapshots.length === 0 ||
+	account.snapshots[0].stats.titles === null;
+if (isNotFound) Astro.response.status = 404;
+
+const titles = isNotFound ? [] : account.snapshots[0].stats.titles!;
+
+const page = schema.page.parse(Astro.url.searchParams.get("page"));
+const pageSize = 24;
+const offset = (page - 1) * pageSize;
+const pageTitles = titles.slice(offset, offset + pageSize);
+
+const nextPageHtmxProps = (() => {
+	if (offset + pageSize > titles.length) return {};
+
+	const nextPageUrl = new URL(Astro.url);
+	nextPageUrl.search = "";
+	nextPageUrl.searchParams.set("page", (page + 1).toString());
+	return {
+		"hx-get": nextPageUrl.href,
+		"hx-swap": "afterend",
+		"hx-trigger": "intersect once",
+	};
+})();
+---
+
+{
+	pageTitles.map((title, idx) => (
+		<img
+			{...(idx === pageSize - 1 ? nextPageHtmxProps : {})}
+			src={`/static/titles/${title}.webp`}
+			loading="lazy"
+			class="border-base-content/60 skeleton aspect-23/5 rounded-2xl border"
+		/>
+	))
+}

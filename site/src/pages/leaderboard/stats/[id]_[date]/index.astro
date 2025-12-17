@@ -46,33 +46,67 @@ if (isNotFound) Astro.response.status = 404;
 						/>
 					</h2>
 
-					<div
-						hx-target="body"
-						hx-swap="beforeend"
-						hx-disabled-elt=".snapshot-button"
-						class="mt-4 flex flex-col-reverse gap-4"
-					>
+					<div class="mt-4 flex flex-col-reverse gap-4">
 						{account.snapshots.map(({ snapshotDate, stats }, idx) => (
-							<div class="flex gap-2">
-								<button
-									hx-get={`/leaderboard/stats/${id}_${snapshotDate}/chart`}
-									class="snapshot-button btn btn-sm btn-accent"
-								>
-									{snapshotDate}
+							<div class="relative flex gap-2">
+								<div class="flex flex-col">
+									<button
+										hx-get={`/leaderboard/stats/${id}_${snapshotDate}/chart`}
+										hx-target="body"
+										hx-swap="beforeend"
+										hx-disabled-elt=".snapshot-button"
+										class="snapshot-button btn btn-sm btn-accent"
+									>
+										{snapshotDate}
 
-									<iconify-icon
-										icon="lucide:chart-area"
-										width="none"
-										class="htmx-indicator-replace size-4"
-									/>
-									<iconify-icon
-										icon="svg-spinners:90-ring-with-bg"
-										width="none"
-										class="htmx-indicator size-4"
-									/>
-								</button>
+										<iconify-icon
+											icon="lucide:chart-area"
+											width="none"
+											class="htmx-indicator-replace size-4"
+										/>
+										<iconify-icon
+											icon="svg-spinners:90-ring-with-bg"
+											width="none"
+											class="htmx-indicator size-4"
+										/>
+									</button>
+
+									{stats.titles !== null && stats.titles.length > 0 && (
+										<div class="dropdown dropdown-right">
+											<div
+												tabindex="0"
+												role="button"
+												class="btn btn-info btn-xs w-full"
+											>
+												View titles
+												<iconify-icon
+													icon="lucide:award"
+													width="none"
+													class="size-3.5"
+												/>
+											</div>
+											<div
+												hx-indicator="closest .dropdown-content"
+												tabindex="-1"
+												class="dropdown-content bg-base-100 rounded-box z-10 ml-1 flex max-h-22 w-[200%] -translate-y-8 flex-wrap justify-center gap-x-1 gap-y-1.5 overflow-y-auto p-2 shadow-md *:w-24 sm:w-[300%] sm:*:w-32"
+											>
+												<div
+													hx-get={`/leaderboard/stats/${id}_${snapshotDate}/titles`}
+													hx-swap="outerHTML"
+													hx-trigger="intersect once"
+													class="skeleton aspect-23/5"
+												/>
+
+												{Array.from({ length: 5 }, () => (
+													<div class="htmx-indicator skeleton aspect-23/5" />
+												))}
+											</div>
+										</div>
+									)}
+								</div>
+
 								<div class="flex flex-1 flex-wrap gap-1">
-									{STAT_COLUMNS.map((column) => (
+									{[...STAT_COLUMNS, "titles" as const].map((column) => (
 										<StatsBadge
 											label={column}
 											value={stats[column]}

@@ -1,18 +1,35 @@
 ---
+import type { JSX } from "astro/jsx-runtime";
+
+import type { Stat } from "@bandori-stats/database/constants";
 import { titleCase } from "text-case";
 
 import { formatNumber } from "~/lib/math";
 
-interface Props {
+type StatValue = Stat[keyof Stat];
+
+interface Props extends JSX.HTMLAttributes {
 	label: string;
-	value: number | null;
-	previousValue: number | null;
+	value: StatValue;
+	previousValue: StatValue;
 }
 
-const { label, value, previousValue } = Astro.props;
-const displayedValue = value !== null ? formatNumber(value) : "Private";
+const getValue = (it: NonNullable<StatValue>) =>
+	Array.isArray(it) ? it.length : it;
+
+const {
+	label,
+	value,
+	previousValue,
+	class: className,
+	...attributes
+} = Astro.props;
+const displayedValue =
+	value !== null ? formatNumber(getValue(value)) : "Private";
 const diff =
-	previousValue !== null && value !== null ? value - previousValue : 0;
+	previousValue !== null && value !== null
+		? getValue(value) - getValue(previousValue)
+		: 0;
 ---
 
 <span
@@ -23,7 +40,9 @@ const diff =
 			: diff > 0
 				? "badge-secondary"
 				: "badge-primary",
+		className,
 	]}
+	{...attributes}
 >
 	{titleCase(label.replace("Count", ""))} &middot;{" "}
 	{displayedValue}
