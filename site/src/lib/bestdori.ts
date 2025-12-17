@@ -6,7 +6,7 @@ import { limitFunction } from "p-limit";
 const BESTDORI_CACHE_DIR = ".bestdori-cache";
 
 export const fetchBestdori = limitFunction(
-	async (pathname: string) => {
+	async (pathname: string): Promise<Response> => {
 		const url = new URL(pathname, "https://bestdori.com");
 
 		const cachePath = getCachePath(url);
@@ -17,6 +17,9 @@ export const fetchBestdori = limitFunction(
 
 		const response = await fetch(url);
 		if (!isResponseOk(response)) {
+			if (pathname.startsWith("/assets/en"))
+				return fetchBestdori(pathname.replace("/assets/en", "/assets/jp"));
+
 			throw new Error(`request to ${url.href} failed`);
 		}
 
