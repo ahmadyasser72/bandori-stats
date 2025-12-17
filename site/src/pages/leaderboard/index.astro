@@ -63,19 +63,21 @@ const { minDate, maxDate } = await (async () => {
 						<div
 							id="search_username_popover"
 							popover
-							class="dropdown join peer bg-base-100 rounded-box z-10 mt-1 px-2 py-1 shadow-sm"
+							class="dropdown peer bg-base-100 rounded-box z-10 mt-1 px-2 py-1 shadow-sm"
 							style="position-anchor: --anchor-search-username; view-transition-name: search-username-popover;"
 							hx-on:htmx-before-request="this.hidePopover()"
 						>
-							<input
-								type="search"
-								class="input join-item input-sm w-36"
-								name="search_username"
-								placeholder="Search..."
-								hx-get={rowsLink}
-								hx-trigger="blur changed, click from:next"
-							/>
-							<button class="btn btn-sm join-item">Go</button>
+							<div class="join">
+								<input
+									type="search"
+									class="input join-item input-sm w-36"
+									name="search_username"
+									placeholder="Search..."
+									hx-get={rowsLink}
+									hx-trigger="blur changed, click from:next"
+								/>
+								<button class="btn btn-sm join-item">Go</button>
+							</div>
 						</div>
 
 						<button
