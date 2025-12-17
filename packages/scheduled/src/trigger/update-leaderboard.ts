@@ -20,18 +20,23 @@ export const updateLeaderboard = schemaTask({
 	}),
 	run: async ({ date, snapshots }) => {
 		const p = redis.pipeline();
-
 		for (const column of STAT_COLUMNS) {
 			const key = `leaderboard:${date}:${column}`;
-			for (const { accountId, stats } of snapshots) {
-				const score = stats[column];
-				if (!score) continue;
-
-				p.zadd(key, { member: accountId, score });
-			}
+			const [score1, ...scores] = snapshots
+				.filter(({ stats }) => !!stats[column])
+				.map(({ accountId, stats }) => ({
+					member: accountId,
+					score: stats[column]!,
+				}));
+			p.zadd(key, score1!, ...scores);
 		}
-
 		await p.exec();
+
+		const [title1, ...titles] = snapshots.flatMap(
+			({ stats }) => stats.titles ?? [],
+		);
+		await redis.sadd("leaderboard:titles", title1!, ...titles);
+
 		await tags.add(`leaderboard_${date}`);
 	},
 });
