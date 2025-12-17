@@ -37,13 +37,13 @@ export const updateLeaderboard = schemaTask({
 		// @ts-ignore
 		const addedTitles = await redis.sadd("leaderboard:titles", ...titles);
 
-		if (addedTitles > 0 && !!ctx.environment.git?.ghUsername) {
+		if (addedTitles > 0 && !!ctx.deployment?.git?.ghUsername) {
 			const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
 			await octokit.request(
 				"POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches",
 				{
-					owner: ctx.environment.git.ghUsername,
+					owner: ctx.deployment.git.ghUsername,
 					repo: "bandori-stats",
 					workflow_id: "deploy-cloudflare-worker",
 					ref: "main",
