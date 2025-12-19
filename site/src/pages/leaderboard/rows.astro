@@ -69,16 +69,27 @@ const rows = await (async () => {
 		ex: dayjs().endOf("hours").diff(dayjs(), "seconds"),
 	});
 
+	const leaderboardIndex = Object.fromEntries(
+		rank_by.items.map((column) => [
+			column,
+			new Map(leaderboard[column].map((v, i) => [v, i])),
+		]),
+	);
+
 	const results = rows
 		.filter(({ snapshots }) => snapshots.length > 0)
 		.map(({ snapshots: [{ snapshotDate, stats }], ...account }) => {
 			const scores =
 				sum(
 					rank_by.items.map((column) => {
-						if (!stats[column]) return 0;
+						const value = stats[column];
+						if (value == null) return 0;
 
 						const rankings = leaderboard[column];
-						return 1 - rankings.indexOf(stats[column]) / (rankings.length - 1);
+						const idx = leaderboardIndex[column].get(value);
+						if (idx == null) return 0;
+
+						return 1 - idx / (rankings.length - 1);
 					}),
 				) / rank_by.items.length;
 			const hasNickname =
@@ -106,12 +117,12 @@ const rows = await (async () => {
 	);
 
 	const sorted = sort_latest
-		? filtered.sort((a, b) => dayjs(b.snapshotDate).diff(dayjs(a.snapshotDate)))
+		? filtered.sort((a, b) => b.snapshotDate.localeCompare(a.snapshotDate))
 		: filtered;
 
-	for (let idx = sorted.length - 1; idx > favorite.length - 1; idx -= 1) {
+	for (let idx = sorted.length - 1; idx > favorite.size - 1; idx -= 1) {
 		const { username } = sorted[idx];
-		if (favorite.includes(username)) sorted.unshift(sorted.splice(idx, 1)[0]);
+		if (favorite.has(username)) sorted.unshift(sorted.splice(idx, 1)[0]);
 	}
 
 	return sorted;
@@ -184,7 +195,7 @@ const nextPageHtmxProps = (() => {
 							type="checkbox"
 							name="favorite"
 							value={username}
-							checked={favorite.includes(username)}
+							checked={favorite.has(username)}
 							class="mask mask-star bg-secondary checked:bg-primary-content size-7 cursor-pointer appearance-none"
 							aria-label={`Favorite ${nickname ?? username}`}
 						/>
