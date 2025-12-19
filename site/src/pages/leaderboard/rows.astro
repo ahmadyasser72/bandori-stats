@@ -14,12 +14,16 @@ const { date, page, rank_by, sort_latest, search_username, favorite } =
 
 {
 	const replaceUrl = new URL("/leaderboard", Astro.url);
-	replaceUrl.searchParams.set("sort_latest", String(sort_latest));
+
+	if (sort_latest)
+		replaceUrl.searchParams.set("sort_latest", String(sort_latest));
+
 	if (!rank_by.default) {
 		rank_by.items.forEach((it) =>
 			replaceUrl.searchParams.append("rank_by", it),
 		);
 	}
+
 	favorite.forEach((it) => replaceUrl.searchParams.append("favorite", it));
 
 	Astro.response.headers.set("hx-replace-url", replaceUrl.href);
