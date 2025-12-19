@@ -27,8 +27,8 @@ const { minDate, maxDate } = await (async () => {
 
 <BaseLayout>
 	<div
-		id="scroll-container"
 		hx-include="[name='rank_by'], [name='sort_latest'], [name='date'], [name='search_username'], [name='favorite']"
+		hx-on:htmx-before-request="event.target.matches('input') && this.scrollTo({ top: 0, behavior: 'smooth'})"
 		class="absolute inset-0 overflow-x-auto"
 	>
 		<div class="sticky left-0 z-20 flex items-center gap-2 p-4 pb-2 sm:px-8">
@@ -54,7 +54,6 @@ const { minDate, maxDate } = await (async () => {
 				hx-swap="innerHTML transition:true"
 				hx-trigger="change delay:500ms"
 				hx-sync="closest tr:replace"
-				hx-on:htmx-before-request="this.closest('#scroll-container').scrollTo({ top: 0, behavior: 'smooth'})"
 			>
 				<tr class="group bg-base-100 sticky top-0 z-20">
 					<th class="min-w-14"></th>
