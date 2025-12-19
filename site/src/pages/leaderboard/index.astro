@@ -9,8 +9,6 @@ import { parseSearchParams } from "./_params";
 
 const { rank_by, sort_latest } = parseSearchParams(Astro.url.searchParams);
 
-const rowsLink = new URL("/leaderboard/rows", Astro.url).href;
-
 const { minDate, maxDate } = await (async () => {
 	const [, [first]] = await redis.scan("0", {
 		count: 1,
@@ -40,7 +38,7 @@ const { minDate, maxDate } = await (async () => {
 				class="input input-xs input-ghost w-28"
 				name="date"
 				value={maxDate}
-				hx-get={rowsLink}
+				hx-get="/leaderboard/rows"
 				hx-target="tbody"
 				hx-indicator="#app-loader, tbody"
 				hx-swap="innerHTML transition:true"
@@ -73,7 +71,7 @@ const { minDate, maxDate } = await (async () => {
 									class="input join-item input-sm w-36"
 									name="search_username"
 									placeholder="Search..."
-									hx-get={rowsLink}
+									hx-get="/leaderboard/rows"
 									hx-trigger="blur changed, click from:next"
 								/>
 								<button class="btn btn-sm join-item">Go</button>
@@ -103,7 +101,7 @@ const { minDate, maxDate } = await (async () => {
 							value="true"
 							checked={sort_latest}
 							aria-label="Sort by last updated"
-							hx-get={rowsLink}
+							hx-get="/leaderboard/rows"
 						/>
 						<label
 							for="sort_latest"
@@ -127,7 +125,7 @@ const { minDate, maxDate } = await (async () => {
 									value={column}
 									checked={!rank_by.default && rank_by.items.includes(column)}
 									aria-label={titleCase(column.replace(/Count$/, ""))}
-									hx-get={rowsLink}
+									hx-get="/leaderboard/rows"
 								/>
 							</th>
 						))
@@ -135,8 +133,11 @@ const { minDate, maxDate } = await (async () => {
 				</tr>
 			</thead>
 
-			<tbody hx-indicator=".infinite-placeholder">
-				<tr hx-get={rowsLink} hx-trigger="revealed" hx-swap="outerHTML"></tr>
+			<tbody
+				hx-indicator=".infinite-placeholder"
+				hx-get="/leaderboard/rows"
+				hx-trigger="revealed"
+			>
 			</tbody>
 
 			<tfoot>

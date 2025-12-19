@@ -121,16 +121,12 @@ const pageSize = 20;
 const offset = (page - 1) * pageSize;
 const pageRows = rows.slice(offset, offset + pageSize);
 
-const url = new URL(Astro.url);
-url.search = "";
-
 const nextPageHtmxProps = (() => {
 	if (offset + pageSize > rows.length) return {};
 
-	const nextPageUrl = new URL(url);
-	nextPageUrl.searchParams.set("page", (page + 1).toString());
 	return {
-		"hx-get": nextPageUrl.href,
+		"hx-get": "/leaderboard/rows",
+		"hx-vals": JSON.stringify({ page: page + 1 }),
 		"hx-target": "closest tbody",
 		"hx-swap": "beforeend",
 		"hx-trigger": "intersect once",
@@ -181,7 +177,7 @@ const nextPageHtmxProps = (() => {
 				<td>
 					<div class="flex items-center gap-1">
 						<input
-							hx-get={url.href}
+							hx-get="/leaderboard/rows"
 							hx-target="closest tbody"
 							hx-indicator="#app-loader"
 							hx-swap="innerHTML transition:true"
