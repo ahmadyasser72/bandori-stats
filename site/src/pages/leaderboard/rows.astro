@@ -182,8 +182,9 @@ const nextPageHtmxProps = (() => {
 					<div class="flex items-center gap-1">
 						<input
 							hx-get={url.href}
-							hx-indicator="#app-loader"
 							hx-target="closest tbody"
+							hx-indicator="#app-loader"
+							hx-swap="innerHTML transition:true"
 							type="checkbox"
 							name="favorite"
 							value={username}
