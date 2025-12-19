@@ -18,7 +18,10 @@ export const schema = {
 		.string()
 		.nullable()
 		.transform((it) => it?.toLowerCase()),
-	favorite: z.array(z.string().nonempty()).catch(() => []),
+	favorite: z
+		.array(z.string().nonempty())
+		.catch(() => [])
+		.transform((items) => items.slice(-5)),
 };
 
 export const parseSearchParams = (s: URLSearchParams) => ({
