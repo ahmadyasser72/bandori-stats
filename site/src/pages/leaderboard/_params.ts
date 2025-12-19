@@ -21,7 +21,7 @@ export const schema = {
 	favorite: z
 		.array(z.string().nonempty())
 		.catch(() => [])
-		.transform((items) => items.slice(-5)),
+		.transform((items) => [...new Set(items)].slice(-5)),
 };
 
 export const parseSearchParams = (s: URLSearchParams) => ({

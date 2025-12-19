@@ -7,7 +7,9 @@ import BaseLayout from "~/layouts/base-layout.astro";
 import dayjs from "~/lib/date";
 import { parseSearchParams } from "./_params";
 
-const { rank_by, sort_latest } = parseSearchParams(Astro.url.searchParams);
+const { rank_by, sort_latest, favorite } = parseSearchParams(
+	Astro.url.searchParams,
+);
 
 const { minDate, maxDate } = await (async () => {
 	const [, [first]] = await redis.scan("0", {
@@ -133,11 +135,14 @@ const { minDate, maxDate } = await (async () => {
 				</tr>
 			</thead>
 
-			<tbody
-				hx-indicator=".infinite-placeholder"
-				hx-get="/leaderboard/rows"
-				hx-trigger="revealed"
-			>
+			<tbody hx-indicator=".infinite-placeholder">
+				<tr
+					hx-get="/leaderboard/rows"
+					hx-trigger="revealed"
+					hx-swap="outerHTML"
+					hx-vals={JSON.stringify({ favorite })}
+				>
+				</tr>
 			</tbody>
 
 			<tfoot>
