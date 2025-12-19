@@ -18,6 +18,7 @@ export const schema = {
 		.string()
 		.nullable()
 		.transform((it) => it?.toLowerCase()),
+	favorite: z.array(z.string().nonempty()).catch(() => []),
 };
 
 export const parseSearchParams = (s: URLSearchParams) => ({
@@ -26,4 +27,5 @@ export const parseSearchParams = (s: URLSearchParams) => ({
 	rank_by: schema.rank_by.parse(s.getAll("rank_by")),
 	sort_latest: schema.sort_latest.parse(s.get("sort_latest")),
 	search_username: schema.search_username.parse(s.get("search_username")),
+	favorite: schema.favorite.parse(s.getAll("favorite")),
 });

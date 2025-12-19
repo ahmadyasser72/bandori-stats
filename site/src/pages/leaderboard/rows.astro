@@ -9,9 +9,8 @@ import { parseSearchParams } from "./_params";
 
 export const partial = true;
 
-const { date, page, rank_by, sort_latest, search_username } = parseSearchParams(
-	Astro.url.searchParams,
-);
+const { date, page, rank_by, sort_latest, search_username, favorite } =
+	parseSearchParams(Astro.url.searchParams);
 
 {
 	const replaceUrl = new URL("/leaderboard", Astro.url);
@@ -21,6 +20,8 @@ const { date, page, rank_by, sort_latest, search_username } = parseSearchParams(
 			replaceUrl.searchParams.append("rank_by", it),
 		);
 	}
+	favorite.forEach((it) => replaceUrl.searchParams.append("favorite", it));
+
 	Astro.response.headers.set("hx-replace-url", replaceUrl.href);
 }
 
@@ -100,20 +101,29 @@ const rows = await (async () => {
 			nickname?.toLowerCase().includes(search_username),
 	);
 
-	return sort_latest
+	const sorted = sort_latest
 		? filtered.sort((a, b) => dayjs(b.snapshotDate).diff(dayjs(a.snapshotDate)))
 		: filtered;
+
+	sorted.forEach((it, idx) => {
+		if (favorite.includes(it.username))
+			sorted.unshift(sorted.splice(idx, 1)[0]);
+	});
+
+	return sorted;
 })();
 
 const pageSize = 20;
 const offset = (page - 1) * pageSize;
 const pageRows = rows.slice(offset, offset + pageSize);
 
+const url = new URL(Astro.url);
+url.search = "";
+
 const nextPageHtmxProps = (() => {
 	if (offset + pageSize > rows.length) return {};
 
-	const nextPageUrl = new URL(Astro.url);
-	nextPageUrl.search = "";
+	const nextPageUrl = new URL(url);
 	nextPageUrl.searchParams.set("page", (page + 1).toString());
 	return {
 		"hx-get": nextPageUrl.href,
@@ -131,10 +141,13 @@ const nextPageHtmxProps = (() => {
 			idx,
 		) => (
 			// trigger infinite loader on the 5th last row
-			<tr {...(idx === pageSize - 5 ? nextPageHtmxProps : {})} class="group">
+			<tr
+				{...(idx === pageSize - 5 ? nextPageHtmxProps : {})}
+				class="group text-center"
+			>
 				<th>#{top.toString().padStart(3, "0")}</th>
 
-				<td class="bg-base-100/20 sticky left-0 z-10 pl-0">
+				<td class="sticky left-0 z-10 pl-0 text-start">
 					<span
 						class="flex items-center font-medium"
 						style={page === 1 && `view-transition-name: account-${id};`}
@@ -160,25 +173,41 @@ const nextPageHtmxProps = (() => {
 						</div>
 					</span>
 				</td>
-				<td hx-disinherit="hx-indicator">
-					<button
-						hx-get={`/leaderboard/stats/${id}_${date}`}
-						hx-target="body"
-						hx-swap="beforeend"
-						hx-disabled-elt=".stats-history"
-						class="stats-history btn btn-primary btn-sm btn-circle"
-					>
-						<iconify-icon
-							icon="lucide:history"
-							width="none"
-							class="htmx-indicator-replace size-4"
+
+				<td>
+					<div class="flex items-center gap-1">
+						<input
+							hx-get={url.href}
+							hx-indicator="#app-loader"
+							hx-target="closest tbody"
+							type="checkbox"
+							name="favorite"
+							value={username}
+							checked={favorite.includes(username)}
+							class="mask mask-star bg-secondary checked:bg-primary-content size-7 cursor-pointer appearance-none"
+							aria-label={`Favorite ${nickname ?? username}`}
 						/>
-						<iconify-icon
-							icon="svg-spinners:90-ring-with-bg"
-							width="none"
-							class="htmx-indicator size-4"
-						/>
-					</button>
+
+						<button
+							hx-get={`/leaderboard/stats/${id}_${date}`}
+							hx-target="body"
+							hx-swap="beforeend"
+							hx-disabled-elt=".stats-history"
+							hx-disinherit="hx-indicator"
+							class="stats-history btn btn-primary btn-sm btn-circle"
+						>
+							<iconify-icon
+								icon="lucide:history"
+								width="none"
+								class="htmx-indicator-replace size-4"
+							/>
+							<iconify-icon
+								icon="svg-spinners:90-ring-with-bg"
+								width="none"
+								class="htmx-indicator size-4"
+							/>
+						</button>
+					</div>
 				</td>
 
 				<td>{snapshotDate}</td>

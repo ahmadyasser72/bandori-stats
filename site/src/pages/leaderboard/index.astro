@@ -50,7 +50,7 @@ const { minDate, maxDate } = await (async () => {
 		<table class="table-sm table-zebra table">
 			<thead
 				hx-target="tbody"
-				hx-indicator="#app-loader, tbody"
+				hx-indicator="#app-loader"
 				hx-swap="innerHTML transition:true"
 				hx-trigger="change delay:500ms"
 				hx-sync="closest tr:replace"
@@ -92,9 +92,9 @@ const { minDate, maxDate } = await (async () => {
 						</button>
 					</th>
 
-					<th class="min-w-14"></th>
+					<th class="min-w-22"></th>
 
-					<th class="min-w-24">
+					<th>
 						<input
 							id="sort_latest"
 							type="checkbox"
