@@ -109,10 +109,10 @@ const rows = await (async () => {
 		? filtered.sort((a, b) => dayjs(b.snapshotDate).diff(dayjs(a.snapshotDate)))
 		: filtered;
 
-	sorted.forEach((it, idx) => {
-		if (favorite.includes(it.username))
-			sorted.unshift(sorted.splice(idx, 1)[0]);
-	});
+	for (let idx = sorted.length - 1; idx > favorite.length - 1; idx -= 1) {
+		const { username } = sorted[idx];
+		if (favorite.includes(username)) sorted.unshift(sorted.splice(idx, 1)[0]);
+	}
 
 	return sorted;
 })();
