@@ -1,5 +1,5 @@
 import { db } from "@bandori-stats/database";
-import { schedules, tags } from "@trigger.dev/sdk";
+import { schedules } from "@trigger.dev/sdk";
 import dayjs from "dayjs";
 import { createShuffle } from "fast-shuffle";
 
@@ -7,7 +7,7 @@ import { updateStats } from "./update-stats";
 
 export const scheduleUpdateSnapshots = schedules.task({
 	id: "schedule-update-snapshots",
-	cron: "5 * * * *", // every hour at 5 minutes
+	cron: "5 0 * * *", // every day at 00:05
 	run: async (context) => {
 		const now = dayjs(context.timestamp);
 		const date = now.format("YYYY-MM-DD");
@@ -34,25 +34,25 @@ export const scheduleUpdateSnapshots = schedules.task({
 							);
 						})(),
 					})),
-				).filter((_, idx) => idx % 24 === now.hour()),
+				),
 			);
 
-		const untilNextHour = now.endOf("hours").diff(now);
-		await updateStats.batchTrigger(
-			usernames
-				.map(({ username, refetch }) => ({
-					payload: { username, date, refetch },
-					options: {
-						delay: now.add(Math.random() * untilNextHour).toDate(),
-						tags: `account_${username}`,
-						idempotencyKey: `snapshot_${username}_${date}`,
-					},
-				}))
-				.sort((a, b) => a.options.delay.valueOf() - b.options.delay.valueOf()),
-		);
+		const items: Parameters<typeof updateStats.batchTrigger>[0] = usernames
+			.map(({ username, refetch }, idx) => ({
+				payload: { username, date, refetch },
+				options: {
+					delay: now
+						.set("hours", idx % 24)
+						.add(Math.random() * 50, "minutes")
+						.toDate(),
+					tags: `account_${username}`,
+					idempotencyKey: `snapshot_${username}_${date}`,
+				},
+			}))
+			.sort((a, b) => a.options.delay.valueOf() - b.options.delay.valueOf());
 
-		const hour = now.format("HH");
-		const size = usernames.length;
-		await tags.add([`chunk_#${hour}`, `chunkSize_${size}`]);
+		const maxBatchSize = 500;
+		for (let idx = 0; idx < items.length; idx += maxBatchSize)
+			await updateStats.batchTrigger(items.slice(idx, idx + maxBatchSize));
 	},
 });
