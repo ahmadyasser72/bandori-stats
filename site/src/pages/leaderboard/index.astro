@@ -137,7 +137,7 @@ const { minDate, maxDate } = await (async () => {
 					hx-get="/leaderboard/rows"
 					hx-trigger="revealed"
 					hx-swap="outerHTML"
-					hx-vals={JSON.stringify({ favorite })}
+					hx-vals={JSON.stringify({ favorite: [...favorite] })}
 				>
 				</tr>
 			</tbody>
