@@ -24,7 +24,9 @@ const { date, page, rank_by, sort_latest, search_username, favorite } =
 		);
 	}
 
-	favorite.forEach((it) => replaceUrl.searchParams.append("favorite", it));
+	favorite
+		.values()
+		.forEach((it) => replaceUrl.searchParams.append("favorite", it));
 
 	Astro.response.headers.set("hx-replace-url", replaceUrl.href);
 }
