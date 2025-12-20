@@ -37,19 +37,23 @@ export const updateLeaderboard = schemaTask({
 		// @ts-ignore
 		const addedTitles = await redis.sadd("leaderboard:titles", ...titles);
 
-		if (addedTitles > 0 && !!ctx.deployment?.git?.ghUsername) {
-			const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+		if (addedTitles > 0 && ctx.deployment?.git) {
+			const { ghUsername, commitRef } = ctx.deployment.git;
 
-			await octokit.request(
-				"POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches",
-				{
-					owner: ctx.deployment.git.ghUsername,
-					repo: "bandori-stats",
-					workflow_id: "deploy-cloudflare-worker",
-					ref: "main",
-					headers: { "X-GitHub-Api-Version": "2022-11-28" },
-				},
-			);
+			if (ghUsername && commitRef) {
+				const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+
+				await octokit.request(
+					"POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches",
+					{
+						owner: ghUsername,
+						repo: "bandori-stats",
+						ref: commitRef,
+						workflow_id: "deploy.yaml",
+						headers: { "X-GitHub-Api-Version": "2022-11-28" },
+					},
+				);
+			}
 		}
 
 		await tags.add(`leaderboard_${date}`);
