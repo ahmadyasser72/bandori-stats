@@ -8,7 +8,7 @@ import type {
 import {
 	BestdoriDegree,
 	BestdoriDegreeAll,
-} from "@bandori-stats/bestdori/degree";
+} from "@bandori-stats/bestdori/schema/degree";
 import { redis } from "@bandori-stats/database/redis";
 
 import { fetchBestdori } from "~/lib/bestdori";
