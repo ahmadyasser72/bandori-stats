@@ -20,16 +20,15 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 		: string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv
-		extends StringifyValues<
-			Pick<
-				Cloudflare.Env,
-				| "DATABASE_URL"
-				| "DATABASE_AUTH_TOKEN"
-				| "UPSTASH_REDIS_REST_URL"
-				| "UPSTASH_REDIS_REST_TOKEN"
-			>
-		> {}
+	interface ProcessEnv extends StringifyValues<
+		Pick<
+			Cloudflare.Env,
+			| "DATABASE_URL"
+			| "DATABASE_AUTH_TOKEN"
+			| "UPSTASH_REDIS_REST_URL"
+			| "UPSTASH_REDIS_REST_TOKEN"
+		>
+	> {}
 }
 
 // Begin runtime types
@@ -1590,7 +1589,7 @@ declare class ErrorEvent extends Event {
 	 */
 	get lineno(): number;
 	/**
-	 * The **`colno`** read-only property of the ErrorEvent interface returns an integer containing the column number of the script file on which the error occurred.
+	 * The **`colno`** read-only property of the ErrorEvent interface returns an integer containing the name number of the script file on which the error occurred.
 	 *
 	 * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ErrorEvent/colno)
 	 */
@@ -2050,8 +2049,10 @@ declare var Request: {
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request)
  */
-interface Request<CfHostMetadata = unknown, Cf = CfProperties<CfHostMetadata>>
-	extends Body {
+interface Request<
+	CfHostMetadata = unknown,
+	Cf = CfProperties<CfHostMetadata>,
+> extends Body {
 	/**
 	 * The **`clone()`** method of the Request interface creates a copy of the current `Request` object.
 	 *
@@ -3079,9 +3080,7 @@ interface TextDecoderStreamTextDecoderStreamInit {
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ByteLengthQueuingStrategy)
  */
-declare class ByteLengthQueuingStrategy
-	implements QueuingStrategy<ArrayBufferView>
-{
+declare class ByteLengthQueuingStrategy implements QueuingStrategy<ArrayBufferView> {
 	constructor(init: QueuingStrategyInit);
 	/**
 	 * The read-only **`ByteLengthQueuingStrategy.highWaterMark`** property returns the total number of bytes that can be contained in the internal queue before backpressure is applied.
@@ -8182,8 +8181,7 @@ interface IncomingRequestCfPropertiesBotManagement {
 	 */
 	clientTrustScore: number;
 }
-interface IncomingRequestCfPropertiesBotManagementEnterprise
-	extends IncomingRequestCfPropertiesBotManagement {
+interface IncomingRequestCfPropertiesBotManagementEnterprise extends IncomingRequestCfPropertiesBotManagement {
 	/**
 	 * Results of Cloudflare's Bot Management analysis
 	 */
@@ -9655,7 +9653,8 @@ declare namespace CloudflareWorkersModule {
 	export abstract class WorkflowEntrypoint<
 		Env = unknown,
 		T extends Rpc.Serializable<T> | unknown = unknown,
-	> implements Rpc.WorkflowEntrypointBranded
+	>
+		implements Rpc.WorkflowEntrypointBranded
 	{
 		[Rpc.__WORKFLOW_ENTRYPOINT_BRAND]: never;
 		protected ctx: ExecutionContext;

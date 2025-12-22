@@ -1,6 +1,6 @@
 ---
+import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import { db } from "@bandori-stats/database";
-import { STAT_COLUMNS } from "@bandori-stats/database/constants";
 
 import { schema } from "../../_params";
 import DisplayName from "./_display-name.astro";
@@ -39,7 +39,7 @@ if (isNotFound) Astro.response.status = 404;
 			) : (
 				<>
 					<h2 class="text-center">
-						<span class="text-lg font-bold">Stat History</span> <br />
+						<span class="text-lg font-bold">Stats History</span> <br />
 						<DisplayName
 							username={account.username}
 							nickname={account.nickname}
@@ -106,14 +106,14 @@ if (isNotFound) Astro.response.status = 404;
 								</div>
 
 								<div class="flex flex-1 flex-wrap gap-1">
-									{[...STAT_COLUMNS, "titles" as const].map((column) => (
+									{[...STAT_NAMES, "titles" as const].map((name) => (
 										<StatsBadge
-											label={column}
-											value={stats[column]}
+											label={name}
+											value={stats[name]}
 											previousValue={
 												idx === 0
 													? null
-													: account.snapshots[idx - 1]!.stats[column]
+													: account.snapshots[idx - 1]!.stats[name]
 											}
 										/>
 									))}

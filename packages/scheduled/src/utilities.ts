@@ -1,4 +1,4 @@
-import { STAT_COLUMNS, type Stat } from "@bandori-stats/database/constants";
+import { STAT_NAMES, type Stats } from "@bandori-stats/bestdori/constants";
 
 const compare = <T extends number>(a: T | null, b: T | null) => {
 	if (a === null && b === null) return 0;
@@ -6,16 +6,16 @@ const compare = <T extends number>(a: T | null, b: T | null) => {
 	return (a ?? b)!;
 };
 
-export const compareStats = (from: Stat, to: Stat) => {
-	const { delta, difference } = STAT_COLUMNS.reduce(
-		(acc, column) => {
-			acc.difference[column] = compare(from[column], to[column]);
-			acc.delta += acc.difference[column];
+export const compareStats = (from: Stats, to: Stats) => {
+	const { delta, difference } = STAT_NAMES.reduce(
+		(acc, name) => {
+			acc.difference[name] = compare(from[name], to[name]);
+			acc.delta += acc.difference[name];
 			return acc;
 		},
 		{
 			delta: 0,
-			difference: Object.fromEntries(STAT_COLUMNS.map((column) => [column, 0])),
+			difference: Object.fromEntries(STAT_NAMES.map((name) => [name, 0])),
 		},
 	);
 

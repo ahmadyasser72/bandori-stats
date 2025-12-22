@@ -10,11 +10,11 @@
 		"trigger.dev": "4.3.0"
 	},
 	"dependencies": {
+		"@bandori-stats/bestdori": "workspace:*",
 		"@bandori-stats/database": "workspace:*",
 		"@octokit/core": "7.0.6",
 		"@trigger.dev/sdk": "4.3.0",
 		"dayjs": "1.11.19",
-		"fast-shuffle": "6.1.1",
-		"zod": "4.2.1"
+		"fast-shuffle": "6.1.1"
 	}
 }

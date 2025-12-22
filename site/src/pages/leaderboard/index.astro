@@ -1,5 +1,5 @@
 ---
-import { STAT_COLUMNS } from "@bandori-stats/database/constants";
+import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import { redis } from "@bandori-stats/database/redis";
 import { titleCase } from "text-case";
 
@@ -14,7 +14,7 @@ const { rank_by, sort_latest, favorite } = parseSearchParams(
 const { minDate, maxDate } = await (async () => {
 	const [, [first]] = await redis.scan("0", {
 		count: 1,
-		match: `leaderboard:*:${STAT_COLUMNS[0]}`,
+		match: `leaderboard:*:${STAT_NAMES[0]}`,
 		type: "zset",
 	});
 
@@ -115,15 +115,15 @@ const { minDate, maxDate } = await (async () => {
 					</th>
 
 					{
-						STAT_COLUMNS.map((column) => (
+						STAT_NAMES.map((name) => (
 							<th>
 								<input
 									type="checkbox"
 									class="rank-by btn btn-sm checked:btn-accent not-group-has-[.rank-by:checked]:not-checked:btn-ghost group-has-[.rank-by:checked]:not-checked:btn-neutral group-has-[.rank-by:checked]:not-checked:line-through"
 									name="rank_by"
-									value={column}
-									checked={!rank_by.default && rank_by.items.includes(column)}
-									aria-label={titleCase(column.replace(/Count$/, ""))}
+									value={name}
+									checked={!rank_by.default && rank_by.items.includes(name)}
+									aria-label={titleCase(name.replace(/Count$/, ""))}
 									hx-get="/leaderboard/rows"
 								/>
 							</th>
@@ -146,7 +146,7 @@ const { minDate, maxDate } = await (async () => {
 				{
 					Array.from({ length: 12 }, () => (
 						<tr class="infinite-placeholder htmx-indicator">
-							{Array.from({ length: 4 + STAT_COLUMNS.length }, () => (
+							{Array.from({ length: 4 + STAT_NAMES.length }, () => (
 								<td>
 									<div class="skeleton h-8" />
 								</td>

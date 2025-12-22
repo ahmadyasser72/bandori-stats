@@ -1,6 +1,6 @@
 ---
+import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import { db } from "@bandori-stats/database";
-import { STAT_COLUMNS } from "@bandori-stats/database/constants";
 import { redis } from "@bandori-stats/database/redis";
 import { titleCase } from "text-case";
 
@@ -39,14 +39,14 @@ const latestLeaderboard = (
 const chart = await (async () => {
 	if (isNotFound) return;
 
-	const labels = STAT_COLUMNS.map((column) =>
-		titleCase(column.replace(/Count$/, "")),
+	const labels = STAT_NAMES.map((name) =>
+		titleCase(name.replace(/Count$/, "")),
 	);
 	const data = await Promise.all(
-		STAT_COLUMNS.map(async (column) => {
-			const value = account.snapshots[0].stats[column];
+		STAT_NAMES.map(async (name) => {
+			const value = account.snapshots[0].stats[name];
 
-			const key = `leaderboard:${latestLeaderboard}:${column}`;
+			const key = `leaderboard:${latestLeaderboard}:${name}`;
 			const n = await redis.zcard(key);
 			const rank = value ? await redis.zcount(key, `(${value}`, "+inf") : n - 1;
 

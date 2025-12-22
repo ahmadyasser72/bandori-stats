@@ -1,4 +1,4 @@
-import { STAT_COLUMNS } from "@bandori-stats/database/constants";
+import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import { redis } from "@bandori-stats/database/redis";
 import { Octokit } from "@octokit/core";
 import { schemaTask, tags } from "@trigger.dev/sdk";
@@ -21,15 +21,15 @@ export const updateLeaderboard = schemaTask({
 	}),
 	run: async ({ date, snapshots }, { ctx }) => {
 		const p = redis.pipeline();
-		for (const column of STAT_COLUMNS) {
+		for (const name of STAT_NAMES) {
 			const scores = snapshots
-				.filter(({ stats }) => !!stats[column])
+				.filter(({ stats }) => !!stats[name])
 				.map(({ accountId, stats }) => ({
 					member: accountId,
-					score: stats[column]!,
+					score: stats[name]!,
 				}));
 			// @ts-ignore
-			p.zadd(`leaderboard:${date}:${column}`, ...scores);
+			p.zadd(`leaderboard:${date}:${name}`, ...scores);
 		}
 		await p.exec();
 

@@ -1,7 +1,6 @@
+import type { Stats } from "@bandori-stats/bestdori/constants";
 import { sql } from "drizzle-orm";
 import { integer, sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
-
-import type { Stat } from "../constants";
 
 export const accounts = sqliteTable("accounts", {
 	id: integer().primaryKey({ autoIncrement: true }),
@@ -22,7 +21,7 @@ export const accountSnapshots = sqliteTable(
 			.notNull()
 			.references(() => accounts.id, { onDelete: "cascade" }),
 
-		stats: text({ mode: "json" }).$type<Stat>().notNull(),
+		stats: text({ mode: "json" }).$type<Stats>().notNull(),
 
 		snapshotDate: text()
 			.default(sql`(CURRENT_DATE)`)

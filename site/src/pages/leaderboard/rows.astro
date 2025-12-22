@@ -1,6 +1,6 @@
 ---
+import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import { db } from "@bandori-stats/database";
-import { STAT_COLUMNS } from "@bandori-stats/database/constants";
 import { redis } from "@bandori-stats/database/redis";
 
 import dayjs from "~/lib/date";
@@ -33,15 +33,15 @@ const { date, page, rank_by, sort_latest, search_username, favorite } =
 
 const leaderboard = await (async () => {
 	const p = redis.pipeline();
-	for (const column of rank_by.items) {
-		const key = `leaderboard:${date}:${column}`;
+	for (const name of rank_by.items) {
+		const key = `leaderboard:${date}:${name}`;
 		p.zrange(key, 0, "+inf", { byScore: true, withScores: true });
 	}
 
 	const entries = await p.exec<number[][]>();
 	return Object.fromEntries(
-		rank_by.items.map((column, idx) => [
-			column,
+		rank_by.items.map((name, idx) => [
+			name,
 			entries[idx].reverse().filter((_, idx) => idx % 2 === 0),
 		]),
 	);
@@ -72,9 +72,9 @@ const rows = await (async () => {
 	});
 
 	const leaderboardIndex = Object.fromEntries(
-		rank_by.items.map((column) => [
-			column,
-			new Map(leaderboard[column].map((v, i) => [v, i])),
+		rank_by.items.map((name) => [
+			name,
+			new Map(leaderboard[name].map((v, i) => [v, i])),
 		]),
 	);
 
@@ -83,12 +83,12 @@ const rows = await (async () => {
 		.map(({ snapshots: [{ snapshotDate, stats }], ...account }) => {
 			const scores =
 				sum(
-					rank_by.items.map((column) => {
-						const value = stats[column];
+					rank_by.items.map((name) => {
+						const value = stats[name];
 						if (value == null) return 0;
 
-						const rankings = leaderboard[column];
-						const idx = leaderboardIndex[column].get(value);
+						const rankings = leaderboard[name];
+						const idx = leaderboardIndex[name].get(value);
 						if (idx == null) return 0;
 
 						return 1 - idx / (rankings.length - 1);
@@ -225,7 +225,7 @@ const nextPageHtmxProps = (() => {
 
 				<td>{snapshotDate}</td>
 
-				{STAT_COLUMNS.map((key) => ({ key, value: stats[key] })).map(
+				{STAT_NAMES.map((key) => ({ key, value: stats[key] })).map(
 					({ key, value }) => (
 						<td
 							class:list={[

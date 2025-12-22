@@ -1,4 +1,4 @@
-import { STAT_COLUMNS } from "@bandori-stats/database/constants";
+import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import z from "zod";
 
 import dayjs from "~/lib/date";
@@ -6,8 +6,8 @@ import dayjs from "~/lib/date";
 export const schema = {
 	date: z.iso.date().catch(dayjs.utc().format("YYYY-MM-DD")),
 	page: z.coerce.number().positive().catch(1),
-	rank_by: z.array(z.enum(STAT_COLUMNS)).transform((items) => ({
-		items: items.length === 0 ? STAT_COLUMNS : items,
+	rank_by: z.array(z.enum(STAT_NAMES)).transform((items) => ({
+		items: items.length === 0 ? STAT_NAMES : items,
 		default: items.length === 0,
 	})),
 	sort_latest: z

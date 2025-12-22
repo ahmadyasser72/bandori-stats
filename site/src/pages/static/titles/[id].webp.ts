@@ -5,10 +5,13 @@ import type {
 	InferGetStaticPropsType,
 } from "astro";
 
+import {
+	BestdoriDegree,
+	BestdoriDegreeAll,
+} from "@bandori-stats/bestdori/degree";
 import { redis } from "@bandori-stats/database/redis";
 
 import { fetchBestdori } from "~/lib/bestdori";
-import { BestdoriDegree, BestdoriDegreeAll } from "./_schema";
 
 export const prerender = true;
 

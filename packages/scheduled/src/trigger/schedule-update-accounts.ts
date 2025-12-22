@@ -1,5 +1,5 @@
+import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import { db } from "@bandori-stats/database";
-import { STAT_COLUMNS } from "@bandori-stats/database/constants";
 import { accounts } from "@bandori-stats/database/schema";
 import { AbortTaskRunError, logger, schedules, tags } from "@trigger.dev/sdk";
 import dayjs from "dayjs";
@@ -14,7 +14,7 @@ export const scheduleUpdateAccounts = schedules.task({
 		const untilNextSnapshotUpdate = now.add(4.5, "minutes").diff(now);
 		const { runs } = await bestdoriLeaderboard.batchTriggerAndWait(
 			Array.from({ length: 4 }).flatMap((_, page) =>
-				STAT_COLUMNS.map((type) => ({
+				STAT_NAMES.map((type) => ({
 					payload: { type, limit: 50, offset: page * 50 },
 					options: {
 						delay: now.add(Math.random() * untilNextSnapshotUpdate).toDate(),

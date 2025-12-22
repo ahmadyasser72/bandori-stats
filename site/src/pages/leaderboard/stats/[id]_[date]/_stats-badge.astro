@@ -1,12 +1,12 @@
 ---
 import type { JSX } from "astro/jsx-runtime";
 
-import type { Stat } from "@bandori-stats/database/constants";
+import type { Stats } from "@bandori-stats/bestdori/constants";
 import { titleCase } from "text-case";
 
 import { formatNumber } from "~/lib/math";
 
-type StatValue = Stat[keyof Stat];
+type StatValue = Stats[keyof Stats];
 
 interface Props extends JSX.HTMLAttributes {
 	label: string;

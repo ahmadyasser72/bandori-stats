@@ -1,5 +1,5 @@
+import { ABBREVIATED_STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import { db, eq } from "@bandori-stats/database";
-import { ABBREVIATED_STAT_COLUMNS } from "@bandori-stats/database/constants";
 import { accounts, accountSnapshots } from "@bandori-stats/database/schema";
 import { schemaTask, tags } from "@trigger.dev/sdk";
 import z from "zod";
@@ -60,8 +60,7 @@ export const updateStats = schemaTask({
 				Object.entries(difference)
 					.filter(([, delta]) => delta > 0)
 					.map(
-						([column, delta]) =>
-							`diff_${ABBREVIATED_STAT_COLUMNS[column]}+${delta}`,
+						([name, delta]) => `diff_${ABBREVIATED_STAT_NAMES[name]}+${delta}`,
 					),
 			);
 
