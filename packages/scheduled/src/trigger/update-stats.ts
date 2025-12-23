@@ -1,4 +1,8 @@
 import { ABBREVIATED_STAT_NAMES } from "@bandori-stats/bestdori/constants";
+import {
+	fetchDegrees,
+	sortDegrees,
+} from "@bandori-stats/bestdori/schema/degree";
 import { db, eq } from "@bandori-stats/database";
 import { accounts, accountSnapshots } from "@bandori-stats/database/schema";
 import { schemaTask, tags } from "@trigger.dev/sdk";
@@ -43,6 +47,15 @@ export const updateStats = schemaTask({
 		if (!stats) {
 			await tags.add("snapshot_unavailable");
 			return;
+		}
+
+		const existingStats = existing?.snapshots.at(0)?.stats;
+		if (
+			!!stats.titles &&
+			existingStats?.titles?.length !== stats.titles?.length
+		) {
+			const allDegrees = await fetchDegrees();
+			stats.titles = sortDegrees(stats.titles, allDegrees);
 		}
 
 		let accountId: number | undefined = existing?.id;

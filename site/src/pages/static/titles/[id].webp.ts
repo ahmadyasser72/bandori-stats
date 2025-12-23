@@ -7,7 +7,7 @@ import type {
 
 import {
 	BestdoriDegree,
-	BestdoriDegreeAll,
+	fetchDegrees,
 } from "@bandori-stats/bestdori/schema/degree";
 import { redis } from "@bandori-stats/database/redis";
 
@@ -58,22 +58,22 @@ const buildDegreeImages = (degree: BestdoriDegree) => {
 };
 
 export const getStaticPaths = (async () => {
-	const degrees = await fetchBestdori("api/degrees/all.3.json")
-		.then((response) => response.json())
-		.then((json) => BestdoriDegreeAll.parse(json));
+	const degrees = await fetchDegrees();
 
+	const imageEntries = [] as [number, string[]][];
 	const titles = await redis.smembers<number[]>("leaderboard:titles");
-	const imageEntries = Object.entries(degrees)
-		.filter(([key]) => titles.includes(Number(key)))
-		.map(([id, degree]): [string, string[]] => [id, buildDegreeImages(degree)]);
+	degrees.forEach((degree, id) => {
+		if (!titles.includes(id)) return;
 
-	for (const [id, images] of imageEntries) {
-		if (images.length === 0)
+		const degreeImages = buildDegreeImages(degree);
+		if (degreeImages.length === 0)
 			throw new Error(`images unavailable for degree #${id}`);
-	}
+
+		imageEntries.push([id, degreeImages]);
+	});
 
 	return imageEntries.map(([id, images]) => ({
-		params: { id },
+		params: { id: id.toString() },
 		props: { images },
 	}));
 }) satisfies GetStaticPaths;
