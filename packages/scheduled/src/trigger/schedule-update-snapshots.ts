@@ -51,7 +51,7 @@ export const scheduleUpdateSnapshots = schedules.task({
 			}))
 			.sort((a, b) => a.options.delay.valueOf() - b.options.delay.valueOf());
 
-		const maxBatchSize = 500;
+		const maxBatchSize = 1000;
 		for (let idx = 0; idx < items.length; idx += maxBatchSize)
 			await updateStats.batchTrigger(items.slice(idx, idx + maxBatchSize));
 	},
