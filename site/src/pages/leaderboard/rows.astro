@@ -160,9 +160,9 @@ const nextPageHtmxProps = (() => {
 			>
 				<th>#{top.toString().padStart(3, "0")}</th>
 
-				<td class="sticky left-0 z-10 pl-0 text-start">
+				<td class="pointer-events-none sticky left-0 z-10 pl-0 text-start">
 					<span
-						class="flex items-center font-medium"
+						class="pointer-events-auto flex items-center font-medium"
 						style={page === 1 && `view-transition-name: account-${id};`}
 					>
 						<div class="flex flex-col -space-y-0.5">
