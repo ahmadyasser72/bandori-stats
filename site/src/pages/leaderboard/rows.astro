@@ -122,6 +122,8 @@ const rows = await (async () => {
 		? filtered.sort((a, b) => b.snapshotDate.localeCompare(a.snapshotDate))
 		: filtered;
 
+	if (favorite.size === 0) return sorted;
+
 	for (let idx = sorted.length - 1; idx > favorite.size - 1; idx -= 1) {
 		const { username } = sorted[idx];
 		if (favorite.has(username)) sorted.unshift(sorted.splice(idx, 1)[0]);
