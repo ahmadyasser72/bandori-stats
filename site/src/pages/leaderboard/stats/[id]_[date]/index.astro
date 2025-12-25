@@ -86,20 +86,24 @@ if (isNotFound) Astro.response.status = 404;
 												/>
 											</div>
 											<div
-												hx-indicator="closest .dropdown-content"
 												tabindex="-1"
-												class="dropdown-content bg-base-100 rounded-box z-10 ml-1 flex max-h-22 w-[200%] -translate-y-8 flex-wrap justify-center gap-x-1 gap-y-1.5 overflow-y-auto p-2 shadow-md *:w-24 sm:w-[300%] sm:*:w-32"
+												class="dropdown-content bg-base-100 rounded-box z-10 ml-1 max-h-22 w-[200%] -translate-y-8 overflow-y-auto p-2 shadow-md sm:w-[300%]"
 											>
 												<div
-													hx-get={`/leaderboard/stats/${id}_${snapshotDate}/titles`}
-													hx-swap="outerHTML"
-													hx-trigger="intersect once"
-													class="skeleton aspect-23/5"
-												/>
+													hx-indicator="closest .titles"
+													class="titles flex flex-wrap justify-center gap-x-1 gap-y-1.5 *:w-24 sm:*:w-32"
+												>
+													<div
+														hx-get={`/leaderboard/stats/${id}_${snapshotDate}/titles`}
+														hx-swap="outerHTML"
+														hx-trigger="intersect once"
+														class="skeleton aspect-23/5"
+													/>
 
-												{Array.from({ length: 5 }, () => (
-													<div class="htmx-indicator skeleton aspect-23/5" />
-												))}
+													{Array.from({ length: 5 }, () => (
+														<div class="htmx-indicator skeleton aspect-23/5" />
+													))}
+												</div>
 											</div>
 										</div>
 									)}
