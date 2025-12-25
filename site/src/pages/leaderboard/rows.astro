@@ -111,12 +111,13 @@ const rows = await (async () => {
 		return acc;
 	}, []);
 
-	const filtered = resultsWithRank.filter(
-		({ username, nickname }) =>
-			!search_username ||
-			username.toLowerCase().includes(search_username) ||
-			nickname?.toLowerCase().includes(search_username),
-	);
+	const filtered = search_username
+		? resultsWithRank.filter(
+				({ username, nickname }) =>
+					username.toLowerCase().includes(search_username) ||
+					nickname?.toLowerCase().includes(search_username),
+			)
+		: resultsWithRank;
 
 	const sorted = sort_latest
 		? filtered.sort((a, b) => b.snapshotDate.localeCompare(a.snapshotDate))
