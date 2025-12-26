@@ -3,8 +3,7 @@ import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import { db } from "@bandori-stats/database";
 import { redis } from "@bandori-stats/database/redis";
 
-import dayjs from "~/lib/date";
-import { formatNumber, sum } from "~/lib/math";
+import { formatNumber, mean } from "~/lib/math";
 import { parseSearchParams } from "./_params";
 
 export const partial = true;
@@ -31,7 +30,7 @@ const { date, page, rank_by, sort_latest, search_username, favorite } =
 	Astro.response.headers.set("hx-replace-url", replaceUrl.href);
 }
 
-const leaderboard = await (async () => {
+const leaderboardIndex = await (async () => {
 	const p = redis.pipeline();
 	for (const name of rank_by.items) {
 		const key = `leaderboard:${date}:${name}`;
@@ -39,16 +38,21 @@ const leaderboard = await (async () => {
 	}
 
 	const entries = await p.exec<number[][]>();
-	return Object.fromEntries(
+	return new Map(
 		rank_by.items.map((name, idx) => [
 			name,
-			entries[idx].reverse().filter((_, idx) => idx % 2 === 0),
+			new Map(
+				entries[idx]
+					.reverse()
+					.filter((_, idx) => idx % 2 === 0)
+					.map((value, idx) => [value, idx]),
+			),
 		]),
 	);
 })();
 
-const getRows = async () =>
-	db.query.accounts.findMany({
+const rows = await (async () => {
+	const accounts = await db.query.accounts.findMany({
 		columns: { id: true, username: true, nickname: true },
 		with: {
 			snapshots: {
@@ -60,40 +64,21 @@ const getRows = async () =>
 		},
 	});
 
-const rows = await (async () => {
-	type Rows = Awaited<ReturnType<typeof getRows>>;
-	const cacheKey = `query:${date}`;
-
-	const rows = await redis
-		.get<Rows>(cacheKey)
-		.then((cached) => cached ?? getRows());
-	await redis.set(cacheKey, rows, {
-		ex: dayjs().endOf("hours").diff(dayjs(), "seconds"),
-	});
-
-	const leaderboardIndex = Object.fromEntries(
-		rank_by.items.map((name) => [
-			name,
-			new Map(leaderboard[name].map((v, i) => [v, i])),
-		]),
-	);
-
-	const results = rows
+	const results = accounts
 		.filter(({ snapshots }) => snapshots.length > 0)
 		.map(({ snapshots: [{ snapshotDate, stats }], ...account }) => {
-			const scores =
-				sum(
-					rank_by.items.map((name) => {
-						const value = stats[name];
-						if (value == null) return 0;
+			const scores = mean(
+				rank_by.items.map((name) => {
+					const value = stats[name];
+					if (value === null) return 0;
 
-						const rankings = leaderboard[name];
-						const idx = leaderboardIndex[name].get(value);
-						if (idx == null) return 0;
+					const leaderboard = leaderboardIndex.get(name)!;
+					const rank = leaderboard.get(value);
+					if (rank === undefined) return 0;
 
-						return 1 - idx / (rankings.length - 1);
-					}),
-				) / rank_by.items.length;
+					return 1 - rank / (leaderboard.size - 1);
+				}),
+			);
 			const hasNickname =
 				account.nickname && account.nickname !== account.username;
 
@@ -157,9 +142,8 @@ const nextPageHtmxProps = (() => {
 			{ id, username, nickname, hasNickname, snapshotDate, stats, top },
 			idx,
 		) => (
-			// trigger infinite loader on the 5th last row
 			<tr
-				{...(idx === pageSize - 5 ? nextPageHtmxProps : {})}
+				{...(idx === pageSize - 1 ? nextPageHtmxProps : {})}
 				class="group text-center"
 			>
 				<th>#{top.toString().padStart(3, "0")}</th>
@@ -234,7 +218,7 @@ const nextPageHtmxProps = (() => {
 						<td
 							class:list={[
 								(!rank_by.items.includes(key) && "line-through opacity-60") ||
-									(value === null && "font-medium opacity-40"),
+									(!value && "font-medium opacity-40"),
 							]}
 						>
 							{value ? formatNumber(value) : "Private"}

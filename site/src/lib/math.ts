@@ -10,3 +10,4 @@ export const formatNumber = (n: number, autoCompact = false) =>
 
 export const sum = (values: number[]) =>
 	values.reduce((acc, next) => acc + next, 0);
+export const mean = (values: number[]) => sum(values) / values.length;
