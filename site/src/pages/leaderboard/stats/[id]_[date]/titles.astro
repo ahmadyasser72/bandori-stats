@@ -11,7 +11,7 @@ const account = await db.query.accounts.findFirst({
 	columns: { id: true, username: true, nickname: true },
 	with: {
 		snapshots: {
-			limit: 1,
+			limit: 2,
 			columns: { stats: true },
 			where: { snapshotDate: { lte: date } },
 			orderBy: { snapshotDate: "desc" },
@@ -20,21 +20,29 @@ const account = await db.query.accounts.findFirst({
 	where: { id },
 });
 
-const isNotFound =
-	!account ||
-	account.snapshots.length === 0 ||
-	account.snapshots[0].stats.titles === null;
+const latestSnapshot = account?.snapshots[0];
+const previousSnapshot = account?.snapshots[1];
+
+const titles = latestSnapshot?.stats.titles ?? null;
+
+const isNotFound = !account || !latestSnapshot || titles === null;
 if (isNotFound) Astro.response.status = 404;
 
-const titles = isNotFound ? [] : account.snapshots[0].stats.titles!;
+const previousTitles = new Set(previousSnapshot?.stats.titles ?? []);
+const sortedTitles = titles!
+	.map((title) => ({
+		value: title,
+		isNew: previousTitles.size > 0 ? previousTitles.has(title) : true,
+	}))
+	.sort((a, b) => (a.isNew === b.isNew ? 0 : a.isNew ? -1 : 1));
 
 const page = schema.page.parse(Astro.url.searchParams.get("page"));
 const pageSize = 24;
 const offset = (page - 1) * pageSize;
-const pageTitles = titles.slice(offset, offset + pageSize);
+const pageTitles = sortedTitles.slice(offset, offset + pageSize);
 
 const nextPageHtmxProps = (() => {
-	if (offset + pageSize > titles.length) return {};
+	if (offset + pageSize > sortedTitles.length) return {};
 
 	const nextPageUrl = new URL(Astro.url);
 	nextPageUrl.search = "";
@@ -48,12 +56,15 @@ const nextPageHtmxProps = (() => {
 ---
 
 {
-	pageTitles.map((title, idx) => (
+	pageTitles.map(({ value: title, isNew }, idx) => (
 		<img
 			{...(idx === pageSize - 1 ? nextPageHtmxProps : {})}
 			src={`/static/titles/${title}.webp`}
 			loading="lazy"
-			class="border-base-content/60 skeleton aspect-23/5 rounded-2xl border"
+			class:list={[
+				"border-base-content/60 skeleton aspect-23/5 rounded-2xl border",
+				isNew && "border-primary ring-primary bg-primary ring-2",
+			]}
 		/>
 	))
 }
