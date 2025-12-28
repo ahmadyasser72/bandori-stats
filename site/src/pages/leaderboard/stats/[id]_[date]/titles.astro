@@ -32,7 +32,7 @@ const previousTitles = new Set(previousSnapshot?.stats.titles ?? []);
 const sortedTitles = titles!
 	.map((title) => ({
 		value: title,
-		isNew: previousTitles.size > 0 ? previousTitles.has(title) : true,
+		isNew: previousTitles.size > 0 ? !previousTitles.has(title) : true,
 	}))
 	.sort((a, b) => (a.isNew === b.isNew ? 0 : a.isNew ? -1 : 1));
 
