@@ -13,33 +13,30 @@ export const scheduleUpdateSnapshots = schedules.task({
 		const date = now.format("YYYY-MM-DD");
 
 		const shuffle = createShuffle(dayjs(date).unix());
-		const usernames = await db.query.accounts
-			.findMany({ columns: { username: true, lastUpdated: true } })
+		const accounts = await db.query.accounts
+			.findMany({ columns: { id: true, username: true, lastUpdated: true } })
 			.then((entries) =>
-				shuffle(
-					entries.map((account, idx) => ({
-						username: account.username,
-						refetch: (() => {
-							if (account.lastUpdated === null) return true;
+				shuffle(entries)
+					.map((account, idx) => ({ ...account, idx }))
+					.filter((account) => {
+						if (account.lastUpdated === null) return true;
 
-							const lastUpdated = dayjs(account.lastUpdated);
-							const updatedLastMonth = now.diff(lastUpdated, "months") < 1;
-							const updatedLastWeek = now.diff(lastUpdated, "weeks") < 1;
+						const lastUpdated = dayjs(account.lastUpdated);
+						const updatedLastMonth = now.diff(lastUpdated, "months") < 1;
+						const updatedLastWeek = now.diff(lastUpdated, "weeks") < 1;
 
-							return (
-								updatedLastWeek ||
-								(updatedLastMonth
-									? idx % 7 === now.day()
-									: idx % now.daysInMonth() === now.date())
-							);
-						})(),
-					})),
-				),
+						return (
+							updatedLastWeek ||
+							(updatedLastMonth
+								? account.id % 7 === now.day()
+								: account.id % now.daysInMonth() === now.date())
+						);
+					}),
 			);
 
-		const items: Parameters<typeof updateStats.batchTrigger>[0] = usernames
-			.map(({ username, refetch }, idx) => ({
-				payload: { username, date, refetch },
+		const payloads: Parameters<typeof updateStats.batchTrigger>[0] = accounts
+			.map(({ username, idx }) => ({
+				payload: { username, date },
 				options: {
 					delay: now
 						.set("hours", idx % 24)
@@ -52,7 +49,7 @@ export const scheduleUpdateSnapshots = schedules.task({
 			.sort((a, b) => a.options.delay.valueOf() - b.options.delay.valueOf());
 
 		const maxBatchSize = 1000;
-		for (let idx = 0; idx < items.length; idx += maxBatchSize)
-			await updateStats.batchTrigger(items.slice(idx, idx + maxBatchSize));
+		for (let idx = 0; idx < payloads.length; idx += maxBatchSize)
+			await updateStats.batchTrigger(payloads.slice(idx, idx + maxBatchSize));
 	},
 });

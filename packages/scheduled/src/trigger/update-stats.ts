@@ -17,37 +17,26 @@ export const updateStats = schemaTask({
 	schema: z.strictObject({
 		username: z.string().nonempty(),
 		date: z.iso.date(),
-		refetch: z.boolean(),
 	}),
-	run: async ({ username, date, refetch }) => {
-		if (!refetch) await tags.add("snapshot_nofetch");
-
-		const snapshot = await (async () => {
-			const existing = await db.query.accounts.findFirst({
-				columns: { id: true },
-				where: { username },
-				with: {
-					snapshots: {
-						limit: 1,
-						columns: { stats: true },
-						where: { snapshotDate: { lte: date } },
-						orderBy: { snapshotDate: "desc" },
-					},
-				},
-			});
-
-			const stats = refetch
-				? await bestdoriStats.triggerAndWait({ username }).unwrap()
-				: (existing?.snapshots.at(-1)?.stats ?? null);
-
-			return { stats, existing };
-		})();
-
-		const { existing, stats } = snapshot;
+	run: async ({ username, date }) => {
+		const stats = await bestdoriStats.triggerAndWait({ username }).unwrap();
 		if (!stats) {
 			await tags.add("snapshot_unavailable");
 			return;
 		}
+
+		const existing = await db.query.accounts.findFirst({
+			columns: { id: true },
+			where: { username },
+			with: {
+				snapshots: {
+					limit: 1,
+					columns: { stats: true },
+					where: { snapshotDate: { lte: date } },
+					orderBy: { snapshotDate: "desc" },
+				},
+			},
+		});
 
 		const existingStats = existing?.snapshots.at(0)?.stats;
 		if (
