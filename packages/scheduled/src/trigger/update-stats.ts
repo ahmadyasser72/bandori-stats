@@ -38,13 +38,14 @@ export const updateStats = schemaTask({
 			},
 		});
 
-		const existingStats = existing?.snapshots.at(0)?.stats;
-		if (
-			!!stats.titles &&
-			existingStats?.titles?.length !== stats.titles?.length
-		) {
-			const allDegrees = await fetchDegrees();
-			stats.titles = sortDegrees(stats.titles, allDegrees);
+		if (stats.titles && stats.titles.length > 0) {
+			const existingTitles = existing?.snapshots.at(0)?.stats.titles;
+			if (!existingTitles || stats.titles.length > existingTitles.length) {
+				const allDegrees = await fetchDegrees();
+				stats.titles = sortDegrees(stats.titles, allDegrees);
+			} else {
+				stats.titles = existingTitles;
+			}
 		}
 
 		let accountId: number | undefined = existing?.id;
