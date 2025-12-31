@@ -28,15 +28,18 @@ export const updateLeaderboard = schemaTask({
 					member: accountId,
 					score: stats[name]!,
 				}));
-			// @ts-ignore
-			p.zadd(`leaderboard:${date}:${name}`, ...scores);
+
+			if (scores.length > 0)
+				// @ts-ignore
+				p.zadd(`leaderboard:${date}:${name}`, ...scores);
 		}
 		await p.exec();
 
 		const titles = snapshots.flatMap(({ stats }) => stats.titles ?? []);
+		if (titles.length == 0) return;
+
 		// @ts-ignore
 		const addedTitles = await redis.sadd("leaderboard:titles", ...titles);
-
 		if (addedTitles > 0 && ctx.deployment?.git) {
 			const { ghUsername, commitRef } = ctx.deployment.git;
 
