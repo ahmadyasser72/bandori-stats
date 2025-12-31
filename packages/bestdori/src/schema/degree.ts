@@ -70,7 +70,7 @@ export const sortDegrees = (degrees: number[], allDegrees: AllDegrees) => {
 		else return a.localeCompare(b);
 	};
 
-	return degrees.sort((a, b) => {
+	return [...degrees].sort((a, b) => {
 		const [aDegree, bDegree] = [allDegrees.get(a)!, allDegrees.get(b)!];
 
 		return (
