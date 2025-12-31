@@ -46,7 +46,7 @@ export const bestdoriLeaderboard = schemaTask({
 			await tags.add(
 				Array.from(
 					{ length: 5 },
-					(_, idx) => `top${idx + 1}_${data.rows[idx]!.user.username}`,
+					(_, idx) => `#${idx + 1}_${data.rows[idx]!.user.username}`,
 				),
 			);
 		}

@@ -51,8 +51,7 @@ export const scheduleUpdateAccounts = schedules.task({
 
 		await tags.add([
 			`accounts_${now.format("MMM")}`,
-			`accounts_${data.length}`,
-			`accounts_+${rowsAffected}`,
+			`accounts_~${rowsAffected}`,
 		]);
 	},
 });

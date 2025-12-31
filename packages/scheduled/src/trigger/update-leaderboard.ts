@@ -49,6 +49,7 @@ export const updateLeaderboard = schemaTask({
 			if (ghUsername && commitRef) {
 				const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
+				await tags.add("site_rebuild");
 				await octokit.request(
 					"POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches",
 					{
@@ -61,7 +62,5 @@ export const updateLeaderboard = schemaTask({
 				);
 			}
 		}
-
-		await tags.add(`leaderboard_${date}`);
 	},
 });

@@ -22,6 +22,9 @@ export const updateLeaderboardByDate = schemaTask({
 			})
 			.then((accounts) => accounts.flatMap(({ snapshots }) => snapshots));
 
-		await updateLeaderboard.trigger({ date, snapshots });
+		await updateLeaderboard.trigger(
+			{ date, snapshots },
+			{ tags: ["leaderboard_group", `leaderboard_${date}`] },
+		);
 	},
 });

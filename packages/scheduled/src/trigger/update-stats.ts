@@ -106,10 +106,10 @@ export const updateStats = schemaTask({
 		}
 
 		if (accountId && snapshotId) {
-			await updateLeaderboard.trigger({
-				date,
-				snapshots: { accountId, stats },
-			});
+			await updateLeaderboard.trigger(
+				{ date, snapshots: { accountId, stats } },
+				{ tags: [`leaderboard_${username}`, `leaderboard_${date}`] },
+			);
 
 			await db
 				.update(accounts)
