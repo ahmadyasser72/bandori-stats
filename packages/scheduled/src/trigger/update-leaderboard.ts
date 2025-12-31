@@ -36,11 +36,14 @@ export const updateLeaderboard = schemaTask({
 		await p.exec();
 
 		const titles = snapshots.flatMap(({ stats }) => stats.titles ?? []);
-		if (titles.length == 0) return;
+		if (titles.length === 0) return;
 
 		// @ts-ignore
 		const addedTitles = await redis.sadd("leaderboard:titles", ...titles);
-		if (addedTitles > 0 && ctx.deployment?.git) {
+		if (addedTitles === 0) return;
+
+		await tags.add(`titles_+${addedTitles}`);
+		if (ctx.deployment?.git) {
 			const { ghUsername, commitRef } = ctx.deployment.git;
 
 			if (ghUsername && commitRef) {
