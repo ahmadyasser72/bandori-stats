@@ -1,7 +1,7 @@
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
-import { db } from "@bandori-stats/database";
+import { db, eq } from "@bandori-stats/database";
 import { accounts } from "@bandori-stats/database/schema";
-import { AbortTaskRunError, logger, schedules, tags } from "@trigger.dev/sdk";
+import { AbortTaskRunError, schedules, tags } from "@trigger.dev/sdk";
 import dayjs from "dayjs";
 
 import { bestdoriLeaderboard } from "./bestdori-leaderboard";
@@ -23,28 +23,27 @@ export const scheduleUpdateAccounts = schedules.task({
 			),
 		);
 
-		const usernameNickname = new Map<string, string | null>();
+		const usernameToNickname = new Map<string, string | null>();
 		for (const run of runs) {
 			if (!run.ok) throw new AbortTaskRunError(`Run #${run.id} failed`);
 			for (const { username, nickname } of run.output)
-				usernameNickname.set(username, nickname);
+				usernameToNickname.set(username, nickname);
 		}
 
-		const data = [...usernameNickname.entries()].map(
-			([username, nickname]) => ({ username, nickname }),
-		);
-		logger.log("inserting accounts", { size: data.length, data });
-
+		const existingAccounts = await db.query.accounts.findMany();
 		const rowsAffected = await Promise.all(
-			data.map((account) =>
-				db
-					.insert(accounts)
-					.values(account)
-					.onConflictDoUpdate({
-						target: accounts.username,
-						set: { nickname: account.nickname },
-					}),
-			),
+			[...usernameToNickname.entries()].map(([username, nickname]) => {
+				const existing = existingAccounts.find(
+					(it) => it.username === username,
+				);
+
+				return existing !== undefined
+					? db
+							.update(accounts)
+							.set({ nickname: nickname })
+							.where(eq(accounts.id, existing.id))
+					: db.insert(accounts).values({ username, nickname });
+			}),
 		).then((results) =>
 			results.reduce((acc, { rowsAffected }) => acc + rowsAffected, 0),
 		);
