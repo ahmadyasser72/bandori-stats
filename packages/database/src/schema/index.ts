@@ -7,9 +7,7 @@ export const accounts = sqliteTable("accounts", {
 	username: text().unique().notNull(),
 	nickname: text(),
 
-	lastUpdated: text()
-		.$default(() => sql`(CURRENT_DATE)`)
-		.$onUpdate(() => sql`(CURRENT_DATE)`),
+	lastUpdated: text().$default(() => sql`(CURRENT_DATE)`),
 });
 
 export const accountSnapshots = sqliteTable(
