@@ -5,5 +5,5 @@ export const StatsSchema = z.strictObject({
 	...Object.fromEntries(
 		STAT_NAMES.map((name) => [name, z.number().nullable()]),
 	),
-	titles: z.array(z.number().positive()).nonempty().nullable(),
+	titles: z.array(z.number().positive()).nullable(),
 });

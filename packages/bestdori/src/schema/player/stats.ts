@@ -7,7 +7,7 @@ export const PlayerStats = z.strictObject({
 	accounts: z.array(
 		z.strictObject({
 			server: z.number().nonnegative(),
-			titles: z.array(z.number().positive()).nonempty().optional(),
+			titles: z.array(z.number().positive()).optional(),
 			...Object.fromEntries(
 				[...RAW_STAT_NAMES, "uid" as const].map((key) => [
 					key,
