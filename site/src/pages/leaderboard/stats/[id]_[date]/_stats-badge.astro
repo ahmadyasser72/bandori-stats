@@ -24,26 +24,23 @@ const {
 	class: className,
 	...attributes
 } = Astro.props;
+
 const displayedValue =
 	value !== null ? formatNumber(getValue(value)) : "Private";
 const diff =
 	previousValue !== null && value !== null
 		? getValue(value) - getValue(previousValue)
 		: 0;
+
+const badgeClass = (() => {
+	if (value === null) return "badge-neutral";
+	else if (previousValue === null) return "badge-success";
+	else if (diff > 0) return "badge-secondary";
+	else return "badge-primary";
+})();
 ---
 
-<span
-	class:list={[
-		"badge badge-sm",
-		value === null
-			? "badge-neutral"
-			: diff > 0
-				? "badge-secondary"
-				: "badge-primary",
-		className,
-	]}
-	{...attributes}
->
+<span class:list={["badge badge-sm", badgeClass, className]} {...attributes}>
 	{titleCase(label.replace("Count", ""))} &middot;{" "}
 	{displayedValue}
 	{diff > 0 && ` (+${formatNumber(diff, true)})`}
