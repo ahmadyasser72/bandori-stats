@@ -150,13 +150,13 @@ const nextPageHtmxProps = (() => {
 
 				<td class="pointer-events-none sticky left-0 z-10 pl-0 text-start">
 					<span
-						class="flex items-center font-medium *:pointer-events-auto"
+						class="flex font-medium *:pointer-events-auto"
 						style={page === 1 && `view-transition-name: account-${id};`}
 					>
-						<div class="flex flex-col -space-y-0.5">
+						<div class="flex h-8 flex-col -space-y-0.5 *:flex-1">
 							{hasNickname && (
 								<div>
-									<span class="group-even:bg-base-200 group-odd:bg-base-100 line-clamp-1 max-w-36 overflow-clip px-2 break-all text-ellipsis">
+									<span class="rounded-r-field group-even:bg-base-200 group-odd:bg-base-100 line-clamp-1 inline-flex max-w-36 overflow-clip px-2 break-all text-ellipsis">
 										{nickname}
 									</span>
 								</div>
@@ -164,8 +164,10 @@ const nextPageHtmxProps = (() => {
 							<div>
 								<span
 									class:list={[
-										"group-even:bg-base-200 group-odd:bg-base-100 line-clamp-1 max-w-36 overflow-clip px-2 text-ellipsis",
-										hasNickname && "text-base-content/60",
+										"rounded-r-field group-even:bg-base-200 group-odd:bg-base-100 line-clamp-1 inline-flex max-w-36 overflow-clip px-2 text-ellipsis",
+										hasNickname
+											? "text-base-content/60"
+											: "h-full items-center",
 									]}
 								>
 									@{username}
