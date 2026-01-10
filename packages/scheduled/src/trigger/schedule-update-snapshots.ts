@@ -43,7 +43,6 @@ export const scheduleUpdateSnapshots = schedules.task({
 						.add(Math.random() * 50, "minutes")
 						.toDate(),
 					tags: `account_${username}`,
-					idempotencyKey: `snapshot_${username}_${date}`,
 				},
 			}))
 			.sort((a, b) => a.options.delay.valueOf() - b.options.delay.valueOf());

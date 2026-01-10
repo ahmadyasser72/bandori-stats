@@ -19,7 +19,12 @@ export const updateStats = schemaTask({
 		date: z.iso.date(),
 	}),
 	run: async ({ username, date }) => {
-		const stats = await bestdoriStats.triggerAndWait({ username }).unwrap();
+		const stats = await bestdoriStats
+			.triggerAndWait(
+				{ username },
+				{ idempotencyKey: `stats_${username}_${date}` },
+			)
+			.unwrap();
 		if (!stats) {
 			await tags.add("snapshot_unavailable");
 			return;
