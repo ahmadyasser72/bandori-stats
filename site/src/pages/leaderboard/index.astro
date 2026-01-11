@@ -153,9 +153,9 @@ const { minDate, maxDate } = await (async () => {
 
 			<tfoot>
 				{
-					Array.from({ length: 12 }, () => (
-						<tr class="infinite-placeholder htmx-indicator">
-							{Array.from({ length: 4 + STAT_NAMES.length }, () => (
+					Array.from({ length: 8 }, () => (
+						<tr class="infinite-placeholder htmx-indicator even:bg-base-200 odd:bg-base-100">
+							{Array.from({ length: 5 + STAT_NAMES.length }, () => (
 								<td>
 									<div class="skeleton h-8" />
 								</td>
