@@ -101,7 +101,7 @@ if (isNotFound) Astro.response.status = 404;
 													/>
 
 													{Array.from(
-														{ length: Math.min(stats.titles.length, 5) },
+														{ length: Math.min(stats.titles.length - 1, 5) },
 														() => (
 															<div class="htmx-indicator skeleton aspect-23/5" />
 														),
