@@ -1,5 +1,11 @@
 ---
 import "~/styles/global.css";
+
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
 ---
 
 <html lang="en">
@@ -8,7 +14,7 @@ import "~/styles/global.css";
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
+		<title>bandori-stats &bullet; {title}</title>
 	</head>
 	<body>
 		<div class="container mx-auto flex h-screen flex-col py-2">

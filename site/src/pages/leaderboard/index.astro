@@ -25,7 +25,7 @@ const { minDate, maxDate } = await (async () => {
 })();
 ---
 
-<BaseLayout>
+<BaseLayout title="Leaderboard">
 	<div
 		hx-include="[name='rank_by'], [name='sort_latest'], [name='date'], [name='search_username'], [name='favorite']"
 		hx-on:htmx-before-request="event.target.matches('input') && this.scrollTo({ top: 0, behavior: 'smooth'})"
