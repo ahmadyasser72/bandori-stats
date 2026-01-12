@@ -10,10 +10,7 @@ export const schema = {
 		items: items.length === 0 ? STAT_NAMES : items,
 		default: items.length === 0,
 	})),
-	sort_latest: z
-		.literal("true")
-		.transform((it) => it === "true")
-		.catch(false),
+	sort_latest: z.stringbool().catch(false),
 	search_username: z
 		.string()
 		.nullable()
