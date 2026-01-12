@@ -4,11 +4,12 @@ import { db } from "@bandori-stats/database";
 import { redis } from "@bandori-stats/database/redis";
 
 import { formatNumber, mean } from "~/lib/math";
+import { paginate } from "~/lib/paginate";
 import { parseSearchParams } from "./_params";
 
 export const partial = true;
 
-const { date, page, rank_by, sort_latest, search_username, favorite } =
+const { date, rank_by, sort_latest, search_username, favorite } =
 	parseSearchParams(Astro.url.searchParams);
 
 {
@@ -119,31 +120,25 @@ const rows = await (async () => {
 	return [...favs, ...rest];
 })();
 
-const pageSize = 20;
-const offset = (page - 1) * pageSize;
-const pageRows = rows.slice(offset, offset + pageSize);
-
-const nextPageHtmxProps = (() => {
-	if (offset + pageSize > rows.length) return {};
-
-	return {
-		"hx-get": "/leaderboard/rows",
-		"hx-vals": JSON.stringify({ page: page + 1 }),
+const page = paginate({
+	items: rows,
+	context: Astro,
+	size: 20,
+	extraProps: {
 		"hx-target": "closest tbody",
 		"hx-swap": "beforeend",
-		"hx-trigger": "intersect once",
-	};
-})();
+	},
+});
 ---
 
 {
-	pageRows.map(
+	page.items.map(
 		(
 			{ id, username, nickname, hasNickname, snapshotDate, stats, top },
 			idx,
 		) => (
 			<tr
-				{...(idx === pageSize - 1 ? nextPageHtmxProps : {})}
+				{...(page.isLastElement(idx) && page.props)}
 				class="group text-center"
 			>
 				<th>#{top.toString().padStart(3, "0")}</th>
@@ -151,7 +146,7 @@ const nextPageHtmxProps = (() => {
 				<td class="pointer-events-none sticky left-0 z-10 pl-0 text-start">
 					<span
 						class="flex font-medium *:pointer-events-auto"
-						style={page === 1 && `view-transition-name: account-${id};`}
+						style={page.current === 1 && `view-transition-name: account-${id};`}
 					>
 						<div class="flex h-8 flex-col -space-y-0.5 *:flex-1">
 							{hasNickname && (

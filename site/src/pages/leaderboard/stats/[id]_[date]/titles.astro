@@ -1,6 +1,7 @@
 ---
 import { db } from "@bandori-stats/database";
 
+import { paginate } from "~/lib/paginate";
 import { schema } from "../../_params";
 
 export const partial = true;
@@ -36,29 +37,20 @@ const sortedTitles = titles!
 	}))
 	.sort((a, b) => (a.isNew === b.isNew ? 0 : a.isNew ? -1 : 1));
 
-const page = schema.page.parse(Astro.url.searchParams.get("page"));
-const pageSize = 24;
-const offset = (page - 1) * pageSize;
-const pageTitles = sortedTitles.slice(offset, offset + pageSize);
-
-const nextPageHtmxProps = (() => {
-	if (offset + pageSize > sortedTitles.length) return {};
-
-	const nextPageUrl = new URL(Astro.url);
-	nextPageUrl.search = "";
-	nextPageUrl.searchParams.set("page", (page + 1).toString());
-	return {
-		"hx-get": nextPageUrl.href,
+const page = paginate({
+	items: sortedTitles,
+	context: Astro,
+	size: 24,
+	extraProps: {
 		"hx-swap": "afterend",
-		"hx-trigger": "intersect once",
-	};
-})();
+	},
+});
 ---
 
 {
-	pageTitles.map(({ value: title, isNew }, idx) => (
+	page.items.map(({ value: title, isNew }, idx) => (
 		<img
-			{...(idx === pageSize - 1 ? nextPageHtmxProps : {})}
+			{...(page.isLastElement(idx) && page.props)}
 			src={`/static/titles/${title}.webp`}
 			loading="lazy"
 			class:list={[
