@@ -1,3 +1,18 @@
+import type { Stats } from "@bandori-stats/bestdori/constants";
+
+export type StatValue = Stats[keyof Stats] | undefined;
+const getValue = (it: NonNullable<StatValue>) =>
+	Array.isArray(it) ? it.length : it;
+export const displayValue = (value: StatValue = null) =>
+	value !== null ? formatNumber(getValue(value)) : "Private";
+export const compareValue = (
+	value: StatValue = null,
+	previousValue: StatValue = null,
+) =>
+	previousValue !== null && value !== null
+		? getValue(value) - getValue(previousValue)
+		: 0;
+
 const numberFormatter = Intl.NumberFormat("en-US");
 const numberFormatterCompact = Intl.NumberFormat("en-US", {
 	notation: "compact",

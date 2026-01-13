@@ -1,0 +1,89 @@
+---
+import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
+import { db } from "@bandori-stats/database";
+
+import UsernameColumn from "~/lib/components/username-column.astro";
+import { paginate } from "~/lib/paginate";
+import StatsColumn from "./_stats-column.astro";
+
+export const partial = true;
+
+const rows = await db.query.accountSnapshots.findMany({
+	columns: { accountId: true, id: true, snapshotDate: true, stats: true },
+	limit: 200,
+	orderBy: { snapshotDate: "desc", id: "desc" },
+	with: {
+		account: {
+			columns: { username: true, nickname: true },
+		},
+	},
+});
+
+const page = paginate({
+	items: rows,
+	context: Astro,
+	size: 20,
+	extraProps: {
+		"hx-target": "closest tbody",
+		"hx-swap": "beforeend",
+	},
+});
+
+const previousSnapshots = (
+	await db.query.accounts.findMany({
+		columns: {},
+		where: { id: { in: page.items.map(({ accountId }) => accountId) } },
+		with: {
+			snapshots: {
+				columns: { accountId: true, stats: true },
+				where: { id: { lt: page.items.at(-1)!.id } },
+				limit: 1,
+			},
+		},
+	})
+).flatMap(({ snapshots }) => snapshots);
+
+const getPreviousStats = ({ accountId, id }: (typeof page.items)[number]) =>
+	(
+		page.items.find((it) => it.accountId === accountId && it.id < id) ??
+		previousSnapshots.find((it) => it.accountId === accountId)
+	)?.stats;
+---
+
+{
+	page.items
+		.map((item) => ({ ...item, previousStats: getPreviousStats(item) }))
+		.map(
+			(
+				{
+					id,
+					snapshotDate,
+					stats,
+					previousStats,
+					account: { username, nickname },
+				},
+				idx,
+			) => (
+				<tr
+					{...(page.isLastElement(idx) && page.props)}
+					class="group text-center"
+				>
+					<td>{snapshotDate}</td>
+
+					<UsernameColumn {id} {username} {nickname} viewTransition={false} />
+
+					{STAT_NAMES.map((key) => (
+						<StatsColumn
+							value={stats[key]}
+							previousValue={previousStats?.[key]}
+						/>
+					))}
+
+					<StatsColumn
+						value={stats.titles}
+						previousValue={previousStats?.titles}
+					/>
+				</tr>
+			),
+		)
+}

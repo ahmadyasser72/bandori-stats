@@ -1,0 +1,41 @@
+---
+interface Props {
+	id: number;
+	username: string;
+	nickname: string | null;
+	viewTransition: boolean;
+}
+
+const { id, username, nickname, viewTransition } = Astro.props;
+
+const hasNickname = !!nickname && username !== nickname;
+---
+
+<td class="pointer-events-none sticky left-0 z-10 pl-0 text-start">
+	<span
+		class="flex font-medium *:pointer-events-auto"
+		style={viewTransition && `view-transition-name: row-${id};`}
+	>
+		<div class="flex h-8 flex-col -space-y-0.5 *:flex-1">
+			{
+				hasNickname && (
+					<div>
+						<span class="rounded-r-field group-even:bg-base-200 group-odd:bg-base-100 line-clamp-1 inline-flex max-w-36 overflow-clip px-2 break-all text-ellipsis">
+							{nickname}
+						</span>
+					</div>
+				)
+			}
+			<div>
+				<span
+					class:list={[
+						"rounded-r-field group-even:bg-base-200 group-odd:bg-base-100 line-clamp-1 inline-flex max-w-36 overflow-clip px-2 text-ellipsis",
+						hasNickname ? "text-base-content/60" : "h-full items-center",
+					]}
+				>
+					@{username}
+				</span>
+			</div>
+		</div>
+	</span>
+</td>

@@ -1,0 +1,26 @@
+---
+import {
+	compareValue,
+	displayValue,
+	formatNumber,
+	type StatValue,
+} from "~/lib/math";
+
+interface Props {
+	value: StatValue;
+	previousValue: StatValue;
+}
+
+const { value, previousValue } = Astro.props;
+const delta = compareValue(value, previousValue);
+---
+
+<td
+	class:list={[
+		(!value && "font-medium opacity-40") ||
+			(delta === 0 ? "opacity-60" : "font-medium"),
+	]}
+>
+	{displayValue(value)}
+	{delta > 0 && ` (+${formatNumber(delta, true)})`}
+</td>

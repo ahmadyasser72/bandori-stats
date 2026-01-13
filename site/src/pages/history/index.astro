@@ -1,0 +1,61 @@
+---
+import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
+import { titleCase } from "text-case";
+
+import BaseLayout from "~/layouts/base-layout.astro";
+---
+
+<BaseLayout title="History">
+	<div class="absolute inset-0 overflow-x-auto">
+		<div class="breadcrumbs sticky left-0 z-20 px-4 sm:px-8">
+			<ul class="justify-center">
+				<li><a href="/">bandori-stats</a></li>
+				<li>history</li>
+			</ul>
+		</div>
+
+		<table class="table-sm table-zebra table">
+			<thead>
+				<tr
+					class="group bg-base-100 sticky top-0 z-20 text-center *:font-semibold"
+				>
+					<th> Last Updated </th>
+
+					<th class="min-w-40">Username</th>
+
+					{
+						STAT_NAMES.map((name) => (
+							<th>{titleCase(name.replace(/Count$/, ""))}</th>
+						))
+					}
+
+					<th>Titles</th>
+				</tr>
+			</thead>
+
+			<tbody hx-indicator=".infinite-placeholder">
+				<tr
+					hx-get="/history/rows"
+					hx-indicator="#app-loader, .infinite-placeholder"
+					hx-trigger="revealed"
+					hx-swap="outerHTML"
+				>
+				</tr>
+			</tbody>
+
+			<tfoot>
+				{
+					Array.from({ length: 8 }, () => (
+						<tr class="infinite-placeholder htmx-indicator even:bg-base-200 odd:bg-base-100">
+							{Array.from({ length: 3 + STAT_NAMES.length }, () => (
+								<td>
+									<div class="skeleton h-8" />
+								</td>
+							))}
+						</tr>
+					))
+				}
+			</tfoot>
+		</table>
+	</div>
+</BaseLayout>

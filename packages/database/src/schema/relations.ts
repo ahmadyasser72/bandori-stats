@@ -10,4 +10,12 @@ export const relations = defineRelations(schema, (r) => ({
 			alias: "account_snapshots",
 		}),
 	},
+	accountSnapshots: {
+		account: r.one.accounts({
+			from: r.accountSnapshots.accountId,
+			to: r.accounts.id,
+			alias: "snapshot_account",
+			optional: false,
+		}),
+	},
 }));

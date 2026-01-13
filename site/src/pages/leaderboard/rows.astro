@@ -3,7 +3,8 @@ import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import { db } from "@bandori-stats/database";
 import { redis } from "@bandori-stats/database/redis";
 
-import { formatNumber, mean } from "~/lib/math";
+import UsernameColumn from "~/lib/components/username-column.astro";
+import { displayValue, mean } from "~/lib/math";
 import { paginate } from "~/lib/paginate";
 import { parseSearchParams } from "./_params";
 
@@ -80,10 +81,8 @@ const rows = await (async () => {
 					return 1 - rank / (leaderboard.size - 1);
 				}),
 			);
-			const hasNickname =
-				account.nickname && account.nickname !== account.username;
 
-			return { ...account, snapshotDate, stats, scores, hasNickname };
+			return { ...account, snapshotDate, stats, scores };
 		})
 		.sort((a, b) => b.scores - a.scores);
 
@@ -133,44 +132,19 @@ const page = paginate({
 
 {
 	page.items.map(
-		(
-			{ id, username, nickname, hasNickname, snapshotDate, stats, top },
-			idx,
-		) => (
+		({ id, username, nickname, snapshotDate, stats, top }, idx) => (
 			<tr
 				{...(page.isLastElement(idx) && page.props)}
 				class="group text-center"
 			>
 				<th>#{top.toString().padStart(3, "0")}</th>
 
-				<td class="pointer-events-none sticky left-0 z-10 pl-0 text-start">
-					<span
-						class="flex font-medium *:pointer-events-auto"
-						style={page.current === 1 && `view-transition-name: account-${id};`}
-					>
-						<div class="flex h-8 flex-col -space-y-0.5 *:flex-1">
-							{hasNickname && (
-								<div>
-									<span class="rounded-r-field group-even:bg-base-200 group-odd:bg-base-100 line-clamp-1 inline-flex max-w-36 overflow-clip px-2 break-all text-ellipsis">
-										{nickname}
-									</span>
-								</div>
-							)}
-							<div>
-								<span
-									class:list={[
-										"rounded-r-field group-even:bg-base-200 group-odd:bg-base-100 line-clamp-1 inline-flex max-w-36 overflow-clip px-2 text-ellipsis",
-										hasNickname
-											? "text-base-content/60"
-											: "h-full items-center",
-									]}
-								>
-									@{username}
-								</span>
-							</div>
-						</div>
-					</span>
-				</td>
+				<UsernameColumn
+					{id}
+					{username}
+					{nickname}
+					viewTransition={page.current === 1}
+				/>
 
 				<td hx-disinherit="hx-indicator">
 					<div class="flex items-center gap-1">
@@ -218,13 +192,13 @@ const page = paginate({
 									(!value && "font-medium opacity-40"),
 							]}
 						>
-							{value ? formatNumber(value) : "Private"}
+							{displayValue(value)}
 						</td>
 					),
 				)}
 
 				<td class:list={[!stats.titles && "font-medium opacity-40"]}>
-					{stats.titles?.length ? stats.titles?.length : "Private"}
+					{displayValue(stats.titles?.length ?? null)}
 				</td>
 			</tr>
 		),

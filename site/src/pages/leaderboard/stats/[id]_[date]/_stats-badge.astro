@@ -1,21 +1,20 @@
 ---
 import type { JSX } from "astro/jsx-runtime";
 
-import type { Stats } from "@bandori-stats/bestdori/constants";
 import { titleCase } from "text-case";
 
-import { formatNumber } from "~/lib/math";
-
-type StatValue = Stats[keyof Stats];
+import {
+	compareValue,
+	displayValue,
+	formatNumber,
+	type StatValue,
+} from "~/lib/math";
 
 interface Props extends JSX.HTMLAttributes {
 	label: string;
 	value: StatValue;
 	previousValue: StatValue;
 }
-
-const getValue = (it: NonNullable<StatValue>) =>
-	Array.isArray(it) ? it.length : it;
 
 const {
 	label,
@@ -25,23 +24,17 @@ const {
 	...attributes
 } = Astro.props;
 
-const displayedValue =
-	value !== null ? formatNumber(getValue(value)) : "Private";
-const diff =
-	previousValue !== null && value !== null
-		? getValue(value) - getValue(previousValue)
-		: 0;
-
+const delta = compareValue(value, previousValue);
 const badgeClass = (() => {
 	if (value === null) return "badge-neutral";
 	else if (previousValue === null) return "badge-success";
-	else if (diff > 0) return "badge-secondary";
+	else if (delta > 0) return "badge-secondary";
 	else return "badge-primary";
 })();
 ---
 
 <span class:list={["badge badge-sm", badgeClass, className]} {...attributes}>
 	{titleCase(label.replace("Count", ""))} &middot;{" "}
-	{displayedValue}
-	{diff > 0 && ` (+${formatNumber(diff, true)})`}
+	{displayValue(value)}
+	{delta > 0 && ` (+${formatNumber(delta, true)})`}
 </span>
