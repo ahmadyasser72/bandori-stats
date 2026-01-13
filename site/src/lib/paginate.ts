@@ -9,14 +9,14 @@ interface PaginateProps<T> {
 	extraProps: Record<string, string>;
 }
 
-const pageSchema = z.coerce.number().catch(1);
+const PageSchema = z.coerce.number().positive().catch(1);
 export const paginate = <T>({
 	items,
 	context,
 	size,
 	extraProps,
 }: PaginateProps<T>) => {
-	const current = pageSchema.parse(context.url.searchParams.get("page"));
+	const current = PageSchema.parse(context.url.searchParams.get("page"));
 	const offset = (current - 1) * size;
 
 	const pageItems = items.slice(offset, offset + size);
