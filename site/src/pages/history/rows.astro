@@ -68,8 +68,6 @@ const getPreviousStats = ({ accountId, id }: (typeof page.items)[number]) =>
 					{...(page.isLastElement(idx) && page.props)}
 					class="group text-center"
 				>
-					<td>{snapshotDate}</td>
-
 					<UsernameColumn {id} {username} {nickname} viewTransition={false} />
 
 					{STAT_NAMES.map((key) => (
@@ -83,6 +81,8 @@ const getPreviousStats = ({ accountId, id }: (typeof page.items)[number]) =>
 						value={stats.titles}
 						previousValue={previousStats?.titles}
 					/>
+
+					<td class="sticky right-0 z-10">{snapshotDate}</td>
 				</tr>
 			),
 		)
