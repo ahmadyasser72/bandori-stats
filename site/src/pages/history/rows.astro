@@ -82,7 +82,11 @@ const getPreviousStats = ({ accountId, id }: (typeof page.items)[number]) =>
 						previousValue={previousStats?.titles}
 					/>
 
-					<td class="sticky right-0 z-10">{snapshotDate}</td>
+					<td class="sticky right-0 z-10 pr-0">
+						<span class="group-even:bg-base-200 rounded-l-field group-odd:bg-base-100 -mr-4 inline-flex h-8 items-center px-2">
+							{snapshotDate}
+						</span>
+					</td>
 				</tr>
 			),
 		)
