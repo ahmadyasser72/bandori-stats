@@ -4,6 +4,7 @@ export const onRequest = defineMiddleware(
 	async ({ isPrerendered, routePattern }, next) => {
 		const response = await next();
 		if (
+			import.meta.env.PROD &&
 			!isPrerendered &&
 			(routePattern.startsWith("/leaderboard") ||
 				routePattern.startsWith("/history"))
