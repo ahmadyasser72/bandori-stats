@@ -6,7 +6,7 @@ export const onRequest = defineMiddleware(
 		if (!isPrerendered && url.pathname.startsWith("/leaderboard")) {
 			response.headers.set(
 				"cache-control",
-				"max-age=3600, stale-while-revalidate=60",
+				"max-age=60, stale-while-revalidate=3600",
 			);
 		}
 
