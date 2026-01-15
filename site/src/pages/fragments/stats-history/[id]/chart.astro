@@ -5,15 +5,14 @@ import { redis } from "@bandori-stats/database/redis";
 import { titleCase } from "text-case";
 
 import { defineRadarChart } from "~/lib/chart";
-import dayjs from "~/lib/date";
+import dayjs, { parseDate } from "~/lib/date";
 import { formatNumber } from "~/lib/math";
-import { schema } from "../../_params";
 import DisplayName from "./_display-name.astro";
 
 export const partial = true;
 
 const id = Number(Astro.params.id);
-const date = schema.date.parse(Astro.url.searchParams.get("date"));
+const date = parseDate(Astro.url.searchParams.get("date"));
 const account = await db.query.accounts.findFirst({
 	columns: { id: true, username: true, nickname: true },
 	with: {

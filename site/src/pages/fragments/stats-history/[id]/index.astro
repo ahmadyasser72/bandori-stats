@@ -2,14 +2,14 @@
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import { db } from "@bandori-stats/database";
 
-import { schema } from "../../_params";
+import { parseDate } from "~/lib/date";
 import DisplayName from "./_display-name.astro";
 import StatsBadge from "./_stats-badge.astro";
 
 export const partial = true;
 
 const id = Number(Astro.params.id);
-const date = schema.date.parse(Astro.url.searchParams.get("date"));
+const date = parseDate(Astro.url.searchParams.get("date"));
 const account = await db.query.accounts.findFirst({
 	columns: { username: true, nickname: true },
 	with: {
@@ -54,7 +54,7 @@ if (isNotFound) Astro.response.status = 404;
 									class="flex flex-col"
 								>
 									<button
-										hx-get={`/leaderboard/stats/${id}/chart`}
+										hx-get={`/fragments/stats-history/${id}/chart`}
 										hx-target="body"
 										hx-swap="beforeend"
 										hx-disabled-elt=".snapshot-button"
@@ -97,7 +97,7 @@ if (isNotFound) Astro.response.status = 404;
 													class="titles flex flex-wrap justify-center gap-x-1 gap-y-1.5 *:w-24 sm:*:w-32"
 												>
 													<div
-														hx-get={`/leaderboard/stats/${id}/titles`}
+														hx-get={`/fragments/stats-history/${id}/titles`}
 														hx-swap="outerHTML"
 														hx-trigger="intersect once"
 														class="skeleton aspect-23/5"

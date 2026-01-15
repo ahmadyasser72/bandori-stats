@@ -1,10 +1,9 @@
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import z from "zod";
 
-import dayjs from "~/lib/date";
+import { parseDate } from "~/lib/date";
 
 export const schema = {
-	date: z.iso.date().catch(dayjs.utc().format("YYYY-MM-DD")),
 	rank_by: z.array(z.enum(STAT_NAMES)).transform((items) => ({
 		items: items.length === 0 ? STAT_NAMES : items,
 		default: items.length === 0,
@@ -21,7 +20,7 @@ export const schema = {
 };
 
 export const parseSearchParams = (s: URLSearchParams) => ({
-	date: schema.date.parse(s.get("date")),
+	date: parseDate(s.get("date")),
 	rank_by: schema.rank_by.parse(s.getAll("rank_by")),
 	sort_latest: schema.sort_latest.parse(s.get("sort_latest")),
 	search_username: schema.search_username.parse(s.get("search_username")),
