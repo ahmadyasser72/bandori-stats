@@ -9,7 +9,7 @@ import StatsBadge from "./_stats-badge.astro";
 export const partial = true;
 
 const id = Number(Astro.params.id);
-const date = schema.date.parse(Astro.params.date);
+const date = schema.date.parse(Astro.url.searchParams.get("date"));
 const account = await db.query.accounts.findFirst({
 	columns: { username: true, nickname: true },
 	with: {
@@ -49,9 +49,12 @@ if (isNotFound) Astro.response.status = 404;
 					<div class="mt-4 flex flex-col-reverse gap-4">
 						{account.snapshots.map(({ snapshotDate, stats }, idx) => (
 							<div class="relative flex gap-2">
-								<div class="flex flex-col">
+								<div
+									hx-vals={JSON.stringify({ date: snapshotDate })}
+									class="flex flex-col"
+								>
 									<button
-										hx-get={`/leaderboard/stats/${id}_${snapshotDate}/chart`}
+										hx-get={`/leaderboard/stats/${id}/chart`}
 										hx-target="body"
 										hx-swap="beforeend"
 										hx-disabled-elt=".snapshot-button"
@@ -94,7 +97,7 @@ if (isNotFound) Astro.response.status = 404;
 													class="titles flex flex-wrap justify-center gap-x-1 gap-y-1.5 *:w-24 sm:*:w-32"
 												>
 													<div
-														hx-get={`/leaderboard/stats/${id}_${snapshotDate}/titles`}
+														hx-get={`/leaderboard/stats/${id}/titles`}
 														hx-swap="outerHTML"
 														hx-trigger="intersect once"
 														class="skeleton aspect-23/5"

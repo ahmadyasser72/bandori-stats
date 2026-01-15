@@ -13,7 +13,7 @@ import DisplayName from "./_display-name.astro";
 export const partial = true;
 
 const id = Number(Astro.params.id);
-const date = schema.date.parse(Astro.params.date);
+const date = schema.date.parse(Astro.url.searchParams.get("date"));
 const account = await db.query.accounts.findFirst({
 	columns: { id: true, username: true, nickname: true },
 	with: {
