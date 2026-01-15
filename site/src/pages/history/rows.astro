@@ -70,6 +70,8 @@ const getPreviousStats = ({ accountId, id }: (typeof page.items)[number]) =>
 				>
 					<UsernameColumn {id} {username} {nickname} viewTransition={false} />
 
+					<td>{snapshotDate}</td>
+
 					{STAT_NAMES.map((key) => (
 						<StatsColumn
 							value={stats[key]}
@@ -81,12 +83,6 @@ const getPreviousStats = ({ accountId, id }: (typeof page.items)[number]) =>
 						value={stats.titles}
 						previousValue={previousStats?.titles}
 					/>
-
-					<td class="sticky right-0 z-10 pr-0">
-						<span class="group-even:bg-base-200 rounded-l-field group-odd:bg-base-100 -mr-4 inline-flex h-8 items-center px-2">
-							{snapshotDate}
-						</span>
-					</td>
 				</tr>
 			),
 		)
