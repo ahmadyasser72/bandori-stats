@@ -7,9 +7,9 @@
 		"./schema/*": "./src/schema/*.ts"
 	},
 	"dependencies": {
-		"zod": "4.2.1"
+		"zod": "4.3.5"
 	},
 	"devDependencies": {
-		"@types/node": "25.0.3"
+		"@types/node": "25.0.9"
 	}
 }
