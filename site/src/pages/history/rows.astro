@@ -3,6 +3,7 @@ import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import { db } from "@bandori-stats/database";
 
 import UsernameColumn from "~/lib/components/username-column.astro";
+import dayjs from "~/lib/date";
 import { paginate } from "~/lib/paginate";
 import StatsColumn from "./_stats-column.astro";
 
@@ -35,7 +36,7 @@ const previousSnapshots = (
 		where: { id: { in: page.items.map(({ accountId }) => accountId) } },
 		with: {
 			snapshots: {
-				columns: { accountId: true, stats: true },
+				columns: { accountId: true, stats: true, snapshotDate: true },
 				where: { id: { lt: page.items.at(-1)!.id } },
 				limit: 1,
 			},
@@ -43,16 +44,14 @@ const previousSnapshots = (
 	})
 ).flatMap(({ snapshots }) => snapshots);
 
-const getPreviousStats = ({ accountId, id }: (typeof page.items)[number]) =>
-	(
-		page.items.find((it) => it.accountId === accountId && it.id < id) ??
-		previousSnapshots.find((it) => it.accountId === accountId)
-	)?.stats;
+const getPreviousSnapshot = ({ accountId, id }: (typeof page.items)[number]) =>
+	page.items.find((it) => it.accountId === accountId && it.id < id) ??
+	previousSnapshots.find((it) => it.accountId === accountId);
 ---
 
 {
 	page.items
-		.map((item) => ({ ...item, previousStats: getPreviousStats(item) }))
+		.map((item) => ({ ...item, previousSnapshot: getPreviousSnapshot(item) }))
 		.map(
 			(
 				{
@@ -60,7 +59,7 @@ const getPreviousStats = ({ accountId, id }: (typeof page.items)[number]) =>
 					accountId,
 					snapshotDate,
 					stats,
-					previousStats,
+					previousSnapshot,
 					account: { username, nickname },
 				},
 				idx,
@@ -92,18 +91,29 @@ const getPreviousStats = ({ accountId, id }: (typeof page.items)[number]) =>
 						</button>
 					</td>
 
-					<td>{snapshotDate}</td>
+					<td>
+						{previousSnapshot?.snapshotDate ? (
+							<div class="flex flex-col">
+								<span>{snapshotDate}</span>
+								<span class="scale-90">
+									from {dayjs(previousSnapshot.snapshotDate).from(snapshotDate)}
+								</span>
+							</div>
+						) : (
+							snapshotDate
+						)}
+					</td>
 
 					{STAT_NAMES.map((key) => (
 						<StatsColumn
 							value={stats[key]}
-							previousValue={previousStats?.[key]}
+							previousValue={previousSnapshot?.stats?.[key]}
 						/>
 					))}
 
 					<StatsColumn
 						value={stats.titles}
-						previousValue={previousStats?.titles}
+						previousValue={previousSnapshot?.stats?.titles}
 					/>
 				</tr>
 			),
