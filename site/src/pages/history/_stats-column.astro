@@ -17,10 +17,17 @@ const delta = compareValue(value, previousValue);
 
 <td
 	class:list={[
-		(!value && "font-medium opacity-40") ||
-			(delta === 0 ? "opacity-60" : "font-medium"),
+		(!value && "font-medium opacity-40") || (delta > 0 && "font-semibold"),
 	]}
 >
-	{displayValue(value)}
-	{delta > 0 && ` (+${formatNumber(delta, true)})`}
+	{
+		delta > 0 ? (
+			<div class="flex flex-col">
+				<span>{displayValue(value)}</span>
+				<span>(+{formatNumber(delta, true)})</span>
+			</div>
+		) : (
+			displayValue(value)
+		)
+	}
 </td>
