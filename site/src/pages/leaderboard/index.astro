@@ -5,11 +5,9 @@ import { titleCase } from "text-case";
 
 import BaseLayout from "~/layouts/base-layout.astro";
 import dayjs from "~/lib/date";
-import { parseSearchParams } from "./_params";
+import { schema } from "./_schema";
 
-const { rank_by, sort_latest, favorite } = parseSearchParams(
-	Astro.url.searchParams,
-);
+const { rank_by, sort_latest, favorite } = schema.parse(Astro.locals.query);
 
 const { minDate, maxDate } = await (async () => {
 	const [, [first]] = await redis.scan("0", {
@@ -128,7 +126,7 @@ const { minDate, maxDate } = await (async () => {
 									class="rank-by btn btn-sm checked:btn-accent not-group-has-[.rank-by:checked]:not-checked:btn-ghost group-has-[.rank-by:checked]:not-checked:btn-neutral group-has-[.rank-by:checked]:not-checked:line-through"
 									name="rank_by"
 									value={name}
-									checked={!rank_by.default && rank_by.items.includes(name)}
+									checked={!rank_by.isDefault && rank_by.items.has(name)}
 									aria-label={titleCase(name.replace(/Count$/, ""))}
 									hx-get="/leaderboard/rows"
 								/>

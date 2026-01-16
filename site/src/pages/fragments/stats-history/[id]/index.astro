@@ -2,14 +2,14 @@
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import { db } from "@bandori-stats/database";
 
-import { parseDate } from "~/lib/date";
+import { dateSchema } from "~/lib/schema";
 import DisplayName from "./_display-name.astro";
 import StatsBadge from "./_stats-badge.astro";
 
 export const partial = true;
 
 const id = Number(Astro.params.id);
-const date = parseDate(Astro.url.searchParams.get("date"));
+const date = dateSchema.parse(Astro.locals.query.date);
 const account = await db.query.accounts.findFirst({
 	columns: { username: true, nickname: true },
 	with: {

@@ -6,12 +6,13 @@ import { redis } from "@bandori-stats/database/redis";
 import UsernameColumn from "~/lib/components/username-column.astro";
 import { displayValue, mean } from "~/lib/math";
 import { paginate } from "~/lib/paginate";
-import { parseSearchParams } from "./_params";
+import { schema } from "./_schema";
 
 export const partial = true;
 
-const { date, rank_by, sort_latest, search_username, favorite } =
-	parseSearchParams(Astro.url.searchParams);
+const { date, rank_by, sort_latest, search_username, favorite } = schema.parse(
+	Astro.locals.query,
+);
 
 {
 	const replaceUrl = new URL("/leaderboard", Astro.url);
@@ -19,7 +20,7 @@ const { date, rank_by, sort_latest, search_username, favorite } =
 	if (sort_latest)
 		replaceUrl.searchParams.set("sort_latest", String(sort_latest));
 
-	if (!rank_by.default) {
+	if (!rank_by.isDefault) {
 		rank_by.items.forEach((it) =>
 			replaceUrl.searchParams.append("rank_by", it),
 		);
@@ -41,7 +42,7 @@ const leaderboardIndex = await (async () => {
 
 	const entries = await p.exec<number[][]>();
 	return new Map(
-		rank_by.items.map((name, idx) => [
+		[...rank_by.items].map((name, idx) => [
 			name,
 			new Map(
 				entries[idx]
@@ -70,7 +71,7 @@ const rows = await (async () => {
 		.filter(({ snapshots }) => snapshots.length > 0)
 		.map(({ snapshots: [{ snapshotDate, stats }], ...account }) => {
 			const scores = mean(
-				rank_by.items.map((name) => {
+				[...rank_by.items].map((name) => {
 					const value = stats[name];
 					if (value === null) return 0;
 
@@ -188,7 +189,7 @@ const page = paginate({
 					({ key, value }) => (
 						<td
 							class:list={[
-								(!rank_by.items.includes(key) && "line-through opacity-60") ||
+								(!rank_by.items.has(key) && "line-through opacity-60") ||
 									(!value && "font-medium opacity-40"),
 							]}
 						>
