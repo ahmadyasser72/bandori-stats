@@ -37,6 +37,7 @@ const previousSnapshots = (
 		with: {
 			snapshots: {
 				columns: { accountId: true, stats: true, snapshotDate: true },
+				orderBy: { snapshotDate: "desc" },
 				where: { id: { lt: page.items.at(-1)!.id } },
 				limit: 1,
 			},
