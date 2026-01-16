@@ -25,8 +25,9 @@ const { minDate, maxDate } = await (async () => {
 
 <BaseLayout title="Leaderboard">
 	<div
-		hx-include="[name='rank_by'], [name='sort_latest'], [name='date'], [name='search_username'], [name='favorite']"
-		hx-on:htmx-before-request="event.target.matches('input') && this.scrollTo({ top: 0, behavior: 'smooth'})"
+		hx-include=".leaderboard-options"
+		hx-on:htmx-before-request="event.target.matches('.leaderboard-options') && this.scrollTo({ top: 0, behavior: 'smooth'})"
+		hx-on:htmx-before-swap="event.detail.elt.matches('.leaderboard-options') && (event.detail.target = this.querySelector('tbody')) && (event.detail.swapOverride = 'innerHTML transition:true')"
 		class="absolute inset-0 overflow-x-auto"
 	>
 		<div class="breadcrumbs sticky left-0 z-20 px-4 sm:px-8">
@@ -39,24 +40,17 @@ const { minDate, maxDate } = await (async () => {
 						type="date"
 						min={minDate}
 						max={maxDate}
-						class="input input-xs input-ghost ml-2 w-28 no-underline"
+						class="leaderboard-options input input-xs input-ghost ml-2 w-28 no-underline"
 						name="date"
 						value={maxDate}
 						hx-get="/leaderboard/rows"
-						hx-target="tbody"
-						hx-indicator="#app-loader, tbody"
-						hx-swap="innerHTML transition:true"
 					/>
 				</li>
 			</ul>
 		</div>
 
 		<table class="table-sm table-zebra table">
-			<thead
-				hx-target="tbody"
-				hx-indicator="#app-loader"
-				hx-swap="innerHTML transition:true"
-			>
+			<thead>
 				<tr class="group bg-base-100 sticky top-0 z-20">
 					<th class="min-w-14"></th>
 
@@ -71,7 +65,7 @@ const { minDate, maxDate } = await (async () => {
 							<div class="join">
 								<input
 									type="search"
-									class="input join-item input-sm w-36"
+									class="leaderboard-options input join-item input-sm w-36"
 									name="search_username"
 									placeholder="Search..."
 									hx-get="/leaderboard/rows"
@@ -99,7 +93,7 @@ const { minDate, maxDate } = await (async () => {
 						<input
 							id="sort_latest"
 							type="checkbox"
-							class="peer sr-only"
+							class="leaderboard-options peer sr-only"
 							name="sort_latest"
 							value="true"
 							checked={sort_latest}
@@ -123,7 +117,7 @@ const { minDate, maxDate } = await (async () => {
 							<th>
 								<input
 									type="checkbox"
-									class="rank-by btn btn-sm checked:btn-accent not-group-has-[.rank-by:checked]:not-checked:btn-ghost group-has-[.rank-by:checked]:not-checked:btn-neutral group-has-[.rank-by:checked]:not-checked:line-through"
+									class="leaderboard-options rank-by btn btn-sm checked:btn-accent not-group-has-[.rank-by:checked]:not-checked:btn-ghost group-has-[.rank-by:checked]:not-checked:btn-neutral group-has-[.rank-by:checked]:not-checked:line-through"
 									name="rank_by"
 									value={name}
 									checked={!rank_by.isDefault && rank_by.items.has(name)}

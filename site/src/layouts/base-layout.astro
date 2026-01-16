@@ -18,7 +18,7 @@ const { title } = Astro.props;
 	</head>
 	<body>
 		<div class="container mx-auto flex h-screen flex-col py-2">
-			<main class="relative flex-1 shadow-sm">
+			<main hx-indicator="#app-loader" class="relative flex-1 shadow-sm">
 				<slot />
 			</main>
 		</div>
@@ -38,7 +38,7 @@ const { title } = Astro.props;
 <script>
 	import htmx from "htmx.org";
 
-	htmx.onLoad(async (node) => {
+	htmx.onLoad((node) => {
 		if (!(node instanceof HTMLElement)) return;
 
 		if (node instanceof HTMLDialogElement) {
@@ -51,9 +51,10 @@ const { title } = Astro.props;
 			node.classList.contains("skeleton") &&
 			node.classList.contains("border")
 		) {
-			const done = () => node.classList.remove("skeleton", "border");
-			if (node.complete) done();
-			else node.addEventListener("load", done, { once: true });
+			const image = node;
+			const done = () => image.classList.remove("skeleton", "border");
+			if (image.complete) done();
+			else image.addEventListener("load", done, { once: true });
 		}
 	});
 
@@ -64,6 +65,21 @@ const { title } = Astro.props;
 
 		const { useRadarChart } = await import("~/lib/chart");
 		await useRadarChart(canvas, JSON.parse(canvas.dataset.radarChart!));
+	});
+
+	htmx.on("htmx:beforeSwap", (e) => {
+		const event = e as Event & {
+			detail: {
+				serverResponse: string;
+				target: HTMLElement;
+				swapOverride: string;
+			};
+		};
+
+		if (event.detail.serverResponse.startsWith("<dialog")) {
+			event.detail.target = document.body;
+			event.detail.swapOverride = "beforeend";
+		}
 	});
 </script>
 <script src="iconify-icon"></script>

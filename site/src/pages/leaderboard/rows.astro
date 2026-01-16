@@ -147,26 +147,23 @@ const page = paginate({
 					viewTransition={page.current === 1}
 				/>
 
-				<td hx-disinherit="hx-indicator">
+				<td>
 					<div class="flex items-center gap-1">
 						<input
-							hx-get="/leaderboard/rows"
-							hx-target="closest tbody"
-							hx-indicator="#app-loader"
-							hx-swap="innerHTML transition:true"
 							type="checkbox"
 							name="favorite"
 							value={username}
 							checked={favorite.has(username)}
-							class="mask mask-star dark:bg-neutral bg-primary checked:bg-primary-content checked:dark:bg-primary size-7 cursor-pointer appearance-none"
+							class="leaderboard-options mask mask-star dark:bg-neutral bg-primary checked:bg-primary-content checked:dark:bg-primary size-7 cursor-pointer appearance-none"
 							aria-label={`Favorite ${nickname ?? username}`}
+							hx-get="/leaderboard/rows"
+							hx-indicator="#app-loader"
 						/>
 
 						<button
 							hx-get={`/fragments/stats-history/${id}`}
-							hx-target="body"
-							hx-swap="beforeend"
-							hx-disabled-elt=".stats-history"
+							hx-indicator="this"
+							hx-disabled-elt="button.stats-history"
 							class="stats-history btn btn-primary btn-sm btn-circle"
 						>
 							<iconify-icon
