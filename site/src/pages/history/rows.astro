@@ -57,6 +57,7 @@ const getPreviousStats = ({ accountId, id }: (typeof page.items)[number]) =>
 			(
 				{
 					id,
+					accountId,
 					snapshotDate,
 					stats,
 					previousStats,
@@ -69,6 +70,27 @@ const getPreviousStats = ({ accountId, id }: (typeof page.items)[number]) =>
 					class="group text-center"
 				>
 					<UsernameColumn {id} {username} {nickname} viewTransition={false} />
+
+					<td>
+						<button
+							hx-get={`/fragments/stats-history/${accountId}`}
+							hx-indicator="this"
+							hx-disabled-elt="button.stats-history"
+							hx-vals={JSON.stringify({ date: snapshotDate })}
+							class="stats-history btn btn-primary btn-sm btn-circle"
+						>
+							<iconify-icon
+								icon="lucide:history"
+								width="none"
+								class="htmx-indicator-replace size-4"
+							/>
+							<iconify-icon
+								icon="svg-spinners:90-ring-with-bg"
+								width="none"
+								class="htmx-indicator size-4"
+							/>
+						</button>
+					</td>
 
 					<td>{snapshotDate}</td>
 
