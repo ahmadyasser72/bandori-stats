@@ -97,7 +97,12 @@ const getPreviousSnapshot = ({ accountId, id }: (typeof page.items)[number]) =>
 							<div class="flex flex-col">
 								<span>{snapshotDate}</span>
 								<span class="scale-90">
-									from {dayjs(previousSnapshot.snapshotDate).from(snapshotDate)}
+									from{" "}
+									{dayjs(previousSnapshot.snapshotDate).from(
+										snapshotDate,
+										true,
+									)}{" "}
+									before
 								</span>
 							</div>
 						) : (
