@@ -1,5 +1,5 @@
 // @ts-check
-import { defineConfig } from "astro/config";
+import { defineConfig, envField } from "astro/config";
 
 import cloudflare from "@astrojs/cloudflare";
 import tailwindcss from "@tailwindcss/vite";
@@ -8,6 +8,24 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
 	adapter: cloudflare({ imageService: "passthrough" }),
 	output: "server",
+
+	env: {
+		schema: {
+			DATABASE_URL: envField.string({ access: "secret", context: "server" }),
+			DATABASE_AUTH_TOKEN: envField.string({
+				access: "secret",
+				context: "server",
+			}),
+			UPSTASH_REDIS_REST_URL: envField.string({
+				access: "secret",
+				context: "server",
+			}),
+			UPSTASH_REDIS_REST_TOKEN: envField.string({
+				access: "secret",
+				context: "server",
+			}),
+		},
+	},
 
 	vite: {
 		plugins: [tailwindcss()],
@@ -20,6 +38,12 @@ export default defineConfig({
 					chunkFileNames: "js/[hash:10].js",
 				},
 			},
+		},
+
+		server: {
+			allowedHosts: [
+				"subscription-syndicate-ordinance-specified.trycloudflare.com",
+			],
 		},
 	},
 	devToolbar: { enabled: false },
