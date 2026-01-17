@@ -52,9 +52,10 @@ interface CommandInteractionResponse {
 				flags: InteractionResponseFlags;
 				components: MessageComponent[];
 		  }
-		| { choices: { name: string; value: string | number }[] };
+		| { choices: { name: string; value: string | number }[] }
+		| { flags: InteractionResponseFlags; content: string };
 }
 
 export type CommandHandler = (
 	payload: CommandInteraction,
-) => Promise<CommandInteractionResponse | void>;
+) => Promise<CommandInteractionResponse>;

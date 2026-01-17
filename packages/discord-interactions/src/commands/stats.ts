@@ -71,7 +71,16 @@ export const handle: CommandHandler = async ({ type, data }) => {
 					? data.options?.find(({ name }) => name === "username")?.value
 					: data.custom_id?.replace("stats_select_date_", ""),
 			);
-			if (Number.isNaN(accountId)) return;
+
+			if (Number.isNaN(accountId)) {
+				return {
+					type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+					data: {
+						flags: InteractionResponseFlags.EPHEMERAL,
+						content: "Invalid account selected.",
+					},
+				};
+			}
 
 			const account = await db.query.accounts.findFirst({
 				columns: { nickname: true, username: true },
@@ -83,7 +92,16 @@ export const handle: CommandHandler = async ({ type, data }) => {
 					},
 				},
 			});
-			if (!account) return;
+
+			if (!account) {
+				return {
+					type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+					data: {
+						flags: InteractionResponseFlags.EPHEMERAL,
+						content: "Account not found",
+					},
+				};
+			}
 
 			const components = [] as MessageComponent[];
 			const { username, nickname, snapshots } = account;
@@ -100,7 +118,16 @@ export const handle: CommandHandler = async ({ type, data }) => {
 				type === InteractionType.APPLICATION_COMMAND
 					? snapshots[0]
 					: snapshots.find((it) => it.snapshotDate === data.values?.at(0));
-			if (!current) return;
+
+			if (!current) {
+				return {
+					type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+					data: {
+						flags: InteractionResponseFlags.EPHEMERAL,
+						content: "Snapshot not found",
+					},
+				};
+			}
 
 			components.push({
 				type: MessageComponentTypes.TEXT_DISPLAY,
@@ -167,7 +194,14 @@ export const handle: CommandHandler = async ({ type, data }) => {
 			};
 		}
 
-		default:
-			break;
+		default: {
+			return {
+				type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+				data: {
+					flags: InteractionResponseFlags.EPHEMERAL,
+					content: "Unsupported interaction",
+				},
+			};
+		}
 	}
 };
