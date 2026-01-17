@@ -33,7 +33,10 @@ app
 		if (interaction.type === InteractionType.PING)
 			return c.json({ type: InteractionResponseType.PONG });
 
-		if (interaction.data.name === "stats") {
+		if (
+			interaction.data.name === "stats" ||
+			interaction.data.custom_id?.startsWith("stats_")
+		) {
 			const { handle } = await import("./commands/stats");
 			const response = await handle(interaction);
 			if (response) return c.json(response);

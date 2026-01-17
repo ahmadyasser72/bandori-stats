@@ -71,7 +71,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 					? data.options
 							?.find(({ name }) => name === "username")
 							?.value.toString()
-					: data.custom_id?.replace("select_date_", "");
+					: data.custom_id?.replace("stats_select_date_", "");
 			if (!username) return;
 
 			const account = (await db.query.accounts.findFirst({
@@ -105,7 +105,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 
 			components.push({
 				type: MessageComponentTypes.TEXT_DISPLAY,
-				content: `**Last updated**: \`${current.snapshotDate}\``,
+				content: `**Date**: \`${current.snapshotDate}\``,
 			});
 			components.push({ type: MessageComponentTypes.SEPARATOR });
 
@@ -142,13 +142,14 @@ export const handle: CommandHandler = async ({ type, data }) => {
 					components: [
 						{
 							type: MessageComponentTypes.STRING_SELECT,
-							custom_id: `select_date_${username}`,
-							options: account.snapshots.map(({ snapshotDate }) => ({
+							custom_id: `stats_select_date_${username}`,
+							placeholder: "View stats on different date",
+							options: account.snapshots.map(({ snapshotDate }, idx) => ({
 								label: snapshotDate,
 								description:
-									current.snapshotDate === snapshotDate
-										? "(active)"
-										: undefined,
+									(idx === 0 && "(latest)") ||
+									(current.snapshotDate === snapshotDate && "(current)") ||
+									undefined,
 								value: snapshotDate,
 							})),
 						},
