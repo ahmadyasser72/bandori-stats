@@ -143,14 +143,13 @@ export const handle: CommandHandler = async ({ type, data }) => {
 							type: MessageComponentTypes.STRING_SELECT,
 							custom_id: `stats_select_date_${accountId}`,
 							placeholder: "View stats on different date",
-							options: account.snapshots.map(({ snapshotDate }, idx) => ({
-								label: snapshotDate,
-								description:
-									(idx === 0 && "(latest)") ||
-									(current.snapshotDate === snapshotDate && "(current)") ||
-									undefined,
-								value: snapshotDate,
-							})),
+							options: account.snapshots
+								.filter((it) => it.snapshotDate !== current.snapshotDate)
+								.map(({ snapshotDate }, idx) => ({
+									label: snapshotDate,
+									description: idx === 0 ? "(most recent)" : undefined,
+									value: snapshotDate,
+								})),
 						},
 					],
 				},
