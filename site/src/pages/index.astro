@@ -5,33 +5,45 @@ export const prerender = true;
 ---
 
 <BaseLayout title="Homepage">
-	<div class="absolute inset-0 flex flex-col justify-center gap-2 text-center">
+	<div
+		hx-boost="true"
+		class="absolute inset-0 flex flex-col items-center justify-center"
+	>
 		<h1 class="font-medium">bandori-stats</h1>
 
-		<div
-			hx-boost="true"
-			class="flex flex-wrap justify-center gap-y-1 divide-x *:px-4"
-		>
-			<a href="/leaderboard" class="link">Leaderboard</a>
-			<a href="/history" class="link">History</a>
+		<div class="mt-4 flex flex-wrap justify-center gap-2">
+			<a href="/leaderboard" class="btn btn-sm btn-primary">
+				<iconify-icon icon="lucide:trophy" class="size-4" width="none"
+				></iconify-icon>
+				Leaderboard
+			</a>
+			<a href="/history" class="btn btn-sm btn-primary">
+				<iconify-icon icon="lucide:calendar-clock" class="size-4" width="none"
+				></iconify-icon>
+				History
+			</a>
+		</div>
 
+		<div class="mt-2 flex flex-wrap justify-center gap-2">
 			<a
 				href="https://github.com/ahmadyasser72/bandori-stats"
 				target="_blank"
 				rel="noopener noreferrer"
-				class="link inline-flex items-center gap-2"
+				class="btn btn-accent"
 			>
+				<iconify-icon icon="line-md:github-loop" class="size-5" width="none"
+				></iconify-icon>
 				Source code
-				<iconify-icon icon="line-md:github-loop" width="20"></iconify-icon>
 			</a>
 			<a
 				href="/discord/invite"
 				target="_blank"
 				rel="noopener noreferrer"
-				class="link inline-flex items-center gap-2"
+				class="btn btn-accent"
 			>
+				<iconify-icon icon="line-md:discord" class="size-5" width="none"
+				></iconify-icon>
 				Discord bot
-				<iconify-icon icon="line-md:discord" width="20"></iconify-icon>
 			</a>
 		</div>
 	</div>
