@@ -1,5 +1,6 @@
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import {
+	ButtonStyleTypes,
 	InteractionResponseFlags,
 	InteractionResponseType,
 	InteractionType,
@@ -18,7 +19,7 @@ export const command = {
 	options: [
 		{
 			name: "username",
-			description: "Account username",
+			description: "Bestdori! username",
 			type: CommandOptionType.STRING,
 			required: true,
 			autocomplete: true,
@@ -68,23 +69,33 @@ export const handle: CommandHandler = async ({ type, data }) => {
 			});
 			components.push({ type: MessageComponentTypes.SEPARATOR });
 
-			if (stats) {
-				const numberFormatter = Intl.NumberFormat("en-US");
+			const numberFormatter = Intl.NumberFormat("en-US");
+			components.push({
+				type: MessageComponentTypes.TEXT_DISPLAY,
+				content: STAT_NAMES.map((name) => {
+					const value = stats[name];
+					return `**${titleCase(name.replace("Count", ""))}**: ${value ? numberFormatter.format(value) : "N/A"}`;
+				}).join("\n"),
+			});
+
+			if (stats.titles) {
 				components.push({
 					type: MessageComponentTypes.TEXT_DISPLAY,
-					content: STAT_NAMES.map((name) => {
-						const value = stats[name];
-						return `**${titleCase(name.replace("Count", ""))}**: ${value ? numberFormatter.format(value) : "N/A"}`;
-					}).join("\n"),
+					content: `**Titles unlocked**: ${stats.titles.length}`,
 				});
-
-				if (stats.titles) {
-					components.push({
-						type: MessageComponentTypes.TEXT_DISPLAY,
-						content: `**Titles unlocked**: ${stats.titles.length}`,
-					});
-				}
 			}
+
+			components.push({
+				type: MessageComponentTypes.ACTION_ROW,
+				components: [
+					{
+						type: MessageComponentTypes.BUTTON,
+						style: ButtonStyleTypes.LINK,
+						label: "Bestdori! Profile",
+						url: `https://bestdori.com/community/user/${username}`,
+					},
+				],
+			});
 
 			return {
 				type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
