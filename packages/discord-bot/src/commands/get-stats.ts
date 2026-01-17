@@ -13,7 +13,7 @@ import dayjs from "../date";
 import { CommandOptionType, type Command, type CommandHandler } from "./types";
 
 export const command = {
-	name: "stats",
+	name: "get-stats",
 	description: "Get account stats",
 	type: 1,
 	contexts: [0, 1, 2],
@@ -70,7 +70,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 			const accountId = Number(
 				type === InteractionType.APPLICATION_COMMAND
 					? data.options?.find(({ name }) => name === "username")?.value
-					: data.custom_id?.replace("stats_select_date_", ""),
+					: data.custom_id?.replace("get-stats_select_date_", ""),
 			);
 
 			if (Number.isNaN(accountId)) {
@@ -171,7 +171,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 					components: [
 						{
 							type: MessageComponentTypes.STRING_SELECT,
-							custom_id: `stats_select_date_${accountId}`,
+							custom_id: `get-stats_select_date_${accountId}`,
 							placeholder: "View stats on different date",
 							options: account.snapshots
 								.filter((it) => it.snapshotDate !== current.snapshotDate)

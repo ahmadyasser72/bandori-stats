@@ -1,11 +1,11 @@
-import { command as statsCommand } from "./commands/stats";
+import { command as getStatsCommand } from "./commands/get-stats";
 
 const { DISCORD_APPLICATION_ID, DISCORD_APPLICATION_TOKEN } = process.env;
 if (!DISCORD_APPLICATION_ID || !DISCORD_APPLICATION_TOKEN)
 	throw new Error("Discord credentials are missing.");
 
 const url = `https://discord.com/api/v10/applications/${DISCORD_APPLICATION_ID}/commands`;
-const commands = [statsCommand];
+const commands = [getStatsCommand];
 const response = await fetch(url, {
 	body: JSON.stringify(commands),
 	method: "PUT",

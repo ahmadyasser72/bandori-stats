@@ -32,12 +32,12 @@ const app = new Hono<{ Bindings: Bindings }>()
 			return c.json({ type: InteractionResponseType.PONG });
 
 		if (
-			interaction.data.name === "stats" ||
-			interaction.data.custom_id?.startsWith("stats_")
+			interaction.data.name === "get-stats" ||
+			interaction.data.custom_id?.startsWith("get-stats_")
 		) {
-			const { handle } = await import("./commands/stats");
+			const { handle } = await import("./commands/get-stats");
 			const response = await handle(interaction);
-			if (response) return c.json(response);
+			return c.json(response);
 		}
 	});
 
