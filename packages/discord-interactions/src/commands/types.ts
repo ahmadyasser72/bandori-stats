@@ -39,7 +39,10 @@ export interface CommandInteraction {
 	type: InteractionType;
 	data: {
 		name: string;
-		options: (CommandOption & { focused: boolean; value: string | number })[];
+
+		options?: (CommandOption & { focused: boolean; value: string | number })[];
+		custom_id?: string;
+		values?: string[];
 	};
 }
 interface CommandInteractionResponse {
