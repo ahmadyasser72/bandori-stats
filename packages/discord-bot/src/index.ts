@@ -7,14 +7,12 @@ import { Hono } from "hono";
 
 import type { CommandInteraction } from "./commands/types";
 
-const app = new Hono<{
-	Bindings: {
-		DISCORD_APPLICATION_ID: string;
-		DISCORD_APPLICATION_PUBLIC_KEY: string;
-	};
-}>().basePath("/discord");
+interface Bindings {
+	DISCORD_APPLICATION_ID: string;
+	DISCORD_APPLICATION_PUBLIC_KEY: string;
+}
 
-app
+const app = new Hono<{ Bindings: Bindings }>()
 	.get("/invite", (c) => {
 		return c.redirect(
 			`https://discord.com/oauth2/authorize?client_id=${c.env.DISCORD_APPLICATION_ID}`,
@@ -43,4 +41,4 @@ app
 		}
 	});
 
-export default app;
+export const createHandler = (base: string) => new Hono().route(base, app);

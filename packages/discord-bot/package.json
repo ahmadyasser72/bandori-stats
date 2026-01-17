@@ -1,9 +1,9 @@
 {
-	"name": "@bandori-stats/discord-interactions",
+	"name": "@bandori-stats/discord-bot",
 	"type": "module",
 	"private": true,
 	"exports": {
-		"./app": "./src/index.ts"
+		".": "./src/index.ts"
 	},
 	"dependencies": {
 		"@bandori-stats/database": "workspace:*",

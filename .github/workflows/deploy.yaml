@@ -80,7 +80,7 @@ jobs:
       - name: Register Discord commands
         if: ${{ github.ref == 'refs/heads/main' }}
         run: bun run src/register.ts
-        working-directory: packages/discord-interactions
+        working-directory: packages/discord-bot
         env:
           DISCORD_APPLICATION_ID: ${{ secrets.DISCORD_APPLICATION_ID }}
           DISCORD_APPLICATION_TOKEN: ${{ secrets.DISCORD_APPLICATION_TOKEN }}
