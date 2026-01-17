@@ -56,7 +56,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 					choices: accounts.map(({ id, username, nickname }) => {
 						const hasNickname = nickname && username !== nickname;
 						return {
-							value: id,
+							value: id.toString(),
 							name: hasNickname ? `${nickname} (@${username})` : `@${username}`,
 						};
 					}),
