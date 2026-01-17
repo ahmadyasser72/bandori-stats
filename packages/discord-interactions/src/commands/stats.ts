@@ -32,19 +32,19 @@ export const handle: CommandHandler = async ({ type, data }) => {
 
 	switch (type) {
 		case InteractionType.APPLICATION_COMMAND_AUTOCOMPLETE: {
-			const username = data.options
+			const typed = data.options
 				?.find(({ name, focused }) => name === "username" && focused)
 				?.value.toString();
 
 			const accounts = await db.query.accounts.findMany({
-				columns: { username: true, nickname: true },
+				columns: { id: true, username: true, nickname: true },
 				limit: 25,
-				orderBy: { lastUpdated: "desc", username: "desc" },
-				where: username
+				orderBy: { lastUpdated: "desc", username: "asc" },
+				where: typed
 					? {
 							OR: [
-								{ username: { like: `%${username}%` } },
-								{ nickname: { like: `%${username}%` } },
+								{ username: { like: `%${typed}%` } },
+								{ nickname: { like: `%${typed}%` } },
 							],
 						}
 					: {},
@@ -53,10 +53,10 @@ export const handle: CommandHandler = async ({ type, data }) => {
 			return {
 				type: InteractionResponseType.APPLICATION_COMMAND_AUTOCOMPLETE_RESULT,
 				data: {
-					choices: accounts.map(({ username, nickname }) => {
+					choices: accounts.map(({ id, username, nickname }) => {
 						const hasNickname = nickname && username !== nickname;
 						return {
-							value: username,
+							value: id,
 							name: hasNickname ? `${nickname} (@${username})` : `@${username}`,
 						};
 					}),
@@ -66,41 +66,40 @@ export const handle: CommandHandler = async ({ type, data }) => {
 
 		case InteractionType.MESSAGE_COMPONENT:
 		case InteractionType.APPLICATION_COMMAND: {
-			const username =
+			const accountId = Number(
 				type === InteractionType.APPLICATION_COMMAND
-					? data.options
-							?.find(({ name }) => name === "username")
-							?.value.toString()
-					: data.custom_id?.replace("stats_select_date_", "");
-			if (!username) return;
+					? data.options?.find(({ name }) => name === "username")?.value
+					: data.custom_id?.replace("stats_select_date_", ""),
+			);
+			if (Number.isNaN(accountId)) return;
 
-			const account = (await db.query.accounts.findFirst({
-				columns: { nickname: true },
-				where: { username },
+			const account = await db.query.accounts.findFirst({
+				columns: { nickname: true, username: true },
+				where: { id: accountId },
 				with: {
 					snapshots: {
 						columns: { stats: true, snapshotDate: true },
 						orderBy: { snapshotDate: "desc" },
 					},
 				},
-			}))!;
+			});
+			if (!account) return;
 
 			const components = [] as MessageComponent[];
+			const { username, nickname, snapshots } = account;
 
-			const hasNickname = account.nickname && username !== account.nickname;
+			const hasNickname = nickname && username !== nickname;
 			components.push({
 				type: MessageComponentTypes.TEXT_DISPLAY,
 				content: hasNickname
-					? `# ${account.nickname} (@${username})`
+					? `# ${nickname} (@${username})`
 					: `# @${username}`,
 			});
 
 			const current =
 				type === InteractionType.APPLICATION_COMMAND
-					? account.snapshots[0]
-					: account.snapshots.find(
-							(it) => it.snapshotDate === data.values?.at(0),
-						);
+					? snapshots[0]
+					: snapshots.find((it) => it.snapshotDate === data.values?.at(0));
 			if (!current) return;
 
 			components.push({
@@ -142,7 +141,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 					components: [
 						{
 							type: MessageComponentTypes.STRING_SELECT,
-							custom_id: `stats_select_date_${username}`,
+							custom_id: `stats_select_date_${accountId}`,
 							placeholder: "View stats on different date",
 							options: account.snapshots.map(({ snapshotDate }, idx) => ({
 								label: snapshotDate,
