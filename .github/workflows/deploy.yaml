@@ -62,3 +62,11 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: ${{ github.ref == 'refs/heads/main' && 'deploy' || 'versions upload' }}
           workingDirectory: site/
+
+      - name: Register Discord commands
+        if: ${{ github.ref == 'refs/heads/main' }}
+        run: bun run src/register.ts
+        working-directory: packages/discord-interactions
+        env:
+          DISCORD_APPLICATION_ID: ${{ secrets.DISCORD_APPLICATION_ID }}
+          DISCORD_APPLICATION_TOKEN: ${{ secrets.DISCORD_APPLICATION_TOKEN }}

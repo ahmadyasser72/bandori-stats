@@ -1,0 +1,14 @@
+{
+	"name": "@bandori-stats/discord-interactions",
+	"type": "module",
+	"private": true,
+	"exports": {
+		"./app": "./src/index.ts"
+	},
+	"dependencies": {
+		"@bandori-stats/database": "workspace:*",
+		"discord-interactions": "4.4.0",
+		"hono": "4.11.4",
+		"text-case": "1.2.10"
+	}
+}
