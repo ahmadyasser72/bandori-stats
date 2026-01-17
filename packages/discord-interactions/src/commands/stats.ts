@@ -1,5 +1,4 @@
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
-import { db } from "@bandori-stats/database";
 import {
 	InteractionResponseFlags,
 	InteractionResponseType,
@@ -26,6 +25,8 @@ export const command = {
 } satisfies Command;
 
 export const handle: CommandHandler = async ({ type, data }) => {
+	const { db } = await import("@bandori-stats/database");
+
 	switch (type) {
 		case InteractionType.APPLICATION_COMMAND: {
 			const username = data.options
