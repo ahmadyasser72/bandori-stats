@@ -10,6 +10,7 @@ export interface Command {
 	name: string;
 	description: string;
 	type: 1; // CHAT_INPUT
+	contexts: (0 | 1 | 2)[]; // 0: GUILD, 1: BOT_DM, 2: PRIVATE_CHANNEL
 
 	options: CommandOption[];
 }
