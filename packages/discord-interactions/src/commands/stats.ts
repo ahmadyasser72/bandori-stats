@@ -151,19 +151,20 @@ export const handle: CommandHandler = async ({ type, data }) => {
 				});
 			}
 
-			components.push(
-				{
-					type: MessageComponentTypes.ACTION_ROW,
-					components: [
-						{
-							type: MessageComponentTypes.BUTTON,
-							style: ButtonStyleTypes.LINK,
-							label: "Bestdori! Profile",
-							url: `https://bestdori.com/community/user/${username}`,
-						},
-					],
-				},
-				{
+			components.push({
+				type: MessageComponentTypes.ACTION_ROW,
+				components: [
+					{
+						type: MessageComponentTypes.BUTTON,
+						style: ButtonStyleTypes.LINK,
+						label: "Bestdori! Profile",
+						url: `https://bestdori.com/community/user/${username}`,
+					},
+				],
+			});
+
+			if (snapshots.length > 1) {
+				components.push({
 					type: MessageComponentTypes.ACTION_ROW,
 					components: [
 						{
@@ -172,15 +173,18 @@ export const handle: CommandHandler = async ({ type, data }) => {
 							placeholder: "View stats on different date",
 							options: account.snapshots
 								.filter((it) => it.snapshotDate !== current.snapshotDate)
-								.map(({ snapshotDate }, idx) => ({
+								.map(({ snapshotDate }) => ({
 									label: snapshotDate,
-									description: idx === 0 ? "(most recent)" : undefined,
+									description:
+										snapshotDate === snapshots[0]?.snapshotDate
+											? "(most recent)"
+											: undefined,
 									value: snapshotDate,
 								})),
 						},
 					],
-				},
-			);
+				});
+			}
 
 			return {
 				type:
