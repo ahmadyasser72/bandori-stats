@@ -6,6 +6,7 @@ import {
 	MessageComponentTypes,
 	type MessageComponent,
 } from "discord-interactions";
+import { titleCase } from "text-case";
 
 import { CommandOptionType, type Command, type CommandHandler } from "./types";
 
@@ -51,20 +52,28 @@ export const handle: CommandHandler = async ({ type, data }) => {
 			components.push({
 				type: MessageComponentTypes.TEXT_DISPLAY,
 				content: hasNickname
-					? [`# ${account.nickname}`, `## @${username}`].join("\n")
+					? `# ${account.nickname} (@${username})`
 					: `# @${username}`,
 			});
 
+			const snapshot = account.snapshots[0];
+			if (!snapshot) return;
+
+			const { snapshotDate, stats } = snapshot;
+
+			components.push({
+				type: MessageComponentTypes.TEXT_DISPLAY,
+				content: `**Last updated**: \`${snapshotDate}\``,
+			});
 			components.push({ type: MessageComponentTypes.SEPARATOR });
 
-			const stats = account.snapshots[0]?.stats;
 			if (stats) {
 				const numberFormatter = Intl.NumberFormat("en-US");
 				components.push({
 					type: MessageComponentTypes.TEXT_DISPLAY,
 					content: STAT_NAMES.map((name) => {
 						const value = stats[name];
-						return `**${name}**: ${value ? numberFormatter.format(value) : "N/A"}`;
+						return `**${titleCase(name.replace("Count", ""))}**: ${value ? numberFormatter.format(value) : "N/A"}`;
 					}).join("\n"),
 				});
 
