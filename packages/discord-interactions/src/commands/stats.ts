@@ -9,6 +9,7 @@ import {
 } from "discord-interactions";
 import { titleCase } from "text-case";
 
+import dayjs from "../date";
 import { CommandOptionType, type Command, type CommandHandler } from "./types";
 
 export const command = {
@@ -178,8 +179,8 @@ export const handle: CommandHandler = async ({ type, data }) => {
 									label: snapshotDate,
 									description:
 										snapshotDate === snapshots[0]?.snapshotDate
-											? "(most recent)"
-											: undefined,
+											? `(most recent, ${dayjs(snapshotDate).fromNow()})`
+											: `(${dayjs(snapshotDate).fromNow()})`,
 									value: snapshotDate,
 								})),
 						},
