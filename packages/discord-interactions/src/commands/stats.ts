@@ -88,6 +88,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 				with: {
 					snapshots: {
 						columns: { stats: true, snapshotDate: true },
+						limit: 26,
 						orderBy: { snapshotDate: "desc" },
 					},
 				},
