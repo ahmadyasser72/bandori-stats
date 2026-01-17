@@ -102,6 +102,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 			const accounts = await db.query.accounts.findMany({
 				columns: { username: true, nickname: true },
 				limit: 25,
+				orderBy: { lastUpdated: "desc", username: "desc" },
 				where: username
 					? {
 							OR: [
