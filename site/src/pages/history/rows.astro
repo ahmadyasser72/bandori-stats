@@ -3,7 +3,6 @@ import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import { db } from "@bandori-stats/database";
 
 import UsernameColumn from "~/lib/components/username-column.astro";
-import dayjs from "~/lib/date";
 import { paginate } from "~/lib/paginate";
 import StatsColumn from "./_stats-column.astro";
 
@@ -95,15 +94,8 @@ const getPreviousSnapshot = ({ accountId, id }: (typeof page.items)[number]) =>
 					<td>
 						{previousSnapshot?.snapshotDate ? (
 							<div class="flex flex-col">
+								<span class="opacity-40">{previousSnapshot.snapshotDate}</span>
 								<span>{snapshotDate}</span>
-								<span class="scale-90">
-									from{" "}
-									{dayjs(previousSnapshot.snapshotDate).from(
-										snapshotDate,
-										true,
-									)}{" "}
-									before
-								</span>
 							</div>
 						) : (
 							snapshotDate
