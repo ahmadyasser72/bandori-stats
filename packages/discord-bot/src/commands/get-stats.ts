@@ -38,7 +38,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 				?.value.toString();
 
 			const accounts = await db.query.accounts.findMany({
-				columns: { id: true, username: true, nickname: true },
+				columns: { username: true, nickname: true },
 				limit: 25,
 				orderBy: { lastUpdated: "desc", username: "asc" },
 				where: typed
@@ -54,10 +54,10 @@ export const handle: CommandHandler = async ({ type, data }) => {
 			return {
 				type: InteractionResponseType.APPLICATION_COMMAND_AUTOCOMPLETE_RESULT,
 				data: {
-					choices: accounts.map(({ id, username, nickname }) => {
+					choices: accounts.map(({ username, nickname }) => {
 						const hasNickname = nickname && username !== nickname;
 						return {
-							value: id.toString(),
+							value: username,
 							name: hasNickname ? `${nickname} (@${username})` : `@${username}`,
 						};
 					}),
@@ -67,13 +67,14 @@ export const handle: CommandHandler = async ({ type, data }) => {
 
 		case InteractionType.MESSAGE_COMPONENT:
 		case InteractionType.APPLICATION_COMMAND: {
-			const accountId = Number(
+			const username =
 				type === InteractionType.APPLICATION_COMMAND
-					? data.options?.find(({ name }) => name === "username")?.value
-					: data.custom_id?.replace("get-stats_select_date_", ""),
-			);
+					? data.options
+							?.find(({ name }) => name === "username")
+							?.value.toString()
+					: data.custom_id?.replace("get-stats_select_date_", "");
 
-			if (Number.isNaN(accountId)) {
+			if (!username) {
 				return {
 					type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
 					data: {
@@ -84,8 +85,8 @@ export const handle: CommandHandler = async ({ type, data }) => {
 			}
 
 			const account = await db.query.accounts.findFirst({
-				columns: { nickname: true, username: true },
-				where: { id: accountId },
+				columns: { nickname: true },
+				where: { username },
 				with: {
 					snapshots: {
 						columns: { stats: true, snapshotDate: true },
@@ -106,20 +107,22 @@ export const handle: CommandHandler = async ({ type, data }) => {
 			}
 
 			const components = [] as MessageComponent[];
-			const { username, nickname, snapshots } = account;
 
-			const hasNickname = !!nickname?.trim() && username !== nickname;
+			const hasNickname =
+				!!account.nickname?.trim() && username !== account.nickname;
 			components.push({
 				type: MessageComponentTypes.TEXT_DISPLAY,
 				content: hasNickname
-					? `# ${nickname} (@${username})`
+					? `# ${account.nickname} (@${username})`
 					: `# @${username}`,
 			});
 
 			const current =
 				type === InteractionType.APPLICATION_COMMAND
-					? snapshots[0]
-					: snapshots.find((it) => it.snapshotDate === data.values?.at(0));
+					? account.snapshots[0]
+					: account.snapshots.find(
+							(it) => it.snapshotDate === data.values?.at(0),
+						);
 
 			if (!current) {
 				return {
@@ -165,21 +168,21 @@ export const handle: CommandHandler = async ({ type, data }) => {
 				],
 			});
 
-			if (snapshots.length > 1) {
+			if (account.snapshots.length > 1) {
 				components.push({
 					type: MessageComponentTypes.ACTION_ROW,
 					components: [
 						{
 							type: MessageComponentTypes.STRING_SELECT,
-							custom_id: `get-stats_select_date_${accountId}`,
+							custom_id: `get-stats_select_date_${username}`,
 							placeholder: "View stats on different date",
 							options: account.snapshots
 								.filter((it) => it.snapshotDate !== current.snapshotDate)
 								.map(({ snapshotDate }) => ({
 									label: snapshotDate,
 									description:
-										snapshotDate === snapshots[0]?.snapshotDate
-											? `(most recent, ${dayjs(snapshotDate).fromNow()})`
+										snapshotDate === account.snapshots[0]?.snapshotDate
+											? `(${dayjs(snapshotDate).fromNow()}, most recent)`
 											: `(${dayjs(snapshotDate).fromNow()})`,
 									value: snapshotDate,
 								})),
