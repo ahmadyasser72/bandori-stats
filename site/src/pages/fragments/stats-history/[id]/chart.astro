@@ -6,7 +6,7 @@ import { titleCase } from "text-case";
 
 import { defineRadarChart } from "~/lib/chart";
 import dayjs from "~/lib/date";
-import { formatNumber } from "~/lib/math";
+import { displayValue } from "~/lib/math";
 import { dateSchema } from "~/lib/schema";
 import DisplayName from "./_display-name.astro";
 
@@ -51,10 +51,7 @@ const chart = await (async () => {
 			const rank = value ? await redis.zcount(key, `(${value}`, "+inf") : n - 1;
 
 			return {
-				tooltip: [
-					value === null ? "Private" : formatNumber(value),
-					`(#${rank + 1})`,
-				].join(" "),
+				tooltip: [displayValue(value), `(#${rank + 1})`].join(" "),
 				value: value === null ? 0 : 1 - rank / (n - 1),
 			};
 		}),

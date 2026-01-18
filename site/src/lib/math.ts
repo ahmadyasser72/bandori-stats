@@ -4,7 +4,7 @@ export type StatValue = Stats[keyof Stats] | undefined;
 const getValue = (it: NonNullable<StatValue>) =>
 	Array.isArray(it) ? it.length : it;
 export const displayValue = (value: StatValue = null) =>
-	value !== null ? formatNumber(getValue(value)) : "Private";
+	value !== null ? formatNumber(getValue(value)) : "N/A";
 export const compareValue = (
 	value: StatValue = null,
 	previousValue: StatValue = null,
