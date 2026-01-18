@@ -134,9 +134,10 @@ export const handle: CommandHandler = async ({ type, data }) => {
 				};
 			}
 
+			const timestamp = dayjs(current.snapshotDate).unix();
 			components.push({
 				type: MessageComponentTypes.TEXT_DISPLAY,
-				content: `**Date**: \`${current.snapshotDate}\``,
+				content: `**Date**: <t:${timestamp}:d> (<t:${timestamp}:R>)`,
 			});
 			components.push({ type: MessageComponentTypes.SEPARATOR });
 
