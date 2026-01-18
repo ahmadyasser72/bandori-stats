@@ -108,7 +108,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 			const components = [] as MessageComponent[];
 			const { username, nickname, snapshots } = account;
 
-			const hasNickname = nickname && username !== nickname;
+			const hasNickname = !!nickname?.trim() && username !== nickname;
 			components.push({
 				type: MessageComponentTypes.TEXT_DISPLAY,
 				content: hasNickname
