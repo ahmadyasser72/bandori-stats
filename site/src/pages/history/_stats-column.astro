@@ -17,7 +17,8 @@ const delta = compareValue(value, previousValue);
 
 <td
 	class:list={[
-		(!value && "font-medium opacity-40") || (delta > 0 && "font-semibold"),
+		(!value && "font-medium opacity-40") ||
+			(delta > 0 ? "font-semibold" : "opacity-60"),
 	]}
 >
 	{
