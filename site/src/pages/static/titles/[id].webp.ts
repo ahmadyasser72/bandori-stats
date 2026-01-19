@@ -1,15 +1,15 @@
+import {
+	BestdoriDegree,
+	fetchDegrees,
+} from "@bandori-stats/bestdori/schema/degree";
+import { redis } from "@bandori-stats/database/redis";
+
 import type {
 	APIRoute,
 	GetStaticPaths,
 	InferGetStaticParamsType,
 	InferGetStaticPropsType,
 } from "astro";
-
-import {
-	BestdoriDegree,
-	fetchDegrees,
-} from "@bandori-stats/bestdori/schema/degree";
-import { redis } from "@bandori-stats/database/redis";
 
 import { fetchBestdori } from "~/lib/bestdori";
 

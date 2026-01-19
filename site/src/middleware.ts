@@ -1,5 +1,4 @@
 import { defineMiddleware } from "astro:middleware";
-
 import z from "zod";
 
 import { maybeArray } from "./lib/schema";

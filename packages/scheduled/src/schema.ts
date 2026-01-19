@@ -1,4 +1,5 @@
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
+
 import z from "zod";
 
 export const StatsSchema = z.strictObject({

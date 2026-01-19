@@ -9,6 +9,7 @@ import {
 } from "@bandori-stats/bestdori/schema/degree";
 import { db, eq } from "@bandori-stats/database";
 import { accounts, accountSnapshots } from "@bandori-stats/database/schema";
+
 import { schemaTask, tags } from "@trigger.dev/sdk";
 import z from "zod";
 

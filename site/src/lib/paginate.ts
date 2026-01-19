@@ -1,5 +1,4 @@
 import type { APIContext } from "astro";
-
 import z from "zod";
 
 interface PaginateProps<T> {
