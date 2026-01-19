@@ -4,6 +4,7 @@
 	"private": true,
 	"exports": {
 		"./constants": "./src/constants.ts",
+		"./helpers": "./src/helpers.ts",
 		"./schema/*": "./src/schema/*.ts"
 	},
 	"dependencies": {

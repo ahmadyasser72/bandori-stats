@@ -1,5 +1,9 @@
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import {
+	accountHasNickname,
+	displayValue,
+} from "@bandori-stats/bestdori/helpers";
+import {
 	ButtonStyleTypes,
 	InteractionResponseFlags,
 	InteractionResponseType,
@@ -55,7 +59,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 				type: InteractionResponseType.APPLICATION_COMMAND_AUTOCOMPLETE_RESULT,
 				data: {
 					choices: accounts.map(({ username, nickname }) => {
-						const hasNickname = nickname && username !== nickname;
+						const hasNickname = accountHasNickname({ username, nickname });
 						return {
 							value: username,
 							name: hasNickname ? `${nickname} (@${username})` : `@${username}`,
@@ -85,7 +89,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 			}
 
 			const account = await db.query.accounts.findFirst({
-				columns: { nickname: true },
+				columns: { username: true, nickname: true },
 				where: { username },
 				with: {
 					snapshots: {
@@ -108,8 +112,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 
 			const components = [] as MessageComponent[];
 
-			const hasNickname =
-				!!account.nickname?.trim() && username !== account.nickname;
+			const hasNickname = accountHasNickname(account);
 			components.push({
 				type: MessageComponentTypes.TEXT_DISPLAY,
 				content: hasNickname
@@ -141,12 +144,11 @@ export const handle: CommandHandler = async ({ type, data }) => {
 			});
 			components.push({ type: MessageComponentTypes.SEPARATOR });
 
-			const numberFormatter = Intl.NumberFormat("en-US");
 			components.push({
 				type: MessageComponentTypes.TEXT_DISPLAY,
 				content: STAT_NAMES.map((name) => {
 					const value = current.stats[name];
-					return `**${titleCase(name.replace("Count", ""))}**: ${value ? numberFormatter.format(value) : "N/A"}`;
+					return `**${titleCase(name.replace("Count", ""))}**: ${displayValue(value)}`;
 				}).join("\n"),
 			});
 

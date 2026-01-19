@@ -1,4 +1,8 @@
-import { ABBREVIATED_STAT_NAMES } from "@bandori-stats/bestdori/constants";
+import {
+	ABBREVIATED_STAT_NAMES,
+	STAT_NAMES,
+} from "@bandori-stats/bestdori/constants";
+import { compareValue, sum } from "@bandori-stats/bestdori/helpers";
 import {
 	fetchDegrees,
 	sortDegrees,
@@ -8,7 +12,6 @@ import { accounts, accountSnapshots } from "@bandori-stats/database/schema";
 import { schemaTask, tags } from "@trigger.dev/sdk";
 import z from "zod";
 
-import { compareStats } from "~/utilities";
 import { bestdoriStats } from "./bestdori-stats";
 import { updateLeaderboard } from "./update-leaderboard";
 
@@ -57,18 +60,24 @@ export const updateStats = schemaTask({
 		let snapshotId: number | undefined = undefined;
 
 		if (existing && existing.snapshots[0]) {
-			const [from, to] = [existing.snapshots[0].stats, stats];
-			const { delta, difference } = compareStats(from, to);
-			if (delta === 0) {
+			const previousStats = existing.snapshots[0].stats;
+			const difference = [...STAT_NAMES, "titles" as const].map((name) => ({
+				name,
+				delta: compareValue(stats[name], previousStats[name]),
+			}));
+
+			const deltaTotal = sum(difference.map(({ delta }) => delta));
+			if (deltaTotal === 0) {
 				await tags.add("diff_none");
 				return;
 			}
 
 			await tags.add(
-				Object.entries(difference)
-					.filter(([, delta]) => delta > 0)
+				difference
+					.filter(({ delta }) => delta > 0)
 					.map(
-						([name, delta]) => `diff_${ABBREVIATED_STAT_NAMES[name]}+${delta}`,
+						({ name, delta }) =>
+							`diff_${ABBREVIATED_STAT_NAMES[name]}+${delta}`,
 					),
 			);
 

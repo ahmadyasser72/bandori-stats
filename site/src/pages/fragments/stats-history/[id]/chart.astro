@@ -1,12 +1,12 @@
 ---
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
+import { displayValue } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
 import { redis } from "@bandori-stats/database/redis";
 import { titleCase } from "text-case";
 
 import { defineRadarChart } from "~/lib/chart";
 import dayjs from "~/lib/date";
-import { displayValue } from "~/lib/math";
 import { dateSchema } from "~/lib/schema";
 import DisplayName from "./_display-name.astro";
 

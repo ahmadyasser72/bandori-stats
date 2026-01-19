@@ -1,4 +1,6 @@
 ---
+import { accountHasNickname } from "@bandori-stats/bestdori/helpers";
+
 interface Props {
 	id: number;
 	username: string;
@@ -8,7 +10,7 @@ interface Props {
 
 const { id, username, nickname, viewTransition } = Astro.props;
 
-const hasNickname = !!nickname?.trim() && username !== nickname;
+const hasNickname = accountHasNickname({ username, nickname });
 ---
 
 <td class="pointer-events-none sticky left-0 z-10 pl-0 text-start">

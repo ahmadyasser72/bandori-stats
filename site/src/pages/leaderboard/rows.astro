@@ -1,10 +1,10 @@
 ---
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
+import { displayValue, mean } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
 import { redis } from "@bandori-stats/database/redis";
 
 import UsernameColumn from "~/lib/components/username-column.astro";
-import { displayValue, mean } from "~/lib/math";
 import { paginate } from "~/lib/paginate";
 import { schema } from "./_schema";
 

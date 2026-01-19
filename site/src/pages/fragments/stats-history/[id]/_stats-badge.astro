@@ -1,14 +1,13 @@
 ---
 import type { JSX } from "astro/jsx-runtime";
 
-import { titleCase } from "text-case";
-
 import {
 	compareValue,
 	displayValue,
 	formatNumber,
 	type StatValue,
-} from "~/lib/math";
+} from "@bandori-stats/bestdori/helpers";
+import { titleCase } from "text-case";
 
 interface Props extends JSX.HTMLAttributes {
 	label: string;
