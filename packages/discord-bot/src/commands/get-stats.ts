@@ -179,7 +179,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 						{
 							type: MessageComponentTypes.STRING_SELECT,
 							custom_id: `get-stats_select_date_${username}`,
-							placeholder: "View stats on different date",
+							placeholder: "Get stats on different date",
 							options: account.snapshots
 								.filter((it) => it.snapshotDate !== current.snapshotDate)
 								.map(({ snapshotDate }) => ({
