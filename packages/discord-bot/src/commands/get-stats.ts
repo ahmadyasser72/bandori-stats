@@ -112,9 +112,10 @@ export const handle: CommandHandler = async ({ type, data }) => {
 			}
 
 			const components = [] as MessageComponent[];
+			const containerComponents = [] as MessageComponent[];
 
 			const hasNickname = accountHasNickname(account);
-			components.push({
+			containerComponents.push({
 				type: MessageComponentTypes.TEXT_DISPLAY,
 				content: hasNickname
 					? `# ${account.nickname} (@${username})`
@@ -139,13 +140,13 @@ export const handle: CommandHandler = async ({ type, data }) => {
 			}
 
 			const timestamp = dayjs(current.snapshotDate).unix();
-			components.push({
+			containerComponents.push({
 				type: MessageComponentTypes.TEXT_DISPLAY,
 				content: `**Date**: <t:${timestamp}:d> (<t:${timestamp}:R>)`,
 			});
-			components.push({ type: MessageComponentTypes.SEPARATOR });
+			containerComponents.push({ type: MessageComponentTypes.SEPARATOR });
 
-			components.push({
+			containerComponents.push({
 				type: MessageComponentTypes.TEXT_DISPLAY,
 				content: STAT_NAMES.map((name) => {
 					const value = current.stats[name];
@@ -154,13 +155,13 @@ export const handle: CommandHandler = async ({ type, data }) => {
 			});
 
 			if (current.stats.titles) {
-				components.push({
+				containerComponents.push({
 					type: MessageComponentTypes.TEXT_DISPLAY,
 					content: `**Titles unlocked**: ${current.stats.titles.length}`,
 				});
 			}
 
-			components.push({
+			containerComponents.push({
 				type: MessageComponentTypes.ACTION_ROW,
 				components: [
 					{
@@ -170,6 +171,11 @@ export const handle: CommandHandler = async ({ type, data }) => {
 						url: `https://bestdori.com/community/user/${username}`,
 					},
 				],
+			});
+
+			components.push({
+				type: MessageComponentTypes.CONTAINER,
+				components: containerComponents,
 			});
 
 			if (account.snapshots.length > 1) {
@@ -200,10 +206,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 					type === InteractionType.APPLICATION_COMMAND
 						? InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE
 						: InteractionResponseType.UPDATE_MESSAGE,
-				data: {
-					flags: InteractionResponseFlags.IS_COMPONENTS_V2,
-					components,
-				},
+				data: { flags: InteractionResponseFlags.IS_COMPONENTS_V2, components },
 			};
 		}
 
