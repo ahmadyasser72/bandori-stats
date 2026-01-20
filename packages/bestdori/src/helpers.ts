@@ -5,12 +5,15 @@ export const accountHasNickname = (account: {
 	nickname: string | null;
 }) => account.nickname?.trim() && account.username !== account.nickname;
 
-export type StatValue = Stats[keyof Stats] | undefined;
+export type StatValue = Exclude<Stats[keyof Stats], string> | undefined;
 const getValue = (it: NonNullable<StatValue>) =>
 	Array.isArray(it) ? it.length : it;
 
-export const displayValue = (value: StatValue = null) =>
-	value !== null ? formatNumber(getValue(value)) : "N/A";
+export const displayValue = (value: StatValue | string = null) => {
+	if (value === null) return "N/A";
+	else if (typeof value === "string") return value;
+	else return formatNumber(getValue(value));
+};
 
 export const compareValue = (
 	value: StatValue = null,

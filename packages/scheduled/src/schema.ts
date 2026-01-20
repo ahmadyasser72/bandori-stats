@@ -7,4 +7,5 @@ export const StatsSchema = z.strictObject({
 		STAT_NAMES.map((name) => [name, z.number().nullable()]),
 	),
 	titles: z.array(z.number().positive()).nullable(),
+	uid: z.string().nullable(),
 });

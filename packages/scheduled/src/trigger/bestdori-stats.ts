@@ -3,6 +3,7 @@ import {
 	STAT_NAMES,
 	type Stats,
 } from "@bandori-stats/bestdori/constants";
+import { displayValue } from "@bandori-stats/bestdori/helpers";
 import { PlayerStats } from "@bandori-stats/bestdori/schema/player/stats";
 
 import { AbortTaskRunError, schemaTask, tags } from "@trigger.dev/sdk/v3";
@@ -38,19 +39,18 @@ export const bestdoriStats = schemaTask({
 						clearCount: stats.clearCount ?? null,
 						rank: stats.rank ?? null,
 						titles: stats.titles ?? null,
+						uid: stats.uid?.toString() ?? null,
 					}),
 				)
 				.at(0) ?? null;
 
-		const getStat = <K extends keyof Stats>(key: K) =>
-			stats === null ? "unavailable" : stats[key];
-
 		await tags.add([
 			...STAT_NAMES.map(
 				(name) =>
-					`${ABBREVIATED_STAT_NAMES[name]}_${getStat(name) ?? "private"}`,
+					`${ABBREVIATED_STAT_NAMES[name]}_${displayValue(stats?.[name])}`,
 			),
-			`titles_${getStat("titles")?.length ?? "private"}`,
+			`titles_${displayValue(stats?.titles?.length)}`,
+			`uid_${displayValue(stats?.uid)}`,
 		]);
 
 		return StatsSchema.nullable().parse(stats);

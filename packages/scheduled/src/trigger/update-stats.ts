@@ -60,8 +60,8 @@ export const updateStats = schemaTask({
 		let accountId: number | undefined = existing?.id;
 		let snapshotId: number | undefined = undefined;
 
-		if (existing && existing.snapshots[0]) {
-			const previousStats = existing.snapshots[0].stats;
+		const previousStats = existing?.snapshots[0]?.stats;
+		if (previousStats) {
 			const difference = [...STAT_NAMES, "titles" as const].map((name) => ({
 				name,
 				delta: compareValue(stats[name], previousStats[name]),
@@ -118,7 +118,7 @@ export const updateStats = schemaTask({
 
 			await db
 				.update(accounts)
-				.set({ lastUpdated: date })
+				.set({ lastUpdated: date, uid: previousStats?.uid ?? stats.uid })
 				.where(eq(accounts.id, accountId));
 		}
 	},

@@ -7,6 +7,7 @@ export const accounts = sqliteTable("accounts", {
 	id: integer().primaryKey({ autoIncrement: true }),
 	username: text().unique().notNull(),
 	nickname: text(),
+	uid: text(),
 
 	lastUpdated: text().$default(() => sql`(CURRENT_DATE)`),
 });
