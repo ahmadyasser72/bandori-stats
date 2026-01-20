@@ -10,6 +10,7 @@ import {
 	InteractionResponseType,
 	InteractionType,
 	MessageComponentTypes,
+	type Button,
 	type MessageComponent,
 } from "discord-interactions";
 import { titleCase } from "text-case";
@@ -111,7 +112,6 @@ export const handle: CommandHandler = async ({ type, data }) => {
 				};
 			}
 
-			const components = [] as MessageComponent[];
 			const containerComponents = [] as MessageComponent[];
 
 			const hasNickname = accountHasNickname(account);
@@ -161,18 +161,29 @@ export const handle: CommandHandler = async ({ type, data }) => {
 				});
 			}
 
-			containerComponents.push({
-				type: MessageComponentTypes.ACTION_ROW,
-				components: [
-					{
-						type: MessageComponentTypes.BUTTON,
-						style: ButtonStyleTypes.LINK,
-						label: "Bestdori! Profile",
-						url: `https://bestdori.com/community/user/${username}`,
-					},
-				],
+			const links = [] as Button[];
+			links.push({
+				type: MessageComponentTypes.BUTTON,
+				style: ButtonStyleTypes.LINK,
+				label: "Bestdori! Profile",
+				url: `https://bestdori.com/community/user/${username}`,
 			});
 
+			if (current.stats.uid) {
+				links.push({
+					type: MessageComponentTypes.BUTTON,
+					style: ButtonStyleTypes.LINK,
+					label: "Bestdori! Player Search",
+					url: `https://bestdori.com/tool/playersearch/en/${current.stats.uid}`,
+				});
+			}
+
+			containerComponents.push({
+				type: MessageComponentTypes.ACTION_ROW,
+				components: links,
+			});
+
+			const components = [] as MessageComponent[];
 			components.push({
 				type: MessageComponentTypes.CONTAINER,
 				components: containerComponents,
