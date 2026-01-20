@@ -11,6 +11,7 @@ import {
 	InteractionType,
 	MessageComponentTypes,
 	type Button,
+	type Container,
 	type MessageComponent,
 } from "discord-interactions";
 import { titleCase } from "text-case";
@@ -112,16 +113,6 @@ export const handle: CommandHandler = async ({ type, data }) => {
 				};
 			}
 
-			const containerComponents = [] as MessageComponent[];
-
-			const hasNickname = accountHasNickname(account);
-			containerComponents.push({
-				type: MessageComponentTypes.TEXT_DISPLAY,
-				content: hasNickname
-					? `# ${account.nickname} (@${username})`
-					: `# @${username}`,
-			});
-
 			const current =
 				type === InteractionType.APPLICATION_COMMAND
 					? account.snapshots[0]
@@ -139,55 +130,68 @@ export const handle: CommandHandler = async ({ type, data }) => {
 				};
 			}
 
-			const timestamp = dayjs(current.snapshotDate).unix();
-			containerComponents.push({
-				type: MessageComponentTypes.TEXT_DISPLAY,
-				content: `**Date**: <t:${timestamp}:d> (<t:${timestamp}:R>)`,
-			});
-			containerComponents.push({ type: MessageComponentTypes.SEPARATOR });
+			const container = ((): Container => {
+				const components: MessageComponent[] = [];
 
-			containerComponents.push({
-				type: MessageComponentTypes.TEXT_DISPLAY,
-				content: STAT_NAMES.map((name) => {
-					const value = current.stats[name];
-					return `**${titleCase(name.replace("Count", ""))}**: ${displayValue(value)}`;
-				}).join("\n"),
-			});
-
-			if (current.stats.titles) {
-				containerComponents.push({
+				const hasNickname = accountHasNickname(account);
+				components.push({
 					type: MessageComponentTypes.TEXT_DISPLAY,
-					content: `**Titles unlocked**: ${current.stats.titles.length}`,
+					content: hasNickname
+						? `# ${account.nickname} (@${username})`
+						: `# @${username}`,
 				});
-			}
 
-			const links = [] as Button[];
-			links.push({
-				type: MessageComponentTypes.BUTTON,
-				style: ButtonStyleTypes.LINK,
-				label: "Bestdori! Profile",
-				url: `https://bestdori.com/community/user/${username}`,
-			});
-
-			if (current.stats.uid) {
-				links.push({
-					type: MessageComponentTypes.BUTTON,
-					style: ButtonStyleTypes.LINK,
-					label: "Bestdori! Player Search",
-					url: `https://bestdori.com/tool/playersearch/en/${current.stats.uid}`,
+				const timestamp = dayjs(current.snapshotDate).unix();
+				components.push({
+					type: MessageComponentTypes.TEXT_DISPLAY,
+					content: `**Date**: <t:${timestamp}:d> (<t:${timestamp}:R>)`,
 				});
-			}
+				components.push({ type: MessageComponentTypes.SEPARATOR });
 
-			containerComponents.push({
-				type: MessageComponentTypes.ACTION_ROW,
-				components: links,
-			});
+				components.push({
+					type: MessageComponentTypes.TEXT_DISPLAY,
+					content: STAT_NAMES.map((name) => {
+						const value = current.stats[name];
+						return `**${titleCase(name.replace("Count", ""))}**: ${displayValue(value)}`;
+					}).join("\n"),
+				});
 
-			const components = [] as MessageComponent[];
-			components.push({
-				type: MessageComponentTypes.CONTAINER,
-				components: containerComponents,
-			});
+				if (current.stats.titles) {
+					components.push({
+						type: MessageComponentTypes.TEXT_DISPLAY,
+						content: `**Titles unlocked**: ${current.stats.titles.length}`,
+					});
+				}
+
+				components.push({
+					type: MessageComponentTypes.ACTION_ROW,
+					components: ((): Button[] => {
+						const buttons: Button[] = [
+							{
+								type: MessageComponentTypes.BUTTON,
+								style: ButtonStyleTypes.LINK,
+								label: "Bestdori! Profile",
+								url: `https://bestdori.com/community/user/${username}`,
+							},
+						];
+
+						if (current.stats.uid) {
+							buttons.push({
+								type: MessageComponentTypes.BUTTON,
+								style: ButtonStyleTypes.LINK,
+								label: "Bestdori! Player Search",
+								url: `https://bestdori.com/tool/playersearch/en/${current.stats.uid}`,
+							});
+						}
+
+						return buttons;
+					})(),
+				});
+
+				return { type: MessageComponentTypes.CONTAINER, components };
+			})();
+
+			const components: MessageComponent[] = [container];
 
 			if (account.snapshots.length > 1) {
 				components.push({
