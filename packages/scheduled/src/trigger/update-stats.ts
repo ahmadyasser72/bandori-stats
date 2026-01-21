@@ -23,7 +23,7 @@ export const updateStats = schemaTask({
 		date: z.iso.date(),
 	}),
 	run: async ({ username, date }) => {
-		const stats = await bestdoriStats
+		const { uid, stats } = await bestdoriStats
 			.triggerAndWait(
 				{ username },
 				{ idempotencyKey: `stats_${username}_${date}` },
@@ -35,7 +35,7 @@ export const updateStats = schemaTask({
 		}
 
 		const existing = await db.query.accounts.findFirst({
-			columns: { id: true },
+			columns: { id: true, uid: true },
 			where: { username },
 			with: {
 				snapshots: {
@@ -118,7 +118,7 @@ export const updateStats = schemaTask({
 
 			await db
 				.update(accounts)
-				.set({ lastUpdated: date, uid: previousStats?.uid ?? stats.uid })
+				.set({ lastUpdated: date, uid: existing?.uid ?? uid })
 				.where(eq(accounts.id, accountId));
 		}
 	},
