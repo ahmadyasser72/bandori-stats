@@ -9,7 +9,7 @@ import { StatsSchema } from "~/schema";
 
 const SnapshotSchema = z.strictObject({
 	accountId: z.number().nonnegative(),
-	stats: StatsSchema,
+	stats: StatsSchema.omit({ uid: true }),
 });
 
 export const updateLeaderboard = schemaTask({
