@@ -92,7 +92,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 			}
 
 			const account = await db.query.accounts.findFirst({
-				columns: { username: true, nickname: true },
+				columns: { username: true, nickname: true, uid: true },
 				where: { username },
 				with: {
 					snapshots: {
@@ -175,12 +175,12 @@ export const handle: CommandHandler = async ({ type, data }) => {
 							},
 						];
 
-						if (current.stats.uid) {
+						if (account.uid) {
 							buttons.push({
 								type: MessageComponentTypes.BUTTON,
 								style: ButtonStyleTypes.LINK,
 								label: "Bestdori! Player Search",
-								url: `https://bestdori.com/tool/playersearch/en/${current.stats.uid}`,
+								url: `https://bestdori.com/tool/playersearch/en/${account.uid}`,
 							});
 						}
 
