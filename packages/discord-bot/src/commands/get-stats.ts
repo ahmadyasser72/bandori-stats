@@ -141,10 +141,10 @@ export const handle: CommandHandler = async ({ type, data }) => {
 						: `# @${username}`,
 				});
 
-				const timestamp = dayjs(current.snapshotDate).unix();
+				const relativeTimeToDate = formatRelativeTime(current.snapshotDate);
 				components.push({
 					type: MessageComponentTypes.TEXT_DISPLAY,
-					content: `**Date**: <t:${timestamp}:d> (<t:${timestamp}:R>)`,
+					content: `**Date**: \`${current.snapshotDate}\` (\`${relativeTimeToDate}\`)`,
 				});
 				components.push({ type: MessageComponentTypes.SEPARATOR });
 
@@ -202,13 +202,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 							options: account.snapshots
 								.filter((it) => it.snapshotDate !== current.snapshotDate)
 								.map(({ snapshotDate }) => {
-									const daysToNow = dayjs().diff(dayjs(snapshotDate), "days");
-									const relativeTime =
-										daysToNow === 0
-											? "today"
-											: daysToNow === 1
-												? "yesterday"
-												: dayjs(snapshotDate).fromNow();
+									const relativeTime = formatRelativeTime(snapshotDate);
 
 									return {
 										label: snapshotDate,
@@ -243,4 +237,11 @@ export const handle: CommandHandler = async ({ type, data }) => {
 			};
 		}
 	}
+};
+
+const formatRelativeTime = (date: string) => {
+	const daysToNow = dayjs().diff(dayjs(date), "days");
+	if (daysToNow === 0) return "today";
+	else if (daysToNow === 1) return "yesterday";
+	else return dayjs(date).fromNow();
 };
