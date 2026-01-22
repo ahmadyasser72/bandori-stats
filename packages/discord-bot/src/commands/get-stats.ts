@@ -194,6 +194,8 @@ export const handle: CommandHandler = async ({ type, data }) => {
 			const components: MessageComponent[] = [container];
 
 			if (account.snapshots.length > 1) {
+				const latestSnapshotDate = account.snapshots[0]!.snapshotDate;
+
 				components.push({
 					type: MessageComponentTypes.ACTION_ROW,
 					components: [
@@ -203,14 +205,24 @@ export const handle: CommandHandler = async ({ type, data }) => {
 							placeholder: "Get stats on different date...",
 							options: account.snapshots
 								.filter((it) => it.snapshotDate !== current.snapshotDate)
-								.map(({ snapshotDate }) => ({
-									label: snapshotDate,
-									description:
-										snapshotDate === account.snapshots[0]?.snapshotDate
-											? `(${dayjs(snapshotDate).fromNow()}, most recent)`
-											: `(${dayjs(snapshotDate).fromNow()})`,
-									value: snapshotDate,
-								})),
+								.map(({ snapshotDate }) => {
+									const daysToNow = dayjs().diff(dayjs(snapshotDate), "days");
+									const relativeTime =
+										daysToNow === 0
+											? "today"
+											: daysToNow === 1
+												? "yesterday"
+												: dayjs(snapshotDate).fromNow();
+
+									return {
+										label: snapshotDate,
+										description:
+											snapshotDate === latestSnapshotDate
+												? `(${relativeTime}, most recent)`
+												: `(${relativeTime})`,
+										value: snapshotDate,
+									};
+								}),
 						},
 					],
 				});
