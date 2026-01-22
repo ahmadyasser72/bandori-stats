@@ -150,18 +150,14 @@ export const handle: CommandHandler = async ({ type, data }) => {
 
 				components.push({
 					type: MessageComponentTypes.TEXT_DISPLAY,
-					content: STAT_NAMES.map((name) => {
-						const value = current.stats[name];
-						return `**${titleCase(name.replace("Count", ""))}**: ${displayValue(value)}`;
-					}).join("\n"),
+					content: [
+						...STAT_NAMES.map((name) => {
+							const value = current.stats[name];
+							return `**${titleCase(name.replace("Count", ""))}**: ${displayValue(value)}`;
+						}),
+						`**Titles unlocked**: ${displayValue(current.stats.titles)}`,
+					].join("\n"),
 				});
-
-				if (current.stats.titles) {
-					components.push({
-						type: MessageComponentTypes.TEXT_DISPLAY,
-						content: `**Titles unlocked**: ${current.stats.titles.length}`,
-					});
-				}
 
 				components.push({
 					type: MessageComponentTypes.ACTION_ROW,
