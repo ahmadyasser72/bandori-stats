@@ -3,6 +3,8 @@ import {
 	accountHasNickname,
 	displayValue,
 } from "@bandori-stats/bestdori/helpers";
+import { eq } from "@bandori-stats/database";
+import { accountSnapshots } from "@bandori-stats/database/schema";
 
 import {
 	ButtonStyleTypes,
@@ -14,6 +16,7 @@ import {
 	type Container,
 	type MessageComponent,
 } from "discord-interactions";
+import { getBorderCharacters, table } from "table";
 import { titleCase } from "text-case";
 
 import dayjs from "../date";
@@ -26,9 +29,9 @@ export const command = {
 	contexts: [0, 1, 2],
 	options: [
 		{
-			name: "username",
-			description: "Bestdori! username",
-			type: CommandOptionType.STRING,
+			name: "account",
+			description: "Bestdori! account",
+			type: CommandOptionType.INTEGER,
 			required: true,
 			autocomplete: true,
 		},
@@ -41,11 +44,11 @@ export const handle: CommandHandler = async ({ type, data }) => {
 	switch (type) {
 		case InteractionType.APPLICATION_COMMAND_AUTOCOMPLETE: {
 			const typed = data.options
-				?.find(({ name, focused }) => name === "username" && focused)
+				?.find(({ name, focused }) => name === "account" && focused)
 				?.value.toString();
 
 			const accounts = await db.query.accounts.findMany({
-				columns: { username: true, nickname: true },
+				columns: { id: true, username: true, nickname: true },
 				limit: 25,
 				orderBy: { lastUpdated: "desc", username: "asc" },
 				where: typed
@@ -61,10 +64,10 @@ export const handle: CommandHandler = async ({ type, data }) => {
 			return {
 				type: InteractionResponseType.APPLICATION_COMMAND_AUTOCOMPLETE_RESULT,
 				data: {
-					choices: accounts.map(({ username, nickname }) => {
+					choices: accounts.map(({ id, username, nickname }) => {
 						const hasNickname = accountHasNickname({ username, nickname });
 						return {
-							value: username,
+							value: id,
 							name: hasNickname ? `${nickname} (@${username})` : `@${username}`,
 						};
 					}),
@@ -74,14 +77,24 @@ export const handle: CommandHandler = async ({ type, data }) => {
 
 		case InteractionType.MESSAGE_COMPONENT:
 		case InteractionType.APPLICATION_COMMAND: {
-			const username =
-				type === InteractionType.APPLICATION_COMMAND
-					? data.options
-							?.find(({ name }) => name === "username")
-							?.value.toString()
-					: data.custom_id?.replace("get-stats_select_date_", "");
+			const { accountId = NaN, page = 0 } = (() => {
+				if (type === InteractionType.APPLICATION_COMMAND) {
+					return {
+						accountId: Number(
+							data.options?.find(({ name }) => name === "account")?.value,
+						),
+					};
+				} else {
+					const [accountId, page] = data
+						.custom_id!.replace("get-stats_page:", "")
+						.split(":")
+						.map(Number);
 
-			if (!username) {
+					return { accountId, page };
+				}
+			})();
+
+			if (Number.isNaN(accountId)) {
 				return {
 					type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
 					data: {
@@ -91,14 +104,22 @@ export const handle: CommandHandler = async ({ type, data }) => {
 				};
 			}
 
+			const PAGE_SIZE = 2;
 			const account = await db.query.accounts.findFirst({
 				columns: { username: true, nickname: true, uid: true },
-				where: { username },
+				where: { id: accountId },
+				extras: {
+					snapshotsCount: db.$count(
+						accountSnapshots,
+						eq(accountSnapshots.accountId, accountId),
+					),
+				},
 				with: {
 					snapshots: {
 						columns: { stats: true, snapshotDate: true },
-						limit: 26,
 						orderBy: { snapshotDate: "desc" },
+						limit: PAGE_SIZE,
+						offset: page * PAGE_SIZE,
 					},
 				},
 			});
@@ -113,23 +134,6 @@ export const handle: CommandHandler = async ({ type, data }) => {
 				};
 			}
 
-			const current =
-				type === InteractionType.APPLICATION_COMMAND
-					? account.snapshots[0]
-					: account.snapshots.find(
-							(it) => it.snapshotDate === data.values?.at(0),
-						);
-
-			if (!current) {
-				return {
-					type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-					data: {
-						flags: InteractionResponseFlags.EPHEMERAL,
-						content: "Snapshot not found",
-					},
-				};
-			}
-
 			const container = ((): Container => {
 				const components: MessageComponent[] = [];
 
@@ -137,25 +141,64 @@ export const handle: CommandHandler = async ({ type, data }) => {
 				components.push({
 					type: MessageComponentTypes.TEXT_DISPLAY,
 					content: hasNickname
-						? `# ${account.nickname} (@${username})`
-						: `# @${username}`,
+						? `# ${account.nickname} (@${account.username})`
+						: `# @${account.username}`,
 				});
 
-				const relativeTimeToDate = formatRelativeTime(current.snapshotDate);
+				const totalPages = Math.ceil(account.snapshotsCount / PAGE_SIZE);
 				components.push({
 					type: MessageComponentTypes.TEXT_DISPLAY,
-					content: `**Date**: \`${current.snapshotDate}\` (\`${relativeTimeToDate}\`)`,
+					content: `**Snapshots**: ${
+						account.snapshots.at(0)?.snapshotDate ?? "—"
+					}, ${
+						account.snapshots.at(-1)?.snapshotDate ?? "—"
+					} (page ${page + 1}/${totalPages})`,
 				});
+
 				components.push({ type: MessageComponentTypes.SEPARATOR });
 
 				components.push({
 					type: MessageComponentTypes.TEXT_DISPLAY,
 					content: [
-						...STAT_NAMES.map((name) => {
-							const value = current.stats[name];
-							return `**${titleCase(name.replace("Count", ""))}**: ${displayValue(value)}`;
-						}),
-						`**Titles unlocked**: ${displayValue(current.stats.titles)}`,
+						"```text",
+						table(
+							[
+								[
+									"Stat",
+									...account.snapshots.map(({ snapshotDate }) =>
+										[
+											snapshotDate,
+											`(${formatRelativeTime(snapshotDate)})`,
+										].join("\n"),
+									),
+								],
+								...STAT_NAMES.map((name) => [
+									titleCase(name.replace("Count", "")),
+									...account.snapshots.map(({ stats }) =>
+										displayValue(stats[name]),
+									),
+								]),
+								[
+									"Titles unlocked",
+									...account.snapshots.map(({ stats }) =>
+										displayValue(stats.titles),
+									),
+								],
+							],
+							{
+								border: getBorderCharacters("norc"),
+								columnDefault: {
+									alignment: "right",
+									verticalAlignment: "middle",
+									wrapWord: true,
+									width: 10,
+									paddingLeft: 1,
+									paddingRight: 1,
+								},
+								columns: { 0: { width: 8, alignment: "left" } },
+							},
+						),
+						"```",
 					].join("\n"),
 				});
 
@@ -167,7 +210,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 								type: MessageComponentTypes.BUTTON,
 								style: ButtonStyleTypes.LINK,
 								label: "Bestdori! Profile",
-								url: `https://bestdori.com/community/user/${username}`,
+								url: `https://bestdori.com/community/user/${account.username}`,
 							},
 						];
 
@@ -189,30 +232,25 @@ export const handle: CommandHandler = async ({ type, data }) => {
 
 			const components: MessageComponent[] = [container];
 
-			if (account.snapshots.length > 1) {
-				const latestSnapshotDate = account.snapshots[0]!.snapshotDate;
+			if (account.snapshotsCount > PAGE_SIZE) {
+				const totalPages = Math.ceil(account.snapshotsCount / PAGE_SIZE);
 
 				components.push({
 					type: MessageComponentTypes.ACTION_ROW,
 					components: [
 						{
-							type: MessageComponentTypes.STRING_SELECT,
-							custom_id: `get-stats_select_date_${username}`,
-							placeholder: "Get stats on different date...",
-							options: account.snapshots
-								.filter((it) => it.snapshotDate !== current.snapshotDate)
-								.map(({ snapshotDate }) => {
-									const relativeTime = formatRelativeTime(snapshotDate);
-
-									return {
-										label: snapshotDate,
-										description:
-											snapshotDate === latestSnapshotDate
-												? `(${relativeTime}, most recent)`
-												: `(${relativeTime})`,
-										value: snapshotDate,
-									};
-								}),
+							type: MessageComponentTypes.BUTTON,
+							style: ButtonStyleTypes.SECONDARY,
+							label: "⬅ Newer",
+							custom_id: `get-stats_page:${accountId}:${page - 1}`,
+							disabled: page === 0,
+						},
+						{
+							type: MessageComponentTypes.BUTTON,
+							style: ButtonStyleTypes.SECONDARY,
+							label: "Older ➡",
+							custom_id: `get-stats_page:${accountId}:${page + 1}`,
+							disabled: page + 1 >= totalPages,
 						},
 					],
 				});

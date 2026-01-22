@@ -40,9 +40,7 @@ export default defineConfig({
 		},
 
 		server: {
-			allowedHosts: [
-				"subscription-syndicate-ordinance-specified.trycloudflare.com",
-			],
+			allowedHosts: ["knitting-opponents-cams-honor.trycloudflare.com"],
 		},
 	},
 	devToolbar: { enabled: false },

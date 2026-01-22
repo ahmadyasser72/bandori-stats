@@ -11,6 +11,7 @@
 		"dayjs": "1.11.19",
 		"discord-interactions": "4.4.0",
 		"hono": "4.11.4",
+		"table": "6.9.0",
 		"text-case": "1.2.10"
 	}
 }
