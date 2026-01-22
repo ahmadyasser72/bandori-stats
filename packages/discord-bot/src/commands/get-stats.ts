@@ -1,7 +1,9 @@
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import {
 	accountHasNickname,
+	compareValue,
 	displayValue,
+	formatNumber,
 } from "@bandori-stats/bestdori/helpers";
 import { eq } from "@bandori-stats/database";
 import { accountSnapshots } from "@bandori-stats/database/schema";
@@ -118,7 +120,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 					snapshots: {
 						columns: { stats: true, snapshotDate: true },
 						orderBy: { snapshotDate: "desc" },
-						limit: PAGE_SIZE,
+						limit: PAGE_SIZE + 1,
 						offset: page * PAGE_SIZE,
 					},
 				},
@@ -157,6 +159,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 
 				components.push({ type: MessageComponentTypes.SEPARATOR });
 
+				const snapshots = account.snapshots.slice(0, PAGE_SIZE);
 				components.push({
 					type: MessageComponentTypes.TEXT_DISPLAY,
 					content: [
@@ -165,25 +168,30 @@ export const handle: CommandHandler = async ({ type, data }) => {
 							[
 								[
 									"Stat",
-									...account.snapshots.map(({ snapshotDate }) =>
+									...snapshots.map(({ snapshotDate }) =>
 										[
 											snapshotDate,
 											`(${formatRelativeTime(snapshotDate)})`,
 										].join("\n"),
 									),
 								],
-								...STAT_NAMES.map((name) => [
-									titleCase(name.replace("Count", "")),
-									...account.snapshots.map(({ stats }) =>
-										displayValue(stats[name]),
-									),
+								...[...STAT_NAMES, "titles" as const].map((name) => [
+									name === "titles"
+										? "Titles unlocked"
+										: titleCase(name.replace("Count", "")),
+									...snapshots.map(({ stats }, idx) => {
+										const current = stats[name];
+										const previous = account.snapshots.at(idx + 1)?.stats[name];
+
+										const delta = compareValue(current, previous);
+										if (delta === 0) return displayValue(current);
+
+										return [
+											displayValue(current),
+											`(+${formatNumber(delta, true)})`,
+										].join("\n");
+									}),
 								]),
-								[
-									"Titles unlocked",
-									...account.snapshots.map(({ stats }) =>
-										displayValue(stats.titles),
-									),
-								],
 							],
 							{
 								border: getBorderCharacters("norc"),
@@ -192,8 +200,6 @@ export const handle: CommandHandler = async ({ type, data }) => {
 									verticalAlignment: "middle",
 									wrapWord: true,
 									width: 10,
-									paddingLeft: 1,
-									paddingRight: 1,
 								},
 								columns: { 0: { width: 8, alignment: "left" } },
 							},
