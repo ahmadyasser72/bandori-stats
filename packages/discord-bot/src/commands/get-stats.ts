@@ -130,7 +130,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 					type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
 					data: {
 						flags: InteractionResponseFlags.EPHEMERAL,
-						content: "Account not found",
+						content: "Account not found.",
 					},
 				};
 			}

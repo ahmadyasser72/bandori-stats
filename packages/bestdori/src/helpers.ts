@@ -37,7 +37,9 @@ export const formatNumber = (
 	{ autoCompact = false, positiveSign = false }: FormatNumberOptions = {},
 ) => {
 	const { format } =
-		autoCompact && n >= 100_000 ? numberFormatterCompact : numberFormatter;
+		autoCompact && Math.abs(n) >= 100_000
+			? numberFormatterCompact
+			: numberFormatter;
 
 	const formatted = format(n);
 	return positiveSign && n > 0 ? `+${formatted}` : formatted;

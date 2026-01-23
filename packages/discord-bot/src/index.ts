@@ -31,11 +31,25 @@ const app = new Hono<{ Bindings: Bindings }>()
 		if (interaction.type === InteractionType.PING)
 			return c.json({ type: InteractionResponseType.PONG });
 
-		if (
-			interaction.data.name === "get-stats" ||
-			interaction.data.custom_id?.startsWith("get-stats_")
-		) {
-			const { handle } = await import("./commands/get-stats");
+		const commands = [
+			{
+				name: "compare-stats",
+				module: () => import("./commands/compare-stats"),
+			},
+			{
+				name: "get-stats",
+				module: () => import("./commands/get-stats"),
+			},
+		];
+
+		const command = commands.find(
+			({ name }) =>
+				interaction.data.name === name ||
+				interaction.data.custom_id?.startsWith(name),
+		);
+
+		if (command) {
+			const { handle } = await command.module();
 			const response = await handle(interaction);
 			return c.json(response);
 		}
