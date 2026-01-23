@@ -5,7 +5,6 @@ import {
 	displayValue,
 	formatNumber,
 } from "@bandori-stats/bestdori/helpers";
-import { eq } from "@bandori-stats/database";
 import { accountSnapshots } from "@bandori-stats/database/schema";
 
 import {
@@ -41,7 +40,7 @@ export const command = {
 } satisfies Command;
 
 export const handle: CommandHandler = async ({ type, data }) => {
-	const { db } = await import("@bandori-stats/database");
+	const { db, eq } = await import("@bandori-stats/database");
 
 	switch (type) {
 		case InteractionType.APPLICATION_COMMAND_AUTOCOMPLETE: {
