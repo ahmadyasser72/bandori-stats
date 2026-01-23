@@ -27,11 +27,20 @@ const numberFormatter = Intl.NumberFormat("en-US");
 const numberFormatterCompact = Intl.NumberFormat("en-US", {
 	notation: "compact",
 });
-export const formatNumber = (n: number, autoCompact = false) => {
+
+interface FormatNumberOptions {
+	autoCompact?: boolean;
+	positiveSign?: boolean;
+}
+export const formatNumber = (
+	n: number,
+	{ autoCompact = false, positiveSign = false }: FormatNumberOptions = {},
+) => {
 	const { format } =
 		autoCompact && n >= 100_000 ? numberFormatterCompact : numberFormatter;
 
-	return format(n);
+	const formatted = format(n);
+	return positiveSign && n > 0 ? `+${formatted}` : formatted;
 };
 
 export const sum = (values: number[]) =>

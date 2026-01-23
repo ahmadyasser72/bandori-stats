@@ -25,7 +25,9 @@ const delta = compareValue(value, previousValue);
 		delta > 0 ? (
 			<div class="flex flex-col">
 				<span>{displayValue(value)}</span>
-				<span>(+{formatNumber(delta, true)})</span>
+				<span>
+					({formatNumber(delta, { autoCompact: true, positiveSign: true })})
+				</span>
 			</div>
 		) : (
 			displayValue(value)

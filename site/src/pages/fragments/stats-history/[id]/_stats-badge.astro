@@ -35,5 +35,8 @@ const badgeClass = (() => {
 <span class:list={["badge badge-sm", badgeClass, className]} {...attributes}>
 	{titleCase(label.replace("Count", ""))} &middot;{" "}
 	{displayValue(value)}
-	{delta > 0 && ` (+${formatNumber(delta, true)})`}
+	{
+		delta > 0 &&
+			` (${formatNumber(delta, { autoCompact: true, positiveSign: true })})`
+	}
 </span>

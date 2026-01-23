@@ -187,7 +187,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 
 										return [
 											displayValue(current),
-											`(+${formatNumber(delta, true)})`,
+											`(${formatNumber(delta, { autoCompact: true, positiveSign: true })})`,
 										].join("\n");
 									}),
 								]),
