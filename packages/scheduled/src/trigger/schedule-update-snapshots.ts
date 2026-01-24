@@ -23,9 +23,9 @@ export const scheduleUpdateSnapshots = schedules.task({
 						if (account.lastUpdated === null) return true;
 
 						const lastUpdated = dayjs(account.lastUpdated);
-						const updatedLastWeek = now.diff(lastUpdated, "weeks") < 1;
+						const isRecentlyUpdated = now.diff(lastUpdated, "weeks") < 2;
 
-						return updatedLastWeek || account.id % 7 === now.day();
+						return isRecentlyUpdated || account.id % 7 === now.day();
 					}),
 			);
 
