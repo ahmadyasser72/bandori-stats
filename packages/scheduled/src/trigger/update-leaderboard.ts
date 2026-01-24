@@ -5,11 +5,11 @@ import { Octokit } from "@octokit/core";
 import { schemaTask, tags } from "@trigger.dev/sdk";
 import z from "zod";
 
-import { StatsSchema } from "~/schema";
+import { AccountSchema } from "~/schema";
 
 const SnapshotSchema = z.strictObject({
 	accountId: z.number().nonnegative(),
-	stats: StatsSchema.shape.stats,
+	stats: AccountSchema.shape.stats.unwrap(),
 });
 
 export const updateLeaderboard = schemaTask({

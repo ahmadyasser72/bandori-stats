@@ -9,7 +9,7 @@ import { AbortTaskRunError, schemaTask, tags } from "@trigger.dev/sdk/v3";
 import z from "zod";
 
 import { bestdori, bestdoriQueue } from "~/bestdori";
-import { StatsSchema } from "~/schema";
+import { AccountSchema } from "~/schema";
 
 export const bestdoriStats = schemaTask({
 	id: "bestdori-stats",
@@ -51,6 +51,6 @@ export const bestdoriStats = schemaTask({
 			`uid_${displayValue(uid)}`,
 		]);
 
-		return StatsSchema.parse({ uid, stats });
+		return AccountSchema.parse({ uid, stats });
 	},
 });
