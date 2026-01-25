@@ -18,11 +18,11 @@ const hasNickname = accountHasNickname({ username, nickname });
 		class="flex font-medium *:pointer-events-auto"
 		style={viewTransition && `view-transition-name: row-${id};`}
 	>
-		<div class="flex h-8 flex-col -space-y-0.5 *:flex-1">
+		<div class="flex h-8 flex-col -space-y-0.5 *:inline-flex *:flex-1">
 			{
 				hasNickname && (
 					<div>
-						<span class="rounded-r-field group-even:bg-base-200 group-odd:bg-base-100 line-clamp-1 inline-flex max-w-36 overflow-clip px-2 break-all text-ellipsis">
+						<span class="rounded-r-field group-even:bg-base-200 group-odd:bg-base-100 line-clamp-1 max-w-36 overflow-clip px-2 break-all text-ellipsis">
 							{nickname}
 						</span>
 					</div>
@@ -31,8 +31,8 @@ const hasNickname = accountHasNickname({ username, nickname });
 			<div>
 				<span
 					class:list={[
-						"rounded-r-field group-even:bg-base-200 group-odd:bg-base-100 line-clamp-1 inline-flex max-w-36 overflow-clip px-2 text-ellipsis",
-						hasNickname ? "text-base-content/60" : "h-full items-center",
+						"rounded-r-field group-even:bg-base-200 group-odd:bg-base-100 line-clamp-1 max-w-36 overflow-clip px-2 text-ellipsis",
+						hasNickname ? "text-base-content/60" : "flex h-full items-center",
 					]}
 				>
 					@{username}
