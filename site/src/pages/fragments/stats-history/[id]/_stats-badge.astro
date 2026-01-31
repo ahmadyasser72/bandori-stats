@@ -17,8 +17,8 @@ interface Props extends JSX.HTMLAttributes {
 
 const {
 	label,
-	value,
-	previousValue,
+	value = null,
+	previousValue = null,
 	class: className,
 	...attributes
 } = Astro.props;

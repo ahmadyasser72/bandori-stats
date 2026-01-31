@@ -19,7 +19,7 @@ const rows = await db.query.accountSnapshots.findMany({
 	},
 });
 
-const page = paginate({
+const page = await paginate({
 	items: rows,
 	context: Astro,
 	size: 20,

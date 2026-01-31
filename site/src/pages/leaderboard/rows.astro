@@ -120,7 +120,7 @@ const rows = await (async () => {
 	return [...favs, ...rest];
 })();
 
-const page = paginate({
+const page = await paginate({
 	items: rows,
 	context: Astro,
 	size: 20,

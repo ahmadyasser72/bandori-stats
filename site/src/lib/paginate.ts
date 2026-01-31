@@ -1,28 +1,38 @@
 import type { APIContext } from "astro";
 import z from "zod";
 
+const pageSchema = z.coerce.number().positive().catch(1);
+
 interface PaginateProps<T> {
-	items: T[];
+	items:
+		| T[]
+		| {
+				get: (limit: number, offset: number) => Promise<T>;
+				hasNextPage: (limit: number, offset: number, it: T) => boolean;
+		  };
 	context: APIContext;
 	size: number;
 	extraProps: Record<string, string>;
 }
 
-const PageSchema = z.coerce.number().positive().catch(1);
-export const paginate = <T>({
+export const paginate = async <T>({
 	items,
 	context,
 	size,
 	extraProps,
 }: PaginateProps<T>) => {
-	const current = PageSchema.parse(context.url.searchParams.get("page"));
+	const current = pageSchema.parse(context.url.searchParams.get("page"));
 	const offset = (current - 1) * size;
 
-	const pageItems = items.slice(offset, offset + size);
+	const pageItems = Array.isArray(items)
+		? items.slice(offset, offset + size)
+		: [await items.get(size, offset)];
 	const isLastElement = (idx: number) => idx === size - 1;
-	const out = { current, isLastElement, items: pageItems };
+	const out = { current, size, isLastElement, items: pageItems };
 
-	const hasNextPage = offset + size < items.length;
+	const hasNextPage = Array.isArray(items)
+		? offset + size < items.length
+		: items.hasNextPage(size, offset, pageItems[0]);
 	if (!hasNextPage) return { ...out, props: {} };
 
 	const url = new URL(context.url);

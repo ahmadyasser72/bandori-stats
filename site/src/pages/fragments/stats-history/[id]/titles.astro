@@ -37,7 +37,7 @@ const sortedTitles = titles!
 	}))
 	.sort((a, b) => (a.isNew === b.isNew ? 0 : a.isNew ? -1 : 1));
 
-const page = paginate({
+const page = await paginate({
 	items: sortedTitles,
 	context: Astro,
 	size: 24,
