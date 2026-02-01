@@ -70,7 +70,7 @@
         "@tailwindcss/vite": "4.1.18",
         "astro": "5.17.1",
         "chart.js": "4.5.1",
-        "chartjs-adapter-dayjs-4": "^1.0.4",
+        "chartjs-adapter-dayjs-4": "1.0.4",
         "daisyui": "5.5.14",
         "dayjs": "1.11.19",
         "htmx.org": "2.0.8",
