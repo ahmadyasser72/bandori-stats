@@ -6,7 +6,7 @@ export const accountHasNickname = (account: {
 }) => account.nickname?.trim() && account.username !== account.nickname;
 
 export type StatValue = Exclude<Stats[keyof Stats], string> | undefined;
-const getValue = (it: NonNullable<StatValue>) =>
+export const getValue = (it: NonNullable<StatValue>) =>
 	Array.isArray(it) ? it.length : it;
 
 export const displayValue = (value: StatValue | string = null) => {

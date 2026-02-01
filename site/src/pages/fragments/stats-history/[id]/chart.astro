@@ -1,27 +1,26 @@
 ---
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
-import { displayValue } from "@bandori-stats/bestdori/helpers";
+import { getValue } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
-import { redis } from "@bandori-stats/database/redis";
 
 import { titleCase } from "text-case";
+import z from "zod";
 
-import { defineRadarChart } from "~/lib/chart";
-import dayjs from "~/lib/date";
-import { dateSchema } from "~/lib/schema";
+import { defineLineChart } from "~/lib/chart";
 import DisplayName from "./_display-name.astro";
 
 export const partial = true;
 
 const id = Number(Astro.params.id);
-const date = dateSchema.parse(Astro.locals.query.date);
+const statName = z
+	.enum(STAT_NAMES)
+	.catch("bandRating")
+	.parse(Astro.locals.query.stat_name);
 const account = await db.query.accounts.findFirst({
-	columns: { id: true, username: true, nickname: true },
+	columns: { username: true, nickname: true },
 	with: {
 		snapshots: {
-			limit: 2,
 			columns: { stats: true, snapshotDate: true },
-			where: { snapshotDate: { gte: date } },
 			orderBy: { snapshotDate: "asc" },
 		},
 	},
@@ -31,54 +30,17 @@ const account = await db.query.accounts.findFirst({
 const isNotFound = !account || account.snapshots.length === 0;
 if (isNotFound) Astro.response.status = 404;
 
-const latestLeaderboard = (
-	!isNotFound && account.snapshots.length === 2
-		? dayjs(account.snapshots[1].snapshotDate).subtract(1, "days")
-		: dayjs.utc()
-).format("YYYY-MM-DD");
-
-const chart = await (async () => {
-	if (isNotFound) return;
-
-	const labels = STAT_NAMES.map((name) =>
-		titleCase(name.replace(/Count$/, "")),
-	);
-	const data = await Promise.all(
-		STAT_NAMES.map(async (name) => {
-			const value = account.snapshots[0].stats[name];
-
-			const key = `leaderboard:${latestLeaderboard}:${name}`;
-			const n = await redis.zcard(key);
-			const rank = value ? await redis.zcount(key, `(${value}`, "+inf") : n - 1;
-
-			return {
-				tooltip: [displayValue(value), `(#${rank + 1})`].join(" "),
-				value: value === null ? 0 : 1 - rank / (n - 1),
-			};
-		}),
-	);
-
-	return defineRadarChart({
-		type: "radar",
-		options: {
-			elements: { point: { radius: 5, hitRadius: 3 } },
-			scales: { r: { min: 0, max: 1, ticks: { display: false } } },
-			plugins: { tooltip: { enabled: true } },
-		},
-		data: {
-			labels,
-			datasets: [
-				{
-					label: `${account.username} (${date})`,
-					fill: true,
-					normalized: true,
-					parsing: { key: "value" },
-					data,
-				},
-			],
-		},
-	});
-})();
+const chart = isNotFound
+	? {}
+	: defineLineChart([
+			{
+				label: `@${account.username}`,
+				data: account.snapshots.map(({ stats, snapshotDate }) => ({
+					x: snapshotDate,
+					y: stats[statName] !== null ? getValue(stats[statName]) : NaN,
+				})),
+			},
+		]);
 ---
 
 <dialog class="modal modal-bottom sm:modal-middle">
@@ -94,27 +56,58 @@ const chart = await (async () => {
 				<h3 class="text-center text-lg font-bold">Stats not found</h3>
 			) : (
 				<>
-					<h3 class="text-center">
-						<span class="text-lg leading-0">
-							Stats on {latestLeaderboard} <br /> with {date} snapshot
-						</span>
-						<br />
+					<h2 class="text-center">
+						<span class="text-lg font-bold">Growth chart</span> <br />
 						<DisplayName
 							username={account.username}
 							nickname={account.nickname}
 						/>
-					</h3>
+					</h2>
 
-					<main hx-target="this" class="mt-4 flex flex-col gap-4">
-						<div class="relative mx-auto aspect-square w-96 max-w-full">
-							<canvas {...chart} class="bg-base-100" />
-							<iconify-icon
-								icon="svg-spinners:3-dots-rotate"
-								width="none"
-								class="center absolute -z-10 size-24"
-							/>
+					<div
+						id="chart"
+						class="relative mx-auto mt-4 aspect-2/1 w-96 max-w-full"
+					>
+						<canvas {...chart} class="bg-base-100" />
+						<iconify-icon
+							icon="svg-spinners:3-dots-rotate"
+							width="none"
+							class="center absolute -z-10 size-24"
+						/>
+					</div>
+
+					<div class="mt-2 flex justify-center">
+						<div class="join w-64">
+							<select
+								class="select join-item"
+								name="stat_name"
+								hx-indicator="#chart-loader"
+								hx-get={`/fragments/stats-history/${id}/chart`}
+								hx-target="#chart"
+								hx-select="#chart"
+							>
+								<option disabled>Pick a stat</option>
+								{STAT_NAMES.map((name) => (
+									<option value={name} selected={statName === name}>
+										{titleCase(name)}
+									</option>
+								))}
+							</select>
+
+							<button id="chart-loader" class="btn join-item btn-square">
+								<iconify-icon
+									icon="lucide:activity"
+									width="none"
+									class="htmx-indicator-replace size-4"
+								/>
+								<iconify-icon
+									icon="svg-spinners:90-ring-with-bg"
+									width="none"
+									class="htmx-indicator size-4"
+								/>
+							</button>
 						</div>
-					</main>
+					</div>
 				</>
 			)
 		}

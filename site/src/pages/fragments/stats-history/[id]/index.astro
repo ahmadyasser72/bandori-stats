@@ -73,7 +73,26 @@ if (isNotFound) Astro.response.status = 404;
 						/>
 					</h2>
 
-					<div class="mt-4 flex flex-col gap-4">
+					<div class="mt-4 flex justify-center">
+						<button
+							class="btn btn-accent btn-sm"
+							hx-get={`/fragments/stats-history/${id}/chart`}
+						>
+							Growth Chart
+							<iconify-icon
+								icon="lucide:chart-line"
+								width="none"
+								class="htmx-indicator-replace size-4"
+							/>
+							<iconify-icon
+								icon="svg-spinners:90-ring-with-bg"
+								width="none"
+								class="htmx-indicator size-4"
+							/>
+						</button>
+					</div>
+
+					<div class="mt-4 flex flex-1 flex-col gap-4 overflow-auto">
 						{account.snapshots
 							.slice(0, page.size)
 							.map(({ snapshotDate, stats }, idx) => (
@@ -81,28 +100,8 @@ if (isNotFound) Astro.response.status = 404;
 									{...(page.isLastElement(idx) && page.props)}
 									class="snapshot relative flex gap-2"
 								>
-									<div
-										hx-vals={JSON.stringify({ date: snapshotDate })}
-										class="flex flex-col"
-									>
-										<button
-											hx-get={`/fragments/stats-history/${id}/chart`}
-											hx-disabled-elt="button.stats-chart"
-											class="stats-chart btn btn-sm btn-accent"
-										>
-											{snapshotDate}
-
-											<iconify-icon
-												icon="lucide:chart-area"
-												width="none"
-												class="htmx-indicator-replace size-4"
-											/>
-											<iconify-icon
-												icon="svg-spinners:90-ring-with-bg"
-												width="none"
-												class="htmx-indicator size-4"
-											/>
-										</button>
+									<div class="flex w-28 flex-col gap-0.5">
+										<span class="text-center font-medium">{snapshotDate}</span>
 
 										{stats.titles !== null && stats.titles.length > 0 && (
 											<div class="dropdown dropdown-right">
@@ -111,7 +110,7 @@ if (isNotFound) Astro.response.status = 404;
 													role="button"
 													class="btn btn-info btn-xs w-full"
 												>
-													View titles
+													Show Titles
 													<iconify-icon
 														icon="lucide:award"
 														width="none"
@@ -124,6 +123,7 @@ if (isNotFound) Astro.response.status = 404;
 												>
 													<div
 														hx-indicator="closest .titles"
+														hx-vals={JSON.stringify({ date: snapshotDate })}
 														class="titles flex flex-wrap justify-center gap-x-1 gap-y-1.5 *:w-24 sm:*:w-32"
 													>
 														<div
@@ -162,7 +162,7 @@ if (isNotFound) Astro.response.status = 404;
 
 					<div
 						id="snapshot-loader"
-						class="htmx-indicator mt-8 flex flex-col items-center"
+						class="htmx-indicator mt-4 flex flex-col items-center"
 					>
 						<iconify-icon
 							icon="svg-spinners:90-ring-with-bg"

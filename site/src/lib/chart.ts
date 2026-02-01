@@ -1,42 +1,52 @@
-import {
-	Chart,
-	Colors,
-	Filler,
-	LineElement,
-	PointElement,
-	RadarController,
-	RadialLinearScale,
-	Tooltip,
-} from "chart.js";
+import type { Chart, ChartDataset } from "chart.js";
 
-export const defineRadarChart = (
-	config: ConstructorParameters<typeof Chart>[1],
-) => ({
-	"data-radar-chart": JSON.stringify(config),
-});
+type LineChart<T> = ConstructorParameters<typeof Chart<"line", T[]>>[1];
 
-export const useRadarChart = async (
+export const defineLineChart = <T>(datasets: ChartDataset<"line", T[]>[]) => {
+	const options = {
+		type: "line",
+		data: { datasets },
+		options: {
+			scales: {
+				x: {
+					type: "timeseries",
+					time: { unit: "day", tooltipFormat: "LL" },
+				},
+				y: { type: "linear" },
+			},
+		},
+	} satisfies LineChart<T>;
+
+	return { "data-line-chart": JSON.stringify(options) };
+};
+
+export const useLineChart = async <T>(
 	canvas: HTMLCanvasElement,
-	config: ConstructorParameters<typeof Chart>[1],
+	options: LineChart<T>,
 ) => {
-	Chart.register(
+	const {
+		Chart,
 		Colors,
-		Filler,
+		Legend,
+		LinearScale,
+		LineController,
 		LineElement,
 		PointElement,
-		RadarController,
-		RadialLinearScale,
+		TimeSeriesScale,
+		Tooltip,
+	} = await import("chart.js");
+	await import("chartjs-adapter-dayjs-4");
+
+	Chart.register(
+		Colors,
+		Legend,
+		LinearScale,
+		LineController,
+		LineElement,
+		PointElement,
+		TimeSeriesScale,
 		Tooltip,
 	);
 
-	if (!!config.options?.plugins?.tooltip) {
-		config.options.plugins.tooltip.callbacks = {
-			label: (context) => {
-				// @ts-ignore trust
-				return context.raw.tooltip;
-			},
-		};
-	}
-
-	return new Chart(canvas, config);
+	return new Chart(canvas, options);
 };

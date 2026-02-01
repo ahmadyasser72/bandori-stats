@@ -45,6 +45,8 @@ const { title } = Astro.props;
 <script>
 	import htmx from "htmx.org";
 
+	import { useLineChart } from "~/lib/chart";
+
 	htmx.onLoad((node) => {
 		if (!(node instanceof HTMLElement)) return;
 
@@ -67,11 +69,10 @@ const { title } = Astro.props;
 
 	htmx.on("htmx:afterProcessNode", async (e) => {
 		const event = e as Event & { detail: { elt: HTMLElement } };
-		const canvas = event.detail.elt.querySelector("canvas[data-radar-chart]");
+		const canvas = event.detail.elt.querySelector("canvas[data-line-chart]");
 		if (!(canvas instanceof HTMLCanvasElement)) return;
 
-		const { useRadarChart } = await import("~/lib/chart");
-		await useRadarChart(canvas, JSON.parse(canvas.dataset.radarChart!));
+		await useLineChart(canvas, JSON.parse(canvas.dataset.lineChart!));
 	});
 
 	htmx.on("htmx:beforeSwap", (e) => {
