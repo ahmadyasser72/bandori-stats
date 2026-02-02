@@ -44,7 +44,8 @@ const chart = isNotFound
 						return {
 							x: snapshotDate,
 							y:
-								current !== null && current !== previous
+								current !== null &&
+								(current !== previous || idx === snapshots.length - 1)
 									? getValue(current)
 									: NaN,
 						};
