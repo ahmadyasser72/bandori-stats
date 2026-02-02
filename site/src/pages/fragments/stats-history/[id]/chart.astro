@@ -35,10 +35,21 @@ const chart = isNotFound
 	: defineLineChart([
 			{
 				label: `@${account.username}`,
-				data: account.snapshots.map(({ stats, snapshotDate }) => ({
-					x: snapshotDate,
-					y: stats[statName] !== null ? getValue(stats[statName]) : NaN,
-				})),
+				data: account.snapshots.map(
+					({ stats, snapshotDate }, idx, snapshots) => {
+						const current = stats[statName];
+						const previous =
+							idx > 0 ? snapshots[idx - 1].stats[statName] : undefined;
+
+						return {
+							x: snapshotDate,
+							y:
+								current !== null && current !== previous
+									? getValue(current)
+									: NaN,
+						};
+					},
+				),
 			},
 		]);
 ---

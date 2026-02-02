@@ -7,6 +7,7 @@ export const defineLineChart = <T>(datasets: ChartDataset<"line", T[]>[]) => {
 		type: "line",
 		data: { datasets },
 		options: {
+			spanGaps: true,
 			scales: {
 				x: {
 					type: "timeseries",
