@@ -7,11 +7,12 @@ import { titleCase } from "text-case";
 import z from "zod";
 
 import { defineLineChart } from "~/lib/chart";
+import { idSchema } from "~/lib/schema";
 import DisplayName from "./_display-name.astro";
 
 export const partial = true;
 
-const id = Number(Astro.params.id);
+const id = idSchema.parse(Astro.locals.query.id);
 const statName = z
 	.enum(STAT_NAMES)
 	.optional()
@@ -105,10 +106,11 @@ const chart =
 							<select
 								class="select join-item"
 								name="stat_name"
+								hx-get="/fragments/stats-history/chart"
 								hx-indicator="#chart-loader"
-								hx-get={`/fragments/stats-history/${id}/chart`}
 								hx-target="#chart"
 								hx-select="#chart"
+								hx-vals={JSON.stringify({ id })}
 							>
 								<option disabled selected={!statName}>
 									Pick a stat

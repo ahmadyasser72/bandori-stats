@@ -80,10 +80,10 @@ const getPreviousSnapshot = ({ accountId, id }: (typeof snapshots)[number]) =>
 
 					<td>
 						<button
-							hx-get={`/fragments/stats-history/${accountId}`}
+							hx-get="/fragments/stats-history"
 							hx-indicator="this"
 							hx-disabled-elt="button.stats-history"
-							hx-vals={JSON.stringify({ date: snapshotDate })}
+							hx-vals={JSON.stringify({ id: accountId, date: snapshotDate })}
 							class="stats-history btn btn-primary btn-sm btn-circle"
 						>
 							<iconify-icon

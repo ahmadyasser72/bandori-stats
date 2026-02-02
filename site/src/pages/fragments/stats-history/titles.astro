@@ -2,11 +2,11 @@
 import { db } from "@bandori-stats/database";
 
 import { paginate } from "~/lib/paginate";
-import { dateSchema } from "~/lib/schema";
+import { dateSchema, idSchema } from "~/lib/schema";
 
 export const partial = true;
 
-const id = Number(Astro.params.id);
+const id = idSchema.parse(Astro.locals.query.id);
 const date = dateSchema.parse(Astro.locals.query.date);
 const account = await db.query.accounts.findFirst({
 	columns: { id: true, username: true, nickname: true },

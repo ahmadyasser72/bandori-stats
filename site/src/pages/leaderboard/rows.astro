@@ -161,9 +161,10 @@ const page = await paginate({
 						/>
 
 						<button
-							hx-get={`/fragments/stats-history/${id}`}
+							hx-get="/fragments/stats-history"
 							hx-indicator="this"
 							hx-disabled-elt="button.stats-history"
+							hx-vals={JSON.stringify({ id })}
 							class="stats-history btn btn-primary btn-sm btn-circle"
 						>
 							<iconify-icon

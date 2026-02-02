@@ -4,13 +4,13 @@ import { db, eq } from "@bandori-stats/database";
 import { accountSnapshots } from "@bandori-stats/database/schema";
 
 import { paginate } from "~/lib/paginate";
-import { dateSchema } from "~/lib/schema";
+import { dateSchema, idSchema } from "~/lib/schema";
 import DisplayName from "./_display-name.astro";
 import StatsBadge from "./_stats-badge.astro";
 
 export const partial = true;
 
-const id = Number(Astro.params.id);
+const id = idSchema.parse(Astro.locals.query.id);
 const date = dateSchema.parse(Astro.locals.query.date);
 const page = await paginate({
 	items: {
@@ -77,7 +77,8 @@ if (isNotFound) Astro.response.status = 404;
 						<div class="mt-4 flex justify-center">
 							<button
 								class="btn btn-accent btn-sm"
-								hx-get={`/fragments/stats-history/${id}/chart`}
+								hx-get="/fragments/stats-history/chart"
+								hx-vals={JSON.stringify({ id })}
 							>
 								Growth Chart
 								<iconify-icon
@@ -125,11 +126,11 @@ if (isNotFound) Astro.response.status = 404;
 												>
 													<div
 														hx-indicator="closest .titles"
-														hx-vals={JSON.stringify({ date: snapshotDate })}
+														hx-vals={JSON.stringify({ id, date: snapshotDate })}
 														class="titles flex flex-wrap justify-center gap-x-1 gap-y-1.5 *:w-24 sm:*:w-32"
 													>
 														<div
-															hx-get={`/fragments/stats-history/${id}/titles`}
+															hx-get="/fragments/stats-history/titles"
 															hx-swap="outerHTML"
 															hx-trigger="intersect once"
 															class="skeleton aspect-23/5"
