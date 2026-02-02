@@ -73,24 +73,26 @@ if (isNotFound) Astro.response.status = 404;
 						/>
 					</h2>
 
-					<div class="mt-4 flex justify-center">
-						<button
-							class="btn btn-accent btn-sm"
-							hx-get={`/fragments/stats-history/${id}/chart`}
-						>
-							Growth Chart
-							<iconify-icon
-								icon="lucide:chart-line"
-								width="none"
-								class="htmx-indicator-replace size-4"
-							/>
-							<iconify-icon
-								icon="svg-spinners:90-ring-with-bg"
-								width="none"
-								class="htmx-indicator size-4"
-							/>
-						</button>
-					</div>
+					{account.snapshotsCount > 1 && (
+						<div class="mt-4 flex justify-center">
+							<button
+								class="btn btn-accent btn-sm"
+								hx-get={`/fragments/stats-history/${id}/chart`}
+							>
+								Growth Chart
+								<iconify-icon
+									icon="lucide:chart-line"
+									width="none"
+									class="htmx-indicator-replace size-4"
+								/>
+								<iconify-icon
+									icon="svg-spinners:90-ring-with-bg"
+									width="none"
+									class="htmx-indicator size-4"
+								/>
+							</button>
+						</div>
+					)}
 
 					<div class="mt-4 flex flex-1 flex-col gap-4 overflow-auto">
 						{account.snapshots
