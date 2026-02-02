@@ -14,7 +14,7 @@ export const partial = true;
 const id = Number(Astro.params.id);
 const statName = z
 	.enum(STAT_NAMES)
-	.catch("bandRating")
+	.optional()
 	.parse(Astro.locals.query.stat_name);
 const account = await db.query.accounts.findFirst({
 	columns: { username: true, nickname: true },
@@ -30,29 +30,38 @@ const account = await db.query.accounts.findFirst({
 const isNotFound = !account || account.snapshots.length === 0;
 if (isNotFound) Astro.response.status = 404;
 
-const chart = isNotFound
-	? {}
-	: defineLineChart([
-			{
-				label: `@${account.username}`,
-				data: account.snapshots.map(
-					({ stats, snapshotDate }, idx, snapshots) => {
-						const current = stats[statName];
-						const previous =
-							idx > 0 ? snapshots[idx - 1].stats[statName] : undefined;
+const availableStats = STAT_NAMES.filter((name) => {
+	if (isNotFound) return false;
 
-						return {
-							x: snapshotDate,
-							y:
-								current !== null &&
-								(current !== previous || idx === snapshots.length - 1)
-									? getValue(current)
-									: NaN,
-						};
-					},
-				),
-			},
-		]);
+	for (const { stats } of account.snapshots) {
+		if (stats[name]) return true;
+	}
+
+	return false;
+});
+
+const chart =
+	!isNotFound &&
+	statName !== undefined &&
+	defineLineChart([
+		{
+			label: `@${account.username}`,
+			data: account.snapshots.map(({ stats, snapshotDate }, idx, snapshots) => {
+				const current = stats[statName];
+				const previous =
+					idx > 0 ? snapshots[idx - 1].stats[statName] : undefined;
+
+				return {
+					x: snapshotDate,
+					y:
+						current !== null &&
+						(current !== previous || idx === snapshots.length - 1)
+							? getValue(current)
+							: NaN,
+				};
+			}),
+		},
+	]);
 ---
 
 <dialog class="modal modal-bottom sm:modal-middle">
@@ -80,12 +89,15 @@ const chart = isNotFound
 						id="chart"
 						class="relative mx-auto mt-4 aspect-2/1 w-96 max-w-full"
 					>
-						<canvas {...chart} class="bg-base-100" />
-						<iconify-icon
-							icon="svg-spinners:3-dots-rotate"
-							width="none"
-							class="center absolute -z-10 size-24"
-						/>
+						{chart ? (
+							<canvas {...chart} class="bg-base-100 absolute inset-0" />
+						) : (
+							<iconify-icon
+								icon="lucide:square-dashed-kanban"
+								width="none"
+								class="center absolute size-24 rotate-180"
+							/>
+						)}
 					</div>
 
 					<div class="mt-2 flex justify-center">
@@ -98,8 +110,10 @@ const chart = isNotFound
 								hx-target="#chart"
 								hx-select="#chart"
 							>
-								<option disabled>Pick a stat</option>
-								{STAT_NAMES.map((name) => (
+								<option disabled selected={!statName}>
+									Pick a stat
+								</option>
+								{availableStats.map((name) => (
 									<option value={name} selected={statName === name}>
 										{titleCase(name)}
 									</option>
