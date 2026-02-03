@@ -42,7 +42,7 @@ const page = await paginate({
 		"hx-indicator": "#snapshot-loader",
 		"hx-select": ".snapshot",
 		"hx-swap": "afterend",
-		"hx-vals": JSON.stringify({ date }),
+		"hx-vals": JSON.stringify({ id, date }),
 	},
 	size: 7,
 });
