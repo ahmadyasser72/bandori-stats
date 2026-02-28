@@ -14,24 +14,24 @@
 		"@bandori-stats/bestdori": "workspace:*",
 		"@bandori-stats/database": "workspace:*",
 		"@bandori-stats/discord-bot": "workspace:*",
-		"@tailwindcss/vite": "4.1.18",
-		"astro": "5.17.1",
+		"@tailwindcss/vite": "4.2.1",
+		"astro": "5.18.0",
 		"chart.js": "4.5.1",
 		"chartjs-adapter-dayjs-4": "1.0.4",
-		"daisyui": "5.5.14",
+		"daisyui": "5.5.19",
 		"dayjs": "1.11.19",
 		"htmx.org": "2.0.8",
 		"iconify-icon": "3.0.2",
-		"tailwindcss": "4.1.18",
+		"tailwindcss": "4.2.1",
 		"text-case": "1.2.10",
 		"zod": "4.3.6"
 	},
 	"devDependencies": {
 		"@astrojs/check": "0.9.6",
-		"@types/node": "25.1.0",
-		"p-limit": "7.2.0",
+		"@types/node": "25.3.3",
+		"p-limit": "7.3.0",
 		"sharp": "0.34.5",
 		"typescript": "5.9.3",
-		"wrangler": "4.61.1"
+		"wrangler": "4.69.0"
 	}
 }
