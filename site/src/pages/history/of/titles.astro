@@ -35,7 +35,7 @@ const sortedTitles = titles!
 		value: title,
 		isNew: previousTitles.size > 0 ? !previousTitles.has(title) : true,
 	}))
-	.sort((a, b) => (a.isNew === b.isNew ? 0 : a.isNew ? -1 : 1));
+	.sort((a, b) => Number(b.isNew) - Number(a.isNew));
 
 const page = await paginate({
 	items: sortedTitles,

@@ -22,26 +22,10 @@ const querySchema = z.instanceof(URLSearchParams).pipe(
 	),
 );
 
-export const onRequest = defineMiddleware(
-	async ({ locals, url, isPrerendered, routePattern }, next) => {
-		const { data, error, success } = querySchema.safeParse(url.searchParams);
-		if (import.meta.env.DEV && !success)
-			throw new Error(z.prettifyError(error));
-		locals.query = success ? data : {};
+export const onRequest = defineMiddleware(async ({ locals, url }, next) => {
+	const { data, error, success } = querySchema.safeParse(url.searchParams);
+	if (import.meta.env.DEV && !success) throw new Error(z.prettifyError(error));
+	locals.query = success ? data : {};
 
-		const response = await next();
-		if (
-			import.meta.env.PROD &&
-			!isPrerendered &&
-			(routePattern.startsWith("/leaderboard") ||
-				routePattern.startsWith("/history"))
-		) {
-			response.headers.set(
-				"cache-control",
-				"max-age=60, stale-while-revalidate=3600",
-			);
-		}
-
-		return response;
-	},
-);
+	return next();
+});

@@ -80,7 +80,7 @@ const getPreviousSnapshot = ({ accountId, id }: (typeof snapshots)[number]) =>
 
 					<td>
 						<button
-							hx-get="/fragments/stats-history"
+							hx-get="/history/of"
 							hx-indicator="this"
 							hx-disabled-elt="button.stats-history"
 							hx-vals={JSON.stringify({ id: accountId, date: snapshotDate })}

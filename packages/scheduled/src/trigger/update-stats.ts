@@ -14,7 +14,7 @@ import { schemaTask, tags } from "@trigger.dev/sdk";
 import z from "zod";
 
 import { bestdoriStats } from "./bestdori-stats";
-import { updateLeaderboard } from "./update-leaderboard";
+import { updateTitleSet } from "./update-titles";
 
 export const updateStats = schemaTask({
 	id: "update-stats",
@@ -111,9 +111,9 @@ export const updateStats = schemaTask({
 		}
 
 		if (accountId && snapshotId) {
-			await updateLeaderboard.trigger(
-				{ date, snapshots: { accountId, stats } },
-				{ tags: [`leaderboard_${username}`, `leaderboard_${date}`] },
+			await updateTitleSet.trigger(
+				{ snapshots: { accountId, stats } },
+				{ tags: [`titles_${username}`, `titles_${date}`] },
 			);
 
 			await db

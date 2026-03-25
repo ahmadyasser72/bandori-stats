@@ -77,7 +77,7 @@ if (isNotFound) Astro.response.status = 404;
 						<div class="mt-4 flex justify-center">
 							<button
 								class="btn btn-accent btn-sm"
-								hx-get="/fragments/stats-history/chart"
+								hx-get="/history/of/chart"
 								hx-vals={JSON.stringify({ id })}
 							>
 								Growth Chart
@@ -130,7 +130,7 @@ if (isNotFound) Astro.response.status = 404;
 														class="titles flex flex-wrap justify-center gap-x-1 gap-y-1.5 *:w-24 sm:*:w-32"
 													>
 														<div
-															hx-get="/fragments/stats-history/titles"
+															hx-get="/history/of/titles"
 															hx-swap="outerHTML"
 															hx-trigger="intersect once"
 															class="skeleton aspect-23/5"
