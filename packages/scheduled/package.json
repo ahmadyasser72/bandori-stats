@@ -6,15 +6,15 @@
 		"deploy": "trigger deploy"
 	},
 	"devDependencies": {
-		"@trigger.dev/build": "4.3.3",
-		"trigger.dev": "4.3.3"
+		"@trigger.dev/build": "4.4.4",
+		"trigger.dev": "4.4.4"
 	},
 	"dependencies": {
 		"@bandori-stats/bestdori": "workspace:*",
 		"@bandori-stats/database": "workspace:*",
 		"@octokit/core": "7.0.6",
-		"@trigger.dev/sdk": "4.3.3",
-		"dayjs": "1.11.19",
+		"@trigger.dev/sdk": "4.4.4",
+		"dayjs": "1.11.20",
 		"fast-shuffle": "6.1.1"
 	}
 }
