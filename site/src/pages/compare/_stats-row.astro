@@ -1,0 +1,37 @@
+---
+import {
+	compareValue,
+	displayValue,
+	formatNumber,
+	type StatValue,
+} from "@bandori-stats/bestdori/helpers";
+
+import { titleCase } from "text-case";
+
+interface Props {
+	name: string;
+	referenceValue: StatValue;
+	comparedValue: StatValue;
+}
+
+const { name, referenceValue, comparedValue } = Astro.props;
+const hasBoth = referenceValue !== null && comparedValue !== null;
+const diff = compareValue(referenceValue, comparedValue);
+---
+
+<tr>
+	<td class="text-start font-semibold">{titleCase(name)}</td>
+	<td class:list={[!referenceValue && "font-medium opacity-40"]}>
+		{displayValue(referenceValue)}
+	</td>
+	<td class:list={[!comparedValue && "font-medium opacity-40"]}>
+		{displayValue(comparedValue)}
+	</td>
+	<td class:list={["font-semibold", !hasBoth && "font-medium opacity-40"]}>
+		{
+			hasBoth
+				? formatNumber(diff, { autoCompact: true, positiveSign: true })
+				: "N/A"
+		}
+	</td>
+</tr>

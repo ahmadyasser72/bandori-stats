@@ -1,0 +1,233 @@
+---
+import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
+import { db, sql } from "@bandori-stats/database";
+import { accountSnapshots } from "@bandori-stats/database/schema";
+
+import { titleCase } from "text-case";
+
+import BaseLayout from "~/layouts/base-layout.astro";
+import { defineComparisonChart } from "~/lib/chart";
+import { dateSchema, idSchema } from "~/lib/schema";
+import SearchDropdown from "./_search-dropdown.astro";
+import StatsRow from "./_stats-row.astro";
+
+const referenceId = idSchema.optional().parse(Astro.locals.query.reference);
+const comparedId = idSchema.optional().parse(Astro.locals.query.compared);
+const compareDate = dateSchema.parse(Astro.locals.query.date);
+
+const { accounts, comparison, dateRange } = await (async () => {
+	const referenceAccount = referenceId
+		? await db.query.accounts.findFirst({
+				where: { id: referenceId },
+			})
+		: null;
+
+	const comparedAccount = comparedId
+		? await db.query.accounts.findFirst({
+				where: { id: comparedId },
+			})
+		: null;
+
+	const accounts = {
+		reference: referenceAccount,
+		compared: comparedAccount,
+	};
+
+	if (!referenceAccount || !comparedAccount) {
+		return { accounts, comparison: null, dateRange: null };
+	}
+
+	const oldestReference = await db.query.accountSnapshots.findFirst({
+		columns: { snapshotDate: true },
+		where: { accountId: referenceAccount.id },
+		orderBy: { snapshotDate: "asc" },
+	});
+	const oldestCompared = await db.query.accountSnapshots.findFirst({
+		columns: { snapshotDate: true },
+		where: { accountId: comparedAccount.id },
+		orderBy: { snapshotDate: "asc" },
+	});
+	const oldest = [oldestReference, oldestCompared].sort((a, b) =>
+		b!.snapshotDate.localeCompare(a!.snapshotDate),
+	)[0];
+
+	const latest = await db.query.accountSnapshots.findFirst({
+		columns: { snapshotDate: true },
+		where: { accountId: { in: [referenceAccount.id, comparedAccount.id] } },
+		orderBy: { snapshotDate: "desc" },
+	});
+
+	const dateRange = {
+		min: oldest?.snapshotDate ?? "",
+		max: latest?.snapshotDate ?? "",
+		selected: compareDate,
+	};
+
+	// Find the snapshot at or before the selected date for each account
+	const snapshotReference = await db.query.accountSnapshots.findFirst({
+		where: {
+			accountId: referenceAccount.id,
+			snapshotDate: { lte: dateRange.selected },
+		},
+		orderBy: { snapshotDate: "desc" },
+	});
+
+	const snapshotCompared = await db.query.accountSnapshots.findFirst({
+		where: {
+			accountId: comparedAccount.id,
+			snapshotDate: { lte: dateRange.selected },
+		},
+		orderBy: { snapshotDate: "desc" },
+	});
+
+	if (!snapshotReference || !snapshotCompared) {
+		return { accounts, comparison: null, dateRange };
+	}
+
+	const [range] = await db
+		.select({
+			...Object.fromEntries(
+				STAT_NAMES.map((name) => [
+					`max_${name}`,
+					sql<number>`MAX(CAST(json_extract(stats, '$.${sql.raw(name)}') AS INTEGER))`,
+				]),
+			),
+		})
+		.from(accountSnapshots);
+
+	const globalMaxes = STAT_NAMES.map((name) => range[`max_${name}`]);
+
+	const chart = defineComparisonChart(
+		STAT_NAMES.map((name) => titleCase(name)),
+		[
+			{
+				label: `@${referenceAccount.username} (${snapshotReference.snapshotDate})`,
+				data: STAT_NAMES.map((name) => snapshotReference.stats[name] ?? 0),
+			},
+			{
+				label: `@${comparedAccount.username} (${snapshotCompared.snapshotDate})`,
+				data: STAT_NAMES.map((name) => snapshotCompared.stats[name] ?? 0),
+			},
+		],
+		globalMaxes,
+	);
+
+	return {
+		accounts,
+		dateRange,
+		comparison: {
+			chart,
+			snapshotReference,
+			snapshotCompared,
+		},
+	};
+})();
+---
+
+<BaseLayout title="Compare Accounts">
+	<div class="absolute inset-0 overflow-x-auto">
+		<div class="breadcrumbs sticky left-0 z-20 px-4 sm:px-8">
+			<ul class="justify-center">
+				<li><a href="/">bandori-stats</a></li>
+				<li>compare</li>
+			</ul>
+		</div>
+
+		<div class="mx-auto flex max-w-5xl flex-col gap-8 p-4 sm:px-8">
+			<form id="compare-form" class="grid gap-4 md:grid-cols-3">
+				<SearchDropdown
+					label="Reference"
+					side="reference"
+					value={accounts.reference?.username}
+					other-id={accounts.compared?.id}
+				/>
+
+				<SearchDropdown
+					label="Compared-to"
+					side="compared"
+					value={accounts.compared?.username}
+					other-id={accounts.reference?.id}
+				/>
+
+				{
+					dateRange && (
+						<label class="input">
+							<span class="label">Snapshot Date</span>
+							<input
+								type="date"
+								name="date"
+								min={dateRange.min}
+								max={dateRange.max}
+								value={dateRange.selected}
+								hx-get="/compare"
+								hx-trigger="change"
+								hx-target="#compare-results"
+								hx-select="#compare-results"
+								hx-swap="outerHTML"
+								hx-vals={JSON.stringify({
+									reference: referenceId,
+									compared: comparedId,
+								})}
+								hx-replace-url="true"
+							/>
+						</label>
+					)
+				}
+			</form>
+
+			<div id="compare-results" class="card bg-base-200">
+				<div class="card-body items-center gap-4 text-center">
+					{
+						comparison ? (
+							<>
+								<div class="flex flex-col items-center gap-1">
+									<h2 class="card-title text-2xl">Stat Comparison</h2>
+									<div class="text-base-content/60 text-sm">
+										As of {compareDate}
+									</div>
+								</div>
+
+								<div class="rounded-box border-base-content/5 bg-base-100 relative aspect-square w-full max-w-4xl border px-4 py-4 sm:aspect-video md:aspect-2/1 md:px-8">
+									<canvas {...comparison.chart} />
+								</div>
+
+								<div class="rounded-box border-base-content/5 bg-base-100 w-full overflow-x-auto border">
+									<table class="table text-center">
+										<thead>
+											<tr>
+												<th class="min-w-40">Stat</th>
+												<th>@{accounts.reference!.username}</th>
+												<th>@{accounts.compared!.username}</th>
+												<th>Difference</th>
+											</tr>
+										</thead>
+										<tbody>
+											{STAT_NAMES.map((name) => (
+												<StatsRow
+													{name}
+													referenceValue={
+														comparison.snapshotReference.stats[name]
+													}
+													comparedValue={
+														comparison.snapshotCompared.stats[name]
+													}
+												/>
+											))}
+										</tbody>
+									</table>
+								</div>
+							</>
+						) : (
+							<div class="text-base-content/60 flex flex-col items-center justify-center py-16">
+								<h2 class="text-xl font-semibold">No comparison yet</h2>
+								<p class="text-sm">
+									Select two accounts to see their stats side-by-side.
+								</p>
+							</div>
+						)
+					}
+				</div>
+			</div>
+		</div>
+	</div>
+</BaseLayout>

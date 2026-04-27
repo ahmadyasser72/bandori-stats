@@ -1,0 +1,61 @@
+---
+import { db } from "@bandori-stats/database";
+
+import z from "zod";
+
+import { idSchema } from "~/lib/schema";
+
+export const partial = true;
+
+const query = Astro.locals.query.query?.toString().replace("@", "") ?? "";
+const side = z.enum(["reference", "compared"]).parse(Astro.locals.query.side);
+const otherId = idSchema.optional().parse(Astro.locals.query.other);
+
+const accounts = await db.query.accounts.findMany({
+	columns: { id: true, username: true, nickname: true },
+	limit: 8,
+	orderBy: { lastUpdated: "desc", username: "asc" },
+	where: {
+		id: otherId ? { ne: otherId } : undefined,
+		...(query
+			? {
+					OR: [
+						{ username: { like: `%${query}%` } },
+						{ nickname: { like: `%${query}%` } },
+					],
+				}
+			: {}),
+	},
+});
+---
+
+{
+	accounts.map((account) => (
+		<li>
+			<a
+				hx-get="/compare"
+				hx-vals={JSON.stringify(
+					side === "reference"
+						? { reference: account.id, compared: otherId }
+						: { reference: otherId, compared: account.id },
+				)}
+			>
+				{account.nickname ? (
+					<>
+						@{account.username}
+						<span class="opacity-50">({account.nickname})</span>
+					</>
+				) : (
+					`@${account.username}`
+				)}
+			</a>
+		</li>
+	))
+}
+{
+	accounts.length === 0 && (
+		<li class="disabled">
+			<a>No accounts found</a>
+		</li>
+	)
+}
