@@ -52,11 +52,11 @@ const page = await paginate({
 		<img
 			{...(page.isLastElement(idx) && page.props)}
 			src={`/static/titles/${title}.webp`}
-			loading="lazy"
 			class:list={[
 				"border-base-content/60 skeleton aspect-23/5 rounded-2xl border",
 				isNew && "border-secondary ring-secondary bg-secondary ring-2",
 			]}
+			loading="lazy"
 		/>
 	))
 }

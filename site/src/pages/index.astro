@@ -6,19 +6,19 @@ export const prerender = true;
 
 <BaseLayout title="Homepage">
 	<div
-		hx-boost="true"
 		class="absolute inset-0 flex flex-col items-center justify-center"
+		hx-boost="true"
 	>
 		<h1 class="font-medium">bandori-stats</h1>
 
 		<div class="mt-4 flex flex-wrap justify-center gap-2">
-			<a href="/history" class="btn btn-sm btn-primary">
-				<iconify-icon icon="lucide:calendar-clock" class="size-4" width="none"
+			<a class="btn btn-sm btn-primary" href="/history">
+				<iconify-icon class="size-4" icon="lucide:calendar-clock" width="none"
 				></iconify-icon>
 				History
 			</a>
-			<a href="/compare" class="btn btn-sm btn-secondary">
-				<iconify-icon icon="lucide:arrow-left-right" class="size-4" width="none"
+			<a class="btn btn-sm btn-secondary" href="/compare">
+				<iconify-icon class="size-4" icon="lucide:arrow-left-right" width="none"
 				></iconify-icon>
 				Compare
 			</a>
@@ -26,22 +26,22 @@ export const prerender = true;
 
 		<div class="mt-2 flex flex-wrap justify-center gap-2">
 			<a
-				href="https://github.com/ahmadyasser72/bandori-stats"
-				target="_blank"
-				rel="noopener noreferrer"
 				class="btn btn-accent"
+				href="https://github.com/ahmadyasser72/bandori-stats"
+				rel="noopener noreferrer"
+				target="_blank"
 			>
-				<iconify-icon icon="line-md:github-loop" class="size-5" width="none"
+				<iconify-icon class="size-5" icon="line-md:github-loop" width="none"
 				></iconify-icon>
 				Source code
 			</a>
 			<a
-				href="/discord-bot/invite"
-				target="_blank"
-				rel="noopener noreferrer"
 				class="btn btn-accent"
+				href="/discord-bot/invite"
+				rel="noopener noreferrer"
+				target="_blank"
 			>
-				<iconify-icon icon="line-md:discord" class="size-5" width="none"
+				<iconify-icon class="size-5" icon="line-md:discord" width="none"
 				></iconify-icon>
 				Discord bot
 			</a>

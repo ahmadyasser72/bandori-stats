@@ -134,19 +134,19 @@ const { accounts, comparison, dateRange } = await (async () => {
 		</div>
 
 		<div class="mx-auto flex max-w-5xl flex-col gap-8 p-4 sm:px-8">
-			<form id="compare-form" class="grid gap-4 md:grid-cols-3">
+			<form class="grid gap-4 md:grid-cols-3" id="compare-form">
 				<SearchDropdown
-					label="Reference"
-					side="reference"
 					value={accounts.reference?.username}
+					label="Reference"
 					other-id={accounts.compared?.id}
+					side="reference"
 				/>
 
 				<SearchDropdown
-					label="Compared-to"
-					side="compared"
 					value={accounts.compared?.username}
+					label="Compared-to"
 					other-id={accounts.reference?.id}
+					side="compared"
 				/>
 
 				{
@@ -154,28 +154,28 @@ const { accounts, comparison, dateRange } = await (async () => {
 						<label class="input">
 							<span class="label">Snapshot Date</span>
 							<input
-								type="date"
-								name="date"
-								min={dateRange.min}
-								max={dateRange.max}
-								value={dateRange.selected}
 								hx-get="/compare"
 								hx-trigger="change"
-								hx-target="#compare-results"
+								name="date"
+								type="date"
+								value={dateRange.selected}
+								hx-replace-url="true"
 								hx-select="#compare-results"
 								hx-swap="outerHTML"
+								hx-target="#compare-results"
 								hx-vals={JSON.stringify({
 									reference: referenceId,
 									compared: comparedId,
 								})}
-								hx-replace-url="true"
+								max={dateRange.max}
+								min={dateRange.min}
 							/>
 						</label>
 					)
 				}
 			</form>
 
-			<div id="compare-results" class="card bg-base-200">
+			<div class="card bg-base-200" id="compare-results">
 				<div class="card-body items-center gap-4 text-center">
 					{
 						comparison ? (
@@ -205,11 +205,11 @@ const { accounts, comparison, dateRange } = await (async () => {
 											{STAT_NAMES.map((name) => (
 												<StatsRow
 													{name}
-													referenceValue={
-														comparison.snapshotReference.stats[name]
-													}
 													comparedValue={
 														comparison.snapshotCompared.stats[name]
+													}
+													referenceValue={
+														comparison.snapshotReference.stats[name]
 													}
 												/>
 											))}

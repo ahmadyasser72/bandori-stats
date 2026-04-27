@@ -76,25 +76,25 @@ const getPreviousSnapshot = ({ accountId, id }: (typeof snapshots)[number]) =>
 					{...(page.isLastElement(idx) && page.props)}
 					class="group text-center"
 				>
-					<UsernameColumn {id} {username} {nickname} viewTransition={false} />
+					<UsernameColumn {id} {nickname} {username} viewTransition={false} />
 
 					<td>
 						<button
 							hx-get="/history/of"
-							hx-indicator="this"
-							hx-disabled-elt="button.stats-history"
-							hx-vals={JSON.stringify({ id: accountId, date: snapshotDate })}
 							class="stats-history btn btn-primary btn-sm btn-circle"
+							hx-disabled-elt="button.stats-history"
+							hx-indicator="this"
+							hx-vals={JSON.stringify({ id: accountId, date: snapshotDate })}
 						>
 							<iconify-icon
+								class="htmx-indicator-replace size-4"
 								icon="lucide:history"
 								width="none"
-								class="htmx-indicator-replace size-4"
 							/>
 							<iconify-icon
+								class="htmx-indicator size-4"
 								icon="svg-spinners:90-ring-with-bg"
 								width="none"
-								class="htmx-indicator size-4"
 							/>
 						</button>
 					</td>

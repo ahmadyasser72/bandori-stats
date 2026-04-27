@@ -37,8 +37,8 @@ import BaseLayout from "~/layouts/base-layout.astro";
 			<tbody hx-indicator=".infinite-placeholder">
 				<tr
 					hx-get="/history/rows"
-					hx-indicator="#app-loader, .infinite-placeholder"
 					hx-trigger="revealed"
+					hx-indicator="#app-loader, .infinite-placeholder"
 					hx-swap="outerHTML"
 				>
 				</tr>

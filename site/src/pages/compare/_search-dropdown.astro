@@ -15,27 +15,27 @@ const username = value ? `@${value}` : undefined;
 		<span>{label}</span>
 
 		<input
-			type="text"
-			name="query"
-			class="input"
-			placeholder={`Select ${label} Account...`}
-			value={username}
-			autocomplete="off"
 			hx-get="/compare/search"
-			hx-vals={JSON.stringify({ side, other: otherId })}
 			hx-trigger="keyup changed delay:300ms, focus"
+			class="input"
+			name="query"
+			type="text"
+			value={username}
 			hx-target="next .dropdown-content"
+			hx-vals={JSON.stringify({ side, other: otherId })}
+			autocomplete="off"
+			placeholder={`Select ${label} Account...`}
 		/>
 	</label>
 
 	<ul
-		tabindex="-1"
 		class="dropdown-content menu bg-base-100 rounded-box z-1 w-full p-2 shadow-sm"
-		hx-target="#compare-results"
-		hx-select="#compare-results"
-		hx-swap="outerHTML"
-		hx-select-oob="#compare-form"
 		hx-replace-url="true"
+		hx-select="#compare-results"
+		hx-select-oob="#compare-form"
+		hx-swap="outerHTML"
+		hx-target="#compare-results"
+		tabindex="-1"
 	>
 	</ul>
 </div>

@@ -81,22 +81,22 @@ const chart =
 					<h2 class="text-center">
 						<span class="text-lg font-bold">Growth chart</span> <br />
 						<DisplayName
-							username={account.username}
 							nickname={account.nickname}
+							username={account.username}
 						/>
 					</h2>
 
 					<div
-						id="chart"
 						class="relative mx-auto mt-4 aspect-2/1 w-96 max-w-full"
+						id="chart"
 					>
 						{chart ? (
 							<canvas {...chart} class="bg-base-100 absolute inset-0" />
 						) : (
 							<iconify-icon
+								class="center absolute size-24 rotate-180"
 								icon="lucide:square-dashed-kanban"
 								width="none"
-								class="center absolute size-24 rotate-180"
 							/>
 						)}
 					</div>
@@ -104,12 +104,12 @@ const chart =
 					<div class="mt-2 flex justify-center">
 						<div class="join w-64">
 							<select
+								hx-get="/history/of/chart"
 								class="select join-item"
 								name="stat_name"
-								hx-get="/history/of/chart"
 								hx-indicator="#chart-loader"
-								hx-target="#chart"
 								hx-select="#chart"
+								hx-target="#chart"
 								hx-vals={JSON.stringify({ id })}
 							>
 								<option disabled selected={!statName}>
@@ -122,16 +122,16 @@ const chart =
 								))}
 							</select>
 
-							<button id="chart-loader" class="btn join-item btn-square">
+							<button class="btn join-item btn-square" id="chart-loader">
 								<iconify-icon
+									class="htmx-indicator-replace size-4"
 									icon="lucide:activity"
 									width="none"
-									class="htmx-indicator-replace size-4"
 								/>
 								<iconify-icon
+									class="htmx-indicator size-4"
 									icon="svg-spinners:90-ring-with-bg"
 									width="none"
-									class="htmx-indicator size-4"
 								/>
 							</button>
 						</div>
@@ -141,7 +141,7 @@ const chart =
 		}
 	</div>
 
-	<form method="dialog" class="contents">
+	<form class="contents" method="dialog">
 		<button class="modal-backdrop">Close</button>
 	</form>
 </dialog>

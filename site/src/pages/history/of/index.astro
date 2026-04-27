@@ -68,8 +68,8 @@ if (isNotFound) Astro.response.status = 404;
 					<h2 class="text-center">
 						<span class="text-lg font-bold">Stats History</span> <br />
 						<DisplayName
-							username={account.username}
 							nickname={account.nickname}
+							username={account.username}
 						/>
 					</h2>
 
@@ -77,31 +77,31 @@ if (isNotFound) Astro.response.status = 404;
 						<div class="flex w-full justify-center">
 							<div class="join mt-4">
 								<button
-									class="btn btn-accent join-item btn-sm"
 									hx-get="/history/of/chart"
+									class="btn btn-accent join-item btn-sm"
 									hx-vals={JSON.stringify({ id })}
 								>
 									Growth Chart
 									<iconify-icon
+										class="htmx-indicator-replace size-4"
 										icon="lucide:chart-line"
 										width="none"
-										class="htmx-indicator-replace size-4"
 									/>
 									<iconify-icon
+										class="htmx-indicator size-4"
 										icon="svg-spinners:90-ring-with-bg"
 										width="none"
-										class="htmx-indicator size-4"
 									/>
 								</button>
 
 								<a
-									href={`/compare?reference=${id}`}
 									class="btn btn-sm btn-accent join-item"
+									href={`/compare?reference=${id}`}
 								>
 									Compare
 									<iconify-icon
-										icon="lucide:arrow-left-right"
 										class="size-4"
+										icon="lucide:arrow-left-right"
 										width="none"
 									/>
 								</a>
@@ -123,31 +123,31 @@ if (isNotFound) Astro.response.status = 404;
 										{stats.titles !== null && stats.titles.length > 0 && (
 											<div class="dropdown dropdown-right">
 												<div
-													tabindex="0"
-													role="button"
 													class="btn btn-info btn-xs w-full"
+													role="button"
+													tabindex="0"
 												>
 													Show Titles
 													<iconify-icon
+														class="size-3.5"
 														icon="lucide:award"
 														width="none"
-														class="size-3.5"
 													/>
 												</div>
 												<div
-													tabindex="-1"
 													class="dropdown-content bg-base-100 rounded-box z-10 ml-1 max-h-22 w-[200%] -translate-y-8 overflow-y-auto p-2 shadow-md sm:w-[300%]"
+													tabindex="-1"
 												>
 													<div
+														class="titles flex flex-wrap justify-center gap-x-1 gap-y-1.5 *:w-24 sm:*:w-32"
 														hx-indicator="closest .titles"
 														hx-vals={JSON.stringify({ id, date: snapshotDate })}
-														class="titles flex flex-wrap justify-center gap-x-1 gap-y-1.5 *:w-24 sm:*:w-32"
 													>
 														<div
 															hx-get="/history/of/titles"
-															hx-swap="outerHTML"
 															hx-trigger="intersect once"
 															class="skeleton aspect-23/5"
+															hx-swap="outerHTML"
 														/>
 
 														{Array.from(
@@ -165,8 +165,8 @@ if (isNotFound) Astro.response.status = 404;
 									<div class="flex flex-1 flex-wrap gap-1">
 										{[...STAT_NAMES, "titles" as const].map((name) => (
 											<StatsBadge
-												label={name}
 												value={stats[name]}
+												label={name}
 												previousValue={
 													account.snapshots.at(idx + 1)?.stats[name]
 												}
@@ -178,13 +178,13 @@ if (isNotFound) Astro.response.status = 404;
 					</div>
 
 					<div
-						id="snapshot-loader"
 						class="htmx-indicator mt-4 flex flex-col items-center"
+						id="snapshot-loader"
 					>
 						<iconify-icon
+							class="size-24"
 							icon="svg-spinners:90-ring-with-bg"
 							width="none"
-							class="size-24"
 						/>
 
 						<span class="font-medium">loading more snapshots...</span>
@@ -194,7 +194,7 @@ if (isNotFound) Astro.response.status = 404;
 		}
 	</div>
 
-	<form method="dialog" class="contents">
+	<form class="contents" method="dialog">
 		<button class="modal-backdrop">Close</button>
 	</form>
 </dialog>
