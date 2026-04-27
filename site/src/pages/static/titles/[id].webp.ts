@@ -2,7 +2,7 @@ import {
 	BestdoriDegree,
 	fetchDegrees,
 } from "@bandori-stats/bestdori/schema/degree";
-import { redis } from "@bandori-stats/database/redis";
+import { PLAYER_TITLES_SET, redis } from "@bandori-stats/database/redis";
 
 import type {
 	APIRoute,
@@ -61,7 +61,7 @@ export const getStaticPaths = (async () => {
 	const degrees = await fetchDegrees();
 
 	const imageEntries = [] as [number, string[]][];
-	const titles = await redis.smembers<number[]>("leaderboard:titles");
+	const titles = await redis.smembers<number[]>(PLAYER_TITLES_SET);
 	degrees.forEach((degree, id) => {
 		if (!titles.includes(id)) return;
 

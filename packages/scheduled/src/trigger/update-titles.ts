@@ -1,4 +1,4 @@
-import { redis } from "@bandori-stats/database/redis";
+import { PLAYER_TITLES_SET, redis } from "@bandori-stats/database/redis";
 
 import { Octokit } from "@octokit/core";
 import { schemaTask, tags } from "@trigger.dev/sdk";
@@ -23,7 +23,7 @@ export const updateTitleSet = schemaTask({
 		if (titles.length === 0) return;
 
 		// @ts-expect-error should works
-		const newTitles = await redis.sadd("leaderboard:titles", ...titles);
+		const newTitles = await redis.sadd(PLAYER_TITLES_SET, ...titles);
 		if (newTitles === 0) return;
 
 		await tags.add(`titles_+${newTitles}`);
