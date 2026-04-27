@@ -74,24 +74,38 @@ if (isNotFound) Astro.response.status = 404;
 					</h2>
 
 					{account.snapshotsCount > 1 && (
-						<div class="mt-4 flex justify-center">
-							<button
-								class="btn btn-accent btn-sm"
-								hx-get="/history/of/chart"
-								hx-vals={JSON.stringify({ id })}
-							>
-								Growth Chart
-								<iconify-icon
-									icon="lucide:chart-line"
-									width="none"
-									class="htmx-indicator-replace size-4"
-								/>
-								<iconify-icon
-									icon="svg-spinners:90-ring-with-bg"
-									width="none"
-									class="htmx-indicator size-4"
-								/>
-							</button>
+						<div class="flex w-full justify-center">
+							<div class="join mt-4">
+								<button
+									class="btn btn-accent join-item btn-sm"
+									hx-get="/history/of/chart"
+									hx-vals={JSON.stringify({ id })}
+								>
+									Growth Chart
+									<iconify-icon
+										icon="lucide:chart-line"
+										width="none"
+										class="htmx-indicator-replace size-4"
+									/>
+									<iconify-icon
+										icon="svg-spinners:90-ring-with-bg"
+										width="none"
+										class="htmx-indicator size-4"
+									/>
+								</button>
+
+								<a
+									href={`/compare?reference=${id}`}
+									class="btn btn-sm btn-accent join-item"
+								>
+									Compare
+									<iconify-icon
+										icon="lucide:arrow-left-right"
+										class="size-4"
+										width="none"
+									/>
+								</a>
+							</div>
 						</div>
 					)}
 
