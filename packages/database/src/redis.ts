@@ -10,3 +10,4 @@ export const redis = new Redis({
 });
 
 export const PLAYER_TITLES_SET = "stats:player-titles";
+export const PLAYER_STATS_SORTED_SET_PREFIX = "stats:player-stats";

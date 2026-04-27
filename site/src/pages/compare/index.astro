@@ -1,7 +1,10 @@
 ---
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
-import { db, sql } from "@bandori-stats/database";
-import { accountSnapshots } from "@bandori-stats/database/schema";
+import { db } from "@bandori-stats/database";
+import {
+	PLAYER_STATS_SORTED_SET_PREFIX,
+	redis,
+} from "@bandori-stats/database/redis";
 
 import { titleCase } from "text-case";
 
@@ -37,19 +40,22 @@ const { accounts, comparison, dateRange } = await (async () => {
 		return { accounts, comparison: null, dateRange: null };
 	}
 
-	const oldestReference = await db.query.accountSnapshots.findFirst({
-		columns: { snapshotDate: true },
-		where: { accountId: referenceAccount.id },
-		orderBy: { snapshotDate: "asc" },
-	});
-	const oldestCompared = await db.query.accountSnapshots.findFirst({
-		columns: { snapshotDate: true },
-		where: { accountId: comparedAccount.id },
-		orderBy: { snapshotDate: "asc" },
-	});
-	const oldest = [oldestReference, oldestCompared].sort((a, b) =>
-		b!.snapshotDate.localeCompare(a!.snapshotDate),
-	)[0];
+	const oldest = await (async () => {
+		const oldestReference = await db.query.accountSnapshots.findFirst({
+			columns: { snapshotDate: true },
+			where: { accountId: referenceAccount.id },
+			orderBy: { snapshotDate: "asc" },
+		});
+		const oldestCompared = await db.query.accountSnapshots.findFirst({
+			columns: { snapshotDate: true },
+			where: { accountId: comparedAccount.id },
+			orderBy: { snapshotDate: "asc" },
+		});
+
+		return [oldestReference, oldestCompared].sort((a, b) =>
+			b!.snapshotDate.localeCompare(a!.snapshotDate),
+		)[0];
+	})();
 
 	const latest = await db.query.accountSnapshots.findFirst({
 		columns: { snapshotDate: true },
@@ -71,7 +77,6 @@ const { accounts, comparison, dateRange } = await (async () => {
 		},
 		orderBy: { snapshotDate: "desc" },
 	});
-
 	const snapshotCompared = await db.query.accountSnapshots.findFirst({
 		where: {
 			accountId: comparedAccount.id,
@@ -84,18 +89,19 @@ const { accounts, comparison, dateRange } = await (async () => {
 		return { accounts, comparison: null, dateRange };
 	}
 
-	const [range] = await db
-		.select({
-			...Object.fromEntries(
-				STAT_NAMES.map((name) => [
-					`max_${name}`,
-					sql<number>`MAX(CAST(json_extract(stats, '$.${sql.raw(name)}') AS INTEGER))`,
-				]),
-			),
-		})
-		.from(accountSnapshots);
+	const globalMaxes = await (async () => {
+		const pipe = redis.pipeline();
+		for (const stat of STAT_NAMES) {
+			pipe.zrange(`${PLAYER_STATS_SORTED_SET_PREFIX}:${stat}`, 0, 0, {
+				withScores: true,
+				rev: true,
+			});
+		}
 
-	const globalMaxes = STAT_NAMES.map((name) => range[`max_${name}`]);
+		const range = await pipe.exec<[number, number][]>();
+
+		return STAT_NAMES.map((_, idx) => range[idx][1]);
+	})();
 
 	const chart = defineComparisonChart(
 		STAT_NAMES.map((name) => titleCase(name)),

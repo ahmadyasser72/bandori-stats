@@ -1,4 +1,9 @@
-import { PLAYER_TITLES_SET, redis } from "@bandori-stats/database/redis";
+import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
+import {
+	PLAYER_STATS_SORTED_SET_PREFIX,
+	PLAYER_TITLES_SET,
+	redis,
+} from "@bandori-stats/database/redis";
 
 import { Octokit } from "@octokit/core";
 import { schemaTask, tags } from "@trigger.dev/sdk";
@@ -11,15 +16,33 @@ const SnapshotSchema = z.strictObject({
 	stats: AccountSchema.shape.stats.unwrap(),
 });
 
-export const updateTitleSet = schemaTask({
-	id: "update-title-set",
-	schema: z.strictObject({
-		snapshots: z
-			.union([SnapshotSchema, z.array(SnapshotSchema).nonempty()])
-			.transform((it) => (Array.isArray(it) ? it : [it])),
-	}),
-	run: async ({ snapshots }, { ctx }) => {
-		const titles = snapshots.flatMap(({ stats }) => stats.titles ?? []);
+export const updateStatsRedis = schemaTask({
+	id: "update-stats-redis",
+	schema: z.strictObject({ snapshot: SnapshotSchema }),
+	run: async ({ snapshot }, { ctx }) => {
+		const { accountId, stats } = snapshot;
+
+		const newStatsBest = await Promise.all(
+			STAT_NAMES.map((stat) => {
+				const score = stats[stat];
+				if (score === null) return null;
+
+				return redis.zadd(
+					`${PLAYER_STATS_SORTED_SET_PREFIX}:${stat}`,
+					{ gt: true, ch: true },
+					{ member: accountId, score },
+				);
+			}),
+		).then((results) =>
+			results
+				.map((value, idx) => ({ stat: STAT_NAMES[idx], value }))
+				.filter(({ value }) => value !== null),
+		);
+
+		if (newStatsBest.length > 0)
+			await tags.add(newStatsBest.map(({ stat }) => `${stat}_new-best`));
+
+		const titles = stats.titles ?? [];
 		if (titles.length === 0) return;
 
 		// @ts-expect-error should works
