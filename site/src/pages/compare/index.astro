@@ -1,15 +1,11 @@
 ---
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import { db } from "@bandori-stats/database";
-import {
-	PLAYER_STATS_SORTED_SET_PREFIX,
-	redis,
-} from "@bandori-stats/database/redis";
 
 import { titleCase } from "text-case";
 
 import BaseLayout from "~/layouts/base-layout.astro";
-import { defineComparisonChart } from "~/lib/chart";
+import { defineComparisonChart } from "~/lib/chart.server";
 import { dateSchema, idSchema } from "~/lib/schema";
 import SearchDropdown from "./_search-dropdown.astro";
 import StatsRow from "./_stats-row.astro";
@@ -89,21 +85,7 @@ const { accounts, comparison, dateRange } = await (async () => {
 		return { accounts, comparison: null, dateRange };
 	}
 
-	const globalMaxes = await (async () => {
-		const pipe = redis.pipeline();
-		for (const stat of STAT_NAMES) {
-			pipe.zrange(`${PLAYER_STATS_SORTED_SET_PREFIX}:${stat}`, 0, 0, {
-				withScores: true,
-				rev: true,
-			});
-		}
-
-		const range = await pipe.exec<[number, number][]>();
-
-		return STAT_NAMES.map((_, idx) => range[idx][1]);
-	})();
-
-	const chart = defineComparisonChart(
+	const chart = await defineComparisonChart(
 		STAT_NAMES.map((name) => titleCase(name)),
 		[
 			{
@@ -115,7 +97,6 @@ const { accounts, comparison, dateRange } = await (async () => {
 				data: STAT_NAMES.map((name) => snapshotCompared.stats[name] ?? 0),
 			},
 		],
-		globalMaxes,
 	);
 
 	return {
