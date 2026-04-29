@@ -37,7 +37,7 @@ export const useChart = async (
 	);
 
 	// Hydrate tooltip callbacks for comparison charts
-	if (config.data.datasets.some((d: any) => d.originalValues)) {
+	if (config.data.datasets.some((dataset: any) => dataset.dataLabels)) {
 		config.options = {
 			...(config.options || {}),
 			plugins: {
@@ -46,9 +46,8 @@ export const useChart = async (
 					...(config.options?.plugins?.tooltip || {}),
 					callbacks: {
 						label: (context: any) => {
-							const originalValue =
-								context.dataset.originalValues?.[context.dataIndex];
-							return `${context.dataset.label}: ${originalValue ?? context.formattedValue}`;
+							const dataLabel = context.dataset.dataLabels?.[context.dataIndex];
+							return `${context.dataset.label}: ${dataLabel ?? context.formattedValue}`;
 						},
 					},
 				},
