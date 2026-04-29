@@ -1,5 +1,4 @@
 import { accountHasNickname } from "@bandori-stats/bestdori/helpers";
-import { ComparisonChart, getGlobalMaxes } from "@bandori-stats/database/chart";
 
 import {
 	ButtonStyleTypes,
@@ -175,6 +174,8 @@ export const handle: CommandHandler = async ({ type, data }) => {
 					const chart = new QuickChart();
 					chart.setVersion("4");
 
+					const { ComparisonChart, getGlobalMaxes } =
+						await import("@bandori-stats/database/chart");
 					const maxStats = await getGlobalMaxes();
 					chart.setConfig(
 						ComparisonChart(
