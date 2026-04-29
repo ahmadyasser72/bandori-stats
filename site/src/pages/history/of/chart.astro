@@ -1,10 +1,11 @@
 ---
 import type { StatName } from "@bandori-stats/bestdori/constants";
 import { db } from "@bandori-stats/database";
+import { GrowthChart } from "@bandori-stats/database/chart";
 
 import z from "zod";
 
-import { defineGrowthChart } from "~/lib/chart.server";
+import { defineChart } from "~/lib/chart";
 import dayjs from "~/lib/date";
 import { dateSchema, idSchema } from "~/lib/schema";
 import DisplayName from "./_display-name.astro";
@@ -120,7 +121,7 @@ const snapshots = (() => {
 const isNotFound = !account || snapshots.length === 0;
 if (isNotFound) Astro.response.status = 404;
 
-const chart = !isNotFound && (await defineGrowthChart(snapshots, range));
+const chart = !isNotFound && defineChart(GrowthChart(snapshots, range));
 
 const prevEnd = start.subtract(1, "day").format("YYYY-MM-DD");
 const nextEnd = viewEnd.add(1, "day").format("YYYY-MM-DD");

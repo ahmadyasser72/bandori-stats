@@ -20,7 +20,6 @@ import {
 import { getBorderCharacters, table } from "table";
 import { titleCase } from "text-case";
 
-import dayjs from "../date";
 import { CommandOptionType, type Command, type CommandHandler } from "./types";
 
 export const command = {
@@ -165,15 +164,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 						"```text",
 						table(
 							[
-								[
-									"Stat",
-									...snapshots.map(({ snapshotDate }) =>
-										[
-											snapshotDate,
-											`(${formatRelativeTime(snapshotDate)})`,
-										].join("\n"),
-									),
-								],
+								["Stat", ...snapshots.map(({ snapshotDate }) => snapshotDate)],
 								...[...STAT_NAMES, "titles" as const].map((name) => [
 									name === "titles"
 										? "Titles unlocked"
@@ -280,11 +271,4 @@ export const handle: CommandHandler = async ({ type, data }) => {
 			};
 		}
 	}
-};
-
-const formatRelativeTime = (date: string) => {
-	const daysToNow = dayjs().diff(dayjs(date), "days");
-	if (daysToNow === 0) return "today";
-	else if (daysToNow === 1) return "yesterday";
-	else return dayjs(date).fromNow();
 };

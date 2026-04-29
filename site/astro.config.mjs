@@ -39,9 +39,7 @@ export default defineConfig({
 			},
 		},
 
-		server: {
-			allowedHosts: ["entrance-interior-mean-relatives.trycloudflare.com"],
-		},
+		server: { allowedHosts: [".lhr.life"] },
 	},
 	devToolbar: { enabled: false },
 });

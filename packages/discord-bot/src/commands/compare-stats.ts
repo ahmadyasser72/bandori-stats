@@ -1,11 +1,5 @@
-import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
-import {
-	accountHasNickname,
-	compareValue,
-	displayValue,
-	formatNumber,
-	type StatValue,
-} from "@bandori-stats/bestdori/helpers";
+import { accountHasNickname } from "@bandori-stats/bestdori/helpers";
+import { ComparisonChart, getGlobalMaxes } from "@bandori-stats/database/chart";
 
 import {
 	ButtonStyleTypes,
@@ -17,8 +11,7 @@ import {
 	type Container,
 	type MessageComponent,
 } from "discord-interactions";
-import { getBorderCharacters, table } from "table";
-import { titleCase } from "text-case";
+import QuickChart from "quickchart-js";
 
 import { CommandOptionType, type Command, type CommandHandler } from "./types";
 
@@ -137,7 +130,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 				};
 			}
 
-			const container = ((): Container => {
+			const container = await (async (): Promise<Container> => {
 				const aDate = aSnapshot.snapshotDate;
 				const bDate = bSnapshot.snapshotDate;
 
@@ -153,49 +146,25 @@ export const handle: CommandHandler = async ({ type, data }) => {
 					{ type: MessageComponentTypes.SEPARATOR },
 				];
 
-				const aStats = aSnapshot.stats;
-				const bStats = bSnapshot.stats;
+				const chartUrl = await (async () => {
+					const chart = new QuickChart();
+					chart.setVersion("4");
+
+					const maxStats = await getGlobalMaxes();
+					chart.setConfig(
+						ComparisonChart(
+							{ username: a.username, snapshot: aSnapshot },
+							{ username: b.username, snapshot: bSnapshot },
+							maxStats,
+						),
+					);
+
+					return chart.getShortUrl();
+				})();
 
 				components.push({
-					type: MessageComponentTypes.TEXT_DISPLAY,
-					content: [
-						"```text",
-						table(
-							[
-								[
-									"Stat",
-									displayStatsHeader(a.username, aDate),
-									displayStatsHeader(b.username, bDate),
-								],
-								...[...STAT_NAMES, "titles" as const].map((name) => {
-									const label =
-										name === "titles"
-											? "Titles unlocked"
-											: titleCase(name.replace("Count", ""));
-
-									const aValue = aStats[name];
-									const bValue = bStats[name];
-
-									return [
-										label,
-										displayStatsColumn(aValue, bValue),
-										displayStatsColumn(bValue, aValue),
-									];
-								}),
-							],
-							{
-								border: getBorderCharacters("norc"),
-								columnDefault: {
-									alignment: "right",
-									verticalAlignment: "middle",
-									wrapWord: true,
-									width: 10,
-								},
-								columns: { 0: { alignment: "left", width: 8 } },
-							},
-						),
-						"```",
-					].join("\n"),
+					type: MessageComponentTypes.MEDIA_GALLERY,
+					items: [{ media: { url: chartUrl } }],
 				});
 
 				components.push({
@@ -242,16 +211,3 @@ export const handle: CommandHandler = async ({ type, data }) => {
 
 const displayHeading = (username: string, date: string) =>
 	`@${username} (${date})`;
-
-const displayStatsHeader = (username: string, date: string) =>
-	[`@${username}`, date].join("\n");
-
-const displayStatsColumn = (left: StatValue, right: StatValue) => {
-	const delta = compareValue(left, right);
-	if (delta === 0) return displayValue(left);
-
-	return [
-		displayValue(left),
-		`(${formatNumber(delta, { autoCompact: true, positiveSign: true })})`,
-	].join("\n");
-};

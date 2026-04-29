@@ -1,10 +1,14 @@
+import type { ChartOptions } from "@bandori-stats/database/chart";
+
 import type { ChartType } from "chart.js";
 
-import type { ChartOptions } from "./chart.server";
+export const defineChart = <T extends ChartType>(
+	config: ChartOptions<T, any>,
+) => ({ "data-chart": JSON.stringify(config) });
 
 export const useChart = async (
 	canvas: HTMLCanvasElement,
-	config: ChartOptions<ChartType>,
+	config: ChartOptions<ChartType, never>,
 ) => {
 	const {
 		BarController,
