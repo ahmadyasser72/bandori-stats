@@ -13,6 +13,7 @@ import {
 } from "discord-interactions";
 import QuickChart from "quickchart-js";
 
+import dayjs from "../date";
 import { CommandOptionType, type Command, type CommandHandler } from "./types";
 
 export const command = {
@@ -79,11 +80,32 @@ export const handle: CommandHandler = async ({ type, data }) => {
 			};
 		}
 
+		case InteractionType.MESSAGE_COMPONENT:
 		case InteractionType.APPLICATION_COMMAND: {
-			const accountIds = data.options
-				?.filter(({ name }) => name.startsWith("account"))
-				.map((it) => Number(it.value))
-				.filter((value) => !Number.isNaN(value));
+			const { accountIds, targetDate } = (() => {
+				if (type === InteractionType.APPLICATION_COMMAND) {
+					return {
+						accountIds: data.options
+							?.filter(({ name }) => name.startsWith("account"))
+							.map((it) => Number(it.value))
+							.filter((value) => !Number.isNaN(value)),
+						targetDate: dayjs().toISOString(),
+					};
+				} else {
+					const [id1, id2, period, date] = data
+						.custom_id!.replace("compare-stats_nav:", "")
+						.split(":");
+
+					let target = dayjs(date);
+					if (period === "week") target = target.startOf("week");
+					else if (period === "month") target = target.startOf("month");
+
+					return {
+						accountIds: [Number(id1), Number(id2)],
+						targetDate: target.toISOString(),
+					};
+				}
+			})();
 
 			if (!accountIds || accountIds.length !== 2) {
 				return {
@@ -97,11 +119,14 @@ export const handle: CommandHandler = async ({ type, data }) => {
 
 			const accounts = await db.query.accounts.findMany({
 				where: { id: { in: accountIds } },
-				columns: { username: true },
+				columns: { id: true, username: true },
 				with: {
 					snapshots: {
 						columns: { stats: true, snapshotDate: true },
 						orderBy: { snapshotDate: "desc" },
+						where: {
+							snapshotDate: { lte: dayjs(targetDate).format("YYYY-MM-DD") },
+						},
 						limit: 1,
 					},
 				},
@@ -125,7 +150,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 					type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
 					data: {
 						flags: InteractionResponseFlags.EPHEMERAL,
-						content: "One or more accounts have no snapshot.",
+						content: "One or more accounts have no snapshot for this period.",
 					},
 				};
 			}
@@ -172,6 +197,30 @@ export const handle: CommandHandler = async ({ type, data }) => {
 					components: [
 						{
 							type: MessageComponentTypes.BUTTON,
+							style: ButtonStyleTypes.SECONDARY,
+							label: "Latest",
+							custom_id: `compare-stats_nav:${a.id}:${b.id}:latest:${dayjs().toISOString()}`,
+						},
+						{
+							type: MessageComponentTypes.BUTTON,
+							style: ButtonStyleTypes.SECONDARY,
+							label: "-1 Week",
+							custom_id: `compare-stats_nav:${a.id}:${b.id}:week:${dayjs(targetDate).subtract(1, "week").toISOString()}`,
+						},
+						{
+							type: MessageComponentTypes.BUTTON,
+							style: ButtonStyleTypes.SECONDARY,
+							label: "-1 Month",
+							custom_id: `compare-stats_nav:${a.id}:${b.id}:month:${dayjs(targetDate).subtract(1, "month").toISOString()}`,
+						},
+					],
+				});
+
+				components.push({
+					type: MessageComponentTypes.ACTION_ROW,
+					components: [
+						{
+							type: MessageComponentTypes.BUTTON,
 							style: ButtonStyleTypes.LINK,
 							label: `@${a.username} Profile`,
 							url: `https://bestdori.com/community/user/${a.username}`,
@@ -189,7 +238,10 @@ export const handle: CommandHandler = async ({ type, data }) => {
 			})();
 
 			return {
-				type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+				type:
+					type === InteractionType.APPLICATION_COMMAND
+						? InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE
+						: InteractionResponseType.UPDATE_MESSAGE,
 				data: {
 					flags: InteractionResponseFlags.IS_COMPONENTS_V2,
 					components: [container],
