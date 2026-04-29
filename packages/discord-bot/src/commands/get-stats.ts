@@ -237,14 +237,16 @@ export const handle: CommandHandler = async ({ type, data }) => {
 						{
 							type: MessageComponentTypes.BUTTON,
 							style: ButtonStyleTypes.SECONDARY,
-							label: "⬅ Newer",
+							label: "Newer",
+							emoji: { id: undefined, name: "⬅️" },
 							custom_id: `get-stats_page:${accountId}:${page - 1}`,
 							disabled: page === 0,
 						},
 						{
 							type: MessageComponentTypes.BUTTON,
 							style: ButtonStyleTypes.SECONDARY,
-							label: "Older ➡",
+							label: "Older",
+							emoji: { id: undefined, name: "➡️" },
 							custom_id: `get-stats_page:${accountId}:${page + 1}`,
 							disabled: page + 1 >= totalPages,
 						},
