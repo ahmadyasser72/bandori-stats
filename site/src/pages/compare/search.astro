@@ -13,7 +13,7 @@ const otherId = idSchema.optional().parse(Astro.locals.query.other);
 
 const accounts = await db.query.accounts.findMany({
 	columns: { id: true, username: true, nickname: true },
-	limit: 8,
+	limit: 24,
 	orderBy: { lastUpdated: "desc", username: "asc" },
 	where: {
 		id: otherId ? { ne: otherId } : undefined,

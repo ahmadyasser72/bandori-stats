@@ -29,7 +29,7 @@ const username = value ? `@${value}` : undefined;
 	</label>
 
 	<ul
-		class="dropdown-content menu bg-base-100 rounded-box z-1 w-full p-2 shadow-sm"
+		class="dropdown-content menu bg-base-100 rounded-box z-1 max-h-64 w-full flex-nowrap overflow-y-auto p-2 shadow-sm"
 		hx-replace-url="true"
 		hx-select="#compare-results"
 		hx-select-oob="#compare-form"
