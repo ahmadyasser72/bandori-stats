@@ -17,7 +17,7 @@ const username = value ? `@${value}` : undefined;
 		<input
 			hx-get="/compare/search"
 			hx-trigger="keyup changed delay:300ms, focus"
-			class="input"
+			class="input w-full"
 			name="query"
 			type="text"
 			value={username}
