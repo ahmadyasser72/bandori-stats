@@ -1,5 +1,6 @@
 import {
 	ABBREVIATED_STAT_NAMES,
+	REGION_ID,
 	STAT_NAMES,
 } from "@bandori-stats/bestdori/constants";
 import { displayValue } from "@bandori-stats/bestdori/helpers";
@@ -27,7 +28,7 @@ export const bestdoriStats = schemaTask({
 		}
 
 		const { uid, stats } = data.accounts
-			.filter(({ server }) => server === 1)
+			.filter(({ server }) => server === REGION_ID)
 			.map((stats) => ({
 				uid: stats.uid?.toString() ?? null,
 				stats: {

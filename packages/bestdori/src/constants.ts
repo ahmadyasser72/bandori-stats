@@ -1,3 +1,6 @@
+export const REGION: "jp" | "en" = "en";
+export const REGION_ID = ["jp", "en"].indexOf(REGION);
+
 export const STAT_NAMES = [
 	"highScoreRating",
 	"bandRating",

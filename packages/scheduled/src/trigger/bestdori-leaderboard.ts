@@ -1,4 +1,5 @@
 import {
+	REGION_ID,
 	STAT_NAMES,
 	type RawStatName,
 	type StatName,
@@ -31,7 +32,7 @@ export const bestdoriLeaderboard = schemaTask({
 		await tags.add(`leaderboard_${type}:${offset}-${offset + limit}`);
 		const { success, data, error } = PlayerLeaderboard.safeParse(
 			await bestdori("api/sync/list/player", {
-				server: "1",
+				server: REGION_ID.toString(),
 				stats: leaderboardTypeMap[type],
 				limit: limit.toString(),
 				offset: offset.toString(),

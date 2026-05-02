@@ -1,3 +1,4 @@
+import { REGION } from "@bandori-stats/bestdori/constants";
 import {
 	BestdoriDegree,
 	fetchDegrees,
@@ -38,7 +39,7 @@ export const GET: APIRoute<Props, Params> = async ({ props }) => {
 const pickRegion = <T>(tuple: T[]) => tuple.at(1) ?? tuple.at(0)!;
 
 const buildDegreeImages = (degree: BestdoriDegree) => {
-	const basePath = "/assets/en/thumb/degree_rip";
+	const basePath = `/assets/${REGION}/thumb/degree_rip`;
 
 	const baseImageName = pickRegion(degree.baseImageName);
 	const rank = pickRegion(degree.rank);

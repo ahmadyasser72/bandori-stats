@@ -1,4 +1,4 @@
-import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
+import { REGION, STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import {
 	accountHasNickname,
 	compareValue,
@@ -215,7 +215,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 								type: MessageComponentTypes.BUTTON,
 								style: ButtonStyleTypes.LINK,
 								label: "Bestdori! Player Search",
-								url: `https://bestdori.com/tool/playersearch/en/${account.uid}`,
+								url: `https://bestdori.com/tool/playersearch/${REGION}/${account.uid}`,
 							});
 						}
 
