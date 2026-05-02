@@ -27,6 +27,8 @@ const accounts = await db.query.accounts.findMany({
 			: {}),
 	},
 });
+
+Astro.response.headers.set("cache-control", "max-age=60");
 ---
 
 {
