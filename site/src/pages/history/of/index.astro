@@ -79,6 +79,9 @@ if (isNotFound) Astro.response.status = 404;
 								<button
 									hx-get="/history/of/chart"
 									class="btn btn-accent join-item btn-sm"
+									data-umami-event="stats-history-view-chart"
+									data-umami-event-id={id}
+									data-umami-event-username={account.username}
 									hx-vals={JSON.stringify({ id })}
 								>
 									Growth Chart
@@ -96,6 +99,9 @@ if (isNotFound) Astro.response.status = 404;
 
 								<a
 									class="btn btn-sm btn-accent join-item"
+									data-umami-event="stats-history-compare"
+									data-umami-event-id={id}
+									data-umami-event-username={account.username}
 									href={`/compare?reference=${id}`}
 								>
 									Compare
@@ -124,6 +130,10 @@ if (isNotFound) Astro.response.status = 404;
 											<div class="dropdown dropdown-right">
 												<div
 													class="btn btn-info btn-xs w-full"
+													data-umami-event="stats-history-view-titles"
+													data-umami-event-date={snapshotDate}
+													data-umami-event-id={id}
+													data-umami-event-username={account.username}
 													role="button"
 													tabindex="0"
 												>

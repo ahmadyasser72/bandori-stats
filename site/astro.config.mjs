@@ -23,6 +23,12 @@ export default defineConfig({
 				access: "secret",
 				context: "server",
 			}),
+
+			UMAMI_SITE_ID: envField.string({
+				access: "public",
+				context: "server",
+				optional: true,
+			}),
 		},
 	},
 

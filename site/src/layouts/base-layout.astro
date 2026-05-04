@@ -1,4 +1,6 @@
 ---
+import { UMAMI_SITE_ID } from "astro:env/server";
+
 import "~/styles/global.css";
 
 interface Props {
@@ -22,6 +24,17 @@ const { title } = Astro.props;
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
 		<title>bandori-stats &bullet; {title}</title>
+
+		{
+			UMAMI_SITE_ID && (
+				<script
+					data-website-id={UMAMI_SITE_ID}
+					src="https://cloud.umami.is/script.js"
+					defer
+					is:inline
+				/>
+			)
+		}
 	</head>
 	<body>
 		<div class="container mx-auto flex h-screen flex-col py-2">

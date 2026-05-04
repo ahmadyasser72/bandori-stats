@@ -28,6 +28,7 @@ jobs:
         env:
           UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
           UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+          UMAMI_SITE_ID: ${{ vars.UMAMI_SITE_ID }}
 
       - name: Upload site build artifact
         uses: actions/upload-artifact@v7

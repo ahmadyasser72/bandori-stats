@@ -10,6 +10,7 @@ export const partial = true;
 const query = Astro.locals.query.query?.toString().replace("@", "") ?? "";
 const side = z.enum(["reference", "compared"]).parse(Astro.locals.query.side);
 const otherId = idSchema.optional().parse(Astro.locals.query.other);
+const otherSide: typeof side = side === "compared" ? "reference" : "compared";
 
 const accounts = await db.query.accounts.findMany({
 	columns: { id: true, username: true, nickname: true },
@@ -36,11 +37,12 @@ Astro.response.headers.set("cache-control", "max-age=60");
 		<li>
 			<a
 				hx-get="/compare"
-				hx-vals={JSON.stringify(
-					side === "reference"
-						? { reference: account.id, compared: otherId }
-						: { reference: otherId, compared: account.id },
-				)}
+				hx-vals={JSON.stringify({ [side]: account.id, [otherSide]: otherId })}
+				{...(otherId && {
+					"data-umami-event": "compare-account",
+					[`data-umami-event-${side}`]: account.id,
+					[`data-umami-event-${otherSide}`]: otherId,
+				})}
 			>
 				{account.nickname ? (
 					<>

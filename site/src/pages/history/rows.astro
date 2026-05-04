@@ -82,6 +82,10 @@ const getPreviousSnapshot = ({ accountId, id }: (typeof snapshots)[number]) =>
 						<button
 							hx-get="/history/of"
 							class="stats-history btn btn-primary btn-sm btn-circle"
+							data-umami-event="view-stats-history"
+							data-umami-event-date={snapshotDate}
+							data-umami-event-id={accountId}
+							data-umami-event-username={username}
 							hx-disabled-elt="button.stats-history"
 							hx-indicator="this"
 							hx-vals={JSON.stringify({ id: accountId, date: snapshotDate })}
