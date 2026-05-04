@@ -10,7 +10,7 @@
 		"@bandori-stats/database": "workspace:*",
 		"dayjs": "1.11.20",
 		"discord-interactions": "4.4.0",
-		"hono": "4.12.15",
+		"hono": "4.12.16",
 		"quickchart-js": "3.1.3",
 		"table": "6.9.0",
 		"text-case": "1.2.10"
