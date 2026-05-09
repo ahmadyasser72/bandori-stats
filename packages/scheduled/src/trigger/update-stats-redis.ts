@@ -1,4 +1,7 @@
-import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
+import {
+	ABBREVIATED_STAT_NAMES,
+	STAT_NAMES,
+} from "@bandori-stats/bestdori/constants";
 import {
 	PLAYER_STATS_SORTED_SET_PREFIX,
 	PLAYER_TITLES_SET,
@@ -35,12 +38,16 @@ export const updateStatsRedis = schemaTask({
 			}),
 		).then((results) =>
 			results
-				.map((value, idx) => ({ stat: STAT_NAMES[idx], value }))
+				.map((value, idx) => ({ stat: STAT_NAMES[idx]!, value }))
 				.filter(({ value }) => value !== null),
 		);
 
 		if (newStatsBest.length > 0)
-			await tags.add(newStatsBest.map(({ stat }) => `${stat}_new-best`));
+			await tags.add(
+				newStatsBest.map(
+					({ stat }) => `new-highest_${ABBREVIATED_STAT_NAMES[stat]}`,
+				),
+			);
 
 		const titles = stats.titles ?? [];
 		if (titles.length === 0) return;
