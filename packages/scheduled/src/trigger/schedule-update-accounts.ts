@@ -19,6 +19,7 @@ export const scheduleUpdateAccounts = schedules.task({
 					payload: { type, limit: 50, offset: page * 50 },
 					options: {
 						delay: now.add(Math.random() * untilNextSnapshotUpdate).toDate(),
+						tags: `leaderboard_${type}`,
 					},
 				})),
 			),
@@ -49,9 +50,6 @@ export const scheduleUpdateAccounts = schedules.task({
 			results.reduce((acc, { rowsAffected }) => acc + rowsAffected, 0),
 		);
 
-		await tags.add([
-			`accounts_${now.format("MMM")}`,
-			`accounts_~${rowsAffected}`,
-		]);
+		await tags.add(`accounts_~${rowsAffected}`);
 	},
 });

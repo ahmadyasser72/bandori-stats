@@ -28,7 +28,6 @@ export const bestdoriLeaderboard = schemaTask({
 		offset: z.number().nonnegative().default(0),
 	}),
 	run: async ({ type, limit, offset }) => {
-		await tags.add(`leaderboard_${type}:${offset}-${offset + limit}`);
 		const { success, data, error } = PlayerLeaderboard.safeParse(
 			await bestdori("api/sync/list/player", {
 				server: "1",

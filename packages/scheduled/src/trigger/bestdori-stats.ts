@@ -16,7 +16,6 @@ export const bestdoriStats = schemaTask({
 	queue: bestdoriQueue,
 	schema: z.object({ username: z.string().nonempty() }),
 	run: async ({ username }) => {
-		await tags.add(`stats_${username}`);
 		const { success, data, error } = PlayerStats.safeParse(
 			await bestdori("api/user/sync", { username }),
 		);

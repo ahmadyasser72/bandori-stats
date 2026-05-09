@@ -26,7 +26,7 @@ export const updateStats = schemaTask({
 		const { uid, stats } = await bestdoriStats
 			.triggerAndWait(
 				{ username },
-				{ idempotencyKey: `stats_${username}_${date}` },
+				{ idempotencyKey: `stats_${username}_${date}`, tags: `@${username}` },
 			)
 			.unwrap();
 		if (!stats) {
@@ -113,7 +113,7 @@ export const updateStats = schemaTask({
 		if (accountId && snapshotId) {
 			await updateStatsRedis.trigger(
 				{ snapshot: { accountId, stats } },
-				{ tags: `${username}_${date}` },
+				{ tags: `${username}` },
 			);
 
 			await db
