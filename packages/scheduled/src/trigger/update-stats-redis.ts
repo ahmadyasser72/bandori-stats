@@ -45,7 +45,7 @@ export const updateStatsRedis = schemaTask({
 		if (newStatsBest.length > 0)
 			await tags.add(
 				newStatsBest.map(
-					({ stat }) => `new-highest_${ABBREVIATED_STAT_NAMES[stat]}`,
+					({ stat }) => `${ABBREVIATED_STAT_NAMES[stat]}_NEW_HIGHEST`,
 				),
 			);
 
