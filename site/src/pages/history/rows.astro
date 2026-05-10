@@ -81,7 +81,8 @@ const getPreviousSnapshot = ({ accountId, id }: (typeof snapshots)[number]) =>
 					<td class="row-action" hx-disabled-elt=".row-action button">
 						<button
 							hx-get="/history/of"
-							class="btn btn-primary btn-sm btn-circle"
+							class="btn btn-primary btn-sm btn-circle tooltip tooltip-left before:z-10"
+							data-tip="View stats history"
 							data-umami-event="view-stats-history"
 							data-umami-event-date={snapshotDate}
 							data-umami-event-id={accountId}
@@ -103,7 +104,8 @@ const getPreviousSnapshot = ({ accountId, id }: (typeof snapshots)[number]) =>
 
 						<button
 							hx-get="/history/of/chart"
-							class="btn btn-secondary btn-sm btn-circle ml-1"
+							class="btn btn-secondary btn-sm btn-circle tooltip tooltip-right ml-1 before:z-10"
+							data-tip="View chart"
 							data-umami-event="stats-history-view-chart"
 							data-umami-event-id={accountId}
 							data-umami-event-username={username}
