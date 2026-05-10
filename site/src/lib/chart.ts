@@ -8,7 +8,7 @@ export const defineChart = <T extends ChartType>(
 
 export const useChart = async (
 	canvas: HTMLCanvasElement,
-	config: ChartOptions<ChartType, never>,
+	config: ChartOptions<ChartType, any>,
 ) => {
 	const {
 		BarController,
@@ -40,8 +40,7 @@ export const useChart = async (
 		Tooltip,
 	);
 
-	// Hydrate tooltip callbacks for comparison charts
-	if (config.data.datasets.some((dataset: any) => dataset.dataLabels)) {
+	if (config.__name === "comparison") {
 		config.options = {
 			...(config.options || {}),
 			plugins: {
@@ -53,6 +52,26 @@ export const useChart = async (
 							const dataLabel = context.dataset.dataLabels?.[context.dataIndex];
 							return `${context.dataset.label}: ${dataLabel ?? context.formattedValue}`;
 						},
+					},
+				},
+			},
+		};
+	}
+
+	if (config.__name === "progress") {
+		config.options = {
+			...(config.options || {}),
+			plugins: {
+				...(config.options?.plugins || {}),
+				tooltip: {
+					...(config.options?.plugins?.tooltip || {}),
+					callbacks: {
+						label: (context: any) =>
+							(
+								context.dataset.data[context.dataIndex] as unknown as {
+									label: string;
+								}
+							).label,
 					},
 				},
 			},

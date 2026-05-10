@@ -1,136 +1,124 @@
 ---
-import type { StatName } from "@bandori-stats/bestdori/constants";
+import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
+import {
+	compareValue,
+	displayValue,
+	formatNumber,
+} from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
-import { GrowthChart } from "@bandori-stats/database/chart";
+import { StatsSparklineChart } from "@bandori-stats/database/chart";
 
+import { titleCase } from "text-case";
 import z from "zod";
 
 import { defineChart } from "~/lib/chart";
 import dayjs from "~/lib/date";
-import { dateSchema, idSchema } from "~/lib/schema";
+import { idSchema } from "~/lib/schema";
 import DisplayName from "./_display-name.astro";
 
 export const partial = true;
 
 const id = idSchema.parse(Astro.locals.query.id);
-const range = z
-	.enum(["day", "week", "month"])
-	.catch("day")
-	.parse(Astro.locals.query.range);
-const end = dateSchema
-	.optional()
-	.transform(dayjs)
-	.parse(Astro.locals.query.end);
 
-let start: dayjs.Dayjs;
-let viewEnd: dayjs.Dayjs;
-if (range === "day") {
-	start = end.startOf("month");
-	viewEnd = end.endOf("month");
-} else if (range === "week") {
-	start = end.startOf("quarter");
-	viewEnd = end.endOf("quarter");
-} else {
-	start = end.startOf("year");
-	viewEnd = end.endOf("year");
-}
+const PERIODS = ["30d", "90d", "all"] as const;
+let period = z.enum(PERIODS).catch("30d").parse(Astro.locals.query.period);
 
-const [account, before, after] = await Promise.all([
-	db.query.accounts.findFirst({
-		columns: { username: true, nickname: true },
-		where: { id },
-		with: {
-			snapshots: {
-				columns: { stats: true, snapshotDate: true },
-				orderBy: { snapshotDate: "asc" },
-				where: {
-					AND: (() => {
-						const conditions = [];
-						conditions.push({
-							snapshotDate: { lte: viewEnd.format("YYYY-MM-DD") },
-						});
+const { account, from, to } = await (async () => {
+	let days: number | undefined;
+	if (period === "30d") days = 30;
+	else if (period === "90d") days = 90;
+	else days = undefined;
 
-						if (start)
-							conditions.push({
-								snapshotDate: { gte: start.format("YYYY-MM-DD") },
-							});
-
-						return conditions;
-					})(),
+	let to: string | undefined;
+	while (true) {
+		to =
+			days === undefined
+				? undefined
+				: dayjs().subtract(days, "days").format("YYYY-MM-DD");
+		const account = await db.query.accounts.findFirst({
+			columns: { username: true, nickname: true },
+			where: { id },
+			with: {
+				snapshots: {
+					columns: { stats: true, snapshotDate: true },
+					orderBy: { snapshotDate: "asc" },
+					where: { snapshotDate: { gte: to } },
 				},
 			},
-		},
-	}),
-	db.query.accounts.findFirst({
-		columns: {},
-		where: { id },
-		with: {
-			snapshots: {
-				columns: { stats: true, snapshotDate: true },
-				orderBy: { snapshotDate: "desc" },
-				where: { snapshotDate: { lt: start.format("YYYY-MM-DD") } },
-				limit: 1,
-			},
-		},
-	}),
-	db.query.accounts.findFirst({
-		columns: {},
-		where: { id },
-		with: {
-			snapshots: {
-				columns: { stats: true, snapshotDate: true },
-				orderBy: { snapshotDate: "asc" },
-				where: { snapshotDate: { gt: viewEnd.format("YYYY-MM-DD") } },
-				limit: 1,
-			},
-		},
-	}),
-]);
+		});
 
-const snapshots = (() => {
-	const raw = [
-		...(before?.snapshots.map(({ stats }) => ({
-			stats,
-			snapshotDate: start.toISOString(),
-		})) ?? []),
-		...(account?.snapshots ?? []),
-		...(after?.snapshots.map(({ stats }) => ({
-			stats,
-			snapshotDate: viewEnd.toISOString(),
-		})) ?? []),
-	];
+		if (!account || account.snapshots.length === 0) return {};
 
-	const map = new Map<string, Record<StatName, number | null>>();
-	for (const { snapshotDate, stats } of raw) {
-		const date = dayjs(snapshotDate);
+		if (account.snapshots.length > 2) {
+			const from = account.snapshots.at(-1)!.snapshotDate;
+			to = account.snapshots[0].snapshotDate;
 
-		let key: string;
-		if (range === "month") key = date.startOf("month").format();
-		else if (range === "week") key = date.startOf("week").format();
-		else key = date.startOf("day").format();
+			return { account, from, to };
+		}
 
-		map.set(key, stats);
+		if (days === 30) {
+			days = 90;
+			period = "90d";
+			continue;
+		} else if (days === 90) {
+			days = undefined;
+			period = "all";
+			continue;
+		}
+
+		return {};
 	}
-
-	return [...map.entries()].map(([snapshotDate, stats]) => ({
-		snapshotDate,
-		stats,
-	}));
 })();
 
-const isNotFound = !account || snapshots.length === 0;
-if (isNotFound) Astro.response.status = 404;
+if (!account) Astro.response.status = 404;
 
-const chart = !isNotFound && defineChart(GrowthChart(snapshots, range));
+const { availablePeriods, stats } = await (async () => {
+	if (!account) return {};
 
-const prevEnd = start.subtract(1, "day").format("YYYY-MM-DD");
-const nextEnd = viewEnd.add(1, "day").format("YYYY-MM-DD");
-const isFirst = !before || before.snapshots.length === 0;
-const isLatest = !after || after.snapshots.length === 0;
+	let snapshots30d = 0;
+	let snapshots90d = 0;
+	for (const { snapshotDate } of account.snapshots) {
+		const days = dayjs().diff(snapshotDate, "days");
+
+		if (days <= 30) snapshots30d += 1;
+		if (days <= 90) snapshots90d += 1;
+	}
+
+	return {
+		availablePeriods: {
+			"30d": snapshots30d > 2,
+			"90d": snapshots90d > 2,
+			all: true,
+		},
+		stats: STAT_NAMES.map((name) => ({
+			label: titleCase(name),
+			values: account.snapshots
+				.map(
+					({ stats, snapshotDate }) =>
+						[snapshotDate, stats[name]] as [string, number],
+				)
+				.filter(([, value]) => value !== null),
+		}))
+			.filter(({ values }) => values.length > 0)
+			.map(({ label, values }) => {
+				const first = values[0][1];
+				const last = values.at(-1)![1];
+				const delta = compareValue(last, first);
+
+				return {
+					label,
+					first,
+					last,
+					delta,
+					chart: defineChart(StatsSparklineChart(values, period)),
+				};
+			}),
+	};
+})();
 ---
 
 <dialog class="modal modal-bottom sm:modal-middle" hx-target="this">
-	<div class="modal-box">
+	<div class="modal-box w-full max-w-full md:max-w-4xl">
 		<form method="dialog">
 			<button class="btn btn-sm btn-circle btn-ghost absolute top-2 right-2">
 				✕
@@ -138,14 +126,14 @@ const isLatest = !after || after.snapshots.length === 0;
 		</form>
 
 		{
-			!chart ? (
+			!account || !stats ? (
 				<h3 class="text-center text-lg font-bold">Stats not found</h3>
 			) : (
 				<div
 					class="relative flex flex-col gap-4"
-					hx-disabled-elt="#time-range button, #navigate-time button"
-					hx-indicator="this"
-					hx-select-oob="#time-range, #chart, #navigate-time"
+					hx-disabled-elt="#time-period button"
+					hx-indicator="#chart-loader"
+					hx-select-oob="#time-period, #chart"
 					hx-swap="none transition:true"
 					hx-vals={JSON.stringify({ id })}
 				>
@@ -157,71 +145,75 @@ const isLatest = !after || after.snapshots.length === 0;
 						/>
 					</h2>
 
-					<div class="join self-center" id="time-range">
-						{["day", "week", "month"].map((it) => (
-							<button
-								hx-get="/history/of/chart"
-								hx-vals={JSON.stringify({
-									range: it,
-									end: end.toISOString(),
-								})}
-								class:list={[
-									"btn btn-xs join-item",
-									range === it && "btn-active",
-								]}
-							>
-								{it.toUpperCase()}
-							</button>
+					<div
+						class="bg-base-100/80 rounded-box sticky top-0 z-10 mx-auto flex w-48 flex-col items-center gap-1 py-2 shadow-sm"
+						id="time-period"
+					>
+						<div class="join self-center">
+							{PERIODS.map((it) => (
+								<button
+									hx-get="/history/of/chart"
+									hx-vals={JSON.stringify({ period: it })}
+									class:list={[
+										"btn btn-xs sm:btn-sm join-item",
+										period === it && "btn-active",
+									]}
+									disabled={!availablePeriods![it]}
+								>
+									{it.toUpperCase()}
+								</button>
+							))}
+						</div>
+
+						<p class="text-base-content/60 text-xs sm:text-sm">
+							{to} &mdash; {from}
+						</p>
+					</div>
+
+					<div class="grid gap-2 sm:grid-cols-2" id="chart">
+						{stats.map((stat) => (
+							<div class="stat bg-base-200 rounded-box">
+								<div class="stat-title">{stat.label}</div>
+
+								<div class="stat-value">
+									{stat.delta > 0
+										? formatNumber(stat.delta, {
+												autoCompact: true,
+												positiveSign: true,
+											})
+										: "N/A"}
+								</div>
+
+								<div class="stat-desc">
+									{stat.first !== stat.last
+										? `${displayValue(stat.first)} -> ${displayValue(stat.last)}`
+										: displayValue(stat.first)}
+								</div>
+
+								{stat.chart && (
+									<div class="chart relative mt-2 aspect-3/1 w-full">
+										<canvas
+											{...stat.chart}
+											class="bg-base-100 absolute inset-0"
+										/>
+									</div>
+								)}
+							</div>
 						))}
 					</div>
-
-					<div
-						class="relative aspect-square w-full sm:aspect-video md:aspect-2/1"
-						id="chart"
-					>
-						<canvas {...chart} class="bg-base-100 absolute inset-0" />
-					</div>
-
-					<div class="join self-center" id="navigate-time">
-						<button
-							hx-get="/history/of/chart"
-							class="btn btn-xs join-item"
-							hx-vals={JSON.stringify({ range, end: prevEnd })}
-							disabled={isFirst}
-						>
-							<iconify-icon
-								class="size-4"
-								icon="lucide:chevron-left"
-								width="none"
-							/>
-							Prev
-						</button>
-						<button class="btn btn-xs join-item no-animation cursor-default font-mono">
-							{start.format("MMM D")} - {viewEnd.format("MMM D, YYYY")}
-						</button>
-						<button
-							hx-get="/history/of/chart"
-							class="btn btn-xs join-item"
-							hx-vals={JSON.stringify({ range, end: nextEnd })}
-							disabled={isLatest}
-						>
-							Next
-							<iconify-icon
-								class="size-4"
-								icon="lucide:chevron-right"
-								width="none"
-							/>
-						</button>
-					</div>
-
-					<iconify-icon
-						class="center htmx-indicator absolute size-24"
-						icon="svg-spinners:bars-scale-fade"
-						width="none"
-					/>
 				</div>
 			)
 		}
+	</div>
+
+	<div
+		class="htmx-indicator bg-base-100/50 fixed inset-0 z-20"
+		id="chart-loader"
+	>
+		<iconify-icon
+			class="center absolute size-24"
+			icon="svg-spinners:bars-scale-fade"
+			width="none"></iconify-icon>
 	</div>
 
 	<form class="contents" method="dialog">
