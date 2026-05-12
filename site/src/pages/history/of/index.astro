@@ -52,8 +52,8 @@ const isNotFound = !account || account.snapshots.length === 0;
 if (isNotFound) Astro.response.status = 404;
 ---
 
-<dialog class="modal modal-bottom sm:modal-middle">
-	<div class="modal-box max-sm:max-h-4/5">
+<dialog class="modal">
+	<div class="modal-box">
 		<form method="dialog">
 			<button class="btn btn-sm btn-circle btn-ghost absolute top-2 right-2">
 				✕
