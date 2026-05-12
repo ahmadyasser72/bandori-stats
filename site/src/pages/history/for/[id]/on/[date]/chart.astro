@@ -13,16 +13,15 @@ import z from "zod";
 
 import { defineChart } from "~/lib/chart";
 import dayjs from "~/lib/date";
-import { idSchema } from "~/lib/schema";
 import DisplayName from "./_display-name.astro";
+import { params } from "./_params";
 
 export const partial = true;
-
-const id = idSchema.parse(Astro.locals.query.id);
 
 const PERIODS = ["30d", "90d", "all"] as const;
 let period = z.enum(PERIODS).catch("30d").parse(Astro.locals.query.period);
 
+const { date, id } = params.parse(Astro.params);
 const { account, from, to } = await (async () => {
 	let days: number | undefined;
 	if (period === "30d") days = 30;
@@ -42,7 +41,7 @@ const { account, from, to } = await (async () => {
 				snapshots: {
 					columns: { stats: true, snapshotDate: true },
 					orderBy: { snapshotDate: "asc" },
-					where: { snapshotDate: { gte: to } },
+					where: { snapshotDate: { gte: to, lte: date } },
 				},
 			},
 		});
@@ -72,7 +71,7 @@ const { account, from, to } = await (async () => {
 
 if (!account) Astro.response.status = 404;
 
-const { availablePeriods, stats } = await (async () => {
+const { availablePeriods, stats } = (() => {
 	if (!account) return {};
 
 	let snapshots30d = 0;
@@ -152,7 +151,7 @@ const { availablePeriods, stats } = await (async () => {
 						<div class="join self-center">
 							{PERIODS.map((it) => (
 								<button
-									hx-get="/history/of/chart"
+									hx-get={`/history/for/${id}/on/${date}/chart`}
 									hx-vals={JSON.stringify({ period: it })}
 									class:list={[
 										"btn btn-xs sm:btn-sm join-item",
