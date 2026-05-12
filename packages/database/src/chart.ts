@@ -132,6 +132,7 @@ export const StatsSparklineChart = (
 			},
 			interaction: { mode: "index", intersect: false },
 			plugins: { legend: { display: false } },
+			events: ["mousemove", "mouseout", "click"],
 		},
 	} satisfies ChartOptions<"line", { x: string; y: number }[]>;
 };
@@ -176,9 +177,8 @@ export const ComparisonChart = (
 				x: { display: false, max: 1 },
 				y: { ticks: { autoSkip: false } },
 			},
-			plugins: {
-				tooltip: { mode: "index" },
-			},
+			plugins: { tooltip: { mode: "index" } },
+			events: ["mousemove", "mouseout", "click"],
 		},
 	} satisfies ChartOptions<"bar", number[]>;
 };
