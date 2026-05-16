@@ -12,14 +12,14 @@
 		"db:push": "drizzle-kit push"
 	},
 	"devDependencies": {
-		"drizzle-kit": "1.0.0-beta.9-e89174b"
+		"drizzle-kit": "1.0.0-rc.2-e38a2ba"
 	},
 	"dependencies": {
 		"@bandori-stats/bestdori": "workspace:*",
 		"@libsql/client": "0.17.3",
-		"@upstash/redis": "1.37.0",
+		"@upstash/redis": "1.38.0",
 		"dayjs": "1.11.20",
-		"drizzle-orm": "1.0.0-beta.9-e89174b",
+		"drizzle-orm": "1.0.0-rc.2-e38a2ba",
 		"text-case": "1.2.10"
 	}
 }
