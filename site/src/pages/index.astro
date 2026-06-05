@@ -1,49 +1,67 @@
 ---
+import { REGIONS } from "@bandori-stats/bestdori/constants";
+
 import BaseLayout from "~/layouts/base-layout.astro";
 
 export const prerender = true;
+
+const regionLinks = {
+	JP: { name: "Japan", icon: "flag:jp-1" },
+	EN: { name: "English", icon: "flag:gb-1" },
+	CN: { name: "中文", icon: "flag:cn-1" },
+};
 ---
 
 <BaseLayout title="Homepage">
 	<div class="absolute inset-0 flex flex-col items-center justify-center">
 		<h1 class="font-medium">bandori-stats</h1>
 
-		<div class="mt-4 flex flex-wrap justify-center gap-2">
-			<a class="btn btn-sm btn-primary" href="/history">
-				<iconify-icon class="size-4" icon="lucide:calendar-clock" width="none"
-				></iconify-icon>
-				History
-			</a>
-			<a class="btn btn-sm btn-secondary" href="/compare">
-				<iconify-icon class="size-4" icon="lucide:arrow-left-right" width="none"
-				></iconify-icon>
-				Compare
-			</a>
-		</div>
+		<div class="mt-4 flex flex-col items-center gap-4">
+			<div class="flex flex-wrap justify-center gap-4">
+				{
+					REGIONS.map((region) => (
+						<div class="flex flex-col items-center gap-2">
+							<a
+								class="btn btn-primary btn-lg flex flex-col items-center gap-1 px-6"
+								href={`/${region.toLowerCase()}/history`}
+								data-umami-event={`region-select-${region}`}
+							>
+								<iconify-icon
+									class="size-8"
+									icon={regionLinks[region]!.icon}
+									width="none"
+								></iconify-icon>
+								<span class="text-sm">{regionLinks[region]!.name}</span>
+							</a>
+						</div>
+					))
+				}
+			</div>
 
-		<div class="mt-2 flex flex-wrap justify-center gap-2">
-			<a
-				class="btn btn-accent"
-				data-umami-event="homepage-view-source-code"
-				href="https://github.com/ahmadyasser72/bandori-stats"
-				rel="noopener noreferrer"
-				target="_blank"
-			>
-				<iconify-icon class="size-5" icon="line-md:github-loop" width="none"
-				></iconify-icon>
-				Source code
-			</a>
-			<a
-				class="btn btn-accent"
-				data-umami-event="homepage-invite-discord-bot"
-				href="/discord-bot/invite"
-				rel="noopener noreferrer"
-				target="_blank"
-			>
-				<iconify-icon class="size-5" icon="line-md:discord" width="none"
-				></iconify-icon>
-				Discord bot
-			</a>
+			<div class="mt-4 flex flex-wrap justify-center gap-2">
+				<a
+					class="btn btn-accent"
+					data-umami-event="homepage-view-source-code"
+					href="https://github.com/ahmadyasser72/bandori-stats"
+					rel="noopener noreferrer"
+					target="_blank"
+				>
+					<iconify-icon class="size-5" icon="line-md:github-loop" width="none"
+					></iconify-icon>
+					Source code
+				</a>
+				<a
+					class="btn btn-accent"
+					data-umami-event="homepage-invite-discord-bot"
+					href="/en/discord-bot/invite"
+					rel="noopener noreferrer"
+					target="_blank"
+				>
+					<iconify-icon class="size-5" icon="line-md:discord" width="none"
+					></iconify-icon>
+					Discord bot
+				</a>
+			</div>
 		</div>
 	</div>
 </BaseLayout>

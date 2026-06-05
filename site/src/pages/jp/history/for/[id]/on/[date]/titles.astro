@@ -1,0 +1,61 @@
+---
+import { db } from "@bandori-stats/database";
+
+import { paginate } from "~/lib/paginate";
+import { params } from "./_params";
+
+export const partial = true;
+
+const { date, id } = params.parse(Astro.params);
+const account = await db.query.accounts.findFirst({
+	columns: { id: true, username: true, nickname: true },
+	with: {
+		snapshots: {
+			limit: 2,
+			columns: { stats: true },
+			where: { snapshotDate: { lte: date } },
+			orderBy: { snapshotDate: "desc" },
+		},
+	},
+	where: { id },
+});
+
+const latestSnapshot = account?.snapshots[0];
+const previousSnapshot = account?.snapshots[1];
+
+const titles = latestSnapshot?.stats.titles ?? null;
+
+const isNotFound = !account || !latestSnapshot || titles === null;
+if (isNotFound) Astro.response.status = 404;
+
+const previousTitles = new Set(previousSnapshot?.stats.titles ?? []);
+const sortedTitles = titles!
+	.map((title) => ({
+		value: title,
+		isNew: previousTitles.size > 0 ? !previousTitles.has(title) : true,
+	}))
+	.sort((a, b) => Number(b.isNew) - Number(a.isNew));
+
+const page = await paginate({
+	items: sortedTitles,
+	context: Astro,
+	size: 24,
+	extraProps: {
+		"hx-swap": "afterend",
+	},
+});
+---
+
+{
+	page.items.map(({ value: title, isNew }, idx) => (
+		<img
+			{...(page.isLastElement(idx) && page.props)}
+			src={`/static/titles/${title}.webp`}
+			class:list={[
+				"border-base-content/60 skeleton aspect-23/5 rounded-2xl border",
+				isNew && "border-secondary ring-secondary bg-secondary ring-2",
+			]}
+			loading="lazy"
+		/>
+	))
+}

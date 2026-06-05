@@ -1,6 +1,7 @@
 import {
 	ABBREVIATED_STAT_NAMES,
 	STAT_NAMES,
+	type Region,
 } from "@bandori-stats/bestdori/constants";
 import { compareValue, sum } from "@bandori-stats/bestdori/helpers";
 import {
@@ -20,13 +21,14 @@ export const updateStats = schemaTask({
 	id: "update-stats",
 	schema: z.strictObject({
 		username: z.string().nonempty(),
+		region: z.enum(["JP", "EN", "CN"]),
 		date: z.iso.date(),
 	}),
-	run: async ({ username, date }) => {
+	run: async ({ username, region, date }) => {
 		const { uid, stats } = await bestdoriStats
 			.triggerAndWait(
-				{ username },
-				{ idempotencyKey: `stats_${username}_${date}`, tags: `@_${username}` },
+				{ username, server: region },
+				{ idempotencyKey: `stats_${region}_${username}_${date}`, tags: `@_${username}` },
 			)
 			.unwrap();
 		if (!stats) {
@@ -36,7 +38,7 @@ export const updateStats = schemaTask({
 
 		const existing = await db.query.accounts.findFirst({
 			columns: { id: true, uid: true },
-			where: { username },
+			where: { username, region },
 			with: {
 				snapshots: {
 					limit: 1,
@@ -96,7 +98,7 @@ export const updateStats = schemaTask({
 		} else {
 			const [newAccount] = await db
 				.insert(accounts)
-				.values({ username })
+				.values({ username, region })
 				.onConflictDoNothing()
 				.returning({ id: accounts.id });
 			accountId = newAccount ? newAccount.id : existing!.id;
@@ -112,7 +114,7 @@ export const updateStats = schemaTask({
 
 		if (accountId && snapshotId) {
 			await updateStatsRedis.trigger(
-				{ snapshot: { accountId, stats } },
+				{ snapshot: { accountId, region, stats } },
 				{ tags: `@_${username}` },
 			);
 

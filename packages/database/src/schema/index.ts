@@ -1,16 +1,21 @@
-import type { Stats } from "@bandori-stats/bestdori/constants";
+import type { Region, Stats } from "@bandori-stats/bestdori/constants";
 
 import { sql } from "drizzle-orm";
 import { integer, sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
 
-export const accounts = sqliteTable("accounts", {
-	id: integer().primaryKey({ autoIncrement: true }),
-	username: text().unique().notNull(),
-	nickname: text(),
-	uid: text(),
+export const accounts = sqliteTable(
+	"accounts",
+	{
+		id: integer().primaryKey({ autoIncrement: true }),
+		username: text().notNull(),
+		region: text().$type<Region>().notNull(),
+		nickname: text(),
+		uid: text(),
 
-	lastUpdated: text().$default(() => sql`(CURRENT_DATE)`),
-});
+		lastUpdated: text().$default(() => sql`(CURRENT_DATE)`),
+	},
+	(t) => [unique("idx_accounts_region_username").on(t.region, t.username)],
+);
 
 export const accountSnapshots = sqliteTable(
 	"account_snapshots",

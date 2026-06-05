@@ -1,4 +1,9 @@
-import { STAT_NAMES, type Stats } from "@bandori-stats/bestdori/constants";
+import {
+	REGIONS,
+	STAT_NAMES,
+	type Region,
+	type Stats,
+} from "@bandori-stats/bestdori/constants";
 import {
 	compareValue,
 	displayValue,
@@ -9,7 +14,7 @@ import type { Chart, ChartType } from "chart.js";
 import dayjs from "dayjs";
 import { titleCase } from "text-case";
 
-import { PLAYER_STATS_SORTED_SET_PREFIX, redis } from "./redis";
+import { getPlayerStatsSortedSet, redis } from "./redis";
 
 type ChartName = "comparison" | "progress";
 export type ChartOptions<T extends ChartType, Data> = ConstructorParameters<
@@ -183,10 +188,10 @@ export const ComparisonChart = (
 	} satisfies ChartOptions<"bar", number[]>;
 };
 
-export const getGlobalMaxes = async () => {
+export const getGlobalMaxes = async (region: Region) => {
 	const pipe = redis.pipeline();
 	for (const stat of STAT_NAMES) {
-		pipe.zrange(`${PLAYER_STATS_SORTED_SET_PREFIX}:${stat}`, 0, 0, {
+		pipe.zrange(getPlayerStatsSortedSet(region, stat), 0, 0, {
 			withScores: true,
 			rev: true,
 		});

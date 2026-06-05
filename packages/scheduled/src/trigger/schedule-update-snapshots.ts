@@ -1,3 +1,4 @@
+import { REGIONS, type Region } from "@bandori-stats/bestdori/constants";
 import { db } from "@bandori-stats/database";
 
 import { schedules } from "@trigger.dev/sdk";
@@ -13,9 +14,17 @@ export const scheduleUpdateSnapshots = schedules.task({
 		const now = dayjs(context.timestamp);
 		const date = now.format("YYYY-MM-DD");
 
+		// Rotate through regions based on day of year
+		const dayOfYear = now.dayOfYear();
+		const regionIndex = dayOfYear % REGIONS.length;
+		const region = REGIONS[regionIndex]!;
+
 		const shuffle = createShuffle(dayjs(date).unix());
 		const accounts = await db.query.accounts
-			.findMany({ columns: { id: true, username: true, lastUpdated: true } })
+			.findMany({
+				columns: { id: true, username: true, region: true, lastUpdated: true },
+				where: { region },
+			})
 			.then((entries) =>
 				shuffle(entries)
 					.map((account, idx) => ({ ...account, idx }))
@@ -31,7 +40,7 @@ export const scheduleUpdateSnapshots = schedules.task({
 
 		const payloads: Parameters<typeof updateStats.batchTrigger>[0] = accounts
 			.map(({ username, idx }) => ({
-				payload: { username, date },
+				payload: { username, region, date },
 				options: {
 					delay: now
 						.set("hours", idx % 24)

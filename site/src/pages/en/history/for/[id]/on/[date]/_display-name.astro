@@ -1,0 +1,24 @@
+---
+import { accountHasNickname } from "@bandori-stats/bestdori/helpers";
+
+interface Props {
+	username: string;
+	nickname: string | null;
+}
+
+const { username, nickname } = Astro.props;
+const hasNickname = accountHasNickname({ username, nickname });
+---
+
+<span class="font-medium">
+	{
+		hasNickname ? (
+			<>
+				{nickname}
+				<span class="text-base-content/60 ml-2 text-base">@{username}</span>
+			</>
+		) : (
+			`@${username}`
+		)
+	}
+</span>

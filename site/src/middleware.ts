@@ -1,3 +1,5 @@
+import { REGIONS, type Region } from "@bandori-stats/bestdori/constants";
+
 import { defineMiddleware } from "astro:middleware";
 import z from "zod";
 
@@ -26,6 +28,11 @@ export const onRequest = defineMiddleware(async ({ locals, url }, next) => {
 	const { data, error, success } = querySchema.safeParse(url.searchParams);
 	if (import.meta.env.DEV && !success) throw new Error(z.prettifyError(error));
 	locals.query = success ? data : {};
+
+	// Detect region from URL path
+	const pathParts = url.pathname.split("/").filter(Boolean);
+	const firstPart = pathParts[0]?.toUpperCase() as Region | undefined;
+	locals.region = REGIONS.includes(firstPart as Region) ? (firstPart as Region) : null;
 
 	return next();
 });

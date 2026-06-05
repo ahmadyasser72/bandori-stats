@@ -1,0 +1,36 @@
+---
+import {
+	compareValue,
+	displayValue,
+	formatNumber,
+	type StatValue,
+} from "@bandori-stats/bestdori/helpers";
+
+interface Props {
+	value: StatValue;
+	previousValue: StatValue;
+}
+
+const { value, previousValue } = Astro.props;
+const delta = compareValue(value, previousValue);
+---
+
+<td
+	class:list={[
+		(!value && "font-medium opacity-40") ||
+			(delta > 0 ? "font-semibold" : "opacity-60"),
+	]}
+>
+	{
+		delta > 0 ? (
+			<div class="flex flex-col">
+				<span>{displayValue(value)}</span>
+				<span>
+					({formatNumber(delta, { autoCompact: true, positiveSign: true })})
+				</span>
+			</div>
+		) : (
+			displayValue(value)
+		)
+	}
+</td>
