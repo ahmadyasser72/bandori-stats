@@ -1,0 +1,41 @@
+---
+interface Props {
+	label: string;
+	side: "reference" | "compared";
+	value?: string;
+	"other-id"?: number;
+}
+
+const { label, side, value, "other-id": otherId } = Astro.props;
+const username = value ? `@${value}` : undefined;
+---
+
+<div class="dropdown w-full">
+	<label class="floating-label">
+		<span>{label}</span>
+
+		<input
+			hx-get="/compare/search"
+			hx-trigger="keyup changed delay:300ms, focus"
+			class="input w-full"
+			name="query"
+			type="text"
+			value={username}
+			hx-target="next .dropdown-content"
+			hx-vals={JSON.stringify({ side, other: otherId })}
+			autocomplete="off"
+			placeholder={`Select ${label} Account...`}
+		/>
+	</label>
+
+	<ul
+		class="dropdown-content menu bg-base-100 rounded-box z-1 max-h-64 w-full flex-nowrap overflow-y-auto p-2 shadow-sm"
+		hx-replace-url="true"
+		hx-select="#compare-results"
+		hx-select-oob="#compare-form"
+		hx-swap="outerHTML"
+		hx-target="#compare-results"
+		tabindex="-1"
+	>
+	</ul>
+</div>

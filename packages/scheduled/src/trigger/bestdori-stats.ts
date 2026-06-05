@@ -1,6 +1,8 @@
 import {
 	ABBREVIATED_STAT_NAMES,
+	getRegionIndex,
 	STAT_NAMES,
+	type Region,
 } from "@bandori-stats/bestdori/constants";
 import { displayValue } from "@bandori-stats/bestdori/helpers";
 import { PlayerStats } from "@bandori-stats/bestdori/schema/player/stats";
@@ -14,8 +16,12 @@ import { AccountSchema } from "~/schema";
 export const bestdoriStats = schemaTask({
 	id: "bestdori-stats",
 	queue: bestdoriQueue,
-	schema: z.object({ username: z.string().nonempty() }),
-	run: async ({ username }) => {
+	schema: z.object({
+		username: z.string().nonempty(),
+		server: z.enum(["JP", "EN", "CN"]),
+	}),
+	run: async ({ username, server }) => {
+		const serverIndex = getRegionIndex(server);
 		const { success, data, error } = PlayerStats.safeParse(
 			await bestdori("api/user/sync", { username }),
 		);
@@ -26,7 +32,7 @@ export const bestdoriStats = schemaTask({
 		}
 
 		const { uid, stats } = data.accounts
-			.filter(({ server }) => server === 1)
+			.filter(({ server }) => server === serverIndex)
 			.map((stats) => ({
 				uid: stats.uid?.toString() ?? null,
 				stats: {
@@ -42,6 +48,7 @@ export const bestdoriStats = schemaTask({
 			.at(0) ?? { uid: null, stats: null };
 
 		await tags.add([
+			`server_${server}`,
 			...STAT_NAMES.map(
 				(name) =>
 					`${ABBREVIATED_STAT_NAMES[name]}_${displayValue(stats?.[name])}`,

@@ -10,7 +10,7 @@ import StatsBadge from "./_stats-badge.astro";
 
 export const partial = true;
 
-const region = Astro.locals.region!;
+const region = Astro.params.region!;
 const regionLower = region.toLowerCase();
 
 const { date, id } = params.parse(Astro.params);

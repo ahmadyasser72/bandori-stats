@@ -8,6 +8,16 @@ export default defineConfig({
 	adapter: cloudflare({ imageService: "passthrough" }),
 	output: "server",
 
+	redirects: {
+		"/history": "/en/history",
+		"/compare": "/en/compare",
+		"/history/rows": "/en/history/rows",
+		"/history/for/*": "/en/history/for/:match",
+		"/compare/search": "/en/compare/search",
+		"/discord-bot/*": "/en/discord-bot/:match",
+		"/static/*": "/en/static/:match",
+	},
+
 	env: {
 		schema: {
 			DATABASE_URL: envField.string({ access: "secret", context: "server" }),

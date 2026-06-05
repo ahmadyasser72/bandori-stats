@@ -18,7 +18,7 @@ import { params } from "./_params";
 
 export const partial = true;
 
-const region = Astro.locals.region!;
+const region = Astro.params.region!;
 const regionLower = region.toLowerCase();
 
 const PERIODS = ["30d", "90d", "all"] as const;

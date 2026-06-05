@@ -1,3 +1,4 @@
+import { REGIONS } from "@bandori-stats/bestdori/constants";
 import { accountHasNickname } from "@bandori-stats/bestdori/helpers";
 
 import {
@@ -22,6 +23,13 @@ export const command = {
 	contexts: [0, 1, 2],
 	options: [
 		{
+			name: "region",
+			description: "Bestdori server region",
+			type: CommandOptionType.STRING,
+			required: true,
+			choices: REGIONS.map((region) => ({ name: region, value: region })),
+		},
+		{
 			name: "account_1",
 			description: "First Bestdori! account",
 			type: CommandOptionType.INTEGER,
@@ -43,44 +51,54 @@ export const handle: CommandHandler = async ({ type, data }) => {
 
 	switch (type) {
 		case InteractionType.APPLICATION_COMMAND_AUTOCOMPLETE: {
-			const typed = data.options
-				?.find(({ focused }) => focused)
-				?.value?.toString();
-			const other = Number(
-				data.options?.find(({ focused }) => !focused)?.value,
-			);
+			const focusedOption = data.options?.find(({ focused }) => focused);
+			const region = data.options?.find(({ name }) => name === "region")?.value as string;
 
-			const accounts = await db.query.accounts.findMany({
-				columns: { id: true, username: true, nickname: true },
-				limit: 25,
-				orderBy: { lastUpdated: "desc", username: "asc" },
-				where: {
-					id: Number.isNaN(other) ? undefined : { ne: other },
-					...(typed && {
-						OR: [
-							{ username: { like: `%${typed}%` } },
-							{ nickname: { like: `%${typed}%` } },
-						],
-					}),
-				},
-			});
+			if (focusedOption?.name?.startsWith("account")) {
+				const typed = focusedOption.value?.toString();
+				const other = Number(
+					data.options?.find(({ focused, name }) => !focused && name?.startsWith("account"))?.value,
+				);
+
+				const accounts = await db.query.accounts.findMany({
+					columns: { id: true, username: true, nickname: true },
+					limit: 25,
+					orderBy: { lastUpdated: "desc", username: "asc" },
+					where: {
+						region: region as any,
+						id: Number.isNaN(other) ? undefined : { ne: other },
+						...(typed && {
+							OR: [
+								{ username: { like: `%${typed}%` } },
+								{ nickname: { like: `%${typed}%` } },
+							],
+						}),
+					},
+				});
+
+				return {
+					type: InteractionResponseType.APPLICATION_COMMAND_AUTOCOMPLETE_RESULT,
+					data: {
+						choices: accounts.map(({ id, username, nickname }) => {
+							const hasNickname = accountHasNickname({ username, nickname });
+							return {
+								value: id,
+								name: hasNickname ? `${nickname} (@${username})` : `@${username}`,
+							};
+						}),
+					},
+				};
+			}
 
 			return {
 				type: InteractionResponseType.APPLICATION_COMMAND_AUTOCOMPLETE_RESULT,
-				data: {
-					choices: accounts.map(({ id, username, nickname }) => {
-						const hasNickname = accountHasNickname({ username, nickname });
-						return {
-							value: id,
-							name: hasNickname ? `${nickname} (@${username})` : `@${username}`,
-						};
-					}),
-				},
+				data: { choices: [] },
 			};
 		}
 
 		case InteractionType.MESSAGE_COMPONENT:
 		case InteractionType.APPLICATION_COMMAND: {
+			const region = data.options?.find(({ name }) => name === "region")?.value as string;
 			const { accountIds, targetDate } = (() => {
 				if (type === InteractionType.APPLICATION_COMMAND) {
 					return {
@@ -117,7 +135,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 			}
 
 			const accounts = await db.query.accounts.findMany({
-				where: { id: { in: accountIds } },
+				where: { id: { in: accountIds }, region: region as any },
 				columns: { id: true, username: true },
 				with: {
 					snapshots: {
@@ -176,7 +194,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 
 					const { ComparisonChart, getGlobalMaxes } =
 						await import("@bandori-stats/database/chart");
-					const maxStats = await getGlobalMaxes();
+					const maxStats = await getGlobalMaxes(region as any);
 					chart.setConfig(
 						ComparisonChart(
 							{ username: a.username, snapshot: aSnapshot },

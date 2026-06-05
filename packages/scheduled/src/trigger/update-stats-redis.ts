@@ -1,10 +1,11 @@
 import {
 	ABBREVIATED_STAT_NAMES,
 	STAT_NAMES,
+	type Region,
 } from "@bandori-stats/bestdori/constants";
 import {
-	PLAYER_STATS_SORTED_SET_PREFIX,
-	PLAYER_TITLES_SET,
+	getPlayerStatsSortedSet,
+	getPlayerTitlesSet,
 	redis,
 } from "@bandori-stats/database/redis";
 
@@ -16,6 +17,7 @@ import { AccountSchema } from "~/schema";
 
 const SnapshotSchema = z.strictObject({
 	accountId: z.number().nonnegative(),
+	region: z.enum(["JP", "EN", "CN"]),
 	stats: AccountSchema.shape.stats.unwrap(),
 });
 
@@ -23,18 +25,17 @@ export const updateStatsRedis = schemaTask({
 	id: "update-stats-redis",
 	schema: z.strictObject({ snapshot: SnapshotSchema }),
 	run: async ({ snapshot }, { ctx }) => {
-		const { accountId, stats } = snapshot;
+		const { accountId, region, stats } = snapshot;
 
 		const newStatsBest = await Promise.all(
 			STAT_NAMES.map((stat) => {
 				const score = stats[stat];
 				if (score === null) return null;
 
-				return redis.zadd(
-					`${PLAYER_STATS_SORTED_SET_PREFIX}:${stat}`,
-					{ gt: true, ch: true },
-					{ member: accountId, score },
-				);
+				return redis.zadd(getPlayerStatsSortedSet(region, stat), {
+					gt: true,
+					ch: true,
+				}, { member: accountId, score });
 			}),
 		).then((results) =>
 			results
@@ -45,7 +46,7 @@ export const updateStatsRedis = schemaTask({
 		if (newStatsBest.length > 0)
 			await tags.add(
 				newStatsBest.map(
-					({ stat }) => `${ABBREVIATED_STAT_NAMES[stat]}_NEW_HIGHEST`,
+					({ stat }) => `${region}_${ABBREVIATED_STAT_NAMES[stat]}_NEW_HIGHEST`,
 				),
 			);
 
@@ -53,10 +54,10 @@ export const updateStatsRedis = schemaTask({
 		if (titles.length === 0) return;
 
 		// @ts-expect-error should works
-		const newTitles = await redis.sadd(PLAYER_TITLES_SET, ...titles);
+		const newTitles = await redis.sadd(getPlayerTitlesSet(region), ...titles);
 		if (newTitles === 0) return;
 
-		await tags.add(`titles_+${newTitles}`);
+		await tags.add(`${region}_titles_+${newTitles}`);
 		if (ctx.deployment?.git) {
 			const { ghUsername, commitRef } = ctx.deployment.git;
 
