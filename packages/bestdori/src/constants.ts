@@ -1,7 +1,13 @@
-export const REGIONS = ["JP", "EN", "", "CN"] as const;
+export const REGIONS = ["JP", "EN", "CN"] as const;
 export type Region = (typeof REGIONS)[number];
 
-export const getRegionIndex = (region: Region) => REGIONS.indexOf(region);
+export const REGION_SERVER_ID: Record<Region, number> = {
+	JP: 0,
+	EN: 1,
+	CN: 3,
+};
+
+export const getRegionIndex = (region: Region) => REGION_SERVER_ID[region];
 
 export const STAT_NAMES = [
 	"highScoreRating",
