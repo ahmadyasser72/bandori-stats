@@ -2,8 +2,8 @@
 import { REGIONS, type Region } from "@bandori-stats/bestdori/constants";
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import { db } from "@bandori-stats/database";
-import { accountSnapshots, accounts } from "@bandori-stats/database/schema";
-import { eq, sql } from "drizzle-orm";
+import { accountSnapshots } from "@bandori-stats/database/schema";
+import { sql } from "drizzle-orm";
 
 import UsernameColumn from "~/lib/components/username-column.astro";
 import { paginate } from "~/lib/paginate";
