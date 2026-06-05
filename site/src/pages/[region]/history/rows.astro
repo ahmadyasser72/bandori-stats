@@ -2,7 +2,8 @@
 import { REGIONS, type Region } from "@bandori-stats/bestdori/constants";
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import { db } from "@bandori-stats/database";
-import { accountSnapshots } from "@bandori-stats/database/schema";
+import { accountSnapshots, accounts } from "@bandori-stats/database/schema";
+import { eq, sql } from "drizzle-orm";
 
 import UsernameColumn from "~/lib/components/username-column.astro";
 import { paginate } from "~/lib/paginate";
@@ -20,7 +21,10 @@ if (!REGIONS.includes(region)) {
 const page = await paginate({
 	items: {
 		get: async (limit, offset) => ({
-			allSnapshotsCount: await db.$count(accountSnapshots, { account: { region } }),
+			allSnapshotsCount: await db.$count(
+				accountSnapshots,
+				sql`${accountSnapshots.accountId} IN (SELECT id FROM accounts WHERE region = ${region})`,
+			),
 			data: await db.query.accountSnapshots.findMany({
 				limit,
 				offset,
