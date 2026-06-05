@@ -1,4 +1,5 @@
 ---
+import { type Region } from "@bandori-stats/bestdori/constants";
 import { db } from "@bandori-stats/database";
 
 import { paginate } from "~/lib/paginate";
@@ -6,6 +7,7 @@ import { params } from "./_params";
 
 export const partial = true;
 
+const region = (Astro.params.region ?? "").toUpperCase() as Region;
 const { date, id } = params.parse(Astro.params);
 const account = await db.query.accounts.findFirst({
 	columns: { id: true, username: true, nickname: true },
@@ -50,7 +52,7 @@ const page = await paginate({
 	page.items.map(({ value: title, isNew }, idx) => (
 		<img
 			{...(page.isLastElement(idx) && page.props)}
-			src={`/static/titles/${title}.webp`}
+			src={`/titles/${region}-${title}.webp`}
 			class:list={[
 				"border-base-content/60 skeleton aspect-23/5 rounded-2xl border",
 				isNew && "border-secondary ring-secondary bg-secondary ring-2",

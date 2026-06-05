@@ -14,7 +14,7 @@ const region = (Astro.params.region ?? "").toUpperCase() as Region;
 const regionLower = region.toLowerCase();
 
 if (!REGIONS.includes(region)) {
-	return Astro.redirect("/");
+	return Astro.redirect("/en/compare");
 }
 
 const referenceId = idSchema.optional().parse(Astro.locals.query.reference);

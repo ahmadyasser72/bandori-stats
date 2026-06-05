@@ -1,4 +1,4 @@
-export const REGIONS = ["JP", "EN", "CN"] as const;
+export const REGIONS = ["JP", "EN", "", "CN"] as const;
 export type Region = (typeof REGIONS)[number];
 
 export const getRegionIndex = (region: Region) => REGIONS.indexOf(region);
