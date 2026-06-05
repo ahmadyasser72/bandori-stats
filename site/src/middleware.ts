@@ -29,7 +29,7 @@ export const onRequest = defineMiddleware(async ({ locals, url }, next) => {
 	if (import.meta.env.DEV && !success) throw new Error(z.prettifyError(error));
 	locals.query = success ? data : {};
 
-	// Detect region from URL path
+	// Detect region from URL path (first path segment)
 	const pathParts = url.pathname.split("/").filter(Boolean);
 	const firstPart = pathParts[0]?.toUpperCase() as Region | undefined;
 	locals.region = REGIONS.includes(firstPart as Region) ? (firstPart as Region) : null;

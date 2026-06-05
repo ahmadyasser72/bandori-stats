@@ -1,11 +1,17 @@
 ---
+import { REGIONS, type Region } from "@bandori-stats/bestdori/constants";
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 
 import { titleCase } from "text-case";
 
 import BaseLayout from "~/layouts/base-layout.astro";
 
-const region = Astro.locals.region!;
+const region = (Astro.params.region ?? "").toUpperCase() as Region;
+const regionLower = region.toLowerCase();
+
+if (!REGIONS.includes(region)) {
+	return Astro.redirect("/");
+}
 ---
 
 <BaseLayout title="History">
@@ -13,7 +19,7 @@ const region = Astro.locals.region!;
 		<div class="breadcrumbs sticky left-0 z-20 px-4 sm:px-8">
 			<ul class="justify-center">
 				<li><a href="/">bandori-stats</a></li>
-				<li><a href={`/${region.toLowerCase()}/history`}>{region}</a></li>
+				<li><a href={`/${regionLower}/history`}>{region}</a></li>
 				<li>history</li>
 			</ul>
 		</div>
@@ -39,7 +45,7 @@ const region = Astro.locals.region!;
 
 			<tbody hx-indicator=".infinite-placeholder">
 				<tr
-					hx-get={`/${region.toLowerCase()}/history/rows`}
+					hx-get={`/${regionLower}/history/rows`}
 					hx-trigger="revealed"
 					hx-indicator="#app-loader, .infinite-placeholder"
 					hx-swap="outerHTML"

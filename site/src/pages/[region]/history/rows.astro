@@ -1,4 +1,5 @@
 ---
+import { REGIONS, type Region } from "@bandori-stats/bestdori/constants";
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import { db } from "@bandori-stats/database";
 import { accountSnapshots } from "@bandori-stats/database/schema";
@@ -9,7 +10,12 @@ import StatsColumn from "./_stats-column.astro";
 
 export const partial = true;
 
-const region = Astro.locals.region!;
+const region = (Astro.params.region ?? "").toUpperCase() as Region;
+const regionLower = region.toLowerCase();
+
+if (!REGIONS.includes(region)) {
+	return Astro.redirect("/");
+}
 
 const page = await paginate({
 	items: {
@@ -58,8 +64,6 @@ const previousSnapshots = (
 const getPreviousSnapshot = ({ accountId, id }: (typeof snapshots)[number]) =>
 	snapshots.find((it) => it.accountId === accountId && it.id < id) ??
 	previousSnapshots.find((it) => it.accountId === accountId);
-
-const regionLower = region.toLowerCase();
 ---
 
 {
