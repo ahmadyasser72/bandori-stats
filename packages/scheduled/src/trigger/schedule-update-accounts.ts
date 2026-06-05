@@ -9,7 +9,7 @@ import { bestdoriLeaderboard } from "./bestdori-leaderboard";
 
 export const scheduleUpdateAccounts = schedules.task({
 	id: "schedule-update-accounts",
-	cron: "0 0 1 * *", // every 1st day of month
+	cron: "0 8 1 * *", // every 1st day of month at 08:00 UTC
 	run: async (context) => {
 		const now = dayjs(context.timestamp);
 		const untilNextSnapshotUpdate = now.add(4.5, "minutes").diff(now);

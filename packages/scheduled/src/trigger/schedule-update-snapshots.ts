@@ -8,7 +8,7 @@ import { updateStats } from "./update-stats";
 
 export const scheduleUpdateSnapshots = schedules.task({
 	id: "schedule-update-snapshots",
-	cron: "5 0 * * *", // every day at 00:05
+	cron: "5 8 * * *", // every day at 08:05 UTC
 	run: async (context) => {
 		const now = dayjs(context.timestamp);
 		const date = now.format("YYYY-MM-DD");
