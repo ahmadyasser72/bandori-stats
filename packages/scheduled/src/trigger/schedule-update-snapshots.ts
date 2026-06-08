@@ -1,19 +1,23 @@
 import { db } from "@bandori-stats/database";
 
 import { schedules } from "@trigger.dev/sdk";
-import dayjs from "dayjs";
 import { createShuffle } from "fast-shuffle";
 
+import dayjs from "~/date";
+import { GBP_TIMEZONE } from "~/constants";
 import { updateStats } from "./update-stats";
 
 export const scheduleUpdateSnapshots = schedules.task({
 	id: "schedule-update-snapshots",
-	cron: "5 8 * * *", // every day at 08:05 UTC
+	cron: {
+		pattern: "5 0 * * *",
+		timezone: GBP_TIMEZONE,
+	},
 	run: async (context) => {
-		const now = dayjs(context.timestamp);
-		const date = now.format("YYYY-MM-DD");
+		const now = dayjs.tz(context.timestamp, GBP_TIMEZONE);
+		const date = now.startOf("day").format("YYYY-MM-DD");
 
-		const shuffle = createShuffle(dayjs(date).unix());
+		const shuffle = createShuffle(dayjs.tz(date, GBP_TIMEZONE).unix());
 		const accounts = await db.query.accounts
 			.findMany({ columns: { id: true, username: true, lastUpdated: true } })
 			.then((entries) =>

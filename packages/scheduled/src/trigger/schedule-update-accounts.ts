@@ -3,15 +3,19 @@ import { db, eq } from "@bandori-stats/database";
 import { accounts } from "@bandori-stats/database/schema";
 
 import { AbortTaskRunError, schedules, tags } from "@trigger.dev/sdk";
-import dayjs from "dayjs";
 
+import dayjs from "~/date";
+import { GBP_TIMEZONE } from "~/constants";
 import { bestdoriLeaderboard } from "./bestdori-leaderboard";
 
 export const scheduleUpdateAccounts = schedules.task({
 	id: "schedule-update-accounts",
-	cron: "0 8 1 * *", // every 1st day of month at 08:00 UTC
+	cron: {
+		pattern: "0 0 1 * *",
+		timezone: GBP_TIMEZONE,
+	},
 	run: async (context) => {
-		const now = dayjs(context.timestamp);
+		const now = dayjs.tz(context.timestamp, GBP_TIMEZONE);
 		const untilNextSnapshotUpdate = now.add(4.5, "minutes").diff(now);
 		const { runs } = await bestdoriLeaderboard.batchTriggerAndWait(
 			Array.from({ length: 4 }).flatMap((_, page) =>
