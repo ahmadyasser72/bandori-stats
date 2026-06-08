@@ -5,13 +5,14 @@ import { accounts } from "@bandori-stats/database/schema";
 import { AbortTaskRunError, schedules, tags } from "@trigger.dev/sdk";
 import dayjs from "dayjs";
 
+import { GBP_TIMEZONE } from "../constants";
 import { bestdoriLeaderboard } from "./bestdori-leaderboard";
 
 export const scheduleUpdateAccounts = schedules.task({
 	id: "schedule-update-accounts",
 	cron: {
 		pattern: "0 0 1 * *",
-		timezone: "America/Los_Angeles", // BanG Dream GBP Global monthly reset
+		timezone: GBP_TIMEZONE, // BanG Dream GBP Global monthly reset
 	},
 	run: async (context) => {
 		const now = dayjs(context.timestamp);

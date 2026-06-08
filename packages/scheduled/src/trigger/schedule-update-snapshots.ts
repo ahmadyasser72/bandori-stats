@@ -4,13 +4,14 @@ import { schedules } from "@trigger.dev/sdk";
 import dayjs from "dayjs";
 import { createShuffle } from "fast-shuffle";
 
+import { GBP_TIMEZONE } from "../constants";
 import { updateStats } from "./update-stats";
 
 export const scheduleUpdateSnapshots = schedules.task({
 	id: "schedule-update-snapshots",
 	cron: {
 		pattern: "5 0 * * *",
-		timezone: "America/Los_Angeles", // BanG Dream GBP Global daily reset
+		timezone: GBP_TIMEZONE, // BanG Dream GBP Global daily reset
 	},
 	run: async (context) => {
 		const now = dayjs(context.timestamp);
