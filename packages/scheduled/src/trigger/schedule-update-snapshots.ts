@@ -11,6 +11,8 @@ export const scheduleUpdateSnapshots = schedules.task({
 	cron: "5 8 * * *", // every day at 08:05 UTC
 	run: async (context) => {
 		const now = dayjs(context.timestamp);
+		// Use cron offset to align snapshot date with cron schedule
+		// Subtract hours/minutes so day starts at cron time (08:05 UTC)
 		const date = now.subtract(8, "hours").subtract(5, "minutes").startOf("day").format("YYYY-MM-DD");
 
 		const shuffle = createShuffle(dayjs(date).unix());
