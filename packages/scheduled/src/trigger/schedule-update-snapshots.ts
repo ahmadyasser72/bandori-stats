@@ -1,16 +1,11 @@
 import { db } from "@bandori-stats/database";
 
 import { schedules } from "@trigger.dev/sdk";
-import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc";
-import timezone from "dayjs/plugin/timezone";
 import { createShuffle } from "fast-shuffle";
 
-import { GBP_TIMEZONE } from "../constants";
+import dayjs from "~/date";
+import { GBP_TIMEZONE } from "~/constants";
 import { updateStats } from "./update-stats";
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
 
 export const scheduleUpdateSnapshots = schedules.task({
 	id: "schedule-update-snapshots",

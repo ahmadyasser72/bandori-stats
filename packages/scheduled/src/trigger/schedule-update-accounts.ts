@@ -3,15 +3,10 @@ import { db, eq } from "@bandori-stats/database";
 import { accounts } from "@bandori-stats/database/schema";
 
 import { AbortTaskRunError, schedules, tags } from "@trigger.dev/sdk";
-import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc";
-import timezone from "dayjs/plugin/timezone";
 
-import { GBP_TIMEZONE } from "../constants";
+import dayjs from "~/date";
+import { GBP_TIMEZONE } from "~/constants";
 import { bestdoriLeaderboard } from "./bestdori-leaderboard";
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
 
 export const scheduleUpdateAccounts = schedules.task({
 	id: "schedule-update-accounts",
