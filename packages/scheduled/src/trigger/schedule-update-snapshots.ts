@@ -8,7 +8,10 @@ import { updateStats } from "./update-stats";
 
 export const scheduleUpdateSnapshots = schedules.task({
 	id: "schedule-update-snapshots",
-	cron: "5 0 * * *", // every day at 00:05 UTC-8 (daily reset + 5 min)
+	cron: {
+		pattern: "5 0 * * *",
+		timezone: "America/Los_Angeles", // BanG Dream GBP Global daily reset
+	},
 	run: async (context) => {
 		const now = dayjs(context.timestamp);
 		const date = now.startOf("day").format("YYYY-MM-DD");

@@ -19,7 +19,4 @@ export default defineConfig({
 
 	dirs: ["./src/trigger"],
 	ignorePatterns: ["**/bestdori-*.ts"],
-
-	// UTC-8 for BanG Dream GBP Global daily reset (midnight in UTC-8 = 08:00 UTC)
-	timezone: "America/Los_Angeles",
 });
