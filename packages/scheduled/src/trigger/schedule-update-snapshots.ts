@@ -8,12 +8,10 @@ import { updateStats } from "./update-stats";
 
 export const scheduleUpdateSnapshots = schedules.task({
 	id: "schedule-update-snapshots",
-	cron: "5 8 * * *", // every day at 08:05 UTC
+	cron: "0 0 * * *", // every day at midnight UTC-8 (daily reset)
 	run: async (context) => {
 		const now = dayjs(context.timestamp);
-		// Use cron offset to align snapshot date with cron schedule
-		// Subtract hours/minutes so day starts at cron time (08:05 UTC)
-		const date = now.subtract(8, "hours").subtract(5, "minutes").startOf("day").format("YYYY-MM-DD");
+		const date = now.startOf("day").format("YYYY-MM-DD");
 
 		const shuffle = createShuffle(dayjs(date).unix());
 		const accounts = await db.query.accounts
