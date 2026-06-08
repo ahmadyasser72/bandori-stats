@@ -2,10 +2,15 @@ import { db } from "@bandori-stats/database";
 
 import { schedules } from "@trigger.dev/sdk";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 import { createShuffle } from "fast-shuffle";
 
 import { GBP_TIMEZONE } from "../constants";
 import { updateStats } from "./update-stats";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 export const scheduleUpdateSnapshots = schedules.task({
 	id: "schedule-update-snapshots",
@@ -14,10 +19,10 @@ export const scheduleUpdateSnapshots = schedules.task({
 		timezone: GBP_TIMEZONE,
 	},
 	run: async (context) => {
-		const now = dayjs(context.timestamp);
+		const now = dayjs.tz(context.timestamp, GBP_TIMEZONE);
 		const date = now.startOf("day").format("YYYY-MM-DD");
 
-		const shuffle = createShuffle(dayjs(date).unix());
+		const shuffle = createShuffle(dayjs.tz(date, GBP_TIMEZONE).unix());
 		const accounts = await db.query.accounts
 			.findMany({ columns: { id: true, username: true, lastUpdated: true } })
 			.then((entries) =>

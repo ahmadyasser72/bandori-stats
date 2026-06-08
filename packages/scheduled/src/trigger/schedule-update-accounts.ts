@@ -4,9 +4,14 @@ import { accounts } from "@bandori-stats/database/schema";
 
 import { AbortTaskRunError, schedules, tags } from "@trigger.dev/sdk";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 
 import { GBP_TIMEZONE } from "../constants";
 import { bestdoriLeaderboard } from "./bestdori-leaderboard";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 export const scheduleUpdateAccounts = schedules.task({
 	id: "schedule-update-accounts",
@@ -15,7 +20,7 @@ export const scheduleUpdateAccounts = schedules.task({
 		timezone: GBP_TIMEZONE,
 	},
 	run: async (context) => {
-		const now = dayjs(context.timestamp);
+		const now = dayjs.tz(context.timestamp, GBP_TIMEZONE);
 		const untilNextSnapshotUpdate = now.add(4.5, "minutes").diff(now);
 		const { runs } = await bestdoriLeaderboard.batchTriggerAndWait(
 			Array.from({ length: 4 }).flatMap((_, page) =>
