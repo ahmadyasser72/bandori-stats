@@ -12,7 +12,7 @@ export const scheduleUpdateAccounts = schedules.task({
 	id: "schedule-update-accounts",
 	cron: {
 		pattern: "0 0 1 * *",
-		timezone: GBP_TIMEZONE, // BanG Dream GBP Global monthly reset
+		timezone: GBP_TIMEZONE,
 	},
 	run: async (context) => {
 		const now = dayjs(context.timestamp);

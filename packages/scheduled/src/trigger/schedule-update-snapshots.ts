@@ -11,7 +11,7 @@ export const scheduleUpdateSnapshots = schedules.task({
 	id: "schedule-update-snapshots",
 	cron: {
 		pattern: "5 0 * * *",
-		timezone: GBP_TIMEZONE, // BanG Dream GBP Global daily reset
+		timezone: GBP_TIMEZONE,
 	},
 	run: async (context) => {
 		const now = dayjs(context.timestamp);
