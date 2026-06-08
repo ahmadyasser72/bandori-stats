@@ -11,7 +11,7 @@ export const scheduleUpdateSnapshots = schedules.task({
 	cron: "5 8 * * *", // every day at 08:05 UTC
 	run: async (context) => {
 		const now = dayjs(context.timestamp);
-		const date = now.format("YYYY-MM-DD");
+		const date = now.startOf("day").add(8, "hours").format("YYYY-MM-DD");
 
 		const shuffle = createShuffle(dayjs(date).unix());
 		const accounts = await db.query.accounts
