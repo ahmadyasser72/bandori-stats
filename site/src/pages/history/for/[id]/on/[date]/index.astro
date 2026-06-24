@@ -53,7 +53,7 @@ if (isNotFound) Astro.response.status = 404;
 <dialog class="modal">
 	<div class="modal-box">
 		<form method="dialog">
-			<button class="btn btn-sm btn-circle btn-ghost absolute top-2 right-2">
+			<button class="btn absolute top-2 right-2 btn-circle btn-ghost btn-sm">
 				✕
 			</button>
 		</form>
@@ -76,7 +76,7 @@ if (isNotFound) Astro.response.status = 404;
 							<div class="join mt-4">
 								<button
 									hx-get={`/history/for/${id}/on/${date}/chart`}
-									class="btn btn-accent join-item btn-sm"
+									class="btn join-item btn-sm btn-accent"
 									data-umami-event="stats-history-view-chart"
 									data-umami-event-id={id}
 									data-umami-event-username={account.username}
@@ -95,7 +95,7 @@ if (isNotFound) Astro.response.status = 404;
 								</button>
 
 								<a
-									class="btn btn-sm btn-accent join-item"
+									class="btn join-item btn-sm btn-accent"
 									data-umami-event="stats-history-compare"
 									data-umami-event-id={id}
 									data-umami-event-username={account.username}
@@ -126,7 +126,7 @@ if (isNotFound) Astro.response.status = 404;
 										{stats.titles !== null && stats.titles.length > 0 && (
 											<div class="dropdown dropdown-right">
 												<div
-													class="btn btn-info btn-xs w-full"
+													class="btn w-full btn-xs btn-info"
 													data-umami-event="stats-history-view-titles"
 													data-umami-event-date={snapshotDate}
 													data-umami-event-id={id}
@@ -142,7 +142,7 @@ if (isNotFound) Astro.response.status = 404;
 													/>
 												</div>
 												<div
-													class="dropdown-content bg-base-100 rounded-box z-10 ml-1 max-h-22 w-[200%] -translate-y-8 overflow-y-auto p-2 shadow-md sm:w-[300%]"
+													class="dropdown-content z-10 ml-1 max-h-22 w-[200%] -translate-y-8 overflow-y-auto rounded-box bg-base-100 p-2 shadow-md sm:w-[300%]"
 													tabindex="-1"
 												>
 													<div
@@ -153,14 +153,14 @@ if (isNotFound) Astro.response.status = 404;
 														<div
 															hx-get={`/history/for/${id}/on/${snapshotDate}/titles`}
 															hx-trigger="intersect once"
-															class="skeleton aspect-23/5"
+															class="aspect-23/5 skeleton"
 															hx-swap="outerHTML"
 														/>
 
 														{Array.from(
 															{ length: Math.min(stats.titles.length - 1, 5) },
 															() => (
-																<div class="htmx-indicator skeleton aspect-23/5" />
+																<div class="htmx-indicator aspect-23/5 skeleton" />
 															),
 														)}
 													</div>

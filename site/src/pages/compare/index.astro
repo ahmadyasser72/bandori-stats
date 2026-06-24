@@ -99,7 +99,7 @@ const { accounts, comparison, dateRange } = await (async () => {
 
 <BaseLayout title="Compare Accounts">
 	<div class="absolute inset-0 overflow-x-auto">
-		<div class="breadcrumbs sticky left-0 z-20 px-4 sm:px-8">
+		<div class="sticky left-0 z-20 breadcrumbs px-4 sm:px-8">
 			<ul class="justify-center">
 				<li><a href="/">bandori-stats</a></li>
 				<li>compare</li>
@@ -155,16 +155,16 @@ const { accounts, comparison, dateRange } = await (async () => {
 							<>
 								<div class="flex flex-col items-center gap-1">
 									<h2 class="card-title text-2xl">Stat Comparison</h2>
-									<div class="text-base-content/60 text-sm">
+									<div class="text-sm text-base-content/60">
 										As of {compareDate}
 									</div>
 								</div>
 
-								<div class="rounded-box border-base-content/5 bg-base-100 relative aspect-square w-full max-w-4xl border px-4 py-4 sm:aspect-video md:aspect-2/1 md:px-8">
+								<div class="relative aspect-square w-full max-w-4xl rounded-box border border-base-content/5 bg-base-100 px-4 py-4 sm:aspect-video md:aspect-2/1 md:px-8">
 									<canvas {...comparison.chart} />
 								</div>
 
-								<div class="rounded-box border-base-content/5 bg-base-100 w-full overflow-x-auto border">
+								<div class="w-full overflow-x-auto rounded-box border border-base-content/5 bg-base-100">
 									<table class="table text-center">
 										<thead>
 											<tr>
@@ -191,7 +191,7 @@ const { accounts, comparison, dateRange } = await (async () => {
 								</div>
 							</>
 						) : (
-							<div class="text-base-content/60 flex flex-col items-center justify-center py-16">
+							<div class="flex flex-col items-center justify-center py-16 text-base-content/60">
 								<h2 class="text-xl font-semibold">No comparison yet</h2>
 								<p class="text-sm">
 									Select two accounts to see their stats side-by-side.

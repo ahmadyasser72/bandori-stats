@@ -26,6 +26,8 @@ const config = {
 		"^[./]",
 	],
 
+	tailwindStylesheet: "./site/src/styles/global.css",
+
 	attributeGroups: ["^hx-(get|post|trigger)$", "$CODE_GUIDE", "^hx-"],
 	attributeSort: "ASC",
 };

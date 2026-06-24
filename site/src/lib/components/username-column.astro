@@ -22,7 +22,7 @@ const hasNickname = accountHasNickname({ username, nickname });
 			{
 				hasNickname && (
 					<div>
-						<span class="rounded-r-field group-even:bg-base-200 group-odd:bg-base-100 line-clamp-1 max-w-36 overflow-clip px-2 break-all text-ellipsis">
+						<span class="line-clamp-1 max-w-36 overflow-clip rounded-r-field px-2 break-all text-ellipsis group-odd:bg-base-100 group-even:bg-base-200">
 							{nickname}
 						</span>
 					</div>
@@ -31,7 +31,7 @@ const hasNickname = accountHasNickname({ username, nickname });
 			<div>
 				<span
 					class:list={[
-						"rounded-r-field group-even:bg-base-200 group-odd:bg-base-100 line-clamp-1 max-w-36 overflow-clip px-2 text-ellipsis",
+						"line-clamp-1 max-w-36 overflow-clip rounded-r-field px-2 text-ellipsis group-odd:bg-base-100 group-even:bg-base-200",
 						hasNickname ? "text-base-content/60" : "flex h-full items-center",
 					]}
 				>

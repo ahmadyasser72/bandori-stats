@@ -52,8 +52,8 @@ const page = await paginate({
 			{...(page.isLastElement(idx) && page.props)}
 			src={`/static/titles/${title}.webp`}
 			class:list={[
-				"border-base-content/60 skeleton aspect-23/5 rounded-2xl border",
-				isNew && "border-secondary ring-secondary bg-secondary ring-2",
+				"aspect-23/5 skeleton rounded-2xl border border-base-content/60",
+				isNew && "border-secondary bg-secondary ring-2 ring-secondary",
 			]}
 			loading="lazy"
 		/>

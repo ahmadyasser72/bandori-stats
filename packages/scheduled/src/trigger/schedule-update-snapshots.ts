@@ -3,8 +3,8 @@ import { db } from "@bandori-stats/database";
 import { schedules } from "@trigger.dev/sdk";
 import { createShuffle } from "fast-shuffle";
 
-import dayjs from "~/date";
 import { GBP_TIMEZONE } from "~/constants";
+import dayjs from "~/date";
 import { updateStats } from "./update-stats";
 
 export const scheduleUpdateSnapshots = schedules.task({

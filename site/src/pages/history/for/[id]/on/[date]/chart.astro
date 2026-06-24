@@ -119,7 +119,7 @@ const { availablePeriods, stats } = (() => {
 <dialog class="modal" hx-target="this">
 	<div class="modal-box w-full max-w-full md:max-w-4xl">
 		<form method="dialog">
-			<button class="btn btn-sm btn-circle btn-ghost absolute top-2 right-2">
+			<button class="btn absolute top-2 right-2 btn-circle btn-ghost btn-sm">
 				✕
 			</button>
 		</form>
@@ -145,7 +145,7 @@ const { availablePeriods, stats } = (() => {
 					</h2>
 
 					<div
-						class="bg-base-100/80 rounded-box sticky top-0 z-10 mx-auto flex w-48 flex-col items-center gap-1 py-2 shadow-sm"
+						class="sticky top-0 z-10 mx-auto flex w-48 flex-col items-center gap-1 rounded-box bg-base-100/80 py-2 shadow-sm"
 						id="time-period"
 					>
 						<div class="join self-center">
@@ -154,7 +154,7 @@ const { availablePeriods, stats } = (() => {
 									hx-get={`/history/for/${id}/on/${date}/chart`}
 									hx-vals={JSON.stringify({ period: it })}
 									class:list={[
-										"btn btn-xs sm:btn-sm join-item",
+										"btn join-item btn-xs sm:btn-sm",
 										period === it && "btn-active",
 									]}
 									disabled={!availablePeriods![it]}
@@ -164,14 +164,14 @@ const { availablePeriods, stats } = (() => {
 							))}
 						</div>
 
-						<p class="text-base-content/60 text-xs sm:text-sm">
+						<p class="text-xs text-base-content/60 sm:text-sm">
 							{to} &mdash; {from}
 						</p>
 					</div>
 
 					<div class="grid gap-2 sm:grid-cols-2" id="chart">
 						{stats.map((stat) => (
-							<div class="stat bg-base-200 rounded-box">
+							<div class="stat rounded-box bg-base-200">
 								<div class="stat-title">{stat.label}</div>
 
 								<div class="stat-value">
@@ -193,7 +193,7 @@ const { availablePeriods, stats } = (() => {
 									<div class="chart relative mt-2 aspect-3/1 w-full">
 										<canvas
 											{...stat.chart}
-											class="bg-base-100 absolute inset-0"
+											class="absolute inset-0 bg-base-100"
 										/>
 									</div>
 								)}
@@ -206,7 +206,7 @@ const { availablePeriods, stats } = (() => {
 	</div>
 
 	<div
-		class="htmx-indicator bg-base-100/50 fixed inset-0 z-20"
+		class="htmx-indicator fixed inset-0 z-20 bg-base-100/50"
 		id="chart-loader"
 	>
 		<iconify-icon

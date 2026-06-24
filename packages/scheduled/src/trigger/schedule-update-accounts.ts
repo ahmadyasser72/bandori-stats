@@ -4,8 +4,8 @@ import { accounts } from "@bandori-stats/database/schema";
 
 import { AbortTaskRunError, schedules, tags } from "@trigger.dev/sdk";
 
-import dayjs from "~/date";
 import { GBP_TIMEZONE } from "~/constants";
+import dayjs from "~/date";
 import { bestdoriLeaderboard } from "./bestdori-leaderboard";
 
 export const scheduleUpdateAccounts = schedules.task({
