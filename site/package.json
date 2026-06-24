@@ -23,7 +23,6 @@
 		"htmx.org": "2.0.10",
 		"iconify-icon": "3.0.2",
 		"tailwindcss": "4.2.4",
-		"text-case": "1.2.10",
 		"zod": "4.3.6"
 	},
 	"devDependencies": {

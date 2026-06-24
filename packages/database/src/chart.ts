@@ -3,11 +3,11 @@ import {
 	compareValue,
 	displayValue,
 	formatNumber,
+	titleCase,
 } from "@bandori-stats/bestdori/helpers";
 
 import type { Chart, ChartType } from "chart.js";
 import dayjs from "dayjs";
-import { titleCase } from "text-case";
 
 import { PLAYER_STATS_SORTED_SET_PREFIX, redis } from "./redis";
 

@@ -47,4 +47,5 @@ export const formatNumber = (
 
 export const sum = (values: number[]) =>
 	values.reduce((acc, next) => acc + next, 0);
-export const mean = (values: number[]) => sum(values) / values.length;
+
+export const titleCase = (s: string) => s.replace(/([a-z])([A-Z])/g, "$1 $2");

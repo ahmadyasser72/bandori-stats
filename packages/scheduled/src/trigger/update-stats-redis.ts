@@ -8,7 +8,6 @@ import {
 	redis,
 } from "@bandori-stats/database/redis";
 
-import { Octokit } from "@octokit/core";
 import { schemaTask, tags } from "@trigger.dev/sdk";
 import z from "zod";
 
@@ -61,17 +60,19 @@ export const updateStatsRedis = schemaTask({
 			const { ghUsername, commitRef } = ctx.deployment.git;
 
 			if (ghUsername && commitRef) {
-				const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+				const token = process.env.GITHUB_TOKEN;
+				if (!token) return;
 
 				await tags.add("site_rebuild");
-				await octokit.request(
-					"POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches",
+				await fetch(
+					`https://api.github.com/repos/${ghUsername}/bandori-stats/actions/workflows/deploy.yaml/dispatches`,
 					{
-						owner: ghUsername,
-						repo: "bandori-stats",
-						ref: commitRef,
-						workflow_id: "deploy.yaml",
-						headers: { "X-GitHub-Api-Version": "2022-11-28" },
+						method: "POST",
+						headers: {
+							Authorization: `Bearer ${token}`,
+							"X-GitHub-Api-Version": "2022-11-28",
+						},
+						body: JSON.stringify({ ref: commitRef }),
 					},
 				);
 			}

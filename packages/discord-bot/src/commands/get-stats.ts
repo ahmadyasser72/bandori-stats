@@ -4,6 +4,7 @@ import {
 	compareValue,
 	displayValue,
 	formatNumber,
+	titleCase,
 } from "@bandori-stats/bestdori/helpers";
 import { accountSnapshots } from "@bandori-stats/database/schema";
 
@@ -18,7 +19,6 @@ import {
 	type MessageComponent,
 } from "discord-interactions";
 import { getBorderCharacters, table } from "table";
-import { titleCase } from "text-case";
 
 import { CommandOptionType, type Command, type CommandHandler } from "./types";
 
