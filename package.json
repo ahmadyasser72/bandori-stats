@@ -2,6 +2,9 @@
 	"name": "bandori-stats",
 	"private": true,
 	"type": "module",
+	"scripts": {
+		"test": "bun test"
+	},
 	"workspaces": [
 		"packages/*",
 		"site"
