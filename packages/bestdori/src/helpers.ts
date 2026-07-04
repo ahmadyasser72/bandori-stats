@@ -48,4 +48,9 @@ export const formatNumber = (
 export const sum = (values: number[]) =>
 	values.reduce((acc, next) => acc + next, 0);
 
-export const titleCase = (s: string) => s.replace(/([a-z])([A-Z])/g, "$1 $2");
+export const titleCase = (s: string) =>
+	s
+		.replace(/([a-z])([A-Z])/g, "$1 $2")
+		.split(" ")
+		.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+		.join(" ");
