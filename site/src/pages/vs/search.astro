@@ -8,9 +8,9 @@ import { idSchema } from "~/lib/schema";
 export const partial = true;
 
 const query = Astro.locals.query.query?.toString().replace("@", "") ?? "";
-const side = z.enum(["reference", "compared"]).parse(Astro.locals.query.side);
+const side = z.enum(["player-1", "player-2"]).parse(Astro.locals.query.side);
 const otherId = idSchema.optional().parse(Astro.locals.query.other);
-const otherSide: typeof side = side === "compared" ? "reference" : "compared";
+const otherSide: typeof side = side === "player-1" ? "player-2" : "player-1";
 
 const accounts = await db.query.accounts.findMany({
 	columns: { id: true, username: true, nickname: true },
@@ -35,8 +35,8 @@ Astro.response.headers.set("cache-control", "max-age=60");
 {
 	accounts.map((account) => (
 		<li>
-			<a
-				hx-get="/compare"
+			<button
+				hx-get="/vs"
 				hx-vals={JSON.stringify({ [side]: account.id, [otherSide]: otherId })}
 				{...(otherId && {
 					"data-umami-event": "compare-account",
@@ -52,7 +52,7 @@ Astro.response.headers.set("cache-control", "max-age=60");
 				) : (
 					`@${account.username}`
 				)}
-			</a>
+			</button>
 		</li>
 	))
 }

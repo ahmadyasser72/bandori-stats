@@ -32,3 +32,6 @@ export const accountSnapshots = sqliteTable(
 		unique("idx_snapshots_stat").on(t.accountId, t.stats),
 	],
 );
+
+export type Account = typeof accounts.$inferSelect;
+export type Snapshot = typeof accountSnapshots.$inferSelect;

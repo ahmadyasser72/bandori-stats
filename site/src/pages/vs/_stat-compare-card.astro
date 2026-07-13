@@ -1,0 +1,92 @@
+---
+import type { Stats } from "@bandori-stats/bestdori/constants";
+import {
+	compareValue,
+	displayValue,
+	formatNumber,
+	getValue,
+	titleCase,
+	type StatValue,
+} from "@bandori-stats/bestdori/helpers";
+
+interface Props {
+	name: Exclude<keyof Stats, "uid">;
+	left: StatValue;
+	right: StatValue;
+}
+
+const { name, left, right } = Astro.props;
+
+const delta = compareValue(left, right);
+
+const leftValue = getValue(left ?? 0);
+const rightValue = getValue(right ?? 0);
+const total = leftValue + rightValue;
+const leftPercent = total === 0 ? 50 : (leftValue / total) * 100;
+const rightPercent = 100 - leftPercent;
+---
+
+<div class="card bg-base-100 shadow-sm card-border dark:bg-base-200">
+	<div class="card-body gap-2 p-4">
+		<div class="text-center text-sm font-medium text-base-content/67">
+			{titleCase(name)}
+		</div>
+
+		<div class="flex items-center justify-between">
+			<div class="flex-1 text-xl font-bold text-primary">
+				{
+					leftValue
+						? formatNumber(leftValue, { autoCompact: true })
+						: displayValue(left)
+				}
+			</div>
+
+			<div
+				class:list={[
+					"badge font-bold",
+					delta > 0 && "badge-primary",
+					delta < 0 && "flex-row-reverse badge-accent",
+					delta === 0 && "badge-neutral",
+				]}
+			>
+				<iconify-icon
+					class="size-5"
+					icon={delta === 0
+						? "lucide:minus"
+						: delta > 0
+							? "lucide:arrow-right"
+							: "lucide:arrow-left"}
+					width="none"></iconify-icon>
+				{
+					Math.abs(delta) > 0
+						? formatNumber(Math.abs(delta), {
+								autoCompact: true,
+								positiveSign: true,
+							})
+						: "N/A"
+				}
+			</div>
+
+			<div class="flex-1 text-end text-xl font-bold text-accent">
+				{
+					rightValue
+						? formatNumber(rightValue, { autoCompact: true })
+						: displayValue(right)
+				}
+			</div>
+		</div>
+
+		<div class="mt-1 flex h-1.5 w-full overflow-hidden rounded-full opacity-80">
+			{
+				delta === 0 ? (
+					<div class="w-full bg-neutral" />
+				) : (
+					<>
+						<div class="bg-primary" style={`width: ${leftPercent}%`} />
+						<div class="bg-accent" style={`width: ${rightPercent}%`} />
+					</>
+				)
+			}
+		</div>
+	</div>
+</div>

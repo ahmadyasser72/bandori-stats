@@ -1,0 +1,58 @@
+---
+import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
+import { db } from "@bandori-stats/database";
+
+import BaseLayout from "~/layouts/base-layout.astro";
+import { idSchema } from "~/lib/schema";
+import PlayerCard from "./_player-card.astro";
+import StatCompareCard from "./_stat-compare-card.astro";
+
+const player1_id = idSchema.optional().parse(Astro.locals.query["player-1"]);
+const player2_id = idSchema.optional().parse(Astro.locals.query["player-2"]);
+
+const [player1, player2] = await Promise.all(
+	[player1_id, player2_id].map((id) => {
+		if (!id) return;
+		return db.query.accounts.findFirst({
+			columns: { id: true, username: true },
+			where: { id },
+			with: {
+				snapshots: {
+					limit: 1,
+					columns: { snapshotDate: true, stats: true },
+					orderBy: { snapshotDate: "desc" },
+				},
+			},
+		});
+	}),
+);
+---
+
+<BaseLayout title="VS Accounts" containerClass="max-w-3xl px-4">
+	<div
+		class="my-4 flex w-full flex-col border-b border-base-content/67 px-2 pb-6 sm:flex-row sm:pb-4"
+		id="players"
+	>
+		<PlayerCard other={player2?.id} player={player1} side="player-1" />
+
+		<div
+			class="divider my-4 text-sm font-black text-base-content/67 sm:my-0 sm:divider-horizontal sm:px-4"
+		>
+			VS
+		</div>
+
+		<PlayerCard other={player1?.id} player={player2} side="player-2" />
+	</div>
+
+	<div class="grid grid-cols-1 gap-4 md:grid-cols-2" id="comparison">
+		{
+			STAT_NAMES.map((name) => (
+				<StatCompareCard
+					{name}
+					left={player1?.snapshots[0].stats[name]}
+					right={player2?.snapshots[0].stats[name]}
+				/>
+			))
+		}
+	</div>
+</BaseLayout>

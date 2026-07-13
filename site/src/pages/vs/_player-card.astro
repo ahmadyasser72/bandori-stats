@@ -1,0 +1,130 @@
+---
+import { titleCase } from "@bandori-stats/bestdori/helpers";
+import type { Account, Snapshot } from "@bandori-stats/database/schema";
+
+interface Props {
+	side: "player-1" | "player-2";
+	player?: Pick<Account, "username"> & {
+		snapshots: Pick<Snapshot, "snapshotDate">[];
+	};
+	other?: number;
+}
+
+const { side, player, other } = Astro.props;
+
+const isPlayer1 = side === "player-1";
+const popoverId = `${side}-popover`;
+const anchorName = `--anchor-${side}`;
+const inputId = isPlayer1 ? "search_player1" : "search_player2";
+const otherSide = isPlayer1 ? "player-2" : "player-1";
+---
+
+<div
+	class:list={[
+		"grid flex-1 place-items-center",
+		isPlayer1 ? "sm:place-items-start" : "sm:place-items-end",
+	]}
+>
+	{
+		player ? (
+			<div
+				class:list={[
+					"flex flex-col items-center gap-1",
+					isPlayer1 ? "sm:items-start" : "sm:items-end",
+				]}
+			>
+				<div
+					class:list={[
+						"flex items-center gap-2",
+						!isPlayer1 && "sm:flex-row-reverse",
+					]}
+				>
+					<div
+						class:list={[
+							"text-2xl font-bold",
+							isPlayer1 ? "text-primary" : "text-accent",
+						]}
+					>
+						@{player.username}
+					</div>
+					<button
+						hx-get="/vs"
+						class="btn btn-circle btn-ghost btn-sm hover:btn-error"
+						hx-replace-url="true"
+						hx-select="#comparison"
+						hx-select-oob="#players"
+						hx-swap="outerHTML"
+						hx-target="#comparison"
+						hx-vals={JSON.stringify({ [otherSide]: other })}
+					>
+						<iconify-icon class="size-5" icon="lucide:x" width="none" />
+					</button>
+				</div>
+				<span class="font-mono text-xs text-base-content/67">
+					SNAPSHOT @ {player.snapshots[0].snapshotDate}
+				</span>
+			</div>
+		) : (
+			<>
+				<button
+					class="btn h-full min-h-16 btn-dash max-sm:w-full sm:min-w-48"
+					popovertarget={popoverId}
+					style={`anchor-name: ${anchorName}`}
+				>
+					<iconify-icon class="size-6" icon="lucide:plus" width="none" />
+					<span class="text-sm font-bold">{titleCase(side)}</span>
+				</button>
+
+				<div
+					id={popoverId}
+					class:list={[
+						"dropdown dropdown-bottom mt-1 w-84 rounded-box border border-primary/20 bg-base-100 p-4 shadow-md",
+						!isPlayer1 && "sm:dropdown-end",
+					]}
+					ontoggle={`event.newState === "open" && ${inputId}.focus()`}
+					popover
+					style={`position-anchor: ${anchorName}`}
+				>
+					<label class="input w-48">
+						<iconify-icon
+							class="htmx-indicator size-4"
+							icon="svg-spinners:90-ring-with-bg"
+							width="none"
+						/>
+						<iconify-icon
+							class="htmx-indicator-replace size-4"
+							icon="lucide:search"
+							width="none"
+						/>
+						<input
+							hx-get="/vs/search"
+							hx-trigger="keyup changed delay:300ms, intersect once"
+							id={inputId}
+							name="query"
+							type="text"
+							hx-indicator="closest .input"
+							hx-target="next .menu"
+							hx-vals={JSON.stringify({ side, other })}
+						/>
+					</label>
+
+					<ul
+						class="menu mt-4 max-h-64 w-full flex-nowrap overflow-y-auto p-0"
+						hx-disabled-elt={`#${popoverId} button`}
+						hx-replace-url="true"
+						hx-select="#comparison"
+						hx-select-oob="#players"
+						hx-swap="outerHTML"
+						hx-target="#comparison"
+					>
+						<li>
+							<button class="btn btn-ghost" disabled>
+								loading accounts...
+							</button>
+						</li>
+					</ul>
+				</div>
+			</>
+		)
+	}
+</div>
