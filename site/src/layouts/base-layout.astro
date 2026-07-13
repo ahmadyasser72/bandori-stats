@@ -37,11 +37,41 @@ const { title } = Astro.props;
 		}
 	</head>
 	<body>
-		<div class="container mx-auto flex h-screen flex-col py-2">
-			<main class="relative flex-1 shadow-sm" hx-indicator="#app-loader">
-				<slot />
-			</main>
-		</div>
+		<main class="container mx-auto" hx-indicator="#app-loader">
+			{
+				Astro.url.pathname !== "/" && (
+					<div class="breadcrumbs mt-2 text-sm">
+						<ul class="justify-center">
+							<li>
+								<a href="/">bandori-stats</a>
+							</li>
+							{Astro.url.pathname
+								.split("/")
+								.filter(Boolean)
+								.map((path, idx, parts) => (
+									<li>
+										{idx === parts.length - 1 ? (
+											path
+										) : (
+											<a
+												href={
+													idx > 0
+														? `/${parts.slice(0, idx + 1).join("/")}`
+														: `/${path}`
+												}
+											>
+												{path}
+											</a>
+										)}
+									</li>
+								))}
+						</ul>
+					</div>
+				)
+			}
+
+			<slot />
+		</main>
 
 		<div
 			class="htmx-indicator fixed inset-0 z-20 bg-base-100/50"

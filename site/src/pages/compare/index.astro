@@ -98,108 +98,97 @@ const { accounts, comparison, dateRange } = await (async () => {
 ---
 
 <BaseLayout title="Compare Accounts">
-	<div class="absolute inset-0 overflow-x-auto">
-		<div class="sticky left-0 z-20 breadcrumbs px-4 sm:px-8">
-			<ul class="justify-center">
-				<li><a href="/">bandori-stats</a></li>
-				<li>compare</li>
-			</ul>
-		</div>
+	<div class="mx-auto flex max-w-5xl flex-col gap-8 p-4 sm:px-8">
+		<form class="grid gap-4 md:grid-cols-3" id="compare-form">
+			<SearchDropdown
+				value={accounts.reference?.username}
+				label="Reference"
+				other-id={accounts.compared?.id}
+				side="reference"
+			/>
 
-		<div class="mx-auto flex max-w-5xl flex-col gap-8 p-4 sm:px-8">
-			<form class="grid gap-4 md:grid-cols-3" id="compare-form">
-				<SearchDropdown
-					value={accounts.reference?.username}
-					label="Reference"
-					other-id={accounts.compared?.id}
-					side="reference"
-				/>
+			<SearchDropdown
+				value={accounts.compared?.username}
+				label="Compared-to"
+				other-id={accounts.reference?.id}
+				side="compared"
+			/>
 
-				<SearchDropdown
-					value={accounts.compared?.username}
-					label="Compared-to"
-					other-id={accounts.reference?.id}
-					side="compared"
-				/>
+			{
+				dateRange && (
+					<label class="input">
+						<span class="label">Snapshot Date</span>
+						<input
+							hx-get="/compare"
+							hx-trigger="change"
+							name="date"
+							type="date"
+							value={dateRange.selected}
+							hx-replace-url="true"
+							hx-select="#compare-results"
+							hx-swap="outerHTML"
+							hx-target="#compare-results"
+							hx-vals={JSON.stringify({
+								reference: referenceId,
+								compared: comparedId,
+							})}
+							max={dateRange.max}
+							min={dateRange.min}
+						/>
+					</label>
+				)
+			}
+		</form>
 
+		<div class="card bg-base-200" id="compare-results">
+			<div class="card-body items-center gap-4 text-center">
 				{
-					dateRange && (
-						<label class="input">
-							<span class="label">Snapshot Date</span>
-							<input
-								hx-get="/compare"
-								hx-trigger="change"
-								name="date"
-								type="date"
-								value={dateRange.selected}
-								hx-replace-url="true"
-								hx-select="#compare-results"
-								hx-swap="outerHTML"
-								hx-target="#compare-results"
-								hx-vals={JSON.stringify({
-									reference: referenceId,
-									compared: comparedId,
-								})}
-								max={dateRange.max}
-								min={dateRange.min}
-							/>
-						</label>
+					comparison ? (
+						<>
+							<div class="flex flex-col items-center gap-1">
+								<h2 class="card-title text-2xl">Stat Comparison</h2>
+								<div class="text-sm text-base-content/60">
+									As of {compareDate}
+								</div>
+							</div>
+
+							<div class="relative aspect-square w-full max-w-4xl rounded-box border border-base-content/5 bg-base-100 px-4 py-4 sm:aspect-video md:aspect-2/1 md:px-8">
+								<canvas {...comparison.chart} />
+							</div>
+
+							<div class="w-full overflow-x-auto rounded-box border border-base-content/5 bg-base-100">
+								<table class="table text-center">
+									<thead>
+										<tr>
+											<th class="min-w-40">Stat</th>
+											<th>@{accounts.reference!.username}</th>
+											<th>@{accounts.compared!.username}</th>
+											<th>Difference</th>
+										</tr>
+									</thead>
+									<tbody>
+										{STAT_NAMES.map((name) => (
+											<StatsRow
+												{name}
+												comparedValue={comparison.snapshotCompared.stats[name]}
+												referenceValue={
+													comparison.snapshotReference.stats[name]
+												}
+											/>
+										))}
+									</tbody>
+								</table>
+							</div>
+						</>
+					) : (
+						<div class="flex flex-col items-center justify-center py-16 text-base-content/60">
+							<h2 class="text-xl font-semibold">No comparison yet</h2>
+							<p class="text-sm">
+								Select two accounts to see their stats side-by-side.
+							</p>
+						</div>
 					)
 				}
-			</form>
-
-			<div class="card bg-base-200" id="compare-results">
-				<div class="card-body items-center gap-4 text-center">
-					{
-						comparison ? (
-							<>
-								<div class="flex flex-col items-center gap-1">
-									<h2 class="card-title text-2xl">Stat Comparison</h2>
-									<div class="text-sm text-base-content/60">
-										As of {compareDate}
-									</div>
-								</div>
-
-								<div class="relative aspect-square w-full max-w-4xl rounded-box border border-base-content/5 bg-base-100 px-4 py-4 sm:aspect-video md:aspect-2/1 md:px-8">
-									<canvas {...comparison.chart} />
-								</div>
-
-								<div class="w-full overflow-x-auto rounded-box border border-base-content/5 bg-base-100">
-									<table class="table text-center">
-										<thead>
-											<tr>
-												<th class="min-w-40">Stat</th>
-												<th>@{accounts.reference!.username}</th>
-												<th>@{accounts.compared!.username}</th>
-												<th>Difference</th>
-											</tr>
-										</thead>
-										<tbody>
-											{STAT_NAMES.map((name) => (
-												<StatsRow
-													{name}
-													comparedValue={
-														comparison.snapshotCompared.stats[name]
-													}
-													referenceValue={
-														comparison.snapshotReference.stats[name]
-													}
-												/>
-											))}
-										</tbody>
-									</table>
-								</div>
-							</>
-						) : (
-							<div class="flex flex-col items-center justify-center py-16 text-base-content/60">
-								<h2 class="text-xl font-semibold">No comparison yet</h2>
-								<p class="text-sm">
-									Select two accounts to see their stats side-by-side.
-								</p>
-							</div>
-						)
-					}
-				</div>
 			</div>
 		</div>
 	</div>
