@@ -5,6 +5,23 @@ export const accountHasNickname = (account: {
 	nickname: string | null;
 }) => account.nickname?.trim() && account.username !== account.nickname;
 
+export const simplifyStatName = (name: keyof Stats) => {
+	switch (name) {
+		case "highScoreRating":
+			return "Score";
+		case "bandRating":
+			return "Band";
+		case "clearCount":
+			return "Clear";
+		case "fullComboCount":
+			return "FC";
+		case "allPerfectCount":
+			return "AP";
+		default:
+			return titleCase(name);
+	}
+};
+
 export type StatValue = Exclude<Stats[keyof Stats], string> | undefined;
 export const getValue = (it: NonNullable<StatValue>) =>
 	Array.isArray(it) ? it.length : it;

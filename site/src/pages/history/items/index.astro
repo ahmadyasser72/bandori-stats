@@ -5,6 +5,7 @@ import { accountSnapshots } from "@bandori-stats/database/schema";
 
 import dayjs from "~/lib/date";
 import { paginate } from "~/lib/paginate";
+import PopoverDropdown from "./_popover-dropdown.astro";
 import StatCell from "./_stat-cell.astro";
 
 export const partial = true;
@@ -76,12 +77,15 @@ const STAT_NAMES = [
 
 {
 	snapshots.map(
-		({ accountId, account, snapshotDate, stats, previous }, idx) => (
-			<div
+		({ id, accountId, account, snapshotDate, stats, previous }, idx) => (
+			<li
 				{...(page.isLastElement(idx) && page.props)}
-				class="card border border-primary/20 bg-base-300 shadow-xl"
+				class="card relative w-full border border-primary/20 bg-base-300 shadow-xl"
 			>
-				<div class="card-body gap-2 p-4">
+				<div
+					class="card-body gap-2 p-4"
+					hx-vals={JSON.stringify({ account: accountId })}
+				>
 					<div class="flex h-12 w-full justify-between">
 						{accountHasNickname(account) ? (
 							<div>
@@ -119,50 +123,74 @@ const STAT_NAMES = [
 					<div
 						class="card-actions justify-end"
 						hx-disabled-elt=".card-actions button"
+						style={`anchor-name: --anchor-${id}-actions`}
 					>
 						<button
-							hx-get={`/history/for/${accountId}/on/${snapshotDate}`}
-							class="btn btn-circle btn-sm btn-primary"
-							data-umami-event="view-stats-history"
+							class="btn btn-soft btn-primary btn-sm"
+							data-umami-event="view-calendar"
 							data-umami-event-date={snapshotDate}
 							data-umami-event-id={accountId}
 							data-umami-event-username={account.username}
-							hx-indicator="this"
+							popovertarget={`calendar-${id}`}
 						>
 							<iconify-icon
-								class="htmx-indicator-replace size-4"
-								icon="lucide:history"
+								class="size-4"
+								icon="lucide:calendar"
 								width="none"
 							/>
-							<iconify-icon
-								class="htmx-indicator size-4"
-								icon="svg-spinners:90-ring-with-bg"
-								width="none"
-							/>
+							Calendar
 						</button>
 
-						<button
-							hx-get={`/history/for/${accountId}/on/${snapshotDate}/chart`}
-							class="btn btn-circle btn-sm btn-secondary"
-							data-umami-event="stats-history-view-chart"
-							data-umami-event-id={accountId}
-							data-umami-event-username={account.username}
-							hx-indicator="this"
-						>
-							<iconify-icon
-								class="htmx-indicator-replace size-4"
-								icon="lucide:chart-line"
-								width="none"
-							/>
-							<iconify-icon
-								class="htmx-indicator size-4"
-								icon="svg-spinners:90-ring-with-bg"
-								width="none"
-							/>
-						</button>
+						{stats.titles && (
+							<button
+								class="btn btn-soft btn-accent btn-sm"
+								data-umami-event="view-titles"
+								data-umami-event-date={snapshotDate}
+								data-umami-event-id={accountId}
+								data-umami-event-username={account.username}
+								popovertarget={`titles-${id}`}
+							>
+								<iconify-icon class="size-4" icon="lucide:crown" width="none" />
+								Titles
+							</button>
+						)}
 					</div>
+
+					<PopoverDropdown class="overflow-visible" {id} name="calendar">
+						<div
+							hx-get={`/history/items/${id}/calendar`}
+							hx-trigger="intersect once"
+							class="h-60 w-75 skeleton"
+							hx-swap="outerHTML"
+							hx-target="this"
+						/>
+					</PopoverDropdown>
+
+					{stats.titles && (
+						<PopoverDropdown class="max-h-56 w-84" {id} name="titles">
+							<div
+								class="titles flex flex-wrap justify-center gap-x-1 gap-y-1.5 *:w-24 sm:*:w-32"
+								hx-indicator="closest .titles"
+							>
+								<div
+									hx-get={`/history/items/${id}/titles`}
+									hx-trigger="intersect once"
+									class="aspect-23/5 skeleton"
+									hx-swap="outerHTML"
+									hx-target="this"
+								/>
+
+								{Array.from(
+									{ length: Math.min(stats.titles.length - 1, 5) },
+									() => (
+										<div class="htmx-indicator aspect-23/5 skeleton" />
+									),
+								)}
+							</div>
+						</PopoverDropdown>
+					)}
 				</div>
-			</div>
+			</li>
 		),
 	)
 }

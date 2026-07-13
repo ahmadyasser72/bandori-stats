@@ -60,6 +60,8 @@ const { title } = Astro.props;
 
 	import { useChart } from "~/lib/chart";
 
+	window.htmx = htmx;
+
 	htmx.onLoad((node) => {
 		if (!(node instanceof HTMLElement)) return;
 

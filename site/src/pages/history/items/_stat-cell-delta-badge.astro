@@ -7,18 +7,24 @@ import {
 
 import type { JSX } from "astro/jsx-runtime";
 
+import { STAT_BADGES } from "./_stat-colors";
+
 interface Props extends JSX.HTMLAttributes {
+	name: keyof typeof STAT_BADGES;
 	delta: number;
 	value: StatValue;
 }
+
+const { name, value, delta, class: className } = Astro.props;
 ---
 
 <span
-	data-tip={`from: ${displayValue(Astro.props.value)}`}
+	data-tip={`from: ${displayValue(value)}`}
 	class:list={[
-		"tooltip badge badge-soft font-bold badge-success",
-		Astro.props.class,
+		"tooltip badge badge-soft font-bold",
+		STAT_BADGES[name],
+		className,
 	]}
 >
-	{formatNumber(Astro.props.delta, { autoCompact: true, positiveSign: true })}
+	{formatNumber(delta, { autoCompact: true, positiveSign: true })}
 </span>

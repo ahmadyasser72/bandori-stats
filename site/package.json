@@ -18,11 +18,12 @@
 		"astro": "5.18.1",
 		"chart.js": "4.5.1",
 		"chartjs-adapter-dayjs-4": "1.0.4",
-		"daisyui": "5.5.19",
+		"daisyui": "5.6.18",
 		"dayjs": "1.11.20",
 		"htmx.org": "2.0.10",
 		"iconify-icon": "3.0.2",
 		"tailwindcss": "4.2.4",
+		"vanilla-calendar-pro": "3.1.0",
 		"zod": "4.3.6"
 	},
 	"devDependencies": {

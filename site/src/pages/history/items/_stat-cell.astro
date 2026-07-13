@@ -37,6 +37,7 @@ const wideColumn = name === "bandRating" || name === "highScoreRating";
 				!wideColumn && delta > 0 && (
 					<StatCellDeltaBadge
 						class="ml-1 badge-xs"
+						{name}
 						value={previousValue}
 						{delta}
 					/>
@@ -47,7 +48,7 @@ const wideColumn = name === "bandRating" || name === "highScoreRating";
 
 	{
 		wideColumn && delta > 0 && (
-			<StatCellDeltaBadge value={previousValue} {delta} />
+			<StatCellDeltaBadge {name} value={previousValue} {delta} />
 		)
 	}
 </div>
