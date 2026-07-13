@@ -10,12 +10,12 @@
 		"astro": "astro"
 	},
 	"dependencies": {
-		"@astrojs/cloudflare": "12.6.13",
+		"@astrojs/cloudflare": "14.1.2",
 		"@bandori-stats/bestdori": "workspace:*",
 		"@bandori-stats/database": "workspace:*",
 		"@bandori-stats/discord-bot": "workspace:*",
 		"@tailwindcss/vite": "4.2.4",
-		"astro": "5.18.1",
+		"astro": "7.0.7",
 		"daisyui": "5.6.18",
 		"dayjs": "1.11.20",
 		"htmx.org": "2.0.10",
