@@ -1,0 +1,53 @@
+---
+import type { Stats } from "@bandori-stats/bestdori/constants";
+import {
+	compareValue,
+	displayValue,
+	titleCase,
+	type StatValue,
+} from "@bandori-stats/bestdori/helpers";
+
+import StatCellDeltaBadge from "./_stat-cell-delta-badge.astro";
+
+interface Props {
+	name: Exclude<keyof Stats, "uid">;
+	value: StatValue;
+	previousValue: StatValue;
+}
+
+const { name, value, previousValue } = Astro.props;
+const delta = compareValue(value, previousValue);
+
+const wideColumn = name === "bandRating" || name === "highScoreRating";
+---
+
+<div
+	class:list={[
+		"flex items-center justify-between rounded-box bg-base-200 p-2",
+		wideColumn && "col-span-2",
+		value === null && "opacity-34",
+	]}
+>
+	<div>
+		<p class="text-base-content/67">{titleCase(name.replace(/Count$/, ""))}</p>
+		<p class="font-bold">
+			<span class="text-sm">{displayValue(value)}</span>
+
+			{
+				!wideColumn && delta > 0 && (
+					<StatCellDeltaBadge
+						class="ml-1 badge-xs"
+						value={previousValue}
+						{delta}
+					/>
+				)
+			}
+		</p>
+	</div>
+
+	{
+		wideColumn && delta > 0 && (
+			<StatCellDeltaBadge value={previousValue} {delta} />
+		)
+	}
+</div>

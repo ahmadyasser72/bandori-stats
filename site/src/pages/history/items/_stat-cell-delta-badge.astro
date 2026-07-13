@@ -1,0 +1,24 @@
+---
+import {
+	displayValue,
+	formatNumber,
+	type StatValue,
+} from "@bandori-stats/bestdori/helpers";
+
+import type { JSX } from "astro/jsx-runtime";
+
+interface Props extends JSX.HTMLAttributes {
+	delta: number;
+	value: StatValue;
+}
+---
+
+<span
+	data-tip={`from: ${displayValue(Astro.props.value)}`}
+	class:list={[
+		"tooltip badge badge-soft font-bold badge-success",
+		Astro.props.class,
+	]}
+>
+	{formatNumber(Astro.props.delta, { autoCompact: true, positiveSign: true })}
+</span>

@@ -1,61 +1,38 @@
 ---
-import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
-import { titleCase } from "@bandori-stats/bestdori/helpers";
-
 import BaseLayout from "~/layouts/base-layout.astro";
 ---
 
 <BaseLayout title="History">
-	<div class="absolute inset-0 overflow-x-auto overflow-y-scroll">
-		<div class="sticky left-0 z-20 breadcrumbs px-4 sm:px-8">
-			<ul class="justify-center">
-				<li><a href="/">bandori-stats</a></li>
-				<li>history</li>
-			</ul>
+	<div class="sticky left-0 z-20 breadcrumbs px-4 sm:px-8">
+		<ul class="justify-center">
+			<li><a href="/">bandori-stats</a></li>
+			<li>history</li>
+		</ul>
+	</div>
+
+	<!-- TODO: use css-grid-lanes (masonry layout) when it arrives https://caniuse.com/css-grid-lanes -->
+	<ul
+		class="mx-auto grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-3"
+		hx-indicator="#history-loader"
+	>
+		<div
+			hx-get="/history/items"
+			hx-trigger="revealed"
+			hx-indicator="#app-loader"
+			hx-swap="outerHTML"
+		>
 		</div>
+	</ul>
 
-		<table class="table table-zebra table-sm">
-			<thead>
-				<tr
-					class="group sticky top-0 z-20 bg-base-100 text-center *:font-semibold"
-				>
-					<th class="min-w-40">Username</th>
-					<th class="min-w-24"></th>
-					<th class="min-w-32">Last Updated</th>
+	<div
+		class="htmx-indicator mx-auto mt-4 flex flex-col items-center py-12"
+		id="history-loader"
+	>
+		<iconify-icon
+			class="size-24"
+			icon="svg-spinners:90-ring-with-bg"
+			width="none"></iconify-icon>
 
-					{
-						STAT_NAMES.map((name) => (
-							<th>{titleCase(name.replace(/Count$/, ""))}</th>
-						))
-					}
-
-					<th>Titles</th>
-				</tr>
-			</thead>
-
-			<tbody hx-indicator=".infinite-placeholder">
-				<tr
-					hx-get="/history/rows"
-					hx-trigger="revealed"
-					hx-indicator="#app-loader, .infinite-placeholder"
-					hx-swap="outerHTML"
-				>
-				</tr>
-			</tbody>
-
-			<tfoot>
-				{
-					Array.from({ length: 8 }, () => (
-						<tr class="infinite-placeholder htmx-indicator odd:bg-base-100 even:bg-base-200">
-							{Array.from({ length: 4 + STAT_NAMES.length }, () => (
-								<td>
-									<div class="h-8 skeleton" />
-								</td>
-							))}
-						</tr>
-					))
-				}
-			</tfoot>
-		</table>
+		<span class="font-medium">loading snapshots...</span>
 	</div>
 </BaseLayout>

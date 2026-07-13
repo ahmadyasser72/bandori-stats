@@ -1,0 +1,168 @@
+---
+import { accountHasNickname } from "@bandori-stats/bestdori/helpers";
+import { db } from "@bandori-stats/database";
+import { accountSnapshots } from "@bandori-stats/database/schema";
+
+import dayjs from "~/lib/date";
+import { paginate } from "~/lib/paginate";
+import StatCell from "./_stat-cell.astro";
+
+export const partial = true;
+
+const page = await paginate({
+	items: {
+		get: async (limit, offset) => ({
+			allSnapshotsCount: await db.$count(accountSnapshots),
+			data: await db.query.accountSnapshots.findMany({
+				limit,
+				offset,
+				columns: { accountId: true, id: true, snapshotDate: true, stats: true },
+				orderBy: { snapshotDate: "desc", id: "desc" },
+				with: {
+					account: {
+						columns: { username: true, nickname: true },
+					},
+				},
+			}),
+		}),
+		hasNextPage: (limit, offset, it) => offset + limit < it.allSnapshotsCount,
+	},
+	context: Astro,
+	size: 12,
+	extraProps: {
+		"hx-target": "closest .grid",
+		"hx-swap": "beforeend",
+	},
+});
+
+const currentSnapshots = page.items[0].data;
+const previousSnapshots = (
+	await db.query.accounts.findMany({
+		columns: {},
+		where: { id: { in: currentSnapshots.map(({ accountId }) => accountId) } },
+		with: {
+			snapshots: {
+				columns: { accountId: true, stats: true, snapshotDate: true },
+				orderBy: { snapshotDate: "desc" },
+				where: { id: { lt: currentSnapshots.at(-1)!.id } },
+				limit: 1,
+			},
+		},
+	})
+).flatMap(({ snapshots }) => snapshots);
+
+const getPreviousSnapshot = ({
+	accountId,
+	id,
+}: (typeof currentSnapshots)[number]) =>
+	currentSnapshots.find((it) => it.accountId === accountId && it.id < id) ??
+	previousSnapshots.find((it) => it.accountId === accountId);
+
+const snapshots = currentSnapshots.map((snapshot) => ({
+	...snapshot,
+	previous: getPreviousSnapshot(snapshot),
+}));
+
+const STAT_NAMES = [
+	"bandRating",
+	"rank",
+	"highScoreRating",
+	"titles",
+	"allPerfectCount",
+	"fullComboCount",
+	"clearCount",
+] as const;
+---
+
+{
+	snapshots.map(
+		({ accountId, account, snapshotDate, stats, previous }, idx) => (
+			<div
+				{...(page.isLastElement(idx) && page.props)}
+				class="card border border-primary/20 bg-base-300 shadow-xl"
+			>
+				<div class="card-body gap-2 p-4">
+					<div class="flex h-12 w-full justify-between">
+						{accountHasNickname(account) ? (
+							<div>
+								<h2 class="card-title">{account.nickname}</h2>
+								<p class="text-xs text-base-content/80">@{account.username}</p>
+							</div>
+						) : (
+							<h2 class="card-title self-center text-xl">
+								@{account.username}
+							</h2>
+						)}
+
+						<p class="text-end text-base-content/67">
+							<span
+								{...(previous && {
+									class: "tooltip underline decoration-dotted",
+									"data-tip": `last update: ${previous.snapshotDate} (${dayjs(previous.snapshotDate).from(snapshotDate, true)} before)`,
+								})}
+							>
+								{snapshotDate}
+							</span>
+						</p>
+					</div>
+
+					<div class="grid grid-cols-3 gap-2">
+						{STAT_NAMES.map((name) => (
+							<StatCell
+								{name}
+								value={stats[name]}
+								previousValue={previous?.stats[name]}
+							/>
+						))}
+					</div>
+
+					<div
+						class="card-actions justify-end"
+						hx-disabled-elt=".card-actions button"
+					>
+						<button
+							hx-get={`/history/for/${accountId}/on/${snapshotDate}`}
+							class="btn btn-circle btn-sm btn-primary"
+							data-umami-event="view-stats-history"
+							data-umami-event-date={snapshotDate}
+							data-umami-event-id={accountId}
+							data-umami-event-username={account.username}
+							hx-indicator="this"
+						>
+							<iconify-icon
+								class="htmx-indicator-replace size-4"
+								icon="lucide:history"
+								width="none"
+							/>
+							<iconify-icon
+								class="htmx-indicator size-4"
+								icon="svg-spinners:90-ring-with-bg"
+								width="none"
+							/>
+						</button>
+
+						<button
+							hx-get={`/history/for/${accountId}/on/${snapshotDate}/chart`}
+							class="btn btn-circle btn-sm btn-secondary"
+							data-umami-event="stats-history-view-chart"
+							data-umami-event-id={accountId}
+							data-umami-event-username={account.username}
+							hx-indicator="this"
+						>
+							<iconify-icon
+								class="htmx-indicator-replace size-4"
+								icon="lucide:chart-line"
+								width="none"
+							/>
+							<iconify-icon
+								class="htmx-indicator size-4"
+								icon="svg-spinners:90-ring-with-bg"
+								width="none"
+							/>
+						</button>
+					</div>
+				</div>
+			</div>
+		),
+	)
+}
