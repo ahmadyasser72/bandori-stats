@@ -23,7 +23,7 @@ const wideColumn = name === "bandRating" || name === "highScoreRating";
 
 <div
 	class:list={[
-		"flex items-center justify-between rounded-box bg-base-200 p-2",
+		"flex items-center justify-between rounded-box border-base-300 p-2 not-dark:border dark:bg-base-200",
 		wideColumn && "col-span-2",
 		value === null && "opacity-34",
 	]}
