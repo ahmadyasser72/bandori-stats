@@ -5,7 +5,10 @@ import { defineConfig, envField } from "astro/config";
 
 // https://astro.build/config
 export default defineConfig({
-	adapter: cloudflare({ imageService: "passthrough" }),
+	adapter: cloudflare({
+		imageService: "passthrough",
+		prerenderEnvironment: "node",
+	}),
 	output: "server",
 
 	env: {
