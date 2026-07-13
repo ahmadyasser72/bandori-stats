@@ -98,16 +98,22 @@ const STAT_NAMES = [
 							</h2>
 						)}
 
-						<p class="text-end text-base-content/67">
-							<span
-								{...(previous && {
-									class: "tooltip underline decoration-dotted",
-									"data-tip": `last update: ${previous.snapshotDate} (${dayjs(previous.snapshotDate).from(snapshotDate, true)} before)`,
-								})}
-							>
+						<div class="text-end text-base-content/67">
+							<div class="tooltip tooltip-left underline decoration-dotted">
+								{previous && (
+									<div
+										class="tooltip-content whitespace-pre"
+										set:html={[
+											"previous update:",
+											previous.snapshotDate,
+											`(${dayjs(previous.snapshotDate).from(snapshotDate, true)} before)`,
+										].join("\n")}
+									/>
+								)}
+
 								{snapshotDate}
-							</span>
-						</p>
+							</div>
+						</div>
 					</div>
 
 					<div class="grid grid-cols-3 gap-2">
