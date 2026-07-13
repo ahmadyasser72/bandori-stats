@@ -10,12 +10,12 @@
 		"astro": "astro"
 	},
 	"dependencies": {
-		"@astrojs/cloudflare": "12.6.13",
+		"@astrojs/cloudflare": "14.1.2",
 		"@bandori-stats/bestdori": "workspace:*",
 		"@bandori-stats/database": "workspace:*",
 		"@bandori-stats/discord-bot": "workspace:*",
 		"@tailwindcss/vite": "4.2.4",
-		"astro": "5.18.1",
+		"astro": "7.0.7",
 		"daisyui": "5.6.18",
 		"dayjs": "1.11.20",
 		"htmx.org": "2.0.10",
@@ -25,7 +25,7 @@
 		"zod": "4.3.6"
 	},
 	"devDependencies": {
-		"@astrojs/check": "0.9.8",
+		"@astrojs/check": "0.9.9",
 		"@types/node": "25.6.0",
 		"sharp": "0.34.5",
 		"typescript": "5.9.3",
