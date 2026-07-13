@@ -2,7 +2,7 @@
 @plugin "daisyui" {
 	themes:
 		caramellatte --default,
-		dracula --prefersdark;
+		coffee --prefersdark;
 	exclude:
 		rootscrollgutter,
 		properties /* https://github.com/saadeghi/daisyui/issues/3882 */;
