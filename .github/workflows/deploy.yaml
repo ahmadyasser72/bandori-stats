@@ -37,7 +37,9 @@ jobs:
         with:
           name: site
           include-hidden-files: true
-          path: site/dist/
+          path: |
+            site/dist/
+            site/.wrangler/
 
   deploy:
     needs: build
@@ -55,7 +57,9 @@ jobs:
         uses: actions/download-artifact@v8.0.1
         with:
           name: site
-          path: site/dist/
+          path: |
+            site/dist/
+            site/.wrangler/
 
       - name: Deploy to Cloudflare Workers
         id: deploy-cloudflare-worker
