@@ -16,8 +16,6 @@
 		"@bandori-stats/discord-bot": "workspace:*",
 		"@tailwindcss/vite": "4.2.4",
 		"astro": "5.18.1",
-		"chart.js": "4.5.1",
-		"chartjs-adapter-dayjs-4": "1.0.4",
 		"daisyui": "5.6.18",
 		"dayjs": "1.11.20",
 		"htmx.org": "2.0.10",

@@ -5,9 +5,10 @@ import "~/styles/global.css";
 
 interface Props {
 	title: string;
+	containerClass?: string;
 }
 
-const { title } = Astro.props;
+const { title, containerClass } = Astro.props;
 ---
 
 <html lang="en">
@@ -37,7 +38,10 @@ const { title } = Astro.props;
 		}
 	</head>
 	<body>
-		<main class="container mx-auto" hx-indicator="#app-loader">
+		<main
+			hx-indicator="#app-loader"
+			class:list={["container mx-auto", containerClass]}
+		>
 			{
 				Astro.url.pathname !== "/" && (
 					<div class="breadcrumbs mt-2 text-sm">
@@ -88,19 +92,12 @@ const { title } = Astro.props;
 <script>
 	import htmx from "htmx.org";
 
-	import { useChart } from "~/lib/chart";
-
 	window.htmx = htmx;
 
 	htmx.onLoad((node) => {
 		if (!(node instanceof HTMLElement)) return;
 
-		if (node instanceof HTMLDialogElement) {
-			node.show();
-			node.addEventListener("close", () => {
-				node.addEventListener("transitionend", () => node.remove());
-			});
-		} else if (
+		if (
 			node instanceof HTMLImageElement &&
 			node.classList.contains("skeleton") &&
 			node.classList.contains("border")
@@ -109,31 +106,6 @@ const { title } = Astro.props;
 			const done = () => image.classList.remove("skeleton", "border");
 			if (image.complete) done();
 			else image.addEventListener("load", done, { once: true });
-		}
-
-		node.querySelectorAll("canvas[data-chart]").forEach(async (canvas) => {
-			if (!(canvas instanceof HTMLCanvasElement)) return;
-
-			await useChart(canvas, JSON.parse(canvas.dataset.chart!));
-		});
-	});
-
-	htmx.on("htmx:beforeSwap", (e) => {
-		const event = e as Event & {
-			detail: {
-				elt: HTMLElement;
-				serverResponse: string;
-				target: HTMLElement;
-				swapOverride: string;
-			};
-		};
-
-		if (
-			event.detail.serverResponse.startsWith("<dialog") &&
-			event.detail.elt instanceof HTMLButtonElement
-		) {
-			event.detail.target = document.body;
-			event.detail.swapOverride = "beforeend";
 		}
 	});
 </script>
