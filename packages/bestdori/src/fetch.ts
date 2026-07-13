@@ -6,11 +6,11 @@ import { limitFunction } from "p-limit";
 const BESTDORI_CACHE_DIR = ".bestdori-cache";
 
 export const fetchBestdori = limitFunction(
-	async (pathname: string): Promise<Response> => {
+	async (pathname: string, cache: boolean): Promise<Response> => {
 		const url = new URL(pathname, "https://bestdori.com");
 
 		const cachePath = getCachePath(url);
-		if (existsSync(cachePath)) {
+		if (cache && existsSync(cachePath)) {
 			const cached = readFileSync(cachePath);
 			return new Response(cached);
 		}
@@ -18,12 +18,15 @@ export const fetchBestdori = limitFunction(
 		const response = await fetch(url);
 		if (!isResponseOk(response)) {
 			if (pathname.startsWith("/assets/en"))
-				return fetchBestdori(pathname.replace("/assets/en", "/assets/jp"));
+				return fetchBestdori(
+					pathname.replace("/assets/en", "/assets/jp"),
+					cache,
+				);
 
 			throw new Error(`request to ${url.href} failed`);
 		}
 
-		if (shouldPutCache(cachePath, response)) {
+		if (cache && shouldPutCache(cachePath, response)) {
 			const buffer = await response.clone().arrayBuffer().then(Buffer.from);
 			writeFileSync(cachePath, buffer);
 		}

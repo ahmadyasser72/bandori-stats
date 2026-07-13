@@ -1,5 +1,7 @@
 import z from "zod";
 
+import { fetchBestdori } from "../fetch";
+
 const regionTuple = <T extends z.ZodType>(value: T) => {
 	const nullable = value.nullable();
 	return z.tuple([nullable, nullable, nullable, nullable, nullable]);
@@ -37,8 +39,8 @@ const AllDegrees = z
 	.transform(
 		(record) => new Map(Object.entries(record).map(([k, v]) => [Number(k), v])),
 	);
-export const fetchDegrees = () =>
-	fetch("https://bestdori.com/api/degrees/all.3.json")
+export const fetchDegrees = (cache: boolean = true) =>
+	fetchBestdori("/api/degrees/all.3.json", cache)
 		.then((response) => response.json())
 		.then(AllDegrees.parse);
 

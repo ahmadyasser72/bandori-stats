@@ -4,10 +4,12 @@
 	"private": true,
 	"exports": {
 		"./constants": "./src/constants.ts",
+		"./fetch": "./src/fetch.ts",
 		"./helpers": "./src/helpers.ts",
 		"./schema/*": "./src/schema/*.ts"
 	},
 	"dependencies": {
+		"p-limit": "7.3.0",
 		"zod": "4.3.6"
 	},
 	"devDependencies": {

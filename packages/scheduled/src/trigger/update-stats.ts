@@ -50,7 +50,7 @@ export const updateStats = schemaTask({
 		if (stats.titles && stats.titles.length > 0) {
 			const existingTitles = existing?.snapshots.at(0)?.stats.titles;
 			if (!existingTitles || stats.titles.length > existingTitles.length) {
-				const allDegrees = await fetchDegrees();
+				const allDegrees = await fetchDegrees(false);
 				stats.titles = sortDegrees(stats.titles, allDegrees);
 			} else {
 				stats.titles = existingTitles;

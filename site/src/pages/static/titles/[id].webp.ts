@@ -1,3 +1,4 @@
+import { fetchBestdori } from "@bandori-stats/bestdori/fetch";
 import {
 	BestdoriDegree,
 	fetchDegrees,
@@ -11,14 +12,12 @@ import type {
 	InferGetStaticPropsType,
 } from "astro";
 
-import { fetchBestdori } from "~/lib/bestdori";
-
 export const prerender = true;
 
 export const GET: APIRoute<Props, Params> = async ({ props }) => {
 	const [baseImage, ...layers] = await Promise.all(
 		props.images.map((path) =>
-			fetchBestdori(path)
+			fetchBestdori(path, true)
 				.then((response) => response.arrayBuffer())
 				.then(Buffer.from),
 		),
@@ -58,7 +57,7 @@ const buildDegreeImages = (degree: BestdoriDegree) => {
 };
 
 export const getStaticPaths = (async () => {
-	const degrees = await fetchDegrees();
+	const degrees = await fetchDegrees(import.meta.env.DEV);
 
 	const imageEntries = [] as [number, string[]][];
 	const titles = await redis.smembers<number[]>(PLAYER_TITLES_SET);
