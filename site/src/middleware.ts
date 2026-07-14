@@ -1,24 +1,18 @@
 import { defineMiddleware } from "astro:middleware";
 import z from "zod";
 
-import { maybeArray } from "./lib/schema";
+const querySchema = z.instanceof(URLSearchParams).transform((searchParams) =>
+	[...searchParams.entries()].reduce<App.Locals["query"]>(
+		(acc, [key, value]) => {
+			if (value.length === 0) return acc;
 
-const querySchema = z.instanceof(URLSearchParams).pipe(
-	z.preprocess(
-		(searchParams) =>
-			[...searchParams.entries()].reduce<App.Locals["query"]>(
-				(acc, [key, value]) => {
-					if (value.length === 0) return acc;
+			if (!(key in acc)) acc[key] = value;
+			else if (Array.isArray(acc[key])) acc[key].push(value);
+			else acc[key] = [acc[key], value];
 
-					if (!(key in acc)) acc[key] = value;
-					else if (Array.isArray(acc[key])) acc[key].push(value);
-					else acc[key] = [acc[key], value];
-
-					return acc;
-				},
-				{},
-			),
-		z.record(z.string().nonempty(), z.string().nonempty().apply(maybeArray)),
+			return acc;
+		},
+		{},
 	),
 );
 
