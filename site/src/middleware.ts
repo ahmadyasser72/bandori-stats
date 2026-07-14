@@ -16,18 +16,13 @@ const querySchema = z.instanceof(URLSearchParams).transform((searchParams) =>
 	),
 );
 
-export const onRequest = defineMiddleware(
-	async ({ locals, url, request }, next) => {
-		const { data, error, success } = querySchema.safeParse(url.searchParams);
-		if (import.meta.env.DEV && !success)
-			throw new Error(z.prettifyError(error));
-		locals.query = success ? data : {};
+export const onRequest = defineMiddleware(async ({ locals, url }, next) => {
+	const { data, error, success } = querySchema.safeParse(url.searchParams);
+	if (import.meta.env.DEV && !success) throw new Error(z.prettifyError(error));
+	locals.query = success ? data : {};
 
-		const response = await next();
-		if (import.meta.env.PROD && request.headers.get("hx-request") === "true") {
-			response.headers.set("cache-control", "max-age=60");
-		}
+	const response = await next();
+	if (import.meta.env.PROD) response.headers.set("cache-control", "max-age=60");
 
-		return response;
-	},
-);
+	return response;
+});
