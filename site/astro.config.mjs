@@ -48,7 +48,7 @@ export default defineConfig({
 			},
 		},
 
-		server: { allowedHosts: [".lhr.life"] },
+		server: { allowedHosts: [".lhr.life", ".opah-barley.ts.net"] },
 	},
 	devToolbar: { enabled: false },
 });

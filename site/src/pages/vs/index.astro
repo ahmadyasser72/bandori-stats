@@ -158,29 +158,41 @@ const [player1, player2] = await Promise.all(
 		}
 	};
 
+	let shareData: ShareData | undefined = undefined;
 	const share = async (
 		button: HTMLButtonElement,
 		player1: string,
 		player2: string,
 	) => {
 		try {
-			const blob = await capture();
-
-			const data = {
-				files: [new File([blob], `${player1}-vs-${player2}.png`)],
-				url: document.URL,
-			} satisfies ShareData;
-
-			if (navigator.share && navigator.canShare(data)) {
-				await navigator.share(data);
-			} else {
-				await navigator.clipboard.write([
-					new ClipboardItem({ [blob.type]: blob }),
-				]);
+			if (!shareData) {
 				button.classList.toggle("tooltip", true);
-				button.dataset.tip = "Copied.";
-				setTimeout(() => button.classList.toggle("tooltip", false), 3000);
+				button.dataset.tip = "Capturing...";
+				const blob = await capture();
+				const filename = `${player1}-vs-${player2}.png`;
+				shareData = {
+					files: [new File([blob], filename, { type: blob.type })],
+					url: document.URL,
+				};
+
+				if ("share" in navigator && navigator.canShare(shareData)) {
+					button.dataset.tip = "Captured! click to share.";
+				} else {
+					await navigator.clipboard.write([
+						new ClipboardItem({ [blob.type]: blob }),
+					]);
+					button.dataset.tip = "Copied.";
+					setTimeout(() => button.classList.toggle("tooltip", false), 3000);
+					shareData = undefined;
+				}
+
+				return;
 			}
+
+			await navigator.share(shareData).finally(() => {
+				shareData = undefined;
+				button.classList.toggle("tooltip", false);
+			});
 		} catch (error) {
 			console.error("Error sharing vs result", { error });
 			throw error;
