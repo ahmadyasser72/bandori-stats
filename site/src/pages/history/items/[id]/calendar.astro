@@ -36,10 +36,7 @@ const data = Object.fromEntries(
 export type Data = typeof data;
 ---
 
-<div
-	class="snapshot-calendar vc h-60 w-75 skeleton"
-	data-snapshots={JSON.stringify(data)}
->
+<div class="snapshot-calendar vc skeleton" data-calendar={JSON.stringify(data)}>
 </div>
 
 <script>
@@ -62,7 +59,7 @@ export type Data = typeof data;
 			return;
 
 		element.classList.remove("skeleton");
-		const data = (JSON.parse(element.dataset.snapshots!) ?? []) as Data;
+		const data = (JSON.parse(element.dataset.calendar!) ?? []) as Data;
 		new Calendar(element, {
 			disableAllDates: true,
 			disableToday: true,

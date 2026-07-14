@@ -6,10 +6,13 @@ import { accountSnapshots } from "@bandori-stats/database/schema";
 import Icon from "~/components/icon.astro";
 import dayjs from "~/lib/date";
 import { paginate } from "~/lib/paginate";
+import { dateSchema } from "~/lib/schema";
 import PopoverDropdown from "./_popover-dropdown.astro";
 import StatCell from "./_stat-cell.astro";
 
 export const partial = true;
+
+const date = dateSchema.unwrap().optional().parse(Astro.locals.query.date);
 
 const page = await paginate({
 	items: {
@@ -18,6 +21,7 @@ const page = await paginate({
 			data: await db.query.accountSnapshots.findMany({
 				limit,
 				offset,
+				where: { snapshotDate: date },
 				columns: { accountId: true, id: true, snapshotDate: true, stats: true },
 				orderBy: { snapshotDate: "desc", id: "desc" },
 				with: {
@@ -161,12 +165,26 @@ const STAT_NAMES = [
 
 					<PopoverDropdown class="overflow-visible" {id} name="calendar">
 						<div
-							hx-get={`/history/items/${id}/calendar`}
-							hx-trigger="intersect once"
-							class="h-60 w-75 skeleton"
-							hx-swap="outerHTML"
-							hx-target="this"
-						/>
+							class="relative flex min-h-70 min-w-75 justify-center"
+							hx-indicator={`#calendar-${id}-loader`}
+						>
+							<div
+								hx-get={`/history/items/${id}/calendar`}
+								hx-trigger="intersect once"
+								hx-swap="outerHTML"
+								hx-target="this"
+							/>
+
+							<div
+								class="htmx-indicator absolute inset-0 bg-base-100/67"
+								id={`calendar-${id}-loader`}
+							>
+								<Icon
+									class="center absolute size-32"
+									name="svg-spinners:bars-scale"
+								/>
+							</div>
+						</div>
 					</PopoverDropdown>
 
 					{stats.titles && (

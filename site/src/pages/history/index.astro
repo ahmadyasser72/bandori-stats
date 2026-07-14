@@ -1,17 +1,59 @@
 ---
+import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import BaseLayout from "~/layouts/base-layout.astro";
 ---
 
 <BaseLayout title="History">
+	<div class="mt-2 flex justify-center">
+		<button
+			class="btn w-48 btn-primary"
+			popovertarget="history-date"
+			style="anchor-name: --anchor-history-date"
+		>
+			<IconLoader name="lucide:calendar" />
+			<span>Choose Date</span>
+		</button>
+
+		<div
+			class="dropdown dropdown-center mt-2 rounded-box border border-primary/20 bg-base-100 p-2 shadow-md"
+			id="history-date"
+			popover
+			style="position-anchor: --anchor-history-date"
+		>
+			<div
+				class="relative flex min-h-70 min-w-75 justify-center"
+				hx-indicator="#history-date-loader"
+			>
+				<div
+					hx-get="/history/calendar"
+					hx-trigger="intersect once"
+					hx-swap="outerHTML"
+					hx-target="this"
+				>
+				</div>
+				<div
+					class="htmx-indicator absolute inset-0 bg-base-100/67"
+					id="history-date-loader"
+				>
+					<Icon
+						class="center absolute size-32"
+						name="svg-spinners:bars-scale"
+					/>
+				</div>
+			</div>
+		</div>
+	</div>
+
 	<!-- TODO: use css-grid-lanes (masonry layout) when it arrives https://caniuse.com/css-grid-lanes -->
 	<ul
 		class="mx-auto grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-3"
+		id="history-grid"
 		hx-indicator="#history-loader"
 	>
 		<div
 			hx-get="/history/items"
-			hx-trigger="revealed"
+			hx-trigger="intersect once"
 			hx-indicator="#app-loader"
 			hx-swap="outerHTML"
 		>
