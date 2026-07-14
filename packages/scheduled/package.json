@@ -2,6 +2,9 @@
 	"name": "@bandori-stats/scheduled",
 	"type": "module",
 	"private": true,
+	"exports": {
+		"./constants": "./src/constants.ts"
+	},
 	"scripts": {
 		"deploy": "trigger deploy"
 	},
