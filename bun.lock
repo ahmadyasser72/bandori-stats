@@ -82,6 +82,7 @@
       },
       "devDependencies": {
         "@astrojs/check": "0.9.9",
+        "@catppuccin/daisyui": "2.1.1",
         "@types/node": "26.1.1",
         "sharp": "0.34.5",
         "typescript": "5.9.3",
@@ -217,6 +218,10 @@
     "@bugsnag/cuid": ["@bugsnag/cuid@3.2.1", "", {}, "sha512-zpvN8xQ5rdRWakMd/BcVkdn2F8HKlDSbM3l7duueK590WmI1T0ObTLc1V/1e55r14WNjPd5AJTYX4yPEAFVi+Q=="],
 
     "@capsizecss/unpack": ["@capsizecss/unpack@4.0.0", "", { "dependencies": { "fontkitten": "^1.0.0" } }, "sha512-VERIM64vtTP1C4mxQ5thVT9fK0apjPFobqybMtA1UdUujWka24ERHbRHFGmpbbhp73MhV+KSsHQH9C6uOTdEQA=="],
+
+    "@catppuccin/daisyui": ["@catppuccin/daisyui@2.1.1", "", { "dependencies": { "@catppuccin/palette": "^1.7.1" }, "peerDependencies": { "tailwindcss": "^4.0.17" } }, "sha512-PrZttjj8kwfDBJ34sR+DN25Xtjvxx4T5p8uu/iiGYZR8UOsNwzMlO/alYDBwwTOLzP1NKLNRax09kCT39+QM+A=="],
+
+    "@catppuccin/palette": ["@catppuccin/palette@1.8.0", "", {}, "sha512-qXhwKiLzQomUygUJYB36YAFgs+dET5bIocfkiaFIatQF5Pwc7L112TlF9P8J5Oqs3x3XTjYSucG0ncHXSCuk7Q=="],
 
     "@clack/core": ["@clack/core@0.5.0", "", { "dependencies": { "picocolors": "^1.0.0", "sisteransi": "^1.0.5" } }, "sha512-p3y0FIOwaYRUPRcMO7+dlmLh8PSRcrjuTndsiA0WAFbWES0mLZlrjVoBRZ9DzkPFJZG6KGkJmoEAY0ZcVWTkow=="],
 

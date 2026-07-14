@@ -1,9 +1,10 @@
 @import "tailwindcss";
 @plugin "daisyui" {
-	themes:
-		caramellatte --default,
-		coffee --prefersdark;
+	themes: false;
 }
+
+@plugin "./catppuccin.latte.ts";
+@plugin "./catppuccin.mocha.ts";
 
 :not(.htmx-request) > .htmx-indicator:not(.htmx-request),
 .htmx-indicator-replace.htmx-request,
