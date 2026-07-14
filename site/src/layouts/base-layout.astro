@@ -1,6 +1,8 @@
 ---
 import { UMAMI_SITE_ID } from "astro:env/server";
 
+import Icon from "~/components/icon.astro";
+
 import "~/styles/global.css";
 
 interface Props {
@@ -81,10 +83,10 @@ const { title, containerClass } = Astro.props;
 			class="htmx-indicator fixed inset-0 z-20 bg-base-100/50"
 			id="app-loader"
 		>
-			<iconify-icon
+			<Icon
 				class="center absolute size-24"
-				icon="svg-spinners:bars-scale-fade"
-				width="none"></iconify-icon>
+				name="svg-spinners:bars-scale-fade"
+			/>
 		</div>
 	</body>
 </html>
@@ -109,4 +111,3 @@ const { title, containerClass } = Astro.props;
 		}
 	});
 </script>
-<script src="iconify-icon"></script>

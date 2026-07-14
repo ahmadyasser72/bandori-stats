@@ -2,6 +2,9 @@
 import { titleCase } from "@bandori-stats/bestdori/helpers";
 import type { Account, Snapshot } from "@bandori-stats/database/schema";
 
+import IconLoader from "~/components/icon-loader.astro";
+import Icon from "~/components/icon.astro";
+
 interface Props {
 	side: "player-1" | "player-2";
 	player?: Pick<Account, "username"> & {
@@ -50,6 +53,7 @@ const otherSide = isPlayer1 ? "player-2" : "player-1";
 					<button
 						hx-get="/vs"
 						class="btn btn-circle btn-ghost btn-sm hover:btn-error"
+						hx-indicator="this"
 						hx-replace-url="true"
 						hx-select="#comparison"
 						hx-select-oob="#players"
@@ -57,7 +61,7 @@ const otherSide = isPlayer1 ? "player-2" : "player-1";
 						hx-target="#comparison"
 						hx-vals={JSON.stringify({ [otherSide]: other })}
 					>
-						<iconify-icon class="size-5" icon="lucide:x" width="none" />
+						<IconLoader class="size-5" name="lucide:x" />
 					</button>
 				</div>
 				<span class="font-mono text-xs text-base-content/67">
@@ -71,7 +75,7 @@ const otherSide = isPlayer1 ? "player-2" : "player-1";
 					popovertarget={popoverId}
 					style={`anchor-name: ${anchorName}`}
 				>
-					<iconify-icon class="size-6" icon="lucide:plus" width="none" />
+					<Icon class="size-6" name="lucide:plus" />
 					<span class="text-sm font-bold">{titleCase(side)}</span>
 				</button>
 
@@ -86,16 +90,7 @@ const otherSide = isPlayer1 ? "player-2" : "player-1";
 					style={`position-anchor: ${anchorName}`}
 				>
 					<label class="input w-48">
-						<iconify-icon
-							class="htmx-indicator size-4"
-							icon="svg-spinners:90-ring-with-bg"
-							width="none"
-						/>
-						<iconify-icon
-							class="htmx-indicator-replace size-4"
-							icon="lucide:search"
-							width="none"
-						/>
+						<IconLoader name="lucide:search" />
 						<input
 							hx-get="/vs/search"
 							hx-trigger="keyup changed delay:300ms, intersect once"
@@ -110,7 +105,8 @@ const otherSide = isPlayer1 ? "player-2" : "player-1";
 
 					<ul
 						class="menu mt-4 max-h-64 w-full flex-nowrap overflow-y-auto p-0"
-						hx-disabled-elt={`#${popoverId} button`}
+						hx-disabled-elt={`#${popoverId} button, #${popoverId} input`}
+						hx-indicator="previous .input"
 						hx-replace-url="true"
 						hx-select="#comparison"
 						hx-select-oob="#players"

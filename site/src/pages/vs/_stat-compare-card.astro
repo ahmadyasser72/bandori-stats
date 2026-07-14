@@ -9,6 +9,8 @@ import {
 	type StatValue,
 } from "@bandori-stats/bestdori/helpers";
 
+import Icon from "~/components/icon.astro";
+
 interface Props {
 	name: Exclude<keyof Stats, "uid">;
 	left: StatValue;
@@ -49,14 +51,14 @@ const rightPercent = 100 - leftPercent;
 					delta === 0 && "badge-neutral",
 				]}
 			>
-				<iconify-icon
+				<Icon
 					class="size-5"
-					icon={delta === 0
+					name={delta === 0
 						? "lucide:minus"
 						: delta > 0
 							? "lucide:arrow-right"
 							: "lucide:arrow-left"}
-					width="none"></iconify-icon>
+				/>
 				{
 					Math.abs(delta) > 0
 						? formatNumber(Math.abs(delta), {

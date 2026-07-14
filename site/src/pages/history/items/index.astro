@@ -3,6 +3,7 @@ import { accountHasNickname } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
 import { accountSnapshots } from "@bandori-stats/database/schema";
 
+import Icon from "~/components/icon.astro";
 import dayjs from "~/lib/date";
 import { paginate } from "~/lib/paginate";
 import PopoverDropdown from "./_popover-dropdown.astro";
@@ -139,11 +140,7 @@ const STAT_NAMES = [
 							data-umami-event-username={account.username}
 							popovertarget={`calendar-${id}`}
 						>
-							<iconify-icon
-								class="size-4"
-								icon="lucide:calendar"
-								width="none"
-							/>
+							<Icon name="lucide:calendar" />
 							Calendar
 						</button>
 
@@ -156,7 +153,7 @@ const STAT_NAMES = [
 								data-umami-event-username={account.username}
 								popovertarget={`titles-${id}`}
 							>
-								<iconify-icon class="size-4" icon="lucide:crown" width="none" />
+								<Icon name="lucide:crown" />
 								Titles
 							</button>
 						)}

@@ -1,0 +1,19 @@
+---
+interface Props {
+	name: string;
+	class?: string;
+}
+---
+
+<iconify-icon class={Astro.props.class} icon={Astro.props.name} width="none"
+></iconify-icon>
+
+<style>
+	@reference "../styles/global.css";
+
+	iconify-icon:not([class^="size-"]):not([class*=" size-"]) {
+		@apply size-4;
+	}
+</style>
+
+<script src="iconify-icon"></script>

@@ -1,4 +1,5 @@
 ---
+import Icon from "~/components/icon.astro";
 import BaseLayout from "~/layouts/base-layout.astro";
 
 export const prerender = true;
@@ -10,13 +11,11 @@ export const prerender = true;
 
 		<div class="mt-4 flex flex-wrap justify-center gap-2">
 			<a class="btn btn-primary btn-sm" href="/history">
-				<iconify-icon class="size-4" icon="lucide:calendar-clock" width="none"
-				></iconify-icon>
+				<Icon name="lucide:calendar-clock" />
 				History
 			</a>
 			<a class="btn btn-primary btn-sm" href="/vs">
-				<iconify-icon class="size-4" icon="lucide:flame" width="none"
-				></iconify-icon>
+				<Icon name="lucide:flame" />
 				VS
 			</a>
 		</div>
@@ -29,8 +28,7 @@ export const prerender = true;
 				rel="noopener noreferrer"
 				target="_blank"
 			>
-				<iconify-icon class="size-5" icon="line-md:github-loop" width="none"
-				></iconify-icon>
+				<Icon class="size-5" name="line-md:github-loop" />
 				Source code
 			</a>
 			<a
@@ -40,8 +38,7 @@ export const prerender = true;
 				rel="noopener noreferrer"
 				target="_blank"
 			>
-				<iconify-icon class="size-5" icon="line-md:discord" width="none"
-				></iconify-icon>
+				<Icon class="size-5" name="line-md:discord" />
 				Discord bot
 			</a>
 		</div>
