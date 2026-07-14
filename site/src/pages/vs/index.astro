@@ -2,6 +2,7 @@
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import { db } from "@bandori-stats/database";
 
+import IconLoader from "~/components/icon-loader.astro";
 import BaseLayout from "~/layouts/base-layout.astro";
 import { idSchema } from "~/lib/schema";
 import PlayerCard from "./_player-card.astro";
@@ -30,7 +31,7 @@ const [player1, player2] = await Promise.all(
 
 <BaseLayout title="VS Accounts" containerClass="max-w-3xl px-4">
 	<div
-		class="my-4 flex w-full flex-col border-b border-base-content/67 px-2 pb-6 sm:flex-row sm:pb-4"
+		class="flex w-full flex-col border-b border-base-content/67 px-2 py-4 pb-6 sm:flex-row sm:pb-4"
 		id="players"
 	>
 		<PlayerCard other={player2?.id} player={player1} side="player-1" />
@@ -44,15 +45,164 @@ const [player1, player2] = await Promise.all(
 		<PlayerCard other={player1?.id} player={player2} side="player-2" />
 	</div>
 
-	<div class="grid grid-cols-1 gap-4 md:grid-cols-2" id="comparison">
+	<div class="grid grid-cols-1 gap-4 py-4 md:grid-cols-2" id="comparison">
 		{
 			STAT_NAMES.map((name) => (
 				<StatCompareCard
 					{name}
 					left={player1?.snapshots[0].stats[name]}
+					left-id={player1?.id}
 					right={player2?.snapshots[0].stats[name]}
+					right-id={player2?.id}
 				/>
 			))
 		}
 	</div>
+
+	<div
+		class="flex w-full gap-2 border-t border-base-content/67 py-4 max-sm:flex-col sm:justify-end"
+		id="actions"
+	>
+		<button
+			hx-get="/vs"
+			class="btn btn-primary"
+			hx-disabled-elt="#actions button"
+			hx-indicator="this"
+			hx-replace-url="true"
+			hx-select-oob="#players, #comparison, #actions"
+			hx-swap="none transition:true"
+			hx-vals={JSON.stringify({
+				"player-1": player2?.id,
+				"player-2": player1?.id,
+			})}
+		>
+			<IconLoader name="lucide:arrow-left-right" />
+			Swap
+		</button>
+
+		<div class="join">
+			<button
+				class="btn join-item flex-1 btn-secondary"
+				id="download-vs"
+				data-player-1={player1?.username}
+				data-player-2={player2?.username}
+				disabled={!player1 || !player2}
+			>
+				<IconLoader name="lucide:arrow-down-to-line" />
+				Download
+			</button>
+			<button
+				class="tooltip-open btn join-item flex-1 btn-accent"
+				id="share-vs"
+				data-player-1={player1?.username}
+				data-player-2={player2?.username}
+				disabled={!player1 || !player2}
+			>
+				<IconLoader name="lucide:share-2" />
+				Share
+			</button>
+		</div>
+	</div>
 </BaseLayout>
+
+<script>
+	window.htmx.onLoad((node) => {
+		if (!(node instanceof HTMLElement)) return;
+
+		const actions = node.matches("#actions")
+			? node
+			: node.querySelector("#actions");
+		if (!(actions instanceof HTMLElement)) return;
+
+		actions.addEventListener("click", async (event) => {
+			if (!(event.target instanceof HTMLButtonElement)) return;
+
+			const button = event.target;
+			const { "player-1": player1, "player-2": player2 } = button.dataset;
+			if (!player1 || !player2) return;
+
+			let handler: typeof download | typeof share;
+			if (button.id === "download-vs") handler = download;
+			else if (button.id === "share-vs") handler = share;
+			else return;
+
+			try {
+				button.disabled = true;
+				button.classList.toggle("htmx-request", true);
+				await handler(button, player1, player2);
+			} finally {
+				button.disabled = false;
+				button.classList.toggle("htmx-request", false);
+			}
+		});
+	});
+
+	const download = async (
+		_button: HTMLButtonElement,
+		player1: string,
+		player2: string,
+	) => {
+		try {
+			const blob = await capture();
+
+			const url = window.URL.createObjectURL(blob);
+			const a = document.createElement("a");
+			a.href = url;
+			a.download = `${player1}-vs-${player2}.png`;
+			a.click();
+			a.remove();
+			window.URL.revokeObjectURL(url);
+		} catch (error) {
+			console.error("Error downloading vs result", { error });
+			throw error;
+		}
+	};
+
+	const share = async (
+		button: HTMLButtonElement,
+		player1: string,
+		player2: string,
+	) => {
+		try {
+			const blob = await capture();
+
+			const data = {
+				files: [new File([blob], `${player1}-vs-${player2}.png`)],
+				url: document.URL,
+			} satisfies ShareData;
+
+			if (navigator.share && navigator.canShare(data)) {
+				await navigator.share(data);
+			} else {
+				await navigator.clipboard.write([
+					new ClipboardItem({ [blob.type]: blob }),
+				]);
+				button.classList.toggle("tooltip", true);
+				button.dataset.tip = "Copied.";
+				setTimeout(() => button.classList.toggle("tooltip", false), 3000);
+			}
+		} catch (error) {
+			console.error("Error sharing vs result", { error });
+			throw error;
+		}
+	};
+
+	const capture = async () => {
+		const { snapdom } = await import("@zumer/snapdom");
+
+		const { backgroundColor } = window.getComputedStyle(
+			document.documentElement,
+		);
+		return snapdom.toBlob(document.querySelector("main")!, {
+			backgroundColor,
+			outerShadows: true,
+
+			scale: 1.67,
+			compress: true,
+			type: "png",
+
+			exclude: ["#actions", ".breadcrumbs", "[hx-get]"],
+			excludeMode: "remove",
+		});
+	};
+</script>

@@ -6,6 +6,13 @@
 @plugin "./catppuccin.latte.ts";
 @plugin "./catppuccin.mocha.ts";
 
+@utility btn {
+	/* its messing with event delegation */
+	> iconify-icon {
+		@apply pointer-events-none;
+	}
+}
+
 :not(.htmx-request) > .htmx-indicator:not(.htmx-request),
 .htmx-indicator-replace.htmx-request,
 .htmx-request > .htmx-indicator-replace {

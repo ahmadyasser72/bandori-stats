@@ -15,6 +15,7 @@
 		"@bandori-stats/database": "workspace:*",
 		"@bandori-stats/discord-bot": "workspace:*",
 		"@tailwindcss/vite": "4.2.4",
+		"@zumer/snapdom": "2.16.0",
 		"astro": "7.0.7",
 		"daisyui": "5.6.18",
 		"dayjs": "1.11.20",

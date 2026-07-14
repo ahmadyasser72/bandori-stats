@@ -14,10 +14,18 @@ import Icon from "~/components/icon.astro";
 interface Props {
 	name: Exclude<keyof Stats, "uid">;
 	left: StatValue;
+	"left-id"?: number;
 	right: StatValue;
+	"right-id"?: number;
 }
 
-const { name, left, right } = Astro.props;
+const {
+	name,
+	left,
+	right,
+	"left-id": leftId,
+	"right-id": rightId,
+} = Astro.props;
 
 const delta = compareValue(left, right);
 
@@ -35,7 +43,10 @@ const rightPercent = 100 - leftPercent;
 		</div>
 
 		<div class="flex items-center justify-between">
-			<div class="flex-1 text-xl font-bold text-primary">
+			<div
+				class="flex-1 text-xl font-bold text-primary"
+				style={`view-transition-name: stat-compare-${name}-${leftId ?? "left"}`}
+			>
 				{
 					leftValue
 						? formatNumber(leftValue, { autoCompact: true })
@@ -45,7 +56,7 @@ const rightPercent = 100 - leftPercent;
 
 			<div
 				class:list={[
-					"badge font-bold",
+					"badge w-max font-bold",
 					delta > 0 && "badge-primary",
 					delta < 0 && "flex-row-reverse badge-accent",
 					delta === 0 && "badge-neutral",
@@ -58,18 +69,24 @@ const rightPercent = 100 - leftPercent;
 						: delta > 0
 							? "lucide:arrow-right"
 							: "lucide:arrow-left"}
+					style={`view-transition-name: stat-compare-${name}-delta`}
 				/>
-				{
-					Math.abs(delta) > 0
+
+				<span
+					class="min-w-8"
+					set:text={Math.abs(delta) > 0
 						? formatNumber(Math.abs(delta), {
 								autoCompact: true,
 								positiveSign: true,
 							})
-						: "N/A"
-				}
+						: "N/A"}
+				/>
 			</div>
 
-			<div class="flex-1 text-end text-xl font-bold text-accent">
+			<div
+				class="flex-1 text-end text-xl font-bold text-accent"
+				style={`view-transition-name: stat-compare-${name}-${rightId ?? "right"}`}
+			>
 				{
 					rightValue
 						? formatNumber(rightValue, { autoCompact: true })

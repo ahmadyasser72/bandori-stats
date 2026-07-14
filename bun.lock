@@ -71,6 +71,7 @@
         "@bandori-stats/database": "workspace:*",
         "@bandori-stats/discord-bot": "workspace:*",
         "@tailwindcss/vite": "4.2.4",
+        "@zumer/snapdom": "2.16.0",
         "astro": "7.0.7",
         "daisyui": "5.6.18",
         "dayjs": "1.11.20",
@@ -732,6 +733,8 @@
     "@vscode/l10n": ["@vscode/l10n@0.0.18", "", {}, "sha512-KYSIHVmslkaCDyw013pphY+d7x1qV8IZupYfeIfzNA+nsaWHbn5uPuQRvdRFsa9zFzGeudPuoGoZ1Op4jrJXIQ=="],
 
     "@xeonlink/prettier-plugin-organize-attributes": ["@xeonlink/prettier-plugin-organize-attributes@1.1.0", "", { "dependencies": { "prettier": "^3.6.2" } }, "sha512-1Vmv+7zkQvPSgiBX0HsrZL4Xf6MYFinS3VE+dXeJCbF2i3BOM+nYQk1iRbcnnSTsJ+IB1IP5X5o3O4zp2ccTgg=="],
+
+    "@zumer/snapdom": ["@zumer/snapdom@2.16.0", "", {}, "sha512-ZfN3o6kcxb+jDhYe/JHFZf3g4UfDv3MGyTiK/sWvFU+vYlxa2KZVLZH7DxhKkobwGp66KMhRnXTqIKmaSgM50Q=="],
 
     "abort-controller": ["abort-controller@3.0.0", "", { "dependencies": { "event-target-shim": "^5.0.0" } }, "sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg=="],
 

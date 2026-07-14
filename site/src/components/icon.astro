@@ -2,11 +2,13 @@
 interface Props {
 	name: string;
 	class?: string;
+	style?: string;
 }
+
+const { name, class: className, style } = Astro.props;
 ---
 
-<iconify-icon class={Astro.props.class} icon={Astro.props.name} width="none"
-></iconify-icon>
+<iconify-icon class={className} icon={name} {style} width="none"></iconify-icon>
 
 <style>
 	@reference "../styles/global.css";

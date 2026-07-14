@@ -7,7 +7,7 @@ import Icon from "~/components/icon.astro";
 
 interface Props {
 	side: "player-1" | "player-2";
-	player?: Pick<Account, "username"> & {
+	player?: Pick<Account, "username" | "id"> & {
 		snapshots: Pick<Snapshot, "snapshotDate">[];
 	};
 	other?: number;
@@ -47,6 +47,7 @@ const otherSide = isPlayer1 ? "player-2" : "player-1";
 							"text-2xl font-bold",
 							isPlayer1 ? "text-primary" : "text-accent",
 						]}
+						style={`view-transition-name: player-card-title-${player.id}`}
 					>
 						@{player.username}
 					</div>
@@ -55,16 +56,17 @@ const otherSide = isPlayer1 ? "player-2" : "player-1";
 						class="btn btn-circle btn-ghost btn-sm hover:btn-error"
 						hx-indicator="this"
 						hx-replace-url="true"
-						hx-select="#comparison"
-						hx-select-oob="#players"
-						hx-swap="outerHTML"
-						hx-target="#comparison"
+						hx-select-oob="#players, #comparison, #actions"
+						hx-swap="none"
 						hx-vals={JSON.stringify({ [otherSide]: other })}
 					>
 						<IconLoader class="size-5" name="lucide:x" />
 					</button>
 				</div>
-				<span class="font-mono text-xs text-base-content/67">
+				<span
+					class="font-mono text-xs text-base-content/67"
+					style={`view-transition-name: player-card-date-${player.id}`}
+				>
 					SNAPSHOT @ {player.snapshots[0].snapshotDate}
 				</span>
 			</div>
@@ -108,10 +110,8 @@ const otherSide = isPlayer1 ? "player-2" : "player-1";
 						hx-disabled-elt={`#${popoverId} button, #${popoverId} input`}
 						hx-indicator="previous .input"
 						hx-replace-url="true"
-						hx-select="#comparison"
-						hx-select-oob="#players"
-						hx-swap="outerHTML"
-						hx-target="#comparison"
+						hx-select-oob="#players, #comparison, #actions"
+						hx-swap="none"
 					>
 						<li>
 							<button class="btn btn-ghost" disabled>
