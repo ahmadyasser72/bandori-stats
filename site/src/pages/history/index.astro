@@ -2,6 +2,9 @@
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import BaseLayout from "~/layouts/base-layout.astro";
+import { dateSchema } from "~/lib/schema";
+
+const date = dateSchema.unwrap().optional().parse(Astro.locals.query.date);
 ---
 
 <BaseLayout title="History">
@@ -12,7 +15,7 @@ import BaseLayout from "~/layouts/base-layout.astro";
 			style="anchor-name: --anchor-history-date"
 		>
 			<IconLoader name="lucide:calendar" />
-			<span>Choose Date</span>
+			<span>{date ?? "Choose Date"}</span>
 		</button>
 
 		<div
@@ -30,6 +33,7 @@ import BaseLayout from "~/layouts/base-layout.astro";
 					hx-trigger="intersect once"
 					hx-swap="outerHTML"
 					hx-target="this"
+					hx-vals={JSON.stringify({ date })}
 				>
 				</div>
 				<div
@@ -56,6 +60,7 @@ import BaseLayout from "~/layouts/base-layout.astro";
 			hx-trigger="intersect once"
 			hx-indicator="#app-loader"
 			hx-swap="outerHTML"
+			hx-vals={JSON.stringify({ date })}
 		>
 		</div>
 	</ul>

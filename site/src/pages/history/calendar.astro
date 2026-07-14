@@ -97,6 +97,7 @@ export type Data = typeof data;
 
 				window.htmx
 					.ajax("get", "/history/items", {
+						push: `/history?date=${date}`,
 						source: element,
 						target: "#history-grid",
 						values: { date },
