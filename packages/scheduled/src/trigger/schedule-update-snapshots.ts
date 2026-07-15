@@ -5,6 +5,7 @@ import { createShuffle } from "fast-shuffle";
 
 import { GBP_TIMEZONE } from "~/constants";
 import dayjs from "~/date";
+import { updateProfile } from "./update-profile";
 import { updateStats } from "./update-stats";
 
 export const scheduleUpdateSnapshots = schedules.task({
@@ -47,7 +48,9 @@ export const scheduleUpdateSnapshots = schedules.task({
 			.sort((a, b) => a.options.delay.valueOf() - b.options.delay.valueOf());
 
 		const maxBatchSize = 1000;
-		for (let idx = 0; idx < payloads.length; idx += maxBatchSize)
+		for (let idx = 0; idx < payloads.length; idx += maxBatchSize) {
 			await updateStats.batchTrigger(payloads.slice(idx, idx + maxBatchSize));
+			await updateProfile.batchTrigger(payloads.slice(idx, idx + maxBatchSize));
+		}
 	},
 });

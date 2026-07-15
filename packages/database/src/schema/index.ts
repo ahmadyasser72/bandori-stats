@@ -8,6 +8,7 @@ export const accounts = sqliteTable("accounts", {
 	username: text().unique().notNull(),
 	nickname: text(),
 	uid: text(),
+	profileArt: text({ mode: "json" }).$type<{ id: number; trained: boolean }>(),
 
 	lastUpdated: text().$default(() => sql`(CURRENT_DATE)`),
 });
