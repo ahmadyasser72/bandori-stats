@@ -1,4 +1,11 @@
 {
 	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
-	"extends": ["github>ahmadyasser72/renovate-config"]
+	"extends": ["github>ahmadyasser72/renovate-config"],
+
+	"packageRules": [
+		{
+			"matchPackageNames": ["prettier-plugin-tailwindcss"],
+			"enabled": false
+		}
+	]
 }
