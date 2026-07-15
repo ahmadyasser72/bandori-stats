@@ -1,12 +1,13 @@
 ---
-import { compareValue, formatNumber } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
-import { type Account, type Snapshot } from "@bandori-stats/database/schema";
+import type { Snapshot } from "@bandori-stats/database/schema";
 
 import type { FormatDateString } from "vanilla-calendar-pro";
 
+import type { CalendarData } from "~/lib/calendar";
 import dayjs from "~/lib/date";
 import { dateSchema, idSchema } from "~/lib/schema";
+import { computeStatDeltas } from "~/lib/stats";
 
 const player1_id = idSchema.parse(Astro.locals.query["player-1"]);
 const player2_id = idSchema.parse(Astro.locals.query["player-2"]);
@@ -59,207 +60,123 @@ const data = {
 		b.snapshotDate.localeCompare(a.snapshotDate),
 	)[0].snapshots[0].snapshotDate,
 	latest: latest?.snapshotDate,
-	snapshots: accounts
+
+	url: "/vs/calendar",
+	params: { "player-1": player1_id, "player-2": player2_id },
+	items: accounts
 		.sort((a, b) => {
 			const order = [player1_id, player2_id];
 			return order.indexOf(a.id) - order.indexOf(b.id);
 		})
-		.reduce(
-			(acc, { snapshots, ...account }) => {
-				for (const [idx, { snapshotDate, stats }] of snapshots.entries()) {
-					const deltas = Object.entries(stats)
-						.map(([name, value]): [typeof name, number] => [
-							name,
-							idx > 0
-								? compareValue(value, snapshots[idx - 1].stats[name])
-								: compareValue(
-										value,
-										accountsPreviousSnapshot
-											.find(({ id }) => id === account.id)
-											?.snapshots.at(0)?.stats[name],
-									),
-						])
-						.filter(([, delta]) => delta > 0)
-						.map(([name, delta]): [typeof name, string] => [
-							name,
-							formatNumber(delta, { autoCompact: true, positiveSign: true }),
-						]);
-
-					const date = snapshotDate as FormatDateString;
-					if (Array.isArray(acc[date])) acc[date].push({ ...account, deltas });
-					else acc[date] = [{ ...account, deltas }];
-				}
-
-				return acc;
-			},
-			{} as Record<
+		.reduce<
+			Record<
 				FormatDateString,
-				(Pick<Account, "id" | "username"> & {
+				{
+					username: string;
+					side: "player-1" | "player-2";
 					deltas: [keyof Snapshot["stats"], string][];
-				})[]
-			>,
-		),
-};
+				}[]
+			>
+		>((acc, { snapshots, ...account }) => {
+			for (const [idx, { snapshotDate, stats }] of snapshots.entries()) {
+				const deltas = computeStatDeltas(
+					stats,
+					idx > 0
+						? snapshots[idx - 1].stats
+						: accountsPreviousSnapshot
+								.find(({ id }) => id === account.id)
+								?.snapshots.at(0)?.stats,
+				);
+
+				const data = {
+					side:
+						account.id === player1_id
+							? ("player-1" as const)
+							: ("player-2" as const),
+					username: account.username,
+					deltas,
+				};
+
+				const date = snapshotDate as FormatDateString;
+				if (Array.isArray(acc[date])) acc[date].push(data);
+				else acc[date] = [data];
+			}
+
+			return acc;
+		}, {}),
+} satisfies CalendarData;
 
 export type Data = typeof data;
 ---
 
-<div
-	class="vs-calendar vc skeleton"
-	data-calendar={JSON.stringify(data)}
-	data-player-1={player1_id}
-	data-player-2={player2_id}
->
-</div>
+<div class="vs-calendar vc skeleton" data-calendar={JSON.stringify(data)}></div>
 
 <script>
 	import { simplifyStatName } from "@bandori-stats/bestdori/helpers";
 
-	import {
-		Calendar,
-		type DateAny,
-		type FormatDateString,
-		type Options,
-	} from "vanilla-calendar-pro";
-
+	import { dismissCalendarPopover, initCalendar } from "~/lib/calendar";
 	import type { Data } from "./calendar.astro";
 
-	const CALENDAR_SELECTOR = ".vc.vs-calendar";
-	const initCalendar = (element?: unknown) => {
-		if (
-			!(element instanceof HTMLElement) ||
-			!element.matches(CALENDAR_SELECTOR)
-		)
-			return;
-
-		const { "player-1": player1, "player-2": player2 } = element.dataset;
-		if (!player1 || !player2) return;
-
-		const badgeById = {
-			[player1]: "badge-primary",
-			[player2]: "badge-accent",
-		};
-		const statusById = {
-			[player1]: "status-primary",
-			[player2]: "status-accent",
-		};
-
-		element.classList.remove("skeleton");
-		const data = (JSON.parse(element.dataset.calendar!) ?? {}) as Data;
-		const date = new Date(data.date);
-		const month = date.getMonth();
-		const year = date.getFullYear();
-
-		const handleMonthChange = (self: Calendar) => {
-			const { selectedMonth, selectedYear } = self.context;
-			if (selectedMonth === month && selectedYear === year) return;
-
-			const date = new Date();
-			date.setMonth(selectedMonth);
-			date.setFullYear(selectedYear);
-			window.htmx.ajax("get", "/vs/calendar", {
-				source: element,
-				target: element,
-				swap: "outerHTML",
-				values: {
-					date: date.toISOString().split("T")[0],
-					"player-1": player1,
-					"player-2": player2,
-				},
-			});
-		};
-
-		new Calendar(element, {
-			disableToday: true,
-			dateMin: data.oldest as DateAny,
-			dateMax: data.latest as DateAny,
-			displayDisabledDates: true,
-			disableAllDates: true,
-			enableDates: Object.keys(data.snapshots),
-
-			onClickDate: (self) => {
-				const [date] = self.context.selectedDates;
-				window.htmx
-					.ajax("get", "/vs", {
-						source: element,
-						swap: "none",
-						selectOOB: "#players, #comparison",
-						replace: date
-							? `/vs?player-1=${player1}&player-2=${player2}&date=${date}`
-							: `/vs?player-1=${player1}&player-2=${player2}`,
-						values: {
-							"player-1": player1,
-							"player-2": player2,
-							...(date && { date }),
-						},
-					})
-					.then(() => {
-						const popover = element.closest("[popover]") as HTMLElement;
-						popover.hidePopover();
-						const trigger = document.querySelector(
-							`[popovertarget="${popover.id}"]`,
-						);
-						if (trigger)
-							trigger.querySelector("span")!.innerText = date ?? "Date";
-					});
-			},
-
-			selectedMonth: month as Options["selectedMonth"],
-			selectedYear: year,
-			onClickArrow: handleMonthChange,
-			onClickMonth: handleMonthChange,
-			onClickYear: handleMonthChange,
-
-			onCreateDateEls: (_, element) => {
-				const date = element.dataset.vcDate as FormatDateString;
-				const players = data.snapshots[date] ?? [];
-				if (players.length === 0) return;
-
-				const button = element.querySelector(
-					"[data-vc-date-btn]",
-				) as HTMLButtonElement;
-				button.classList.add("flex-col");
-
-				const day = button.innerText;
-				button.innerHTML = "";
-				button.innerHTML += `<span>${day}</span>`;
-				button.innerHTML += [
-					'<div class="inline-flex gap-0.5">',
-					...players.map(
-						({ id }) =>
-							`<div class="status status-sm ${statusById[id]}"></div>`,
-					),
-					"</div>",
-				].join("");
-			},
-
-			popups: Object.fromEntries(
-				Object.entries(data.snapshots).map(([date, accounts]) => [
-					date,
-					{
-						html: [
-							'<div class="flex flex-col items-center py-2">',
-							accounts
-								.map(({ id, username, deltas }) =>
-									[
-										`<span class="badge badge-xs ${badgeById[id]}">@${username}</span>`,
-										'<div class="flex w-max max-w-32 flex-wrap justify-center gap-x-1 gap-y-0.5 mt-1 font-medium">',
-										...deltas.map(
-											([name, delta]) =>
-												`<span class="badge badge-soft badge-xs ${badgeById[id]}">${simplifyStatName(name)} ${delta}</span>`,
-										),
-										"</div>",
-									].join(""),
-								)
-								.join('<div class="divider my-0"></div>'),
-							"</div>",
-						].join(""),
-					},
-				]),
-			),
-		}).init();
+	const BADGES_BY_SIDE = {
+		"player-1": "badge-primary",
+		"player-2": "badge-accent",
+	};
+	const STATUS_BY_SIDE = {
+		"player-1": "status-primary",
+		"player-2": "status-accent",
 	};
 
-	initCalendar(document.querySelector<HTMLElement>(CALENDAR_SELECTOR));
-	window.htmx.onLoad((node) => initCalendar(node));
+	initCalendar<Data>({
+		selector: ".vc.vs-calendar",
+
+		onClickDate: ({ calendar, date }) => {
+			const player1 = calendar.dataset.player1!;
+			const player2 = calendar.dataset.player2!;
+			window.htmx
+				.ajax("get", "/vs", {
+					source: calendar,
+					swap: "none",
+					selectOOB: "#players, #comparison",
+					replace: date
+						? `/vs?player-1=${player1}&player-2=${player2}&date=${date}`
+						: `/vs?player-1=${player1}&player-2=${player2}`,
+					values: {
+						"player-1": player1,
+						"player-2": player2,
+						...(date && { date }),
+					},
+				})
+				.then(() => dismissCalendarPopover(calendar, "Date", date));
+		},
+
+		renderDateCell: ({ it: players, button }) => {
+			button.innerHTML += [
+				'<div class="inline-flex gap-0.5">',
+				...players.map(
+					({ side }) =>
+						`<div class="status status-sm ${STATUS_BY_SIDE[side]}"></div>`,
+				),
+				"</div>",
+			].join("");
+		},
+
+		popups: ({ it: players }) =>
+			[
+				'<div class="flex flex-col items-center py-2">',
+				players
+					.map(({ username, side, deltas }) =>
+						[
+							`<span class="badge badge-xs ${BADGES_BY_SIDE[side]}">@${username}</span>`,
+							'<div class="flex w-max max-w-32 flex-wrap justify-center gap-x-1 gap-y-0.5 mt-1 font-medium">',
+							...deltas.map(
+								([name, delta]) =>
+									`<span class="badge badge-soft badge-xs ${BADGES_BY_SIDE[side]}">${simplifyStatName(name)} ${delta}</span>`,
+							),
+							"</div>",
+						].join(""),
+					)
+					.join('<div class="divider my-0"></div>'),
+				"</div>",
+			].join(""),
+	});
 </script>

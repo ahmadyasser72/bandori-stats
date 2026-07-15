@@ -1,11 +1,12 @@
 ---
-import { compareValue, formatNumber } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
 
 import type { FormatDateString } from "vanilla-calendar-pro";
 
+import type { CalendarData } from "~/lib/calendar";
 import dayjs from "~/lib/date";
 import { dateSchema, idSchema } from "~/lib/schema";
+import { computeStatDeltas } from "~/lib/stats";
 
 export const partial = true;
 
@@ -67,141 +68,60 @@ const data = {
 	date: date?.format("YYYY-MM-DD"),
 	oldest: oldest?.snapshotDate,
 	latest: latest?.snapshotDate,
-	snapshots: Object.fromEntries(
+
+	url: `/history/items/${id}/calendar`,
+	params: { account: accountId },
+	items: Object.fromEntries(
 		snapshots.map(({ snapshotDate, stats }, idx) => [
 			snapshotDate as FormatDateString,
-			Object.entries(stats)
-				.map(([name, value]): [typeof name, number] => [
-					name,
-					idx > 0
-						? compareValue(value, snapshots[idx - 1].stats[name])
-						: compareValue(value, firstPreviousSnapshot?.stats[name]),
-				])
-				.filter(([, delta]) => delta > 0)
-				.map(([name, delta]): [typeof name, string] => [
-					name,
-					formatNumber(delta, { autoCompact: true, positiveSign: true }),
-				]),
+			computeStatDeltas(
+				stats,
+				idx > 0 ? snapshots[idx - 1].stats : firstPreviousSnapshot?.stats,
+			),
 		]),
 	),
-};
+} satisfies CalendarData;
 
 export type Data = typeof data;
 ---
 
-<div
-	class="snapshot-calendar vc skeleton"
-	data-account={accountId}
-	data-calendar={JSON.stringify(data)}
-	data-id={id}
->
+<div class="snapshot-calendar vc skeleton" data-calendar={JSON.stringify(data)}>
 </div>
 
 <script>
 	import { simplifyStatName } from "@bandori-stats/bestdori/helpers";
 
-	import {
-		Calendar,
-		type DateAny,
-		type FormatDateString,
-		type Options,
-	} from "vanilla-calendar-pro";
-
+	import { initCalendar } from "~/lib/calendar";
 	import {
 		STAT_BADGES,
 		STAT_STATUSES,
 	} from "~/pages/history/items/_stat-colors";
 	import type { Data } from "./calendar.astro";
 
-	const CALENDAR_SELECTOR = ".vc.snapshot-calendar";
-	const initCalendar = (element?: unknown) => {
-		if (
-			!(element instanceof HTMLElement) ||
-			!element.matches(CALENDAR_SELECTOR)
-		)
-			return;
+	initCalendar<Data>({
+		selector: ".vc.snapshot-calendar",
 
-		const { id, account } = element.dataset;
-		if (!id || !account) return;
-
-		element.classList.remove("skeleton");
-		const data = (JSON.parse(element.dataset.calendar!) ?? []) as Data;
-		const date = new Date(data.date);
-		const month = date.getMonth();
-		const year = date.getFullYear();
-
-		const handleMonthChange = (self: Calendar) => {
-			const { selectedMonth, selectedYear } = self.context;
-			if (selectedMonth === month && selectedYear === year) return;
-
-			const date = new Date();
-			date.setMonth(selectedMonth);
-			date.setFullYear(selectedYear);
-			window.htmx.ajax("get", `/history/items/${id}/calendar`, {
-				source: element,
-				target: element,
-				swap: "outerHTML",
-				values: { account, date: date.toISOString().split("T")[0] },
-			});
-		};
-
-		new Calendar(element, {
-			disableToday: true,
-			dateMin: data.oldest as DateAny,
-			dateMax: data.latest as DateAny,
-			displayDisabledDates: true,
-			disableAllDates: true,
-			enableDates: Object.keys(data.snapshots),
-
-			selectedMonth: month as Options["selectedMonth"],
-			selectedYear: year,
-			onClickArrow: handleMonthChange,
-			onClickMonth: handleMonthChange,
-			onClickYear: handleMonthChange,
-
-			onCreateDateEls: (_, element) => {
-				const date = element.dataset.vcDate as FormatDateString;
-				const deltas = data.snapshots[date] ?? [];
-				if (deltas.length === 0) return;
-
-				const button = element.querySelector(
-					"[data-vc-date-btn]",
-				) as HTMLButtonElement;
-				button.classList.add("flex-col");
-
-				const day = button.innerText;
-				button.innerHTML = "";
-				button.innerHTML += `<span>${day}</span>`;
-				button.innerHTML += [
-					'<div class="inline-flex gap-0.5">',
-					...new Set(
-						deltas.map(
-							([name]) =>
-								`<div aria-label="success" class="status status-sm ${STAT_STATUSES[name]}"></div>`,
-						),
+		renderDateCell: ({ it: deltas, button }) => {
+			button.innerHTML += [
+				'<div class="inline-flex gap-0.5">',
+				...new Set(
+					deltas.map(
+						([name]) =>
+							`<div aria-label="success" class="status status-sm ${STAT_STATUSES[name]}"></div>`,
 					),
-					"</div>",
-				].join("");
-			},
+				),
+				"</div>",
+			].join("");
+		},
 
-			popups: Object.fromEntries(
-				Object.entries(data.snapshots).map(([date, deltas]) => [
-					date,
-					{
-						html: [
-							'<div class="flex w-max max-w-32 flex-wrap justify-center gap-x-1 gap-y-0.5 py-2 font-medium">',
-							...deltas.map(
-								([name, delta]) =>
-									`<span class="badge badge-soft badge-xs ${STAT_BADGES[name]}">${simplifyStatName(name)} ${delta}</span>`,
-							),
-							"</div>",
-						].join(""),
-					},
-				]),
-			),
-		}).init();
-	};
-
-	initCalendar(document.querySelector<HTMLElement>(CALENDAR_SELECTOR));
-	window.htmx.onLoad((node) => initCalendar(node));
+		popups: ({ it: deltas }) =>
+			[
+				'<div class="flex w-max max-w-32 flex-wrap justify-center gap-x-1 gap-y-0.5 py-2 font-medium">',
+				...deltas.map(
+					([name, delta]) =>
+						`<span class="badge badge-soft badge-xs ${STAT_BADGES[name]}">${simplifyStatName(name)} ${delta}</span>`,
+				),
+				"</div>",
+			].join(""),
+	});
 </script>

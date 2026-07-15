@@ -2,6 +2,9 @@
 import { and, count, db, gte, lte } from "@bandori-stats/database";
 import { accountSnapshots } from "@bandori-stats/database/schema";
 
+import type { FormatDateString } from "vanilla-calendar-pro";
+
+import type { CalendarData } from "~/lib/calendar";
 import dayjs from "~/lib/date";
 import { dateSchema } from "~/lib/schema";
 
@@ -41,10 +44,12 @@ const data = {
 	date: date.format("YYYY-MM-DD"),
 	oldest: oldest?.snapshotDate,
 	latest: latest?.snapshotDate,
-	dates: Object.fromEntries(
-		snapshots.map(({ date, count }): [string, number] => [date, count]),
+
+	url: "/history/calendar",
+	items: Object.fromEntries(
+		snapshots.map(({ date, count }) => [date as FormatDateString, count]),
 	),
-};
+} satisfies CalendarData;
 
 export type Data = typeof data;
 ---
@@ -53,91 +58,25 @@ export type Data = typeof data;
 </div>
 
 <script>
-	import { Calendar, type DateAny, type Options } from "vanilla-calendar-pro";
-
+	import { dismissCalendarPopover, initCalendar } from "~/lib/calendar";
 	import type { Data } from "./calendar.astro";
 
-	const CALENDAR_SELECTOR = ".vc.history-calendar";
-	const initCalendar = (element?: unknown) => {
-		if (
-			!(element instanceof HTMLElement) ||
-			!element.matches(CALENDAR_SELECTOR)
-		)
-			return;
+	initCalendar<Data>({
+		selector: ".vc.history-calendar",
 
-		element.classList.remove("skeleton");
-		const data = (JSON.parse(element.dataset.calendar!) ?? {}) as Data;
-		const date = new Date(data.date);
-		const month = date.getMonth();
-		const year = date.getFullYear();
+		onClickDate: ({ calendar, date }) => {
+			window.htmx
+				.ajax("get", "/history/items", {
+					source: calendar,
+					target: "#history-grid",
+					push: date ? `/history?date=${date}` : "/history",
+					values: date ? { date } : {},
+				})
+				.then(() => dismissCalendarPopover(calendar, "Choose Date", date));
+		},
 
-		const handleMonthChange = (self: Calendar) => {
-			const { selectedMonth, selectedYear } = self.context;
-			if (selectedMonth === month && selectedYear === year) return;
-
-			const date = new Date();
-			date.setMonth(selectedMonth);
-			date.setFullYear(selectedYear);
-			window.htmx.ajax("get", "/history/calendar", {
-				source: element,
-				target: element,
-				swap: "outerHTML",
-				values: { date: date.toISOString().split("T")[0] },
-			});
-		};
-
-		new Calendar(element, {
-			disableToday: true,
-			dateMin: data.oldest as DateAny,
-			dateMax: data.latest as DateAny,
-			displayDisabledDates: true,
-			disableAllDates: true,
-			enableDates: Object.keys(data.dates),
-
-			onClickDate: (self) => {
-				const [date] = self.context.selectedDates;
-				window.htmx
-					.ajax("get", "/history/items", {
-						source: element,
-						target: "#history-grid",
-						push: date ? `/history?date=${date}` : "/history",
-						values: date ? { date } : {},
-					})
-					.then(() => {
-						const popover = element.closest("[popover]") as HTMLElement;
-						popover.hidePopover();
-						const trigger = document.querySelector(
-							`[popovertarget="${popover.id}"]`,
-						);
-						if (trigger)
-							trigger.querySelector("span")!.innerText = date ?? "Date";
-					});
-			},
-
-			selectedMonth: month as Options["selectedMonth"],
-			selectedYear: year,
-			onClickArrow: handleMonthChange,
-			onClickMonth: handleMonthChange,
-			onClickYear: handleMonthChange,
-
-			onCreateDateEls: (_, element) => {
-				const date = element.dataset.vcDate!;
-				const count = data.dates[date];
-				if (!count) return;
-
-				const button = element.querySelector(
-					"[data-vc-date-btn]",
-				) as HTMLButtonElement;
-				button.classList.add("flex-col");
-
-				const day = button.innerText;
-				button.innerHTML = "";
-				button.innerHTML += `<span>${day}</span>`;
-				button.innerHTML += `<span class="badge px-1 badge-xs badge-accent">${count}</span>`;
-			},
-		}).init();
-	};
-
-	initCalendar(document.querySelector<HTMLElement>(CALENDAR_SELECTOR));
-	window.htmx.onLoad((node) => initCalendar(node));
+		renderDateCell: ({ it: count, button }) => {
+			button.innerHTML += `<span class="badge px-1 badge-xs badge-accent">${count}</span>`;
+		},
+	});
 </script>
