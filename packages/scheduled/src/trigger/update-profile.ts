@@ -8,8 +8,11 @@ import { bestdoriProfile } from "./bestdori-profile";
 
 export const updateProfile = schemaTask({
 	id: "update-profile",
-	schema: z.object({ username: z.string().nonempty() }),
-	run: async ({ username }) => {
+	schema: z.strictObject({
+		username: z.string().nonempty(),
+		date: z.iso.date(),
+	}),
+	run: async ({ username, date }) => {
 		const { card } = await bestdoriProfile
 			.triggerAndWait(
 				{ username },
@@ -35,6 +38,7 @@ export const updateProfile = schemaTask({
 			await db
 				.update(accounts)
 				.set({
+					lastUpdated: date,
 					profileArt: card ? { id: card.id, trained: card.trainedArt } : null,
 				})
 				.where(eq(accounts.id, existing.id));
