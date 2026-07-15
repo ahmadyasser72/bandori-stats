@@ -1,5 +1,6 @@
 // @ts-check
 import cloudflare from "@astrojs/cloudflare";
+import { cacheCloudflare } from "@astrojs/cloudflare/cache";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, envField } from "astro/config";
 
@@ -10,7 +11,7 @@ export default defineConfig({
 		prerenderEnvironment: "node",
 	}),
 	output: "server",
-	build: { concurrency: 4 },
+	cache: { provider: cacheCloudflare() },
 
 	env: {
 		schema: {
@@ -36,6 +37,7 @@ export default defineConfig({
 		},
 	},
 
+	build: { concurrency: 4 },
 	vite: {
 		plugins: [tailwindcss()],
 		server: { allowedHosts: [".lhr.life", ".opah-barley.ts.net"] },
@@ -59,5 +61,6 @@ export default defineConfig({
 			},
 		},
 	},
+
 	devToolbar: { enabled: false },
 });
