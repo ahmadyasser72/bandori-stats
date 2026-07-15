@@ -1,4 +1,4 @@
-import type { Stats } from "@bandori-stats/bestdori/constants";
+import type { Snapshot } from "@bandori-stats/database/schema";
 
 export const STAT_BADGES = {
 	highScoreRating: "badge-primary",
@@ -8,7 +8,7 @@ export const STAT_BADGES = {
 	clearCount: "badge-success",
 	rank: "badge-accent",
 	titles: "badge-accent",
-} satisfies Record<Exclude<keyof Stats, "uid">, string>;
+} satisfies Record<keyof Snapshot["stats"], string>;
 
 export const STAT_STATUSES = {
 	highScoreRating: "status-primary",
@@ -18,4 +18,4 @@ export const STAT_STATUSES = {
 	clearCount: "status-success",
 	rank: "status-accent",
 	titles: "status-accent",
-} satisfies Record<Exclude<keyof Stats, "uid">, string>;
+} satisfies Record<keyof Snapshot["stats"], string>;

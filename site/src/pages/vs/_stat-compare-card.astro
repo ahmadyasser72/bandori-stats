@@ -1,5 +1,4 @@
 ---
-import type { Stats } from "@bandori-stats/bestdori/constants";
 import {
 	compareValue,
 	displayValue,
@@ -8,11 +7,12 @@ import {
 	titleCase,
 	type StatValue,
 } from "@bandori-stats/bestdori/helpers";
+import type { Snapshot } from "@bandori-stats/database/schema";
 
 import Icon from "~/components/icon.astro";
 
 interface Props {
-	name: Exclude<keyof Stats, "uid">;
+	name: keyof Snapshot["stats"];
 	left: StatValue;
 	"left-id"?: number;
 	right: StatValue;

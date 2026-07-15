@@ -1,16 +1,16 @@
 ---
-import type { Stats } from "@bandori-stats/bestdori/constants";
 import {
 	compareValue,
 	displayValue,
 	titleCase,
 	type StatValue,
 } from "@bandori-stats/bestdori/helpers";
+import type { Snapshot } from "@bandori-stats/database/schema";
 
 import StatCellDeltaBadge from "./_stat-cell-delta-badge.astro";
 
 interface Props {
-	name: Exclude<keyof Stats, "uid">;
+	name: keyof Snapshot["stats"];
 	value: StatValue;
 	previousValue: StatValue;
 }
