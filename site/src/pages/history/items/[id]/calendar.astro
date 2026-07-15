@@ -4,47 +4,110 @@ import { db } from "@bandori-stats/database";
 
 import type { FormatDateString } from "vanilla-calendar-pro";
 
-import { idSchema } from "~/lib/schema";
+import dayjs from "~/lib/date";
+import { dateSchema, idSchema } from "~/lib/schema";
 
 export const partial = true;
 
 const id = idSchema.parse(Astro.params.id);
 const accountId = idSchema.parse(Astro.url.searchParams.get("account"));
-const snapshots = await db.query.accountSnapshots.findMany({
-	columns: { snapshotDate: true, stats: true },
-	where: { id: { lte: id }, accountId },
-});
 
-const data = Object.fromEntries(
-	snapshots.map(({ snapshotDate, stats }, idx) => [
-		snapshotDate as FormatDateString,
-		Object.fromEntries(
-			Object.entries(stats)
-				.map(([name, value]): [typeof name, number] => [
-					name,
-					idx > 0
-						? compareValue(value, snapshots[idx - 1].stats[name])
-						: compareValue(value, null),
-				])
-				.filter(([, delta]) => delta > 0)
-				.map(([name, delta]) => [
-					name,
-					formatNumber(delta, { autoCompact: true, positiveSign: true }),
-				]),
-		),
-	]),
-);
+const date = await (async () => {
+	const queryDate = dateSchema
+		.unwrap()
+		.optional()
+		.parse(Astro.locals.query.date);
+	if (queryDate) return dayjs(queryDate);
+
+	return db.query.accountSnapshots
+		.findFirst({
+			columns: { snapshotDate: true },
+			where: { id, accountId },
+		})
+		.then((snapshot) => (snapshot ? dayjs(snapshot.snapshotDate) : null));
+})();
+
+if (!date) return new Response(null, { status: 404 });
+
+const monthStart = date.startOf("month").format("YYYY-MM-DD");
+const monthEnd = date.endOf("month").format("YYYY-MM-DD");
+const [oldest, latest, snapshots, firstPreviousSnapshot] = await db.batch([
+	db.query.accountSnapshots.findFirst({
+		columns: { snapshotDate: true },
+		orderBy: { snapshotDate: "asc" },
+		where: { accountId },
+	}),
+	db.query.accountSnapshots.findFirst({
+		columns: { snapshotDate: true },
+		orderBy: { snapshotDate: "desc" },
+		where: {
+			accountId,
+			snapshotDate: { lte: monthEnd },
+		},
+	}),
+	db.query.accountSnapshots.findMany({
+		columns: { snapshotDate: true, stats: true },
+		where: {
+			id: { lte: id },
+			accountId,
+			snapshotDate: { gte: monthStart, lte: monthEnd },
+		},
+	}),
+	db.query.accountSnapshots.findFirst({
+		columns: { stats: true },
+		where: {
+			accountId,
+			snapshotDate: { lt: monthStart },
+		},
+		orderBy: { snapshotDate: "desc" },
+	}),
+]);
+
+const data = {
+	date: date?.format("YYYY-MM-DD"),
+	oldest: oldest?.snapshotDate,
+	latest: latest?.snapshotDate,
+	snapshots: Object.fromEntries(
+		snapshots.map(({ snapshotDate, stats }, idx) => [
+			snapshotDate as FormatDateString,
+			Object.fromEntries(
+				Object.entries(stats)
+					.map(([name, value]): [typeof name, number] => [
+						name,
+						idx > 0
+							? compareValue(value, snapshots[idx - 1].stats[name])
+							: compareValue(value, firstPreviousSnapshot?.stats[name]),
+					])
+					.filter(([, delta]) => delta > 0)
+					.map(([name, delta]) => [
+						name,
+						formatNumber(delta, { autoCompact: true, positiveSign: true }),
+					]),
+			),
+		]),
+	),
+};
 
 export type Data = typeof data;
 ---
 
-<div class="snapshot-calendar vc skeleton" data-calendar={JSON.stringify(data)}>
+<div
+	class="snapshot-calendar vc skeleton"
+	data-account={accountId}
+	data-calendar={JSON.stringify(data)}
+	data-id={id}
+>
 </div>
 
 <script>
 	import { simplifyStatName } from "@bandori-stats/bestdori/helpers";
 
-	import { Calendar, type FormatDateString } from "vanilla-calendar-pro";
+	import {
+		Calendar,
+		type DateAny,
+		type FormatDateString,
+		type Options,
+	} from "vanilla-calendar-pro";
 
 	import {
 		STAT_BADGES,
@@ -60,16 +123,47 @@ export type Data = typeof data;
 		)
 			return;
 
+		const { id, account } = element.dataset;
+		if (!id || !account) return;
+
 		element.classList.remove("skeleton");
 		const data = (JSON.parse(element.dataset.calendar!) ?? []) as Data;
+		const date = new Date(data.date);
+		const month = date.getMonth();
+		const year = date.getFullYear();
+
+		const handleMonthChange = (self: Calendar) => {
+			const { selectedMonth, selectedYear } = self.context;
+			if (selectedMonth === month && selectedYear === year) return;
+
+			const date = new Date();
+			date.setMonth(selectedMonth);
+			date.setFullYear(selectedYear);
+			window.htmx.ajax("get", `/history/items/${id}/calendar`, {
+				source: element,
+				target: element,
+				swap: "outerHTML",
+				values: { account, date: date.toISOString().split("T")[0] },
+			});
+		};
+
 		new Calendar(element, {
-			disableAllDates: true,
 			disableToday: true,
-			enableDates: Object.keys(data),
+			dateMin: data.oldest as DateAny,
+			dateMax: data.latest as DateAny,
+			displayDisabledDates: true,
+			disableAllDates: true,
+			enableDates: Object.keys(data.snapshots),
+
+			selectedMonth: month as Options["selectedMonth"],
+			selectedYear: year,
+			onClickArrow: handleMonthChange,
+			onClickMonth: handleMonthChange,
+			onClickYear: handleMonthChange,
 
 			onCreateDateEls: (_, element) => {
 				const date = element.dataset.vcDate as FormatDateString;
-				const deltas = Object.entries(data[date] ?? {});
+				const deltas = Object.entries(data.snapshots[date] ?? {});
 				if (deltas.length === 0) return;
 
 				const button = element.querySelector(
@@ -93,7 +187,7 @@ export type Data = typeof data;
 			},
 
 			popups: Object.fromEntries(
-				Object.entries(data).map(([date, deltas]) => [
+				Object.entries(data.snapshots).map(([date, deltas]) => [
 					date,
 					{
 						html: [
