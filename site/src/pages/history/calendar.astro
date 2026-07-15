@@ -90,24 +90,25 @@ export type Data = typeof data;
 			disableToday: true,
 			dateMin: data.oldest as DateAny,
 			dateMax: data.latest as DateAny,
+			displayDisabledDates: true,
+			disableAllDates: true,
+			enableDates: Object.keys(data.dates),
 
 			onClickDate: (self) => {
 				const [date] = self.context.selectedDates;
-				if (!date) return;
-
 				window.htmx
 					.ajax("get", "/history/items", {
-						push: `/history?date=${date}`,
 						source: element,
 						target: "#history-grid",
-						values: { date },
+						push: date ? `/history?date=${date}` : "/history",
+						values: date ? { date } : {},
 					})
 					.then(() => {
 						const popover = element.closest("[popover]") as HTMLElement;
 						popover.hidePopover();
 						(popover.previousSibling as HTMLElement).querySelector(
 							"span",
-						)!.innerText = date;
+						)!.innerText = date ?? "Choose Date";
 					});
 			},
 
@@ -120,10 +121,7 @@ export type Data = typeof data;
 			onCreateDateEls: (_, element) => {
 				const date = element.dataset.vcDate!;
 				const count = data.dates[date];
-				if (!count || element.dataset.vcDateMonth !== "current") {
-					element.dataset.vcDateDisabled = "";
-					return;
-				}
+				if (!count) return;
 
 				const button = element.querySelector(
 					"[data-vc-date-btn]",
@@ -133,7 +131,7 @@ export type Data = typeof data;
 				const day = button.innerText;
 				button.innerHTML = "";
 				button.innerHTML += `<span>${day}</span>`;
-				button.innerHTML += `<span class="badge bg-accent/67 px-1 badge-xs badge-accent">${count}</span>`;
+				button.innerHTML += `<span class="badge px-1 badge-xs badge-accent">${count}</span>`;
 			},
 		}).init();
 	};
