@@ -129,9 +129,9 @@ export type Data = typeof data;
 	initCalendar<Data>({
 		selector: ".vc.vs-calendar",
 
-		onClickDate: ({ calendar, date }) => {
-			const player1 = calendar.dataset.player1!;
-			const player2 = calendar.dataset.player2!;
+		onClickDate: ({ calendar, date, data }) => {
+			const player1 = data.params["player-1"];
+			const player2 = data.params["player-2"];
 			window.htmx
 				.ajax("get", "/vs", {
 					source: calendar,
@@ -140,11 +140,7 @@ export type Data = typeof data;
 					replace: date
 						? `/vs?player-1=${player1}&player-2=${player2}&date=${date}`
 						: `/vs?player-1=${player1}&player-2=${player2}`,
-					values: {
-						"player-1": player1,
-						"player-2": player2,
-						...(date && { date }),
-					},
+					values: { ...data.params, ...(date && { date }) },
 				})
 				.then(() => dismissCalendarPopover(calendar, "Date", date));
 		},

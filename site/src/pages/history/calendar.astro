@@ -46,6 +46,7 @@ const data = {
 	latest: latest?.snapshotDate,
 
 	url: "/history/calendar",
+	params: {},
 	items: Object.fromEntries(
 		snapshots.map(({ date, count }) => [date as FormatDateString, count]),
 	),

@@ -5,25 +5,28 @@ import {
 	type Options,
 } from "vanilla-calendar-pro";
 
-export interface CalendarData<T = unknown> {
+export interface CalendarData<T = unknown, P = {}> {
 	date: string;
 	oldest?: string;
 	latest?: string;
 
 	url: string;
-	params?: Record<string, string | number>;
+	params: P;
 	items: Record<FormatDateString, T>;
 }
 
 type CalendarDataItem<T> = T extends CalendarData<infer U> ? U : never;
+type CalendarDataParams<T> =
+	T extends CalendarData<unknown, infer U> ? U : never;
 
-export interface CalendarRouteConfig<T = unknown> {
+export interface CalendarRouteConfig<T = unknown, P = {}> {
 	selector: string;
 
 	/** Called when the user clicks a date */
 	onClickDate?: (params: {
 		calendar: HTMLElement;
 		date: FormatDateString | undefined;
+		data: CalendarData<T, P>;
 	}) => void;
 
 	/**
@@ -41,7 +44,7 @@ export interface CalendarRouteConfig<T = unknown> {
 }
 
 export const initCalendar = <T extends CalendarData>(
-	config: CalendarRouteConfig<CalendarDataItem<T>>,
+	config: CalendarRouteConfig<CalendarDataItem<T>, CalendarDataParams<T>>,
 ) => {
 	const init = (element?: unknown) => {
 		if (!(element instanceof HTMLElement) || !element.matches(config.selector))
@@ -49,7 +52,8 @@ export const initCalendar = <T extends CalendarData>(
 
 		element.classList.remove("skeleton");
 		const data = JSON.parse(element.dataset.calendar!) as CalendarData<
-			CalendarDataItem<T>
+			CalendarDataItem<T>,
+			CalendarDataParams<T>
 		>;
 		const selected = (() => {
 			const date = new Date(data.date);
@@ -82,7 +86,7 @@ export const initCalendar = <T extends CalendarData>(
 			onClickDate: config.onClickDate
 				? (self) => {
 						const [date] = self.context.selectedDates;
-						config.onClickDate!({ calendar: element, date });
+						config.onClickDate!({ calendar: element, date, data });
 					}
 				: undefined,
 
