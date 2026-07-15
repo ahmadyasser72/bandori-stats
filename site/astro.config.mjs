@@ -12,6 +12,11 @@ export default defineConfig({
 	}),
 	output: "server",
 	cache: { provider: cacheCloudflare() },
+	session: {
+		driver: {
+			entrypoint: "unstorage/drivers/null",
+		},
+	},
 
 	env: {
 		schema: {
