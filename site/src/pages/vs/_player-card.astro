@@ -24,7 +24,7 @@ const otherSide = isPlayer1 ? "player-2" : "player-1";
 
 <div
 	class:list={[
-		"grid flex-1 place-items-center",
+		"grid flex-1",
 		isPlayer1 ? "sm:place-items-start" : "sm:place-items-end",
 	]}
 >
@@ -32,7 +32,7 @@ const otherSide = isPlayer1 ? "player-2" : "player-1";
 		player ? (
 			<div
 				class:list={[
-					"flex flex-col items-center gap-1",
+					"flex h-16 flex-col items-center justify-center gap-1",
 					isPlayer1 ? "sm:items-start" : "sm:items-end",
 				]}
 			>
@@ -73,7 +73,7 @@ const otherSide = isPlayer1 ? "player-2" : "player-1";
 		) : (
 			<>
 				<button
-					class="btn h-full min-h-16 btn-dash max-sm:w-full sm:min-w-48"
+					class="btn h-16 btn-dash max-sm:w-full sm:min-w-48"
 					popovertarget={popoverId}
 					style={`anchor-name: ${anchorName}`}
 				>
