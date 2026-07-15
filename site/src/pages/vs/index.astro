@@ -3,13 +3,15 @@ import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import { db } from "@bandori-stats/database";
 
 import IconLoader from "~/components/icon-loader.astro";
+import Icon from "~/components/icon.astro";
 import BaseLayout from "~/layouts/base-layout.astro";
-import { idSchema } from "~/lib/schema";
+import { dateSchema, idSchema } from "~/lib/schema";
 import PlayerCard from "./_player-card.astro";
 import StatCompareCard from "./_stat-compare-card.astro";
 
 const player1_id = idSchema.optional().parse(Astro.locals.query["player-1"]);
 const player2_id = idSchema.optional().parse(Astro.locals.query["player-2"]);
+const date = dateSchema.unwrap().optional().parse(Astro.locals.query.date);
 
 const [player1, player2] = await Promise.all(
 	[player1_id, player2_id].map((id) => {
@@ -21,6 +23,7 @@ const [player1, player2] = await Promise.all(
 				snapshots: {
 					limit: 1,
 					columns: { snapshotDate: true, stats: true },
+					where: { snapshotDate: { lte: date } },
 					orderBy: { snapshotDate: "desc" },
 				},
 			},
@@ -63,26 +66,72 @@ const [player1, player2] = await Promise.all(
 		class="flex w-full gap-2 border-t border-base-content/67 py-4 max-sm:flex-col sm:justify-end"
 		id="actions"
 	>
-		<button
-			hx-get="/vs"
-			class="btn btn-primary"
-			hx-disabled-elt="#actions button"
-			hx-indicator="this"
-			hx-replace-url="true"
-			hx-select-oob="#players, #comparison, #actions"
-			hx-swap="none transition:true"
-			hx-vals={JSON.stringify({
-				"player-1": player2?.id,
-				"player-2": player1?.id,
-			})}
+		<div class="join" style="anchor-name: --anchor-vs-player-action">
+			<button
+				hx-get="/vs"
+				class="btn join-item flex-1 btn-soft btn-primary"
+				hx-disabled-elt="#actions button"
+				hx-indicator="this"
+				hx-replace-url="true"
+				hx-select-oob="#players, #comparison, #actions"
+				hx-swap="none transition:true"
+				hx-vals={JSON.stringify({
+					"player-1": player2?.id,
+					"player-2": player1?.id,
+				})}
+				disabled={!player1 && !player2}
+			>
+				<IconLoader name="lucide:arrow-left-right" />
+				Swap
+			</button>
+
+			<button
+				class="btn join-item flex-1 btn-primary"
+				disabled={!player1 || !player2}
+				popovertarget="vs-date"
+			>
+				<IconLoader name="lucide:calendar" />
+				<span>{date ?? "Date"}</span>
+			</button>
+		</div>
+
+		<div
+			class="dropdown dropdown-center dropdown-top mb-2 overflow-visible rounded-box border border-primary/20 bg-base-100 p-2 shadow-md"
+			id="vs-date"
+			popover
+			style="position-anchor: --anchor-vs-player-action"
 		>
-			<IconLoader name="lucide:arrow-left-right" />
-			Swap
-		</button>
+			<div
+				class="relative flex min-h-70 min-w-75 justify-center"
+				hx-indicator="#vs-date-loader"
+			>
+				<div
+					hx-get="/vs/calendar"
+					hx-trigger="intersect once"
+					hx-swap="outerHTML"
+					hx-target="this"
+					hx-vals={JSON.stringify({
+						date,
+						"player-1": player1?.id,
+						"player-2": player2?.id,
+					})}
+				>
+				</div>
+				<div
+					class="htmx-indicator absolute inset-0 bg-base-100/67"
+					id="vs-date-loader"
+				>
+					<Icon
+						class="center absolute size-32"
+						name="svg-spinners:bars-scale"
+					/>
+				</div>
+			</div>
+		</div>
 
 		<div class="join">
 			<button
-				class="btn join-item flex-1 btn-secondary"
+				class="btn join-item flex-1 btn-soft btn-accent"
 				id="download-vs"
 				data-player-1={player1?.username}
 				data-player-2={player2?.username}

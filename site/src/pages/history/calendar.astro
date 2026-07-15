@@ -106,9 +106,11 @@ export type Data = typeof data;
 					.then(() => {
 						const popover = element.closest("[popover]") as HTMLElement;
 						popover.hidePopover();
-						(popover.previousSibling as HTMLElement).querySelector(
-							"span",
-						)!.innerText = date ?? "Choose Date";
+						const trigger = document.querySelector(
+							`[popovertarget="${popover.id}"]`,
+						);
+						if (trigger)
+							trigger.querySelector("span")!.innerText = date ?? "Date";
 					});
 			},
 
