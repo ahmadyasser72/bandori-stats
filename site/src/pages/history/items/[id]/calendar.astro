@@ -13,22 +13,11 @@ export const partial = true;
 const id = idSchema.parse(Astro.params.id);
 const accountId = idSchema.parse(Astro.url.searchParams.get("account"));
 
-const date = await (async () => {
-	const queryDate = dateSchema
-		.unwrap()
-		.optional()
-		.parse(Astro.locals.query.date);
-	if (queryDate) return dayjs(queryDate);
-
-	return db.query.accountSnapshots
-		.findFirst({
-			columns: { snapshotDate: true },
-			where: { id, accountId },
-		})
-		.then((snapshot) => (snapshot ? dayjs(snapshot.snapshotDate) : null));
-})();
-
-if (!date) return new Response(null, { status: 404 });
+const date = dayjs(dateSchema.parse(Astro.locals.query.date));
+const snapshot = await db.query.accountSnapshots.findFirst({
+	columns: { snapshotDate: true },
+	where: { id, accountId },
+});
 
 const monthStart = date.startOf("month").format("YYYY-MM-DD");
 const monthEnd = date.endOf("month").format("YYYY-MM-DD");
@@ -43,7 +32,7 @@ const [oldest, latest, snapshots, firstPreviousSnapshot] = await db.batch([
 		orderBy: { snapshotDate: "desc" },
 		where: {
 			accountId,
-			snapshotDate: { lte: monthEnd },
+			snapshotDate: { lte: snapshot?.snapshotDate ?? monthEnd },
 		},
 	}),
 	db.query.accountSnapshots.findMany({
