@@ -32,6 +32,10 @@ jobs:
           UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
           UMAMI_SITE_ID: ${{ vars.UMAMI_SITE_ID }}
 
+      - name: Fix bundled assets (CSS) got lost somehow someway
+        run: mv dist/server/_astro/* dist/client/_astro
+        working-directory: site/
+
       - name: Upload site build artifact
         uses: actions/upload-artifact@v7.0.1
         with:

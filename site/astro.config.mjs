@@ -10,6 +10,7 @@ export default defineConfig({
 		prerenderEnvironment: "node",
 	}),
 	output: "server",
+	build: { concurrency: 4 },
 
 	env: {
 		schema: {
@@ -37,18 +38,26 @@ export default defineConfig({
 
 	vite: {
 		plugins: [tailwindcss()],
-		ssr: { external: ["node:fs", "node:path", "sharp"] },
+		server: { allowedHosts: [".lhr.life", ".opah-barley.ts.net"] },
 
 		build: {
-			rollupOptions: {
-				output: {
-					entryFileNames: "js/[hash:10].js",
-					chunkFileNames: "js/[hash:10].js",
+			rolldownOptions: {
+				output: { assetFileNames: "_astro/[hash][extname]" },
+			},
+		},
+		environments: {
+			client: {
+				build: {
+					rolldownOptions: {
+						output: {
+							entryFileNames: "_astro/js/[hash].js",
+							chunkFileNames: "_astro/js/[hash].js",
+							assetFileNames: "_astro/[hash][extname]",
+						},
+					},
 				},
 			},
 		},
-
-		server: { allowedHosts: [".lhr.life", ".opah-barley.ts.net"] },
 	},
 	devToolbar: { enabled: false },
 });
