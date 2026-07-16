@@ -42,8 +42,12 @@ export const SnapshotCard = ({
 	previous,
 	context = "site",
 	children,
+	...props
 }: SnapshotCardProps) => (
-	<div class="card w-full bg-base-100 shadow-sm card-border dark:bg-base-300">
+	<div
+		class="card w-full bg-base-100 shadow-sm card-border dark:bg-base-300"
+		{...props}
+	>
 		<div class="card-body gap-2 p-4">
 			<div class="flex h-12 w-full justify-between">
 				{accountHasNickname(account) ? (

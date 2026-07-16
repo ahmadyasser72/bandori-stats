@@ -71,12 +71,14 @@ const snapshots = currentSnapshots.map((snapshot) => ({
 {
 	snapshots.map(
 		({ id, accountId, account, snapshotDate, stats, previous }, idx) => (
-			<li
-				{...(page.isLastElement(idx) && page.props)}
-				class="contents"
-				hx-vals={JSON.stringify({ account: accountId })}
-			>
-				<SnapshotCard {account} {previous} {snapshotDate} {stats}>
+			<li class="contents" hx-vals={JSON.stringify({ account: accountId })}>
+				<SnapshotCard
+					{account}
+					{previous}
+					{snapshotDate}
+					{stats}
+					{...(page.isLastElement(idx) && page.props)}
+				>
 					<div
 						class="card-actions justify-end"
 						hx-disabled-elt=".card-actions button"

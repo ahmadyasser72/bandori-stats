@@ -41,7 +41,7 @@ export const paginate = async <T>({
 	return {
 		...out,
 		props: {
-			"hx-get": url.href,
+			"hx-get": `${url.pathname}${url.search}`,
 			"hx-trigger": "intersect once",
 			...extraProps,
 		},
