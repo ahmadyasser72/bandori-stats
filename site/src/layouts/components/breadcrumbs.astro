@@ -1,0 +1,33 @@
+---
+interface Props {
+	pathname: string;
+}
+---
+
+<div class="breadcrumbs">
+	<ul class="justify-center">
+		<li>
+			<a href="/">bandori-stats</a>
+		</li>
+		{
+			Astro.props.pathname
+				.split("/")
+				.filter(Boolean)
+				.map((path, idx, parts) => (
+					<li>
+						{idx === parts.length - 1 ? (
+							path
+						) : (
+							<a
+								href={
+									idx > 0 ? `/${parts.slice(0, idx + 1).join("/")}` : `/${path}`
+								}
+							>
+								{path}
+							</a>
+						)}
+					</li>
+				))
+		}
+	</ul>
+</div>

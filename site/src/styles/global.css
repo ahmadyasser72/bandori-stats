@@ -3,6 +3,8 @@
 	themes: false;
 }
 
+@custom-variant dark (&:where([data-theme="mocha"], [data-theme="mocha"] *));
+
 @plugin "./catppuccin.latte.ts";
 @plugin "./catppuccin.mocha.ts";
 

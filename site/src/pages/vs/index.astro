@@ -44,9 +44,9 @@ const [player1, player2] = await Promise.all(
 );
 ---
 
-<BaseLayout title="VS Accounts" containerClass="max-w-3xl px-4">
+<BaseLayout title="VS Accounts" containerClass="max-w-3xl">
 	<div
-		class="flex w-full flex-col border-b border-base-content/67 px-2 py-4 pb-6 sm:flex-row sm:pb-4"
+		class="flex w-full flex-col border-b border-base-content/67 py-4 pb-6 sm:flex-row sm:pb-4"
 		id="players"
 		hx-vals={JSON.stringify({ ratio })}
 	>

@@ -1,0 +1,125 @@
+---
+import Icon from "~/components/icon.astro";
+---
+
+<button
+	class="btn btn-primary max-sm:btn-circle"
+	popovertarget="theme-selector"
+>
+	<span class="max-sm:hidden">Theme</span>
+	<Icon class="size-5" name="lucide:palette" />
+</button>
+<ul
+	class="dropdown dropdown-end mt-1 w-28 rounded-box bg-base-300 p-2"
+	id="theme-selector"
+	popover
+>
+	<li>
+		<label
+			class="btn w-full justify-start btn-sm not-has-checked:btn-ghost has-checked:btn-primary"
+		>
+			<input class="hidden" name="theme-select" type="radio" value="latte" />
+			<Icon name="lucide:sun" />
+			Latte
+		</label>
+	</li>
+
+	<li>
+		<label
+			class="btn w-full justify-start btn-sm not-has-checked:btn-ghost has-checked:btn-primary"
+		>
+			<input class="hidden" name="theme-select" type="radio" value="mocha" />
+			<Icon name="lucide:moon" />
+			Mocha
+		</label>
+	</li>
+</ul>
+
+<script>
+	document.addEventListener("DOMContentLoaded", () => {
+		const themeSelector =
+			document.querySelector<HTMLElement>("#theme-selector")!;
+		const triggerBtn = document.querySelector<HTMLElement>(
+			'[popovertarget="theme-selector"]',
+		)!;
+
+		const local = localStorage.getItem("theme");
+		if (local) {
+			const input = themeSelector.querySelector(`input[value="${local}"]`)!;
+			if (input instanceof HTMLInputElement) input.checked = true;
+		}
+
+		themeSelector.addEventListener("input", (event) => {
+			const theme = (event.target as HTMLInputElement).value;
+			localStorage.setItem("theme", theme);
+
+			const update = () => (document.documentElement.dataset.theme = theme);
+			if (!document.startViewTransition) {
+				update();
+				return;
+			}
+
+			const rect = triggerBtn.getBoundingClientRect();
+			const cx = ((rect.left + rect.width / 2) / window.innerWidth) * 100;
+			const cy = ((rect.top + rect.height / 2) / window.innerHeight) * 100;
+			document.documentElement.style.setProperty("--tx", `${cx}%`);
+			document.documentElement.style.setProperty("--ty", `${cy}%`);
+			document.documentElement.classList.add("theme-transition");
+
+			const transition = document.startViewTransition(update);
+			transition.finished.finally(() => {
+				document.documentElement.style.removeProperty("--tx");
+				document.documentElement.style.removeProperty("--ty");
+				document.documentElement.classList.remove("theme-transition");
+			});
+		});
+	});
+</script>
+
+<style is:global>
+	.theme-transition::view-transition-group(root) {
+		animation-duration: 1.3s;
+		animation-timing-function: linear(
+			0 0%,
+			0.1684 2.66%,
+			0.3165 5.49%,
+			0.446 8.52%,
+			0.5581 11.78%,
+			0.6535 15.29%,
+			0.7341 19.11%,
+			0.8011 23.3%,
+			0.8557 27.93%,
+			0.8962 32.68%,
+			0.9283 38.01%,
+			0.9529 44.08%,
+			0.9711 51.14%,
+			0.9833 59.06%,
+			0.9915 68.74%,
+			1 100%
+		);
+	}
+
+	.theme-transition::view-transition-old(root) {
+		animation: none;
+		animation-fill-mode: both;
+		z-index: -1;
+	}
+
+	.theme-transition::view-transition-new(root) {
+		animation-name: reveal-circle;
+		animation-fill-mode: both;
+	}
+
+	.theme-transition::view-transition {
+		pointer-events: none;
+	}
+
+	@keyframes reveal-circle {
+		from {
+			clip-path: circle(0% at var(--tx, 50%) var(--ty, 50%));
+		}
+		to {
+			clip-path: circle(120vmax at var(--tx, 50%) var(--ty, 50%));
+		}
+	}
+</style>

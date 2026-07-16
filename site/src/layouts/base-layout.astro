@@ -5,6 +5,9 @@ import Icon from "~/components/icon.astro";
 
 import "~/styles/global.css";
 
+import Breadcrumbs from "./components/breadcrumbs.astro";
+import ThemeSelector from "./components/theme-selector.astro";
+
 interface Props {
 	title: string;
 	containerClass?: string;
@@ -16,6 +19,10 @@ const { title, containerClass } = Astro.props;
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
+
+		<script is:inline>
+			document.documentElement.dataset.theme = localStorage.theme ?? "";
+		</script>
 
 		<link type="image/png" href="/favicon-96x96.png" rel="icon" sizes="96x96" />
 		<link type="image/svg+xml" href="/favicon.svg" rel="icon" />
@@ -42,36 +49,14 @@ const { title, containerClass } = Astro.props;
 	<body>
 		<main
 			hx-indicator="#app-loader"
-			class:list={["container mx-auto", containerClass]}
+			class:list={["container mx-auto p-4", containerClass]}
 		>
 			{
 				Astro.url.pathname !== "/" && (
-					<div class="breadcrumbs mt-2 text-sm">
-						<ul class="justify-center">
-							<li>
-								<a href="/">bandori-stats</a>
-							</li>
-							{Astro.url.pathname
-								.split("/")
-								.filter(Boolean)
-								.map((path, idx, parts) => (
-									<li>
-										{idx === parts.length - 1 ? (
-											path
-										) : (
-											<a
-												href={
-													idx > 0
-														? `/${parts.slice(0, idx + 1).join("/")}`
-														: `/${path}`
-												}
-											>
-												{path}
-											</a>
-										)}
-									</li>
-								))}
-						</ul>
+					<div class="flex items-center justify-between">
+						<Breadcrumbs pathname={Astro.url.pathname} />
+
+						<ThemeSelector />
 					</div>
 				)
 			}
