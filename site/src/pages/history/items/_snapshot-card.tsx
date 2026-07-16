@@ -23,12 +23,15 @@ const STAT_NAMES = [
 	"clearCount",
 ] as const;
 
+type RenderContext = "site" | "takumi";
+
 export interface SnapshotCardProps extends Pick<
 	Snapshot,
 	"snapshotDate" | "stats"
 > {
 	account: Pick<Account, "nickname" | "username">;
 	previous?: Pick<Snapshot, "snapshotDate" | "stats">;
+	context?: RenderContext;
 	children?: ComponentChildren;
 }
 
@@ -37,6 +40,7 @@ export const SnapshotCard = ({
 	snapshotDate,
 	stats,
 	previous,
+	context = "site",
 	children,
 }: SnapshotCardProps) => (
 	<div class="card w-full bg-base-100 shadow-sm card-border dark:bg-base-300">
@@ -59,6 +63,7 @@ export const SnapshotCard = ({
 					<StatCell
 						name={name}
 						value={stats[name]}
+						context={context}
 						previousValue={previous?.stats[name]}
 					/>
 				))}
@@ -73,9 +78,10 @@ interface StatCellProps {
 	name: keyof Snapshot["stats"];
 	value: StatValue;
 	previousValue: StatValue;
+	context: RenderContext;
 }
 
-const StatCell = ({ name, value, previousValue }: StatCellProps) => {
+const StatCell = ({ name, value, previousValue, context }: StatCellProps) => {
 	const delta = compareValue(value, previousValue);
 	const wideColumn = name === "bandRating" || name === "highScoreRating";
 
@@ -99,6 +105,7 @@ const StatCell = ({ name, value, previousValue }: StatCellProps) => {
 							class="ml-1 badge-xs"
 							name={name}
 							value={previousValue}
+							context={context}
 							delta={delta}
 						/>
 					)}
@@ -106,7 +113,12 @@ const StatCell = ({ name, value, previousValue }: StatCellProps) => {
 			</div>
 
 			{wideColumn && delta > 0 && (
-				<StatCellDeltaBadge name={name} value={previousValue} delta={delta} />
+				<StatCellDeltaBadge
+					name={name}
+					value={previousValue}
+					context={context}
+					delta={delta}
+				/>
 			)}
 		</div>
 	);
@@ -116,6 +128,7 @@ interface StatCellDeltaBadgeProps {
 	name: keyof Snapshot["stats"];
 	delta: number;
 	value: StatValue;
+	context: RenderContext;
 	class?: string;
 }
 
@@ -123,13 +136,15 @@ const StatCellDeltaBadge = ({
 	name,
 	delta,
 	value,
+	context,
 	class: className,
 }: StatCellDeltaBadgeProps) => {
 	return (
 		<span
 			class={clsx([
-				"tooltip badge w-max badge-soft font-bold",
+				"badge badge-soft font-bold",
 				STAT_BADGES[name],
+				context === "site" && "tooltip",
 				className,
 			])}
 			data-tip={`from: ${displayValue(value)}`}

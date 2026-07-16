@@ -5,6 +5,8 @@ import Icon from "~/components/icon.astro";
 
 import "~/styles/global.css";
 
+import { Font } from "astro:assets";
+
 import Breadcrumbs from "./components/breadcrumbs.astro";
 import ThemeSelector from "./components/theme-selector.astro";
 
@@ -30,6 +32,9 @@ const { title, containerClass } = Astro.props;
 		<link href="/apple-touch-icon.png" rel="apple-touch-icon" sizes="180x180" />
 		<meta name="apple-mobile-web-app-title" content="bandori-stats" />
 		<link href="/site.webmanifest" rel="manifest" />
+
+		<Font cssVariable="--font-cause" preload />
+		<Font cssVariable="--font-m-plus-rounded-1c" />
 
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />

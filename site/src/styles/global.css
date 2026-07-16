@@ -1,12 +1,17 @@
 @import "tailwindcss";
+
+@theme inline {
+	--font-sans: var(--font-cause);
+}
+
 @plugin "daisyui" {
 	themes: false;
 }
 
-@custom-variant dark (&:where([data-theme="mocha"], [data-theme="mocha"] *));
-
 @plugin "./catppuccin.latte.ts";
 @plugin "./catppuccin.mocha.ts";
+
+@custom-variant dark (&:where([data-theme="mocha"], [data-theme="mocha"] *));
 
 @utility btn {
 	/* its messing with event delegation */

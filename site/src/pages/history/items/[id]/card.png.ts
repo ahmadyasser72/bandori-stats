@@ -30,5 +30,5 @@ export const GET: APIRoute = async (context) => {
 	}
 
 	const [data, previous] = snapshots;
-	return render({ ...data, previous });
+	return render(context, { ...data, previous });
 };
