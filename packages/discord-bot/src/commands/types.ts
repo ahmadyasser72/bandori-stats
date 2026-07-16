@@ -4,6 +4,7 @@ import type {
 	InteractionType,
 	MessageComponent,
 } from "discord-interactions";
+import type { HonoRequest } from "hono";
 
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-structure
 export interface Command {
@@ -57,5 +58,6 @@ interface CommandInteractionResponse {
 }
 
 export type CommandHandler = (
+	request: HonoRequest,
 	payload: CommandInteraction,
 ) => Promise<CommandInteractionResponse>;

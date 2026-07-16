@@ -1,11 +1,4 @@
-import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
-import {
-	accountHasNickname,
-	compareValue,
-	displayValue,
-	formatNumber,
-	titleCase,
-} from "@bandori-stats/bestdori/helpers";
+import { accountHasNickname } from "@bandori-stats/bestdori/helpers";
 import { accountSnapshots } from "@bandori-stats/database/schema";
 
 import {
@@ -18,13 +11,12 @@ import {
 	type Container,
 	type MessageComponent,
 } from "discord-interactions";
-import { getBorderCharacters, table } from "table";
 
 import { CommandOptionType, type Command, type CommandHandler } from "./types";
 
 export const command = {
-	name: "get-stats",
-	description: "Get account stats",
+	name: "snapshot",
+	description: "Get account snapshot",
 	type: 1,
 	contexts: [0, 1, 2],
 	options: [
@@ -38,7 +30,7 @@ export const command = {
 	],
 } satisfies Command;
 
-export const handle: CommandHandler = async ({ type, data }) => {
+export const handle: CommandHandler = async (request, { type, data }) => {
 	const { db, eq } = await import("@bandori-stats/database");
 
 	switch (type) {
@@ -86,7 +78,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 					};
 				} else {
 					const [accountId, page] = data
-						.custom_id!.replace("get-stats_page:", "")
+						.custom_id!.replace("snapshot_page:", "")
 						.split(":")
 						.map(Number);
 
@@ -104,7 +96,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 				};
 			}
 
-			const PAGE_SIZE = 2;
+			const PAGE_SIZE = 4;
 			const account = await db.query.accounts.findFirst({
 				columns: { username: true, nickname: true, uid: true },
 				where: { id: accountId },
@@ -116,9 +108,9 @@ export const handle: CommandHandler = async ({ type, data }) => {
 				},
 				with: {
 					snapshots: {
-						columns: { stats: true, snapshotDate: true },
+						columns: { id: true, snapshotDate: true },
 						orderBy: { snapshotDate: "desc" },
-						limit: PAGE_SIZE + 1,
+						limit: PAGE_SIZE,
 						offset: page * PAGE_SIZE,
 					},
 				},
@@ -157,45 +149,16 @@ export const handle: CommandHandler = async ({ type, data }) => {
 
 				components.push({ type: MessageComponentTypes.SEPARATOR });
 
-				const snapshots = account.snapshots.slice(0, PAGE_SIZE);
 				components.push({
-					type: MessageComponentTypes.TEXT_DISPLAY,
-					content: [
-						"```text",
-						table(
-							[
-								["Stat", ...snapshots.map(({ snapshotDate }) => snapshotDate)],
-								...[...STAT_NAMES, "titles" as const].map((name) => [
-									name === "titles"
-										? "Titles unlocked"
-										: titleCase(name.replace("Count", "")),
-									...snapshots.map(({ stats }, idx) => {
-										const current = stats[name];
-										const previous = account.snapshots.at(idx + 1)?.stats[name];
-
-										const delta = compareValue(current, previous);
-										if (delta === 0) return displayValue(current);
-
-										return [
-											displayValue(current),
-											`(${formatNumber(delta, { autoCompact: true, positiveSign: true })})`,
-										].join("\n");
-									}),
-								]),
-							],
-							{
-								border: getBorderCharacters("norc"),
-								columnDefault: {
-									alignment: "right",
-									verticalAlignment: "middle",
-									wrapWord: true,
-									width: 10,
-								},
-								columns: { 0: { width: 8, alignment: "left" } },
-							},
-						),
-						"```",
-					].join("\n"),
+					type: MessageComponentTypes.MEDIA_GALLERY,
+					items: account.snapshots.map(({ id }) => ({
+						media: {
+							url: new URL(
+								`/history/items/${id}/card.png?account=${accountId}`,
+								request.url,
+							).href,
+						},
+					})),
 				});
 
 				components.push({
@@ -239,7 +202,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 							style: ButtonStyleTypes.SECONDARY,
 							label: "Newer",
 							emoji: { id: undefined, name: "⬅️" },
-							custom_id: `get-stats_page:${accountId}:${page - 1}`,
+							custom_id: `snapshot_page:${accountId}:${page - 1}`,
 							disabled: page === 0,
 						},
 						{
@@ -247,7 +210,7 @@ export const handle: CommandHandler = async ({ type, data }) => {
 							style: ButtonStyleTypes.SECONDARY,
 							label: "Older",
 							emoji: { id: undefined, name: "➡️" },
-							custom_id: `get-stats_page:${accountId}:${page + 1}`,
+							custom_id: `snapshot_page:${accountId}:${page + 1}`,
 							disabled: page + 1 >= totalPages,
 						},
 					],

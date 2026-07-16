@@ -33,12 +33,8 @@ const app = new Hono<{ Bindings: Bindings }>()
 
 		const commands = [
 			{
-				name: "compare-stats",
-				module: () => import("./commands/compare-stats"),
-			},
-			{
-				name: "get-stats",
-				module: () => import("./commands/get-stats"),
+				name: "snapshot",
+				module: () => import("./commands/snapshot"),
 			},
 		];
 
@@ -50,7 +46,7 @@ const app = new Hono<{ Bindings: Bindings }>()
 
 		if (command) {
 			const { handle } = await command.module();
-			const response = await handle(interaction);
+			const response = await handle(c.req, interaction);
 			return c.json(response);
 		}
 	});

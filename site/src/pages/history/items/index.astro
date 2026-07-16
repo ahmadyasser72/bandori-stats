@@ -1,14 +1,12 @@
 ---
-import { accountHasNickname } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
 import { accountSnapshots } from "@bandori-stats/database/schema";
 
 import Icon from "~/components/icon.astro";
-import dayjs from "~/lib/date";
 import { paginate } from "~/lib/paginate";
 import { dateSchema } from "~/lib/schema";
 import PopoverDropdown from "./_popover-dropdown.astro";
-import StatCell from "./_stat-cell.astro";
+import { SnapshotCard } from "./_snapshot-card";
 
 export const partial = true;
 
@@ -68,16 +66,6 @@ const snapshots = currentSnapshots.map((snapshot) => ({
 	...snapshot,
 	previous: getPreviousSnapshot(snapshot),
 }));
-
-const STAT_NAMES = [
-	"bandRating",
-	"rank",
-	"highScoreRating",
-	"titles",
-	"allPerfectCount",
-	"fullComboCount",
-	"clearCount",
-] as const;
 ---
 
 {
@@ -85,52 +73,10 @@ const STAT_NAMES = [
 		({ id, accountId, account, snapshotDate, stats, previous }, idx) => (
 			<li
 				{...(page.isLastElement(idx) && page.props)}
-				class="card relative w-full bg-base-100 shadow-sm card-border dark:bg-base-300"
+				class="contents"
+				hx-vals={JSON.stringify({ account: accountId })}
 			>
-				<div
-					class="card-body gap-2 p-4"
-					hx-vals={JSON.stringify({ account: accountId })}
-				>
-					<div class="flex h-12 w-full justify-between">
-						{accountHasNickname(account) ? (
-							<div>
-								<h2 class="card-title">{account.nickname}</h2>
-								<p class="text-xs text-base-content/80">@{account.username}</p>
-							</div>
-						) : (
-							<h2 class="card-title self-center text-xl">
-								@{account.username}
-							</h2>
-						)}
-
-						<div class="text-end text-base-content/67">
-							<div class="tooltip tooltip-left underline decoration-dotted">
-								{previous && (
-									<div
-										class="tooltip-content whitespace-pre"
-										set:html={[
-											"previous update:",
-											previous.snapshotDate,
-											`(${dayjs(previous.snapshotDate).from(snapshotDate, true)} before)`,
-										].join("\n")}
-									/>
-								)}
-
-								{snapshotDate}
-							</div>
-						</div>
-					</div>
-
-					<div class="grid grid-cols-3 gap-2">
-						{STAT_NAMES.map((name) => (
-							<StatCell
-								{name}
-								value={stats[name]}
-								previousValue={previous?.stats[name]}
-							/>
-						))}
-					</div>
-
+				<SnapshotCard {account} {previous} {snapshotDate} {stats}>
 					<div
 						class="card-actions justify-end"
 						hx-disabled-elt=".card-actions button"
@@ -210,7 +156,7 @@ const STAT_NAMES = [
 							</div>
 						</PopoverDropdown>
 					)}
-				</div>
+				</SnapshotCard>
 			</li>
 		),
 	)

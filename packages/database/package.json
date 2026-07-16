@@ -4,7 +4,6 @@
 	"private": true,
 	"exports": {
 		".": "./src/db.ts",
-		"./chart": "./src/chart.ts",
 		"./redis": "./src/redis.ts",
 		"./schema": "./src/schema/index.ts"
 	},
