@@ -33,7 +33,7 @@ jobs:
           UMAMI_SITE_ID: ${{ vars.UMAMI_SITE_ID }}
 
       - name: Fix bundled assets (CSS) got lost somehow someway
-        run: mv dist/server/_astro/* dist/client/_astro
+        run: cp dist/server/_astro/* dist/client/_astro
         working-directory: site/
 
       - name: Upload site build artifact
