@@ -3,7 +3,7 @@ import cloudflare from "@astrojs/cloudflare";
 import { cacheCloudflare } from "@astrojs/cloudflare/cache";
 import preact from "@astrojs/preact";
 import tailwindcss from "@tailwindcss/vite";
-import { defineConfig, envField } from "astro/config";
+import { defineConfig, envField, fontProviders } from "astro/config";
 
 // https://astro.build/config
 export default defineConfig({
@@ -11,7 +11,6 @@ export default defineConfig({
 		imageService: "passthrough",
 		prerenderEnvironment: "node",
 	}),
-	integrations: [preact()],
 	output: "server",
 	cache: { provider: cacheCloudflare() },
 	session: {
@@ -19,6 +18,24 @@ export default defineConfig({
 			entrypoint: "unstorage/drivers/null",
 		},
 	},
+
+	integrations: [preact()],
+	fonts: [
+		{
+			provider: fontProviders.fontsource(),
+			name: "Cause",
+			cssVariable: "--font-cause",
+			weights: ["400 900"],
+			fallbacks: ["M PLUS Rounded 1c", "sans-serif"],
+		},
+		{
+			provider: fontProviders.fontsource(),
+			name: "M PLUS Rounded 1c",
+			cssVariable: "--font-m-plus-rounded-1c",
+			subsets: ["cyrillic", "greek", "hebrew", "japanese"],
+			weights: ["400 900"],
+		},
+	],
 
 	env: {
 		schema: {
