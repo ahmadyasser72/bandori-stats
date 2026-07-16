@@ -61,7 +61,6 @@ export default defineConfig({
 		},
 	},
 
-	build: { concurrency: 4 },
 	vite: {
 		plugins: [tailwindcss()],
 		server: { allowedHosts: [".lhr.life", ".opah-barley.ts.net"] },
