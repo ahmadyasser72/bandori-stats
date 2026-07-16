@@ -40,9 +40,12 @@ export const compareValue = (
 		? getValue(value) - getValue(previousValue)
 		: 0;
 
-const numberFormatter = Intl.NumberFormat("en-US");
+const numberFormatter = Intl.NumberFormat("en-US", {
+	maximumFractionDigits: 2,
+});
 const numberFormatterCompact = Intl.NumberFormat("en-US", {
 	notation: "compact",
+	maximumFractionDigits: 2,
 });
 
 interface FormatNumberOptions {

@@ -9,37 +9,94 @@ import {
 } from "@bandori-stats/bestdori/helpers";
 import type { Snapshot } from "@bandori-stats/database/schema";
 
+import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 
 interface Props {
 	name: keyof Snapshot["stats"];
+	ratio: ("fullComboCount" | "allPerfectCount")[];
 	left: StatValue;
 	"left-id"?: number;
+	"left-ratio-reference"?: StatValue;
 	right: StatValue;
 	"right-id"?: number;
+	"right-ratio-reference"?: StatValue;
 }
 
-const {
-	name,
-	left,
-	right,
-	"left-id": leftId,
-	"right-id": rightId,
-} = Astro.props;
+const { name, ratio, "left-id": leftId, "right-id": rightId } = Astro.props;
 
-const delta = compareValue(left, right);
+const compute = (valueRaw: StatValue, reference: StatValue) => {
+	let value = getValue(valueRaw ?? 0);
+	const referenceValue = getValue(reference ?? 0);
 
-const leftValue = getValue(left ?? 0);
-const rightValue = getValue(right ?? 0);
-const total = leftValue + rightValue;
-const leftPercent = total === 0 ? 50 : (leftValue / total) * 100;
+	const isRatio = referenceValue > 0;
+	if (isRatio) value *= 100 / referenceValue;
+
+	let display = value
+		? formatNumber(value, { autoCompact: true })
+		: displayValue(valueRaw);
+	if (isRatio) display += "%";
+
+	return { value, display, isRatio };
+};
+
+const left = compute(Astro.props.left, Astro.props["left-ratio-reference"]);
+const right = compute(Astro.props.right, Astro.props["right-ratio-reference"]);
+const isRatio = left.isRatio || right.isRatio;
+
+const delta = compareValue(left.value || null, right.value || null);
+let deltaDisplay =
+	Math.abs(delta) > 0
+		? formatNumber(Math.abs(delta), { autoCompact: true, positiveSign: true })
+		: "N/A";
+if (delta && isRatio) deltaDisplay += "%";
+
+const total = left.value + right.value;
+const leftPercent = total === 0 ? 50 : (left.value / total) * 100;
 const rightPercent = 100 - leftPercent;
+
+const ratioAvailable = name === "fullComboCount" || name === "allPerfectCount";
+const ratioTooltip = {
+	fullComboCount: "FC / Clear",
+	allPerfectCount: "AP / Clear",
+};
+
+const id = `comparison-${name}`;
 ---
 
-<div class="card bg-base-100 shadow-sm card-border dark:bg-base-200">
+<div class="card bg-base-100 shadow-sm card-border dark:bg-base-200" {id}>
 	<div class="card-body gap-2 p-4">
-		<div class="text-center text-sm font-medium text-base-content/67">
-			{titleCase(name)}
+		<div
+			class="inline-flex items-center justify-center gap-2 text-sm font-medium text-base-content/67"
+		>
+			{titleCase(isRatio ? name.replace("Count", "Ratio") : name)}
+
+			{
+				ratioAvailable && (
+					<button
+						hx-get="/vs"
+						data-tip={ratioTooltip[name]}
+						hx-disabled-elt={`#${id} button`}
+						hx-indicator="this"
+						hx-replace-url="true"
+						hx-select-oob={`#${id}, #actions, #players`}
+						hx-swap="none transition:true"
+						hx-vals={JSON.stringify({
+							"player-1": leftId,
+							"player-2": rightId,
+							ratio: ratio.includes(name)
+								? ratio.filter((it) => it !== name)
+								: [...ratio, name],
+						})}
+						class:list={[
+							"tooltip btn btn-circle tooltip-info btn-xs",
+							ratio.includes(name) ? "btn-info" : "btn-outline hover:btn-info",
+						]}
+					>
+						<IconLoader class="size-3.5" name="lucide:percent" />
+					</button>
+				)
+			}
 		</div>
 
 		<div class="flex items-center justify-between">
@@ -47,11 +104,7 @@ const rightPercent = 100 - leftPercent;
 				class="flex-1 text-xl font-bold text-primary"
 				style={`view-transition-name: stat-compare-${name}-${leftId ?? "left"}`}
 			>
-				{
-					leftValue
-						? formatNumber(leftValue, { autoCompact: true })
-						: displayValue(left)
-				}
+				{left.display}
 			</div>
 
 			<div
@@ -72,26 +125,14 @@ const rightPercent = 100 - leftPercent;
 					style={`view-transition-name: stat-compare-${name}-delta`}
 				/>
 
-				<span
-					class="min-w-8"
-					set:text={Math.abs(delta) > 0
-						? formatNumber(Math.abs(delta), {
-								autoCompact: true,
-								positiveSign: true,
-							})
-						: "N/A"}
-				/>
+				<span class="min-w-8">{deltaDisplay}</span>
 			</div>
 
 			<div
 				class="flex-1 text-end text-xl font-bold text-accent"
 				style={`view-transition-name: stat-compare-${name}-${rightId ?? "right"}`}
 			>
-				{
-					rightValue
-						? formatNumber(rightValue, { autoCompact: true })
-						: displayValue(right)
-				}
+				{right.display}
 			</div>
 		</div>
 
@@ -101,8 +142,14 @@ const rightPercent = 100 - leftPercent;
 					<div class="w-full bg-neutral" />
 				) : (
 					<>
-						<div class="bg-primary" style={`width: ${leftPercent}%`} />
-						<div class="bg-accent" style={`width: ${rightPercent}%`} />
+						<div
+							class="bg-primary"
+							style={`width: ${leftPercent}%; view-transition-name: stat-bar-${name}-${leftId ?? "left"}`}
+						/>
+						<div
+							class="bg-accent"
+							style={`width: ${rightPercent}%; view-transition-name: stat-bar-${name}-${rightId ?? "right"}`}
+						/>
 					</>
 				)
 			}
