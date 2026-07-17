@@ -27,8 +27,8 @@ export const render = async (context: APIContext, props: SnapshotCardProps) => {
 		</div>,
 		{
 			format: "png",
-			devicePixelRatio: 2,
-			width: 772,
+			devicePixelRatio: 1.72,
+			width: 727,
 			stylesheets: [stylesheet],
 			jsx: { tailwindClassesProperty: "class" },
 			fonts,
