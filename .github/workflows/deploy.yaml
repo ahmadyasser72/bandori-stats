@@ -36,6 +36,11 @@ jobs:
         run: cp dist/server/_astro/* dist/client/_astro
         working-directory: site/
 
+      - name: Fix delete no longer supported legacy_env from build output wrangler config
+        run: sed -i 's/"legacy_env"[^,}]*,\?//g' dist/server/wrangler.json
+        working-directory: site/
+        continue-on-error: true
+
       - name: Upload site build artifact
         uses: actions/upload-artifact@v7.0.1
         with:
