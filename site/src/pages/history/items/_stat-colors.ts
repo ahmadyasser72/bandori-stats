@@ -19,3 +19,13 @@ export const STAT_STATUSES = {
 	rank: "status-accent",
 	titles: "status-accent",
 } satisfies Record<keyof Snapshot["stats"], string>;
+
+export const STAT_TOOLTIPS = {
+	highScoreRating: "tooltip-primary",
+	bandRating: "tooltip-primary",
+	allPerfectCount: "tooltip-success",
+	fullComboCount: "tooltip-success",
+	clearCount: "tooltip-success",
+	rank: "tooltip-accent",
+	titles: "tooltip-accent",
+} satisfies Record<keyof Snapshot["stats"], string>;

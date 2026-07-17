@@ -11,7 +11,7 @@ import type { Account, Snapshot } from "@bandori-stats/database/schema";
 import { clsx } from "clsx";
 import type { ComponentChildren } from "preact";
 
-import { STAT_BADGES } from "./_stat-colors";
+import { STAT_BADGES, STAT_TOOLTIPS } from "./_stat-colors";
 
 const STAT_NAMES = [
 	"bandRating",
@@ -149,6 +149,7 @@ const StatCellDeltaBadge = ({
 				"badge badge-soft font-bold",
 				STAT_BADGES[name],
 				context === "site" && "tooltip",
+				STAT_TOOLTIPS[name],
 				className,
 			])}
 			data-tip={`from: ${displayValue(value)}`}
