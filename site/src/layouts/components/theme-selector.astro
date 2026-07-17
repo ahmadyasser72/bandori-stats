@@ -39,7 +39,7 @@ import Icon from "~/components/icon.astro";
 	document.addEventListener("DOMContentLoaded", () => {
 		const themeSelector =
 			document.querySelector<HTMLElement>("#theme-selector")!;
-		const triggerBtn = document.querySelector<HTMLElement>(
+		const triggerButton = document.querySelector<HTMLElement>(
 			'[popovertarget="theme-selector"]',
 		)!;
 
@@ -49,17 +49,15 @@ import Icon from "~/components/icon.astro";
 			if (input instanceof HTMLInputElement) input.checked = true;
 		}
 
-		themeSelector.addEventListener("input", (event) => {
-			const theme = (event.target as HTMLInputElement).value;
+		const switchTheme = (theme: string) => {
 			localStorage.setItem("theme", theme);
-
 			const update = () => (document.documentElement.dataset.theme = theme);
 			if (!document.startViewTransition) {
 				update();
 				return;
 			}
 
-			const rect = triggerBtn.getBoundingClientRect();
+			const rect = triggerButton.getBoundingClientRect();
 			const cx = ((rect.left + rect.width / 2) / window.innerWidth) * 100;
 			const cy = ((rect.top + rect.height / 2) / window.innerHeight) * 100;
 			document.documentElement.style.setProperty("--tx", `${cx}%`);
@@ -72,7 +70,20 @@ import Icon from "~/components/icon.astro";
 				document.documentElement.style.removeProperty("--ty");
 				document.documentElement.classList.remove("theme-transition");
 			});
+		};
+
+		themeSelector.addEventListener("input", (event) => {
+			switchTheme((event.target as HTMLInputElement).value);
 		});
+
+		window
+			.matchMedia("(prefers-color-scheme: dark)")
+			.addEventListener("change", (event) => {
+				const theme = event.matches ? "mocha" : "latte";
+				const themeInputs = themeSelector.querySelectorAll("input");
+				for (const input of themeInputs) input.checked = input.value === theme;
+				switchTheme(theme);
+			});
 	});
 </script>
 
@@ -119,7 +130,7 @@ import Icon from "~/components/icon.astro";
 			clip-path: circle(0% at var(--tx, 50%) var(--ty, 50%));
 		}
 		to {
-			clip-path: circle(120vmax at var(--tx, 50%) var(--ty, 50%));
+			clip-path: circle(144vmax at var(--tx, 50%) var(--ty, 50%));
 		}
 	}
 </style>

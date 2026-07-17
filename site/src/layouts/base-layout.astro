@@ -23,7 +23,11 @@ const { title, containerClass } = Astro.props;
 		<meta charset="utf-8" />
 
 		<script is:inline>
-			document.documentElement.dataset.theme = localStorage.theme ?? "";
+			document.documentElement.dataset.theme =
+				localStorage.getItem("theme") ??
+				(window.matchMedia("(prefers-color-scheme: dark)").matches
+					? "mocha"
+					: "latte");
 		</script>
 
 		<link type="image/png" href="/favicon-96x96.png" rel="icon" sizes="96x96" />
