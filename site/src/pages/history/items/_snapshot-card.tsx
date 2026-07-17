@@ -12,6 +12,7 @@ import { clsx } from "clsx";
 import type { ComponentChildren } from "preact";
 import type z from "zod";
 
+import dayjs from "~/lib/date";
 import type { ratioSchema } from "~/lib/schema";
 import { STAT_BADGES, STAT_TOOLTIPS } from "./_stat-colors";
 
@@ -53,7 +54,7 @@ export const SnapshotCard = ({
 		{...props}
 	>
 		<div class="card-body gap-2 p-4">
-			<div class="flex h-12 w-full justify-between">
+			<div class="flex h-12 w-full items-start justify-between">
 				{accountHasNickname(account) ? (
 					<div>
 						<h2 class="card-title">{account.nickname}</h2>
@@ -63,7 +64,26 @@ export const SnapshotCard = ({
 					<h2 class="card-title self-center text-xl">@{account.username}</h2>
 				)}
 
-				<div class="text-end text-base-content/67">{snapshotDate}</div>
+				<div
+					class={clsx([
+						"text-end text-base-content/67 underline",
+						context === "site"
+							? "tooltip tooltip-start tooltip-left decoration-dotted decoration-2"
+							: "border-b",
+					])}
+				>
+					{context === "site" && previous && (
+						<div class="tooltip-content whitespace-pre">
+							{[
+								"previous update:",
+								previous.snapshotDate,
+								`(${dayjs(previous.snapshotDate).from(snapshotDate, true)} before)`,
+							].join("\n")}
+						</div>
+					)}
+
+					{snapshotDate}
+				</div>
 			</div>
 
 			<div class="grid grid-cols-3 gap-2">
@@ -183,7 +203,7 @@ interface StatCellDeltaBadgeProps {
 	previousValue: StatValue;
 	delta: number;
 	previousRatio?: number;
-	ratioDelta: number;
+	ratioDelta?: number;
 	context: RenderContext;
 	class?: string;
 }
