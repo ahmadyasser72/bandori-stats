@@ -14,11 +14,11 @@ const query = Astro.locals.query.query?.toString().replace("@", "") ?? "";
 const ratio = ratioSchema.parse(Astro.locals.query.ratio);
 
 {
-	const search = new URLSearchParams(Astro.url.search);
-	search.delete("page");
-	for (const [key, value] of search.entries()) {
-		if (!value) search.delete(key);
-	}
+	const search = new URLSearchParams(
+		[...Astro.url.searchParams.entries()].filter(
+			([name, value]) => name !== "page" && value,
+		),
+	);
 
 	search.sort();
 	Astro.response.headers.set(
@@ -98,7 +98,7 @@ const snapshots = currentSnapshots.map((snapshot) => ({
 {
 	snapshots.map(
 		({ id, accountId, account, snapshotDate, stats, previous }, idx) => (
-			<li class="contents" hx-vals={JSON.stringify({ account: accountId })}>
+			<li class="contents">
 				<SnapshotCard
 					{account}
 					{previous}
@@ -110,6 +110,7 @@ const snapshots = currentSnapshots.map((snapshot) => ({
 					<div
 						class="card-actions justify-end"
 						hx-disabled-elt=".card-actions button"
+						hx-vals={JSON.stringify({ account: accountId })}
 						style={`anchor-name: --anchor-${id}-actions`}
 					>
 						<button
@@ -137,55 +138,55 @@ const snapshots = currentSnapshots.map((snapshot) => ({
 								Titles
 							</button>
 						)}
-					</div>
 
-					<PopoverDropdown class="overflow-visible" {id} name="calendar">
-						<div
-							class="relative flex min-h-70 min-w-75 justify-center"
-							hx-indicator={`#calendar-${id}-loader`}
-						>
+						<PopoverDropdown class="overflow-visible" {id} name="calendar">
 							<div
-								hx-get={`/history/items/${id}/calendar`}
-								hx-trigger="intersect once"
-								hx-swap="outerHTML"
-								hx-target="this"
-							/>
-
-							<div
-								class="htmx-indicator absolute inset-0 bg-base-100/67"
-								id={`calendar-${id}-loader`}
-							>
-								<Icon
-									class="center absolute size-32"
-									name="svg-spinners:bars-scale"
-								/>
-							</div>
-						</div>
-					</PopoverDropdown>
-
-					{stats.titles && (
-						<PopoverDropdown class="max-h-56 w-84" {id} name="titles">
-							<div
-								class="titles flex flex-wrap justify-center gap-x-1 gap-y-1.5 *:w-24 sm:*:w-32"
-								hx-indicator="closest .titles"
+								class="relative flex min-h-70 min-w-75 justify-center"
+								hx-indicator={`#calendar-${id}-loader`}
 							>
 								<div
-									hx-get={`/history/items/${id}/titles`}
+									hx-get={`/history/items/${id}/calendar`}
 									hx-trigger="intersect once"
-									class="aspect-23/5 skeleton"
 									hx-swap="outerHTML"
 									hx-target="this"
 								/>
 
-								{Array.from(
-									{ length: Math.min(stats.titles.length - 1, 5) },
-									() => (
-										<div class="htmx-indicator aspect-23/5 skeleton" />
-									),
-								)}
+								<div
+									class="htmx-indicator absolute inset-0 bg-base-100/67"
+									id={`calendar-${id}-loader`}
+								>
+									<Icon
+										class="center absolute size-32"
+										name="svg-spinners:bars-scale"
+									/>
+								</div>
 							</div>
 						</PopoverDropdown>
-					)}
+
+						{stats.titles && (
+							<PopoverDropdown class="max-h-56 w-84" {id} name="titles">
+								<div
+									class="titles flex flex-wrap justify-center gap-x-1 gap-y-1.5 *:w-24 sm:*:w-32"
+									hx-indicator="closest .titles"
+								>
+									<div
+										hx-get={`/history/items/${id}/titles`}
+										hx-trigger="intersect once"
+										class="aspect-23/5 skeleton"
+										hx-swap="outerHTML"
+										hx-target="this"
+									/>
+
+									{Array.from(
+										{ length: Math.min(stats.titles.length - 1, 5) },
+										() => (
+											<div class="htmx-indicator aspect-23/5 skeleton" />
+										),
+									)}
+								</div>
+							</PopoverDropdown>
+						)}
+					</div>
 				</SnapshotCard>
 			</li>
 		),
