@@ -11,3 +11,8 @@ export const dateSchema = z.iso
 	.date()
 	.catch(() => dayjs.tz().format("YYYY-MM-DD"));
 export const idSchema = z.coerce.number().nonnegative();
+
+export const ratioSchema = z
+	.enum(["fullComboCount", "allPerfectCount"])
+	.apply(alwaysArray)
+	.catch(() => []);

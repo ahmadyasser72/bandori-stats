@@ -10,7 +10,9 @@ import type { Account, Snapshot } from "@bandori-stats/database/schema";
 
 import { clsx } from "clsx";
 import type { ComponentChildren } from "preact";
+import type z from "zod";
 
+import type { ratioSchema } from "~/lib/schema";
 import { STAT_BADGES, STAT_TOOLTIPS } from "./_stat-colors";
 
 const STAT_NAMES = [
@@ -31,6 +33,7 @@ export interface SnapshotCardProps extends Pick<
 > {
 	account: Pick<Account, "nickname" | "username">;
 	previous?: Pick<Snapshot, "snapshotDate" | "stats">;
+	ratio: z.infer<typeof ratioSchema>;
 	context?: RenderContext;
 	children?: ComponentChildren;
 }
@@ -40,6 +43,7 @@ export const SnapshotCard = ({
 	snapshotDate,
 	stats,
 	previous,
+	ratio,
 	context = "site",
 	children,
 	...props
@@ -63,14 +67,33 @@ export const SnapshotCard = ({
 			</div>
 
 			<div class="grid grid-cols-3 gap-2">
-				{STAT_NAMES.map((name) => (
-					<StatCell
-						name={name}
-						value={stats[name]}
-						context={context}
-						previousValue={previous?.stats[name]}
-					/>
-				))}
+				{STAT_NAMES.map((name) => {
+					const useRatio =
+						(name === "fullComboCount" || name === "allPerfectCount") &&
+						ratio.includes(name) &&
+						stats[name] &&
+						stats.clearCount;
+
+					const [ratioValue, previousRatio] = useRatio
+						? [
+								(stats[name]! / stats.clearCount!) * 100,
+								previous?.stats[name] && previous.stats.clearCount
+									? (previous.stats[name] / previous.stats.clearCount) * 100
+									: undefined,
+							]
+						: [];
+
+					return (
+						<StatCell
+							name={name}
+							value={stats[name]}
+							context={context}
+							previousRatio={previousRatio}
+							previousValue={previous?.stats[name]}
+							ratio={ratioValue}
+						/>
+					);
+				})}
 			</div>
 
 			{children}
@@ -82,11 +105,22 @@ interface StatCellProps {
 	name: keyof Snapshot["stats"];
 	value: StatValue;
 	previousValue: StatValue;
+	ratio?: number;
+	previousRatio?: number;
 	context: RenderContext;
 }
 
-const StatCell = ({ name, value, previousValue, context }: StatCellProps) => {
+const StatCell = ({
+	name,
+	value,
+	previousValue,
+	ratio,
+	previousRatio,
+	context,
+}: StatCellProps) => {
 	const delta = compareValue(value, previousValue);
+	const ratioDelta = compareValue(ratio, previousRatio);
+	const showDelta = ratioDelta ? Math.abs(ratioDelta) >= 0.01 : delta > 0;
 	const wideColumn = name === "bandRating" || name === "highScoreRating";
 
 	return (
@@ -100,28 +134,43 @@ const StatCell = ({ name, value, previousValue, context }: StatCellProps) => {
 			<div>
 				<p class="text-base-content/67">
 					{titleCase(name.replace(/Count$/, ""))}
+					{ratio && " (%)"}
 				</p>
-				<p class="font-bold">
-					<span class="text-sm">{displayValue(value)}</span>
+				<div class="inline-flex items-center font-bold">
+					<span
+						class={clsx([
+							"text-sm",
+							context === "site" && ratio && "tooltip",
+							STAT_TOOLTIPS[name],
+						])}
+						data-tip={displayValue(value)}
+					>
+						{displayValue(ratio ?? value)}
+						{ratio && "%"}
+					</span>
 
-					{!wideColumn && delta > 0 && (
+					{!wideColumn && showDelta && (
 						<StatCellDeltaBadge
 							class="ml-1 badge-xs"
 							name={name}
-							value={previousValue}
 							context={context}
 							delta={delta}
+							previousRatio={previousRatio}
+							previousValue={previousValue}
+							ratioDelta={ratioDelta}
 						/>
 					)}
-				</p>
+				</div>
 			</div>
 
-			{wideColumn && delta > 0 && (
+			{wideColumn && showDelta && (
 				<StatCellDeltaBadge
 					name={name}
-					value={previousValue}
 					context={context}
 					delta={delta}
+					previousRatio={previousRatio}
+					previousValue={previousValue}
+					ratioDelta={ratioDelta}
 				/>
 			)}
 		</div>
@@ -130,8 +179,10 @@ const StatCell = ({ name, value, previousValue, context }: StatCellProps) => {
 
 interface StatCellDeltaBadgeProps {
 	name: keyof Snapshot["stats"];
+	previousValue: StatValue;
 	delta: number;
-	value: StatValue;
+	previousRatio?: number;
+	ratioDelta?: number;
 	context: RenderContext;
 	class?: string;
 }
@@ -139,22 +190,30 @@ interface StatCellDeltaBadgeProps {
 const StatCellDeltaBadge = ({
 	name,
 	delta,
-	value,
+	previousValue,
+	ratioDelta,
+	previousRatio,
 	context,
 	class: className,
 }: StatCellDeltaBadgeProps) => {
+	const displayDelta = ratioDelta || delta;
 	return (
 		<span
 			class={clsx([
 				"badge badge-soft font-bold",
-				STAT_BADGES[name],
+				displayDelta > 0 ? STAT_BADGES[name] : "badge-error",
 				context === "site" && "tooltip",
-				STAT_TOOLTIPS[name],
+				displayDelta > 0 ? STAT_TOOLTIPS[name] : "tooltip-error",
 				className,
 			])}
-			data-tip={`from: ${displayValue(value)}`}
+			data-tip={
+				displayDelta && previousRatio
+					? `${displayDelta > 0 ? "rise" : "dropped"} from: ${displayValue(previousRatio)}%`
+					: `from: ${displayValue(previousValue)}`
+			}
 		>
-			{formatNumber(delta, { autoCompact: true, positiveSign: true })}
+			{formatNumber(displayDelta, { autoCompact: true, positiveSign: true })}
+			{ratioDelta && "%"}
 		</span>
 	);
 };

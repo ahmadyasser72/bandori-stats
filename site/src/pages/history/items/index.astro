@@ -1,35 +1,62 @@
 ---
 import { db } from "@bandori-stats/database";
-import { accountSnapshots } from "@bandori-stats/database/schema";
 
 import Icon from "~/components/icon.astro";
 import { paginate } from "~/lib/paginate";
-import { dateSchema } from "~/lib/schema";
+import { dateSchema, ratioSchema } from "~/lib/schema";
 import PopoverDropdown from "./_popover-dropdown.astro";
 import { SnapshotCard } from "./_snapshot-card";
 
 export const partial = true;
 
 const date = dateSchema.unwrap().optional().parse(Astro.locals.query.date);
+const query = Astro.locals.query.query?.toString().replace("@", "") ?? "";
+const ratio = ratioSchema.parse(Astro.locals.query.ratio);
+
+{
+	const search = new URLSearchParams(Astro.url.search);
+	search.delete("page");
+	for (const [key, value] of search.entries()) {
+		if (!value) search.delete(key);
+	}
+
+	search.sort();
+	Astro.response.headers.set(
+		"hx-replace-url",
+		search.size > 0 ? `/history?${search}` : "/history",
+	);
+}
 
 const page = await paginate({
 	items: {
-		get: async (limit, offset) => ({
-			allSnapshotsCount: await db.$count(accountSnapshots),
-			data: await db.query.accountSnapshots.findMany({
+		get: (limit, offset) =>
+			db.query.accountSnapshots.findMany({
 				limit,
 				offset,
-				where: { snapshotDate: date },
-				columns: { accountId: true, id: true, snapshotDate: true, stats: true },
-				orderBy: { snapshotDate: "desc", id: "desc" },
+				where: {
+					snapshotDate: date,
+					...(query && {
+						account: {
+							OR: [
+								{ username: { like: `%${query}%` } },
+								{ nickname: { like: `%${query}%` } },
+							],
+						},
+					}),
+				},
+				columns: {
+					accountId: true,
+					id: true,
+					snapshotDate: true,
+					stats: true,
+				},
+				orderBy: { id: "desc" },
 				with: {
 					account: {
 						columns: { username: true, nickname: true },
 					},
 				},
 			}),
-		}),
-		hasNextPage: (limit, offset, it) => offset + limit < it.allSnapshotsCount,
 	},
 	context: Astro,
 	size: 12,
@@ -39,7 +66,7 @@ const page = await paginate({
 	},
 });
 
-const currentSnapshots = page.items[0].data;
+const currentSnapshots = page.items;
 const previousSnapshots = (
 	await db.query.accounts.findMany({
 		columns: {},
@@ -75,6 +102,7 @@ const snapshots = currentSnapshots.map((snapshot) => ({
 				<SnapshotCard
 					{account}
 					{previous}
+					{ratio}
 					{snapshotDate}
 					{stats}
 					{...(page.isLastElement(idx) && page.props)}

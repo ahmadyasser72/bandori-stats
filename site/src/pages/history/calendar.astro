@@ -1,6 +1,15 @@
 ---
-import { and, count, db, gte, lte } from "@bandori-stats/database";
-import { accountSnapshots } from "@bandori-stats/database/schema";
+import {
+	and,
+	count,
+	db,
+	eq,
+	gte,
+	like,
+	lte,
+	or,
+} from "@bandori-stats/database";
+import { accounts, accountSnapshots } from "@bandori-stats/database/schema";
 
 import type { FormatDateString } from "vanilla-calendar-pro";
 
@@ -9,6 +18,11 @@ import dayjs from "~/lib/date";
 import { dateSchema } from "~/lib/schema";
 
 const date = dayjs(dateSchema.parse(Astro.locals.query.date));
+const selected = dateSchema
+	.unwrap()
+	.optional()
+	.parse(Astro.locals.query.selected);
+const query = Astro.locals.query.query?.toString().replace("@", "") ?? "";
 
 const [oldest, latest, snapshots] = await db.batch([
 	db.query.accountSnapshots.findFirst({
@@ -25,6 +39,7 @@ const [oldest, latest, snapshots] = await db.batch([
 			count: count(accountSnapshots.id),
 		})
 		.from(accountSnapshots)
+		.innerJoin(accounts, eq(accountSnapshots.accountId, accounts.id))
 		.where(
 			and(
 				gte(
@@ -35,12 +50,21 @@ const [oldest, latest, snapshots] = await db.batch([
 					accountSnapshots.snapshotDate,
 					date.endOf("month").format("YYYY-MM-DD"),
 				),
+				...(query
+					? [
+							or(
+								like(accounts.username, `%${query}%`),
+								like(accounts.nickname, `%${query}%`),
+							),
+						]
+					: []),
 			),
 		)
 		.groupBy(accountSnapshots.snapshotDate),
 ]);
 
 const data = {
+	selected,
 	date: date.format("YYYY-MM-DD"),
 	oldest: oldest?.snapshotDate,
 	latest: latest?.snapshotDate,
@@ -66,11 +90,16 @@ export type Data = typeof data;
 		selector: ".vc.history-calendar",
 
 		onClickDate: ({ calendar, date }) => {
+			const inputElement = calendar
+				.closest(".dropdown")
+				?.querySelector("input");
+			if (!(inputElement instanceof HTMLInputElement)) return;
+			inputElement.value = date ?? "";
+
 			window.htmx
 				.ajax("get", "/history/items", {
 					source: calendar,
 					target: "#history-grid",
-					push: date ? `/history?date=${date}` : "/history",
 					values: date ? { date } : {},
 				})
 				.then(() => dismissCalendarPopover(calendar, "Choose Date", date));

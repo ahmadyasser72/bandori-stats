@@ -9,12 +9,15 @@ import {
 } from "@bandori-stats/bestdori/helpers";
 import type { Snapshot } from "@bandori-stats/database/schema";
 
+import type z from "zod";
+
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
+import type { ratioSchema } from "~/lib/schema";
 
 interface Props {
 	name: keyof Snapshot["stats"];
-	ratio: ("fullComboCount" | "allPerfectCount")[];
+	ratio: z.infer<typeof ratioSchema>;
 	left: StatValue;
 	"left-id"?: number;
 	"left-ratio-reference"?: StatValue;
@@ -45,10 +48,9 @@ const right = compute(Astro.props.right, Astro.props["right-ratio-reference"]);
 const isRatio = left.isRatio || right.isRatio;
 
 const delta = compareValue(left.value || null, right.value || null);
-let deltaDisplay =
-	Math.abs(delta) > 0
-		? formatNumber(Math.abs(delta), { autoCompact: true, positiveSign: true })
-		: "N/A";
+let deltaDisplay = (isRatio ? Math.abs(delta) >= 0.01 : Math.abs(delta) > 0)
+	? formatNumber(Math.abs(delta), { autoCompact: true, positiveSign: true })
+	: "N/A";
 if (delta && isRatio) deltaDisplay += "%";
 
 const total = left.value + right.value;

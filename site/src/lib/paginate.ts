@@ -7,8 +7,7 @@ interface PaginateProps<T> {
 	items:
 		| T[]
 		| {
-				get: (limit: number, offset: number) => Promise<T>;
-				hasNextPage: (limit: number, offset: number, it: T) => boolean;
+				get: (limit: number, offset: number) => Promise<T[]>;
 		  };
 	context: APIContext;
 	size: number;
@@ -26,13 +25,13 @@ export const paginate = async <T>({
 
 	const pageItems = Array.isArray(items)
 		? items.slice(offset, offset + size)
-		: [await items.get(size, offset)];
+		: await items.get(size, offset);
 	const isLastElement = (idx: number) => idx === size - 1;
 	const out = { current, size, isLastElement, items: pageItems };
 
 	const hasNextPage = Array.isArray(items)
 		? offset + size < items.length
-		: items.hasNextPage(size, offset, pageItems[0]);
+		: pageItems.length === size;
 	if (!hasNextPage) return { ...out, props: {} };
 
 	const url = new URL(context.url);

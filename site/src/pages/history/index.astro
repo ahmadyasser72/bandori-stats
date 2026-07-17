@@ -2,49 +2,136 @@
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import BaseLayout from "~/layouts/base-layout.astro";
-import { dateSchema } from "~/lib/schema";
+import { dateSchema, ratioSchema } from "~/lib/schema";
 
 const date = dateSchema.unwrap().optional().parse(Astro.locals.query.date);
+const query = Astro.locals.query.query?.toString().replace("@", "") ?? "";
+const ratio = ratioSchema.parse(Astro.locals.query.ratio);
 ---
 
 <BaseLayout title="History">
-	<div class="mt-2 flex justify-center">
-		<button
-			class="btn w-48 btn-primary"
-			popovertarget="history-date"
-			style="anchor-name: --anchor-history-date"
-		>
-			<IconLoader name="lucide:calendar" />
-			<span>{date ?? "Choose Date"}</span>
-		</button>
-
-		<div
-			class="dropdown dropdown-center mt-2 rounded-box border border-primary/20 bg-base-100 p-2 shadow-md"
-			id="history-date"
-			popover
-			style="position-anchor: --anchor-history-date"
-		>
-			<div
-				class="relative flex min-h-70 min-w-75 justify-center"
-				hx-indicator="#history-date-loader"
+	<div
+		class="mt-2 flex justify-center"
+		id="history-filter"
+		hx-include="#history-filter input"
+	>
+		<div class="flex gap-2">
+			<button
+				class="btn btn-square btn-accent"
+				popovertarget="history-search"
+				style="anchor-name: --anchor-history-search"
 			>
+				<Icon name="lucide:search" />
+			</button>
+			<div
+				class="dropdown dropdown-start mt-2 rounded-box border border-primary/20 bg-base-100 p-2 shadow-md"
+				id="history-search"
+				popover
+				style="position-anchor: --anchor-history-search"
+			>
+				<label class="input">
+					<IconLoader name="lucide:search" />
+					<input
+						hx-get="/history/items"
+						hx-trigger="keyup changed delay:300ms"
+						id="history-search-query"
+						name="query"
+						type="search"
+						value={query}
+						hx-indicator="closest .input"
+						hx-target="#history-grid"
+					/>
+				</label>
+			</div>
+
+			<button
+				class="btn w-48 btn-primary"
+				popovertarget="history-date"
+				style="anchor-name: --anchor-history-date"
+			>
+				<Icon name="lucide:calendar" />
+				<span>{date ?? "Choose Date"}</span>
+			</button>
+			<div
+				class="dropdown dropdown-center mt-2 rounded-box border border-primary/20 bg-base-100 p-2 shadow-md"
+				id="history-date"
+				popover
+				style="position-anchor: --anchor-history-date"
+			>
+				<input name="date" type="hidden" value={date} />
 				<div
 					hx-get="/history/calendar"
-					hx-trigger="intersect once"
-					hx-swap="outerHTML"
-					hx-target="this"
-					hx-vals={JSON.stringify({ date })}
+					hx-trigger="intersect once, htmx:afterRequest from:#history-search-query"
+					class="relative flex min-h-70 min-w-75 justify-center"
+					hx-indicator="#history-date-loader"
+					hx-target="#history-date-calendar"
+					hx-vals={JSON.stringify({ selected: date })}
 				>
+					<div class="contents" id="history-date-calendar"></div>
+					<div
+						class="htmx-indicator absolute inset-0 bg-base-100/67"
+						id="history-date-loader"
+					>
+						<Icon
+							class="center absolute size-32"
+							name="svg-spinners:bars-scale"
+						/>
+					</div>
 				</div>
-				<div
-					class="htmx-indicator absolute inset-0 bg-base-100/67"
-					id="history-date-loader"
+			</div>
+
+			<button
+				class="btn btn-square btn-accent"
+				popovertarget="history-settings"
+				style="anchor-name: --anchor-history-settings"
+			>
+				<Icon name="lucide:settings" />
+			</button>
+			<div
+				class="dropdown dropdown-end mt-2 rounded-box border border-primary/20 bg-base-100 p-2 shadow-md"
+				id="history-settings"
+				popover
+				style="position-anchor: --anchor-history-settings"
+			>
+				<fieldset
+					class="fieldset w-64 rounded-box border bg-base-100 p-4 pt-3 shadow-sm dark:bg-base-300"
+					id="history-settings-ratio"
+					hx-disabled-elt="#history-settings fieldset"
+					hx-indicator="#history-settings-ratio .fieldset-legend"
+					hx-target="#history-grid"
 				>
-					<Icon
-						class="center absolute size-32"
-						name="svg-spinners:bars-scale"
-					/>
-				</div>
+					<legend class="fieldset-legend py-0">
+						<IconLoader name="lucide:percent" />
+						Show Ratio
+					</legend>
+					<div class="flex flex-wrap gap-4 text-sm">
+						<label class="label">
+							<input
+								hx-get="/history/items"
+								class="checkbox checkbox-sm"
+								name="ratio"
+								type="checkbox"
+								value="fullComboCount"
+								checked={ratio.includes("fullComboCount")}
+							/>
+							Full Combo
+						</label>
+						<label class="label">
+							<input
+								hx-get="/history/items"
+								class="checkbox checkbox-sm"
+								name="ratio"
+								type="checkbox"
+								value="allPerfectCount"
+								checked={ratio.includes("allPerfectCount")}
+							/>
+							All Perfect
+						</label>
+					</div>
+					<p class="label mt-1 text-wrap">
+						Display as a percentage of total clears instead of raw numbers.
+					</p>
+				</fieldset>
 			</div>
 		</div>
 	</div>
@@ -53,6 +140,7 @@ const date = dateSchema.unwrap().optional().parse(Astro.locals.query.date);
 	<ul
 		class="mx-auto mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3"
 		id="history-grid"
+		hx-include="#history-filter input"
 		hx-indicator="#history-loader"
 	>
 		<div
@@ -60,7 +148,6 @@ const date = dateSchema.unwrap().optional().parse(Astro.locals.query.date);
 			hx-trigger="intersect once"
 			hx-indicator="#app-loader"
 			hx-swap="outerHTML"
-			hx-vals={JSON.stringify({ date })}
 		>
 		</div>
 	</ul>

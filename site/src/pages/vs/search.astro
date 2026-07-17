@@ -18,14 +18,12 @@ const accounts = await db.query.accounts.findMany({
 	orderBy: { lastUpdated: "desc", username: "asc" },
 	where: {
 		id: otherId ? { ne: otherId } : undefined,
-		...(query
-			? {
-					OR: [
-						{ username: { like: `%${query}%` } },
-						{ nickname: { like: `%${query}%` } },
-					],
-				}
-			: {}),
+		...(query && {
+			OR: [
+				{ username: { like: `%${query}%` } },
+				{ nickname: { like: `%${query}%` } },
+			],
+		}),
 	},
 });
 ---

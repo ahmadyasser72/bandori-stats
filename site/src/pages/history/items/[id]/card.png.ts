@@ -10,7 +10,7 @@ export const GET: APIRoute = async (context) => {
 	const accountId = idSchema.parse(context.url.searchParams.get("account"));
 	const snapshots = await db.query.accountSnapshots.findMany({
 		limit: 2,
-		columns: { accountId: true, id: true, snapshotDate: true, stats: true },
+		columns: { snapshotDate: true, stats: true },
 		where: { id: { lte: id }, accountId },
 		orderBy: { id: "desc" },
 		with: {
@@ -30,5 +30,5 @@ export const GET: APIRoute = async (context) => {
 	}
 
 	const [data, previous] = snapshots;
-	return render(context, { ...data, previous });
+	return render(context, { ...data, previous, ratio: [] });
 };

@@ -7,6 +7,7 @@ import {
 
 export interface CalendarData<T = unknown, P = {}> {
 	date: string;
+	selected?: string;
 	oldest?: string;
 	latest?: string;
 
@@ -71,6 +72,7 @@ export const initCalendar = <T extends CalendarData>(
 				values: {
 					...data.params,
 					date: `${year}-${String(month + 1).padStart(2, "0")}-01`,
+					...(data.selected && { selected: data.selected }),
 				},
 			});
 		};
@@ -90,6 +92,7 @@ export const initCalendar = <T extends CalendarData>(
 					}
 				: undefined,
 
+			selectedDates: data.selected ? [data.selected] : undefined,
 			selectedMonth: selected.month as Options["selectedMonth"],
 			selectedYear: selected.year,
 			onClickArrow: handleMonthChange,
