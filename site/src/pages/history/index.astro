@@ -51,7 +51,7 @@ const date = dateSchema.unwrap().optional().parse(Astro.locals.query.date);
 
 	<!-- TODO: use css-grid-lanes (masonry layout) when it arrives https://caniuse.com/css-grid-lanes -->
 	<ul
-		class="mx-auto grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-3"
+		class="mx-auto mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3"
 		id="history-grid"
 		hx-indicator="#history-loader"
 	>
