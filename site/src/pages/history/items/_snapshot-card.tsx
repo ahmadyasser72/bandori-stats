@@ -119,8 +119,9 @@ const StatCell = ({
 	context,
 }: StatCellProps) => {
 	const delta = compareValue(value, previousValue);
-	const ratioDelta = compareValue(ratio, previousRatio);
-	const showDelta = ratioDelta ? Math.abs(ratioDelta) >= 0.01 : delta > 0;
+	const ratioDelta = ratio ? compareValue(ratio, previousRatio) : undefined;
+	const showDelta =
+		ratioDelta !== undefined ? Math.abs(ratioDelta) >= 0.01 : delta > 0;
 	const wideColumn = name === "bandRating" || name === "highScoreRating";
 
 	return (
@@ -182,7 +183,7 @@ interface StatCellDeltaBadgeProps {
 	previousValue: StatValue;
 	delta: number;
 	previousRatio?: number;
-	ratioDelta?: number;
+	ratioDelta: number;
 	context: RenderContext;
 	class?: string;
 }
