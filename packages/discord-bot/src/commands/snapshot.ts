@@ -12,6 +12,7 @@ import {
 	type MessageComponent,
 } from "discord-interactions";
 
+import dayjs from "../date";
 import { CommandOptionType, type Command, type CommandHandler } from "./types";
 
 export const command = {
@@ -28,11 +29,17 @@ export const command = {
 			autocomplete: true,
 		},
 		{
+			name: "date",
+			description: "Snapshot date",
+			type: CommandOptionType.STRING,
+			autocomplete: true,
+		},
+		{
 			name: "theme",
 			description: "Card image theme",
 			type: CommandOptionType.STRING,
 			choices: [
-				{ name: " Catppuccin Latte (light)", value: "latte" },
+				{ name: "Catppuccin Latte (light)", value: "latte" },
 				{ name: "Catppuccin Mocha (dark)", value: "mocha" },
 			],
 		},
@@ -51,39 +58,71 @@ export const command = {
 } satisfies Command;
 
 export const handle: CommandHandler = async (request, { type, data }) => {
-	const { db, eq } = await import("@bandori-stats/database");
+	const { db, and, eq, gt } = await import("@bandori-stats/database");
 
 	switch (type) {
 		case InteractionType.APPLICATION_COMMAND_AUTOCOMPLETE: {
-			const typed = data.options
-				?.find(({ name, focused }) => name === "account" && focused)
-				?.value.toString();
+			const accountOption = data.options?.find(
+				({ name }) => name === "account",
+			);
+			const dateOption = data.options?.find(({ name }) => name === "date");
 
-			const accounts = await db.query.accounts.findMany({
-				columns: { id: true, username: true, nickname: true },
-				limit: 25,
-				orderBy: { lastUpdated: "desc", username: "asc" },
-				where: typed
-					? {
-							OR: [
-								{ username: { like: `%${typed}%` } },
-								{ nickname: { like: `%${typed}%` } },
-							],
-						}
-					: {},
-			});
+			if (accountOption?.focused) {
+				const typed = accountOption.value;
+				const accounts = await db.query.accounts.findMany({
+					columns: { id: true, username: true, nickname: true },
+					limit: 25,
+					orderBy: { lastUpdated: "desc", username: "asc" },
+					where: typed
+						? {
+								OR: [
+									{ username: { like: `%${typed}%` } },
+									{ nickname: { like: `%${typed}%` } },
+								],
+							}
+						: {},
+				});
+
+				return {
+					type: InteractionResponseType.APPLICATION_COMMAND_AUTOCOMPLETE_RESULT,
+					data: {
+						choices: accounts.map(({ id, username, nickname }) => ({
+							value: id,
+							name: accountHasNickname({ username, nickname })
+								? `${nickname} (@${username})`
+								: `@${username}`,
+						})),
+					},
+				};
+			} else if (
+				dateOption?.focused &&
+				typeof accountOption?.value === "number"
+			) {
+				const typed = dateOption.value;
+				const snapshots = await db.query.accountSnapshots.findMany({
+					columns: { snapshotDate: true },
+					limit: 25,
+					where: {
+						accountId: accountOption.value,
+						...(typed && { snapshotDate: { like: `%${typed}%` } }),
+					},
+					orderBy: { snapshotDate: "desc" },
+				});
+
+				return {
+					type: InteractionResponseType.APPLICATION_COMMAND_AUTOCOMPLETE_RESULT,
+					data: {
+						choices: snapshots.map(({ snapshotDate }) => ({
+							value: snapshotDate,
+							name: `${snapshotDate} (${dayjs(snapshotDate).fromNow()})`,
+						})),
+					},
+				};
+			}
 
 			return {
 				type: InteractionResponseType.APPLICATION_COMMAND_AUTOCOMPLETE_RESULT,
-				data: {
-					choices: accounts.map(({ id, username, nickname }) => {
-						const hasNickname = accountHasNickname({ username, nickname });
-						return {
-							value: id,
-							name: hasNickname ? `${nickname} (@${username})` : `@${username}`,
-						};
-					}),
-				},
+				data: { choices: [] },
 			};
 		}
 
@@ -95,25 +134,38 @@ export const handle: CommandHandler = async (request, { type, data }) => {
 				fullComboRatio = false,
 				allPerfectRatio = false,
 				page = 0,
-			} = (() => {
+			} = await (async () => {
 				if (type === InteractionType.APPLICATION_COMMAND) {
-					return {
-						accountId: Number(
-							data.options?.find(({ name }) => name === "account")?.value,
-						),
-						theme: data.options
-							?.find(({ name }) => name === "theme")
-							?.value?.toString(),
-						fullComboRatio: Boolean(
-							data.options?.find(({ name }) => name === "full_combo_ratio")
-								?.value,
-						),
-						allPerfectRatio: Boolean(
-							data.options?.find(({ name }) => name === "all_perfect_ratio")
-								?.value,
-						),
-						page: 0,
-					};
+					const accountId = Number(
+						data.options?.find(({ name }) => name === "account")?.value,
+					);
+					const date = data.options
+						?.find(({ name }) => name === "date")
+						?.value?.toString();
+					const theme = data.options
+						?.find(({ name }) => name === "theme")
+						?.value?.toString();
+					const fullComboRatio = Boolean(
+						data.options?.find(({ name }) => name === "full_combo_ratio")
+							?.value,
+					);
+					const allPerfectRatio = Boolean(
+						data.options?.find(({ name }) => name === "all_perfect_ratio")
+							?.value,
+					);
+
+					let page = 0;
+					if (date && !Number.isNaN(accountId)) {
+						page = await db.$count(
+							accountSnapshots,
+							and(
+								eq(accountSnapshots.accountId, accountId),
+								gt(accountSnapshots.snapshotDate, date),
+							),
+						);
+					}
+
+					return { accountId, theme, fullComboRatio, allPerfectRatio, page };
 				} else {
 					const parts = data.custom_id!.replace("snapshot:", "").split(":");
 
