@@ -62,6 +62,14 @@ export const updateStats = schemaTask({
 
 		const previousStats = existing?.snapshots[0]?.stats;
 		if (previousStats) {
+			for (const name of STAT_NAMES) {
+				const current = stats[name];
+				const previous = previousStats[name];
+				if (previous && (!current || current < previous)) {
+					stats[name] = previous;
+				}
+			}
+
 			const difference = [...STAT_NAMES, "titles" as const].map((name) => ({
 				name,
 				delta: compareValue(stats[name], previousStats[name]),
