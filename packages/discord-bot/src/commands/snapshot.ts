@@ -189,22 +189,17 @@ export const handle: CommandHandler = async (request, { type, data }) => {
 				};
 			}
 
-			const PAGE_SIZE = 1;
+			const queryOffset = Math.max(0, page - 1);
+			const queryLimit = page === 0 ? 2 : 3;
 			const account = await db.query.accounts.findFirst({
 				columns: { username: true, nickname: true, uid: true },
 				where: { id: accountId },
-				extras: {
-					snapshotsCount: db.$count(
-						accountSnapshots,
-						eq(accountSnapshots.accountId, accountId),
-					),
-				},
 				with: {
 					snapshots: {
 						columns: { id: true, snapshotDate: true },
 						orderBy: { snapshotDate: "desc" },
-						limit: PAGE_SIZE,
-						offset: page * PAGE_SIZE,
+						limit: queryLimit,
+						offset: queryOffset,
 					},
 				},
 			});
@@ -219,6 +214,12 @@ export const handle: CommandHandler = async (request, { type, data }) => {
 				};
 			}
 
+			const currentSnapshot =
+				page === 0 ? account.snapshots[0] : account.snapshots[1];
+			const newerSnapshot = page > 0 ? account.snapshots[0] : undefined;
+			const olderSnapshot =
+				page === 0 ? account.snapshots[1] : account.snapshots[2];
+
 			const container = ((): Container => {
 				const components: MessageComponent[] = [];
 
@@ -232,24 +233,32 @@ export const handle: CommandHandler = async (request, { type, data }) => {
 
 				components.push({
 					type: MessageComponentTypes.TEXT_DISPLAY,
-					content: `**Snapshot** @ ${account.snapshots.at(0)?.snapshotDate}`,
+					content: `**Snapshot** @ ${currentSnapshot?.snapshotDate}`,
 				});
 
 				components.push({ type: MessageComponentTypes.SEPARATOR });
 
 				components.push({
 					type: MessageComponentTypes.MEDIA_GALLERY,
-					items: account.snapshots.map(({ id }) => {
-						const image = new URL(`/history/items/${id}/card.png`, request.url);
-						image.searchParams.set("account", accountId.toString());
-						image.searchParams.set("theme", theme);
-						if (fullComboRatio)
-							image.searchParams.append("ratio", "fullComboCount");
-						if (allPerfectRatio)
-							image.searchParams.append("ratio", "allPerfectCount");
+					items: currentSnapshot
+						? [currentSnapshot].map(({ id, snapshotDate }) => {
+								const image = new URL(
+									`/history/items/${id}/card.png`,
+									request.url,
+								);
+								image.searchParams.set("account", accountId.toString());
+								image.searchParams.set("theme", theme);
+								if (fullComboRatio)
+									image.searchParams.append("ratio", "fullComboCount");
+								if (allPerfectRatio)
+									image.searchParams.append("ratio", "allPerfectCount");
 
-						return { media: { url: image.href } };
-					}),
+								return {
+									media: { url: image.href, height: 495, width: 727 },
+									description: `@${account.username} stats @ ${snapshotDate}`,
+								};
+							})
+						: [],
 				});
 
 				components.push({
@@ -280,33 +289,39 @@ export const handle: CommandHandler = async (request, { type, data }) => {
 				return { type: MessageComponentTypes.CONTAINER, components };
 			})();
 
-			const components: MessageComponent[] = [container];
+			const components: MessageComponent[] = [
+				container,
+				...((): MessageComponent[] => {
+					const buttons: Button[] = [];
 
-			if (account.snapshotsCount > PAGE_SIZE) {
-				const totalPages = Math.ceil(account.snapshotsCount / PAGE_SIZE);
-
-				components.push({
-					type: MessageComponentTypes.ACTION_ROW,
-					components: [
-						{
+					if (olderSnapshot) {
+						buttons.push({
 							type: MessageComponentTypes.BUTTON,
 							style: ButtonStyleTypes.SECONDARY,
-							label: "Newer",
+							label: olderSnapshot.snapshotDate,
 							emoji: { id: undefined, name: "⬅️" },
-							custom_id: `snapshot:${accountId}:${theme}:${fullComboRatio || ""}:${allPerfectRatio || ""}:${page - 1}`,
-							disabled: page === 0,
-						},
-						{
+							custom_id: `snapshot:${accountId}:${theme}:${fullComboRatio || ""}:${allPerfectRatio || ""}:${page + 1}`,
+						});
+					}
+					if (newerSnapshot) {
+						buttons.push({
 							type: MessageComponentTypes.BUTTON,
 							style: ButtonStyleTypes.SECONDARY,
-							label: "Older",
+							label: newerSnapshot.snapshotDate,
 							emoji: { id: undefined, name: "➡️" },
-							custom_id: `snapshot:${accountId}:${theme}:${fullComboRatio || ""}:${allPerfectRatio || ""}:${page + 1}`,
-							disabled: page + 1 >= totalPages,
-						},
-					],
-				});
-			}
+							custom_id: `snapshot:${accountId}:${theme}:${fullComboRatio || ""}:${allPerfectRatio || ""}:${page - 1}`,
+						});
+					}
+
+					if (buttons.length > 0) {
+						return [
+							{ type: MessageComponentTypes.ACTION_ROW, components: buttons },
+						];
+					}
+
+					return [];
+				})(),
+			];
 
 			return {
 				type:
