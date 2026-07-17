@@ -34,7 +34,7 @@ const page = await paginate({
 				limit,
 				offset,
 				where: {
-					snapshotDate: date,
+					snapshotDate: date ?? {},
 					...(query && {
 						account: {
 							OR: [

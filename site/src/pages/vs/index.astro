@@ -29,7 +29,7 @@ const [player1, player2] = await Promise.all(
 				snapshots: {
 					limit: 1,
 					columns: { snapshotDate: true, stats: true },
-					where: { snapshotDate: { lte: date } },
+					where: date ? { snapshotDate: { lte: date } } : {},
 					orderBy: { snapshotDate: "desc" },
 				},
 			},
