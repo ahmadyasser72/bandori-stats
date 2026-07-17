@@ -2,7 +2,7 @@ import { db } from "@bandori-stats/database";
 
 import type { APIRoute } from "astro";
 
-import { idSchema } from "~/lib/schema";
+import { idSchema, ratioSchema } from "~/lib/schema";
 import { render } from "./_render-card";
 
 export const GET: APIRoute = async (context) => {
@@ -30,5 +30,6 @@ export const GET: APIRoute = async (context) => {
 	}
 
 	const [data, previous] = snapshots;
-	return render(context, { ...data, previous, ratio: [] });
+	const ratio = ratioSchema.parse(context.locals.query.ratio);
+	return render(context, { ...data, previous, ratio });
 };

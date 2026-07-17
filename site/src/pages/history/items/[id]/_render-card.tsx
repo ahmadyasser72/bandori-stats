@@ -22,12 +22,13 @@ export const render = async (context: APIContext, props: SnapshotCardProps) => {
 	]);
 
 	return new ImageResponse(
-		<div class="bg-base-100 p-2">
+		<div class="bg-base-100 p-2" data-theme={context.locals.query.theme ?? ""}>
 			<SnapshotCard {...props} context="takumi" />
 		</div>,
 		{
 			format: "png",
 			devicePixelRatio: 2,
+			width: 772,
 			stylesheets: [stylesheet],
 			jsx: { tailwindClassesProperty: "class" },
 			fonts,

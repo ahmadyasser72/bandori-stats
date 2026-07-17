@@ -27,6 +27,26 @@ export const command = {
 			required: true,
 			autocomplete: true,
 		},
+		{
+			name: "theme",
+			description: "Card image theme",
+			type: CommandOptionType.STRING,
+			choices: [
+				{ name: " Catppuccin Latte (light)", value: "latte" },
+				{ name: "Catppuccin Mocha (dark)", value: "mocha" },
+			],
+		},
+
+		{
+			name: "full_combo_ratio",
+			description: "Display Full Combo as a percentage of total clears.",
+			type: CommandOptionType.BOOLEAN,
+		},
+		{
+			name: "all_perfect_ratio",
+			description: "Display All Perfect as a percentage of total clears.",
+			type: CommandOptionType.BOOLEAN,
+		},
 	],
 } satisfies Command;
 
@@ -69,20 +89,41 @@ export const handle: CommandHandler = async (request, { type, data }) => {
 
 		case InteractionType.MESSAGE_COMPONENT:
 		case InteractionType.APPLICATION_COMMAND: {
-			const { accountId = NaN, page = 0 } = (() => {
+			const {
+				accountId = NaN,
+				theme = "mocha",
+				fullComboRatio = false,
+				allPerfectRatio = false,
+				page = 0,
+			} = (() => {
 				if (type === InteractionType.APPLICATION_COMMAND) {
 					return {
 						accountId: Number(
 							data.options?.find(({ name }) => name === "account")?.value,
 						),
+						theme: data.options
+							?.find(({ name }) => name === "theme")
+							?.value?.toString(),
+						fullComboRatio: Boolean(
+							data.options?.find(({ name }) => name === "full_combo_ratio")
+								?.value,
+						),
+						allPerfectRatio: Boolean(
+							data.options?.find(({ name }) => name === "all_perfect_ratio")
+								?.value,
+						),
+						page: 0,
 					};
 				} else {
-					const [accountId, page] = data
-						.custom_id!.replace("snapshot_page:", "")
-						.split(":")
-						.map(Number);
+					const parts = data.custom_id!.replace("snapshot:", "").split(":");
 
-					return { accountId, page };
+					return {
+						accountId: Number(parts[0]),
+						theme: parts[1],
+						fullComboRatio: !!parts[2],
+						allPerfectRatio: !!parts[3],
+						page: Number(parts[4]),
+					};
 				}
 			})();
 
@@ -96,7 +137,7 @@ export const handle: CommandHandler = async (request, { type, data }) => {
 				};
 			}
 
-			const PAGE_SIZE = 4;
+			const PAGE_SIZE = 1;
 			const account = await db.query.accounts.findFirst({
 				columns: { username: true, nickname: true, uid: true },
 				where: { id: accountId },
@@ -137,28 +178,26 @@ export const handle: CommandHandler = async (request, { type, data }) => {
 						: `# @${account.username}`,
 				});
 
-				const totalPages = Math.ceil(account.snapshotsCount / PAGE_SIZE);
 				components.push({
 					type: MessageComponentTypes.TEXT_DISPLAY,
-					content: `**Snapshots**: ${
-						account.snapshots.at(0)?.snapshotDate ?? "—"
-					}, ${
-						account.snapshots.at(-1)?.snapshotDate ?? "—"
-					} (page ${page + 1}/${totalPages})`,
+					content: `**Snapshot** @ ${account.snapshots.at(0)?.snapshotDate}`,
 				});
 
 				components.push({ type: MessageComponentTypes.SEPARATOR });
 
 				components.push({
 					type: MessageComponentTypes.MEDIA_GALLERY,
-					items: account.snapshots.map(({ id }) => ({
-						media: {
-							url: new URL(
-								`/history/items/${id}/card.png?account=${accountId}`,
-								request.url,
-							).href,
-						},
-					})),
+					items: account.snapshots.map(({ id }) => {
+						const image = new URL(`/history/items/${id}/card.png`, request.url);
+						image.searchParams.set("account", accountId.toString());
+						image.searchParams.set("theme", theme);
+						if (fullComboRatio)
+							image.searchParams.append("ratio", "fullComboCount");
+						if (allPerfectRatio)
+							image.searchParams.append("ratio", "allPerfectCount");
+
+						return { media: { url: image.href } };
+					}),
 				});
 
 				components.push({
@@ -202,7 +241,7 @@ export const handle: CommandHandler = async (request, { type, data }) => {
 							style: ButtonStyleTypes.SECONDARY,
 							label: "Newer",
 							emoji: { id: undefined, name: "⬅️" },
-							custom_id: `snapshot_page:${accountId}:${page - 1}`,
+							custom_id: `snapshot:${accountId}:${theme}:${fullComboRatio || ""}:${allPerfectRatio || ""}:${page - 1}`,
 							disabled: page === 0,
 						},
 						{
@@ -210,7 +249,7 @@ export const handle: CommandHandler = async (request, { type, data }) => {
 							style: ButtonStyleTypes.SECONDARY,
 							label: "Older",
 							emoji: { id: undefined, name: "➡️" },
-							custom_id: `snapshot_page:${accountId}:${page + 1}`,
+							custom_id: `snapshot:${accountId}:${theme}:${fullComboRatio || ""}:${allPerfectRatio || ""}:${page + 1}`,
 							disabled: page + 1 >= totalPages,
 						},
 					],
