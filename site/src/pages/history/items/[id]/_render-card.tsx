@@ -18,6 +18,7 @@ export const render = async (context: APIContext, props: SnapshotCardProps) => {
 
 	const fonts = await Promise.all([
 		fetchFont("Cause", "--font-cause"),
+		fetchFont("Kosugi Maru", "--font-kosugi-maru"),
 		fetchFont("M PLUS Rounded 1c", "--font-m-plus-rounded-1c"),
 	]);
 
@@ -31,6 +32,7 @@ export const render = async (context: APIContext, props: SnapshotCardProps) => {
 			width: 727,
 			stylesheets: [stylesheet],
 			jsx: { tailwindClassesProperty: "class" },
+			emoji: "blobmoji",
 			fonts,
 		},
 	);

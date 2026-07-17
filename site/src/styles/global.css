@@ -1,7 +1,9 @@
 @import "tailwindcss";
 
 @theme inline {
-	--font-sans: var(--font-cause);
+	--font-sans:
+		var(--font-cause), var(--font-kosugi-maru), var(--font-m-plus-rounded-1c),
+		sans-serif;
 }
 
 @plugin "daisyui" {
