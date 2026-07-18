@@ -153,11 +153,11 @@ const StatCell = ({
 			])}
 		>
 			<div>
-				<p class="text-base-content/67">
+				<p class={clsx(["text-base-content/67", ratio && "max-sm:text-xs"])}>
 					{titleCase(name.replace(/Count$/, ""))}
 					{ratio && " (%)"}
 				</p>
-				<div class="inline-flex items-center font-bold">
+				<div class="inline-flex flex-wrap items-center gap-x-1 gap-y-0.5 font-bold">
 					<span
 						class={clsx([
 							"text-sm",
@@ -172,7 +172,7 @@ const StatCell = ({
 
 					{!wideColumn && showDelta && (
 						<StatCellDeltaBadge
-							class="ml-1 badge-xs"
+							class="badge-xs"
 							name={name}
 							context={context}
 							delta={delta}
