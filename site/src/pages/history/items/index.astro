@@ -13,7 +13,7 @@ const date = dateSchema.unwrap().optional().parse(Astro.locals.query.date);
 const query = Astro.locals.query.query?.toString().replace("@", "") ?? "";
 const ratio = ratioSchema.parse(Astro.locals.query.ratio);
 
-{
+if (!Astro.url.searchParams.has("page")) {
 	const search = new URLSearchParams(
 		[...Astro.url.searchParams.entries()].filter(
 			([name, value]) => name !== "page" && value,
@@ -95,10 +95,10 @@ const snapshots = currentSnapshots.map((snapshot) => ({
 }));
 
 if (snapshots.length > 0 && Astro.cache.enabled) {
-	const etag = `"${__GIT_HASH__}-${snapshots.map(({ id }) => id).join(".")}"`;
-	Astro.cache.set({ etag, maxAge: 60 * 60 });
-	Astro.response.headers.set("Cache-Control", "max-age=0, must-revalidate");
-	Astro.response.headers.set("ETag", etag);
+	Astro.cache.set({
+		etag: `"${__GIT_HASH__}-${snapshots.map(({ id }) => id).join(".")}"`,
+		maxAge: 60 * 60,
+	});
 }
 ---
 
@@ -117,7 +117,6 @@ if (snapshots.length > 0 && Astro.cache.enabled) {
 					<div
 						class="card-actions justify-end"
 						hx-disabled-elt=".card-actions button"
-						hx-vals={JSON.stringify({ account: accountId })}
 						style={`anchor-name: --anchor-${id}-actions`}
 					>
 						<button

@@ -9,6 +9,8 @@ import dayjs from "~/lib/date";
 import { dateSchema, idSchema } from "~/lib/schema";
 import { computeStatDeltas } from "~/lib/stats";
 
+export const partial = true;
+
 const player1_id = idSchema.parse(Astro.locals.query["player-1"]);
 const player2_id = idSchema.parse(Astro.locals.query["player-2"]);
 const date = dayjs(dateSchema.parse(Astro.locals.query.date));
@@ -107,6 +109,13 @@ const data = {
 } satisfies CalendarData;
 
 export type Data = typeof data;
+
+if (Astro.cache.enabled) {
+	Astro.cache.set({
+		etag: `"${__GIT_HASH__}"`,
+		maxAge: date.isSame(dayjs.tz(), "month") ? 60 * 60 : 60 * 60 * 24 * 365,
+	});
+}
 ---
 
 <div class="vs-calendar vc skeleton" data-calendar={JSON.stringify(data)}></div>

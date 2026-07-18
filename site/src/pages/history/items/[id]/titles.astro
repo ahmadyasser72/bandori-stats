@@ -7,11 +7,10 @@ import { idSchema } from "~/lib/schema";
 export const partial = true;
 
 const id = idSchema.parse(Astro.params.id);
-const accountId = idSchema.parse(Astro.url.searchParams.get("account"));
 const snapshots = await db.query.accountSnapshots.findMany({
 	limit: 2,
 	columns: { stats: true },
-	where: { id: { lte: id }, accountId },
+	where: { id: { lte: id } },
 	orderBy: { id: "desc" },
 });
 
@@ -19,7 +18,6 @@ const snapshot = snapshots[0];
 const previous = snapshots[1];
 
 const titles = snapshot?.stats.titles ?? null;
-
 const isNotFound = !snapshot || titles === null;
 if (isNotFound) Astro.response.status = 404;
 
@@ -39,6 +37,10 @@ const page = await paginate({
 	size: 24,
 	extraProps: { "hx-swap": "afterend" },
 });
+
+if (!isNotFound && Astro.cache.enabled) {
+	Astro.cache.set({ etag: `"${__GIT_HASH__}"`, maxAge: 60 * 60 * 24 * 365 });
+}
 ---
 
 {

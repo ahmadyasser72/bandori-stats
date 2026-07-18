@@ -24,8 +24,8 @@ export const GET: APIRoute = async (context) => {
 
 	if (context.cache.enabled) {
 		context.cache.set({
-			lastModified: new Date(snapshots[0].snapshotDate),
-			maxAge: 60 * 60 * 24 * 28,
+			etag: `"${__GIT_HASH__}"`,
+			maxAge: 60 * 60 * 24 * 365,
 		});
 	}
 

@@ -26,6 +26,10 @@ const accounts = await db.query.accounts.findMany({
 		}),
 	},
 });
+
+if (Astro.cache.enabled) {
+	Astro.cache.set({ etag: `"${__GIT_HASH__}"`, maxAge: 60 * 60 });
+}
 ---
 
 {

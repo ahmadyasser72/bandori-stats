@@ -11,47 +11,51 @@ import { computeStatDeltas } from "~/lib/stats";
 export const partial = true;
 
 const id = idSchema.parse(Astro.params.id);
-const accountId = idSchema.parse(Astro.url.searchParams.get("account"));
-
 const date = dayjs(dateSchema.parse(Astro.locals.query.date));
+
 const snapshot = await db.query.accountSnapshots.findFirst({
-	columns: { snapshotDate: true },
-	where: { id, accountId },
+	columns: { accountId: true, snapshotDate: true },
+	where: { id },
 });
+
+const isNotFound = !snapshot;
+if (isNotFound) Astro.response.status = 404;
 
 const monthStart = date.startOf("month").format("YYYY-MM-DD");
 const monthEnd = date.endOf("month").format("YYYY-MM-DD");
-const [oldest, latest, snapshots, firstPreviousSnapshot] = await db.batch([
-	db.query.accountSnapshots.findFirst({
-		columns: { snapshotDate: true },
-		orderBy: { snapshotDate: "asc" },
-		where: { accountId },
-	}),
-	db.query.accountSnapshots.findFirst({
-		columns: { snapshotDate: true },
-		orderBy: { snapshotDate: "desc" },
-		where: {
-			accountId,
-			snapshotDate: { lte: snapshot?.snapshotDate ?? monthEnd },
-		},
-	}),
-	db.query.accountSnapshots.findMany({
-		columns: { snapshotDate: true, stats: true },
-		where: {
-			id: { lte: id },
-			accountId,
-			snapshotDate: { gte: monthStart, lte: monthEnd },
-		},
-	}),
-	db.query.accountSnapshots.findFirst({
-		columns: { stats: true },
-		where: {
-			accountId,
-			snapshotDate: { lt: monthStart },
-		},
-		orderBy: { snapshotDate: "desc" },
-	}),
-]);
+const [oldest, latest, snapshots, firstPreviousSnapshot] = isNotFound
+	? []
+	: await db.batch([
+			db.query.accountSnapshots.findFirst({
+				columns: { snapshotDate: true },
+				orderBy: { snapshotDate: "asc" },
+				where: { accountId: snapshot.accountId },
+			}),
+			db.query.accountSnapshots.findFirst({
+				columns: { snapshotDate: true },
+				orderBy: { snapshotDate: "desc" },
+				where: {
+					accountId: snapshot.accountId,
+					snapshotDate: { lte: snapshot.snapshotDate },
+				},
+			}),
+			db.query.accountSnapshots.findMany({
+				columns: { snapshotDate: true, stats: true },
+				where: {
+					id: { lte: id },
+					accountId: snapshot.accountId,
+					snapshotDate: { gte: monthStart, lte: monthEnd },
+				},
+			}),
+			db.query.accountSnapshots.findFirst({
+				columns: { stats: true },
+				where: {
+					accountId: snapshot.accountId,
+					snapshotDate: { lt: monthStart },
+				},
+				orderBy: { snapshotDate: "desc" },
+			}),
+		]);
 
 const data = {
 	date: date?.format("YYYY-MM-DD"),
@@ -59,19 +63,25 @@ const data = {
 	latest: latest?.snapshotDate,
 
 	url: `/history/items/${id}/calendar`,
-	params: { account: accountId },
-	items: Object.fromEntries(
-		snapshots.map(({ snapshotDate, stats }, idx) => [
-			snapshotDate as FormatDateString,
-			computeStatDeltas(
-				stats,
-				idx > 0 ? snapshots[idx - 1].stats : firstPreviousSnapshot?.stats,
-			),
-		]),
-	),
+	params: {},
+	items: snapshots
+		? Object.fromEntries(
+				snapshots.map(({ snapshotDate, stats }, idx) => [
+					snapshotDate as FormatDateString,
+					computeStatDeltas(
+						stats,
+						idx > 0 ? snapshots[idx - 1].stats : firstPreviousSnapshot?.stats,
+					),
+				]),
+			)
+		: {},
 } satisfies CalendarData;
 
 export type Data = typeof data;
+
+if (!isNotFound && Astro.cache.enabled) {
+	Astro.cache.set({ etag: `"${__GIT_HASH__}"`, maxAge: 60 * 60 * 24 * 365 });
+}
 ---
 
 <div class="snapshot-calendar vc skeleton" data-calendar={JSON.stringify(data)}>

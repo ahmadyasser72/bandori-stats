@@ -140,12 +140,12 @@ const ratio = ratioSchema.parse(Astro.locals.query.ratio);
 	<ul
 		class="mx-auto mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3"
 		id="history-grid"
-		hx-include="#history-filter input"
 		hx-indicator="#history-loader"
 	>
 		<div
 			hx-get="/history/items"
 			hx-trigger="intersect once"
+			hx-include="#history-filter input"
 			hx-indicator="#app-loader"
 			hx-swap="outerHTML"
 		>

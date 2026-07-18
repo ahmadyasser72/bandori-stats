@@ -5,6 +5,7 @@ import { db } from "@bandori-stats/database";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import BaseLayout from "~/layouts/base-layout.astro";
+import dayjs from "~/lib/date";
 import { dateSchema, idSchema, ratioSchema } from "~/lib/schema";
 import PlayerCard from "./_player-card.astro";
 import StatCompareCard from "./_stat-compare-card.astro";
@@ -36,6 +37,16 @@ const [player1, player2] = await Promise.all(
 		});
 	}),
 );
+
+if ((player1 || player2) && Astro.cache.enabled) {
+	Astro.cache.set({
+		etag: `"${__GIT_HASH__}"`,
+		maxAge:
+			date && dayjs.tz(date).isBefore(dayjs.tz(), "day")
+				? 60 * 60 * 24 * 365
+				: 60 * 60,
+	});
+}
 ---
 
 <BaseLayout title="VS Accounts" containerClass="max-w-3xl">

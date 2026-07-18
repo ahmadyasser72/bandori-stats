@@ -17,6 +17,8 @@ import type { CalendarData } from "~/lib/calendar";
 import dayjs from "~/lib/date";
 import { dateSchema } from "~/lib/schema";
 
+export const partial = true;
+
 const date = dayjs(dateSchema.parse(Astro.locals.query.date));
 const selected = dateSchema
 	.unwrap()
@@ -77,6 +79,10 @@ const data = {
 } satisfies CalendarData;
 
 export type Data = typeof data;
+
+if (Astro.cache.enabled) {
+	Astro.cache.set({ etag: `"${__GIT_HASH__}"`, maxAge: 60 * 60 });
+}
 ---
 
 <div class="history-calendar vc skeleton" data-calendar={JSON.stringify(data)}>
