@@ -2,7 +2,7 @@
 
 @theme inline {
 	--font-sans:
-		var(--font-cause), var(--font-kosugi-maru), var(--font-m-plus-rounded-1c),
+		var(--font-cause), var(--font-m-plus-rounded-1c), var(--font-kosugi-maru),
 		sans-serif;
 }
 
