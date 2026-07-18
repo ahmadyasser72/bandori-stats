@@ -65,7 +65,6 @@ const ratio = ratioSchema.parse(Astro.locals.query.ratio);
 					class="relative flex min-h-70 min-w-75 justify-center"
 					hx-indicator="#history-date-loader"
 					hx-target="#history-date-calendar"
-					hx-vals={JSON.stringify({ selected: date })}
 				>
 					<div class="contents" id="history-date-calendar"></div>
 					<div

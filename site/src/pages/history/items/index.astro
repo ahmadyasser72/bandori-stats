@@ -2,6 +2,7 @@
 import { db } from "@bandori-stats/database";
 
 import Icon from "~/components/icon.astro";
+import dayjs from "~/lib/date";
 import { paginate } from "~/lib/paginate";
 import { dateSchema, ratioSchema } from "~/lib/schema";
 import PopoverDropdown from "./_popover-dropdown.astro";
@@ -155,6 +156,15 @@ if (snapshots.length > 0 && Astro.cache.enabled) {
 									hx-trigger="intersect once"
 									hx-swap="outerHTML"
 									hx-target="this"
+									hx-vals={
+										date
+											? JSON.stringify({
+													date: dayjs(date)
+														.startOf("month")
+														.format("YYYY-MM-DD"),
+												})
+											: undefined
+									}
 								/>
 
 								<div

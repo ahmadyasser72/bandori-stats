@@ -85,12 +85,11 @@ export const initCalendar = <T extends CalendarData>(
 			disableAllDates: true,
 			enableDates: Object.keys(data.items),
 
-			onClickDate: config.onClickDate
-				? (self) => {
-						const [date] = self.context.selectedDates;
-						config.onClickDate!({ calendar: element, date, data });
-					}
-				: undefined,
+			onClickDate: (self) => {
+				const [date] = self.context.selectedDates;
+				config.onClickDate?.({ calendar: element, date, data });
+				data.selected = date;
+			},
 
 			selectedDates: data.selected ? [data.selected] : undefined,
 			selectedMonth: selected.month as Options["selectedMonth"],
