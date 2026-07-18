@@ -25,6 +25,7 @@ export default defineConfig({
 		prerenderEnvironment: "node",
 	}),
 	output: "server",
+	trailingSlash: "never",
 	cache: { provider: cacheCloudflare() },
 	session: {
 		driver: {
