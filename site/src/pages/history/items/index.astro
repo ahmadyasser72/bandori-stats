@@ -93,6 +93,13 @@ const snapshots = currentSnapshots.map((snapshot) => ({
 	...snapshot,
 	previous: getPreviousSnapshot(snapshot),
 }));
+
+if (snapshots.length > 0 && Astro.cache.enabled) {
+	const etag = `"${__GIT_HASH__}-${snapshots.map(({ id }) => id).join(".")}"`;
+	Astro.cache.set({ etag, maxAge: 60 * 60 });
+	Astro.response.headers.set("Cache-Control", "max-age=0, must-revalidate");
+	Astro.response.headers.set("ETag", etag);
+}
 ---
 
 {

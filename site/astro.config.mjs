@@ -1,9 +1,22 @@
 // @ts-check
+import { exec } from "node:child_process";
+
 import cloudflare from "@astrojs/cloudflare";
 import { cacheCloudflare } from "@astrojs/cloudflare/cache";
 import preact from "@astrojs/preact";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, envField, fontProviders } from "astro/config";
+
+const GIT_HASH = await new Promise((resolve, reject) => {
+	exec("git rev-parse --short HEAD", (error, stdout) =>
+		error ? reject(error) : resolve(stdout.trim()),
+	);
+});
+const GIT_URL = await new Promise((resolve, reject) => {
+	exec("git config --get remote.origin.url", (error, stdout) =>
+		error ? reject(error) : resolve(stdout.trim().replace(/.git$/, "/")),
+	);
+});
 
 // https://astro.build/config
 export default defineConfig({
@@ -98,6 +111,11 @@ export default defineConfig({
 					},
 				},
 			},
+		},
+
+		define: {
+			__GIT_HASH__: JSON.stringify(GIT_HASH),
+			__GIT_URL__: JSON.stringify(GIT_URL),
 		},
 	},
 
