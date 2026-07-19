@@ -2,11 +2,11 @@
 import { db } from "@bandori-stats/database";
 
 import { paginate } from "~/lib/paginate";
-import { idSchema } from "~/lib/schema";
+import { IdSchema } from "~/lib/schema";
 
 export const partial = true;
 
-const id = idSchema.parse(Astro.params.id);
+const id = IdSchema.parse(Astro.params.id);
 const snapshot = await db.query.accountSnapshots.findFirst({
 	columns: { accountId: true, stats: true },
 	where: { id },

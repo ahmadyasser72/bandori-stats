@@ -1,12 +1,18 @@
 ---
+import z from "zod";
+
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import BaseLayout from "~/layouts/base-layout.astro";
-import { dateSchema, ratioSchema } from "~/lib/schema";
+import { QuerySchema, RatioSchema } from "~/lib/schema";
 
-const date = dateSchema.unwrap().optional().parse(Astro.locals.query.date);
-const query = Astro.locals.query.query?.toString().replace("@", "") ?? "";
-const ratio = ratioSchema.parse(Astro.locals.query.ratio);
+const { query, ratio, date } = Astro.locals.parseQuery(
+	z.object({
+		query: QuerySchema,
+		date: z.iso.date().optional(),
+		ratio: RatioSchema,
+	}),
+);
 ---
 
 <BaseLayout title="History">

@@ -4,7 +4,7 @@ import z from "zod";
 import dayjs from "~/lib/date";
 
 const querySchema = z.instanceof(URLSearchParams).transform((searchParams) =>
-	[...searchParams.entries()].reduce<App.Locals["query"]>(
+	[...searchParams.entries()].reduce(
 		(acc, [key, value]) => {
 			if (value.length === 0) return acc;
 
@@ -14,7 +14,7 @@ const querySchema = z.instanceof(URLSearchParams).transform((searchParams) =>
 
 			return acc;
 		},
-		{},
+		{} as Record<string, string | string[]>,
 	),
 );
 
@@ -23,9 +23,9 @@ export const onRequest = defineMiddleware(
 		const { data, error, success } = querySchema.safeParse(url.searchParams);
 		if (import.meta.env.DEV && !success)
 			throw new Error(z.prettifyError(error));
-		locals.query = success ? data : {};
+		locals.parseQuery = (schema) => schema.parse(success ? data : {});
 
-		if (url.pathname.endsWith("/calendar") && !locals.query.date) {
+		if (url.pathname.endsWith("/calendar") && !url.searchParams.has("date")) {
 			const search = new URLSearchParams(url.searchParams);
 			const thisMonth = dayjs.tz().startOf("month").format("YYYY-MM-DD");
 			search.set("date", thisMonth);

@@ -23,7 +23,10 @@ export const render = async (context: APIContext, props: SnapshotCardProps) => {
 	]);
 
 	return new ImageResponse(
-		<div class="bg-base-100 p-2" data-theme={context.locals.query.theme ?? ""}>
+		<div
+			class="bg-base-100 p-2"
+			data-theme={context.url.searchParams.get("theme") ?? ""}
+		>
 			<SnapshotCard {...props} context="takumi" />
 		</div>,
 		{

@@ -1,5 +1,7 @@
 declare namespace App {
 	interface Locals {
-		query: Record<string, string | string[]>;
+		parseQuery: <S extends import("zod").ZodObject>(
+			schema: S,
+		) => import("zod").output<S>;
 	}
 }

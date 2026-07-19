@@ -2,17 +2,21 @@
 import { db } from "@bandori-stats/database";
 
 import type { FormatDateString } from "vanilla-calendar-pro";
+import z from "zod";
 
 import type { CalendarData } from "~/lib/calendar";
 import dayjs from "~/lib/date";
-import { dateSchema, idSchema } from "~/lib/schema";
+import { IdSchema, IsoDateWithDefault } from "~/lib/schema";
 import { computeStatDeltas } from "~/lib/stats";
 
 export const partial = true;
 
-const id = idSchema.parse(Astro.params.id);
-const date = dayjs(dateSchema.parse(Astro.locals.query.date));
+const id = IdSchema.parse(Astro.params.id);
+const { date: queryDate } = Astro.locals.parseQuery(
+	z.object({ date: IsoDateWithDefault }),
+);
 
+const date = dayjs(queryDate);
 const snapshot = await db.query.accountSnapshots.findFirst({
 	columns: { accountId: true, snapshotDate: true },
 	where: { id },

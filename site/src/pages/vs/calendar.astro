@@ -3,18 +3,28 @@ import { db } from "@bandori-stats/database";
 import type { Snapshot } from "@bandori-stats/database/schema";
 
 import type { FormatDateString } from "vanilla-calendar-pro";
+import z from "zod";
 
 import type { CalendarData } from "~/lib/calendar";
 import dayjs from "~/lib/date";
-import { dateSchema, idSchema } from "~/lib/schema";
+import { IdSchema, IsoDateWithDefault } from "~/lib/schema";
 import { computeStatDeltas } from "~/lib/stats";
 
 export const partial = true;
 
-const player1_id = idSchema.parse(Astro.locals.query["player-1"]);
-const player2_id = idSchema.parse(Astro.locals.query["player-2"]);
-const date = dayjs(dateSchema.parse(Astro.locals.query.date));
+const {
+	"player-1": player1_id,
+	"player-2": player2_id,
+	date: queryDate,
+} = Astro.locals.parseQuery(
+	z.object({
+		"player-1": IdSchema,
+		"player-2": IdSchema,
+		date: IsoDateWithDefault,
+	}),
+);
 
+const date = dayjs(queryDate);
 const monthStart = date.startOf("month").format("YYYY-MM-DD");
 const monthEnd = date.endOf("month").format("YYYY-MM-DD");
 const [oldest, latest, accounts, accountsPreviousSnapshot] = await db.batch([

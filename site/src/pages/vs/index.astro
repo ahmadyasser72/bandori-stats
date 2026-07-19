@@ -2,19 +2,30 @@
 import { STAT_NAMES, type StatName } from "@bandori-stats/bestdori/constants";
 import { db } from "@bandori-stats/database";
 
+import z from "zod";
+
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import BaseLayout from "~/layouts/base-layout.astro";
 import dayjs from "~/lib/date";
-import { dateSchema, idSchema, ratioSchema } from "~/lib/schema";
+import { IdSchema, RatioSchema } from "~/lib/schema";
 import PlayerCard from "./_player-card.astro";
 import StatCompareCard from "./_stat-compare-card.astro";
 
-const player1_id = idSchema.optional().parse(Astro.locals.query["player-1"]);
-const player2_id = idSchema.optional().parse(Astro.locals.query["player-2"]);
-const date = dateSchema.unwrap().optional().parse(Astro.locals.query.date);
+const {
+	"player-1": player1_id,
+	"player-2": player2_id,
+	ratio,
+	date,
+} = Astro.locals.parseQuery(
+	z.object({
+		"player-1": IdSchema.optional(),
+		"player-2": IdSchema.optional(),
+		date: z.iso.date().optional(),
+		ratio: RatioSchema,
+	}),
+);
 
-const ratio = ratioSchema.parse(Astro.locals.query.ratio);
 const useRatio = (name: StatName) =>
 	((name === "fullComboCount" || name === "allPerfectCount") &&
 		ratio.includes(name)) ||

@@ -13,7 +13,7 @@ import type { ComponentChildren } from "preact";
 import type z from "zod";
 
 import dayjs from "~/lib/date";
-import type { ratioSchema } from "~/lib/schema";
+import type { RatioSchema } from "~/lib/schema";
 import { STAT_BADGES, STAT_TOOLTIPS } from "./_stat-colors";
 
 const STAT_NAMES = [
@@ -34,7 +34,7 @@ export interface SnapshotCardProps extends Pick<
 > {
 	account: Pick<Account, "nickname" | "username">;
 	previous?: Pick<Snapshot, "snapshotDate" | "stats">;
-	ratio: z.infer<typeof ratioSchema>;
+	ratio: z.infer<typeof RatioSchema>;
 	context?: RenderContext;
 	children?: ComponentChildren;
 }

@@ -1,18 +1,24 @@
 ---
 import { db } from "@bandori-stats/database";
 
+import z from "zod";
+
 import Icon from "~/components/icon.astro";
 import dayjs from "~/lib/date";
 import { paginate } from "~/lib/paginate";
-import { dateSchema, ratioSchema } from "~/lib/schema";
+import { QuerySchema, RatioSchema } from "~/lib/schema";
 import PopoverDropdown from "./_popover-dropdown.astro";
 import { SnapshotCard } from "./_snapshot-card";
 
 export const partial = true;
 
-const date = dateSchema.unwrap().optional().parse(Astro.locals.query.date);
-const query = Astro.locals.query.query?.toString().replace("@", "") ?? "";
-const ratio = ratioSchema.parse(Astro.locals.query.ratio);
+const { query, date, ratio } = Astro.locals.parseQuery(
+	z.object({
+		query: QuerySchema,
+		date: z.iso.date().optional(),
+		ratio: RatioSchema,
+	}),
+);
 
 if (!Astro.url.searchParams.has("page")) {
 	const search = new URLSearchParams(

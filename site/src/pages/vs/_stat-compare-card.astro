@@ -13,11 +13,11 @@ import type z from "zod";
 
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
-import type { ratioSchema } from "~/lib/schema";
+import type { RatioSchema } from "~/lib/schema";
 
 interface Props {
 	name: keyof Snapshot["stats"];
-	ratio: z.infer<typeof ratioSchema>;
+	ratio: z.infer<typeof RatioSchema>;
 	left: StatValue;
 	"left-id"?: number;
 	"left-ratio-reference"?: StatValue;

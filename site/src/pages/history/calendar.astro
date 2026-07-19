@@ -12,20 +12,27 @@ import {
 import { accounts, accountSnapshots } from "@bandori-stats/database/schema";
 
 import type { FormatDateString } from "vanilla-calendar-pro";
+import z from "zod";
 
 import type { CalendarData } from "~/lib/calendar";
 import dayjs from "~/lib/date";
-import { dateSchema } from "~/lib/schema";
+import { IsoDateWithDefault, QuerySchema } from "~/lib/schema";
 
 export const partial = true;
 
-const date = dayjs(dateSchema.parse(Astro.locals.query.date));
-const selected = dateSchema
-	.unwrap()
-	.optional()
-	.parse(Astro.locals.query.selected);
-const query = Astro.locals.query.query?.toString().replace("@", "") ?? "";
+const {
+	query,
+	selected,
+	date: queryDate,
+} = Astro.locals.parseQuery(
+	z.object({
+		query: QuerySchema,
+		date: IsoDateWithDefault,
+		selected: z.iso.date().optional(),
+	}),
+);
 
+const date = dayjs(queryDate);
 const [oldest, latest, snapshots] = await db.batch([
 	db.query.accountSnapshots.findFirst({
 		columns: { snapshotDate: true },
@@ -68,7 +75,7 @@ const [oldest, latest, snapshots] = await db.batch([
 const data = {
 	selected:
 		selected ??
-		(Astro.locals.query.date && date.date() !== 1
+		(Astro.url.searchParams.has("date") && date.date() !== 1
 			? date.format("YYYY-MM-DD")
 			: undefined),
 	date: date.format("YYYY-MM-DD"),
