@@ -13,8 +13,8 @@ const snapshot = await db.query.accountSnapshots.findFirst({
 	orderBy: { id: "desc" },
 });
 
-const titles = snapshot?.stats.titles ?? null;
-const isNotFound = !snapshot || titles === null;
+const titles = snapshot?.stats.titles ?? [];
+const isNotFound = !snapshot || titles.length === 0;
 if (isNotFound) Astro.response.status = 404;
 
 const previous = isNotFound
@@ -25,15 +25,14 @@ const previous = isNotFound
 			orderBy: { id: "desc" },
 		});
 
-let hasNewTitle = false;
 const previousTitles = new Set(previous?.stats.titles ?? []);
-const sortedTitles = titles!
-	.map((id) => {
-		const isNew = previousTitles.size > 0 ? !previousTitles.has(id) : true;
-		if (isNew) hasNewTitle = true;
-		return { id, isNew };
-	})
+const sortedTitles = titles
+	.map((id) => ({
+		id,
+		isNew: previousTitles.size === 0 || !previousTitles.has(id),
+	}))
 	.sort((a, b) => Number(b.isNew) - Number(a.isNew));
+const hasNewTitle = sortedTitles.some(({ isNew }) => isNew);
 
 const page = await paginate({
 	items: sortedTitles,
