@@ -7,19 +7,23 @@ import { idSchema } from "~/lib/schema";
 export const partial = true;
 
 const id = idSchema.parse(Astro.params.id);
-const snapshots = await db.query.accountSnapshots.findMany({
-	limit: 2,
-	columns: { stats: true },
-	where: { id: { lte: id } },
+const snapshot = await db.query.accountSnapshots.findFirst({
+	columns: { accountId: true, stats: true },
+	where: { id },
 	orderBy: { id: "desc" },
 });
-
-const snapshot = snapshots[0];
-const previous = snapshots[1];
 
 const titles = snapshot?.stats.titles ?? null;
 const isNotFound = !snapshot || titles === null;
 if (isNotFound) Astro.response.status = 404;
+
+const previous = isNotFound
+	? undefined
+	: await db.query.accountSnapshots.findFirst({
+			columns: { stats: true },
+			where: { id: { lt: id }, accountId: snapshot.accountId },
+			orderBy: { id: "desc" },
+		});
 
 let hasNewTitle = false;
 const previousTitles = new Set(previous?.stats.titles ?? []);
