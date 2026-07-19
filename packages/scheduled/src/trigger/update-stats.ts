@@ -10,7 +10,7 @@ import {
 import { db, eq } from "@bandori-stats/database";
 import { accounts, accountSnapshots } from "@bandori-stats/database/schema";
 
-import { schemaTask, tags } from "@trigger.dev/sdk";
+import { idempotencyKeys, schemaTask, tags } from "@trigger.dev/sdk";
 import z from "zod";
 
 import { bestdoriStats } from "./bestdori-stats";
@@ -26,7 +26,13 @@ export const updateStats = schemaTask({
 		const { uid, stats } = await bestdoriStats
 			.triggerAndWait(
 				{ username },
-				{ idempotencyKey: `stats_${username}_${date}`, tags: `@_${username}` },
+				{
+					idempotencyKey: await idempotencyKeys.create(
+						`stats_${username}_${date}`,
+						{ scope: "global" },
+					),
+					tags: `@_${username}`,
+				},
 			)
 			.unwrap();
 		if (!stats) {

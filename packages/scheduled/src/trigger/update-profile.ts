@@ -1,7 +1,12 @@
 import { db, eq } from "@bandori-stats/database";
 import { accounts } from "@bandori-stats/database/schema";
 
-import { AbortTaskRunError, schemaTask, tags } from "@trigger.dev/sdk";
+import {
+	AbortTaskRunError,
+	idempotencyKeys,
+	schemaTask,
+	tags,
+} from "@trigger.dev/sdk";
 import z from "zod";
 
 import { bestdoriProfile } from "./bestdori-profile";
@@ -16,7 +21,13 @@ export const updateProfile = schemaTask({
 		const { card } = await bestdoriProfile
 			.triggerAndWait(
 				{ username },
-				{ idempotencyKey: `profile_${username}`, tags: `@_${username}` },
+				{
+					idempotencyKeyTTL: "28d",
+					idempotencyKey: await idempotencyKeys.create(`profile_${username}`, {
+						scope: "global",
+					}),
+					tags: `@_${username}`,
+				},
 			)
 			.unwrap();
 
