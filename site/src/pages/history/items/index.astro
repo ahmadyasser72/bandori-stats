@@ -106,7 +106,7 @@ if (snapshots.length > 0 && Astro.cache.enabled) {
 {
 	snapshots.map(
 		({ id, accountId, account, snapshotDate, stats, previous }, idx) => (
-			<li class="contents">
+			<li class="contents" id={`snapshot-${id}`}>
 				<SnapshotCard
 					{account}
 					{previous}
@@ -117,7 +117,7 @@ if (snapshots.length > 0 && Astro.cache.enabled) {
 				>
 					<div
 						class="card-actions justify-end"
-						hx-disabled-elt=".card-actions button"
+						hx-disabled-elt={`#snapshot-${id} .card-actions button`}
 						style={`anchor-name: --anchor-${id}-actions`}
 					>
 						<button
