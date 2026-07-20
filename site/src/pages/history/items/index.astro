@@ -60,7 +60,12 @@ const page = await paginate({
 				orderBy: { id: "desc" },
 				with: {
 					account: {
-						columns: { username: true, nickname: true },
+						columns: {
+							id: true,
+							username: true,
+							nickname: true,
+							profileArt: true,
+						},
 					},
 				},
 			}),

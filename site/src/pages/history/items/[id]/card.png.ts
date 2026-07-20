@@ -19,7 +19,7 @@ export const GET: APIRoute = async (context) => {
 		orderBy: { id: "desc" },
 		with: {
 			account: {
-				columns: { username: true, nickname: true },
+				columns: { id: true, username: true, nickname: true, profileArt: true },
 			},
 		},
 	});

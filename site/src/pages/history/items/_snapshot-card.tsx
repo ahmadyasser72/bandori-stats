@@ -32,7 +32,7 @@ export interface SnapshotCardProps extends Pick<
 	Snapshot,
 	"snapshotDate" | "stats"
 > {
-	account: Pick<Account, "nickname" | "username">;
+	account: Pick<Account, "id" | "nickname" | "username" | "profileArt">;
 	previous?: Pick<Snapshot, "snapshotDate" | "stats">;
 	ratio: z.infer<typeof RatioSchema>;
 	context?: RenderContext;
@@ -54,9 +54,28 @@ export const SnapshotCard = ({
 		{...props}
 	>
 		<div class="card-body gap-2 p-4">
-			<div class="flex h-12 w-full items-start justify-between">
+			<div class="flex h-12 w-full gap-2">
+				{account.profileArt && (
+					<div class="avatar">
+						<div class="size-12 rounded-box">
+							<img
+								src={
+									context === "site"
+										? `/static/accounts/${account.id}-icon.webp`
+										: "icon"
+								}
+							/>
+						</div>
+					</div>
+				)}
+
 				{accountHasNickname(account) ? (
-					<div>
+					<div
+						class={clsx(
+							"flex flex-col self-center",
+							context === "takumi" && "gap-0.5",
+						)}
+					>
 						<h2 class="card-title">{account.nickname}</h2>
 						<p class="text-xs text-base-content/80">@{account.username}</p>
 					</div>
@@ -66,7 +85,7 @@ export const SnapshotCard = ({
 
 				<div
 					class={clsx([
-						"text-end text-base-content/67 underline",
+						"ml-auto self-start text-end text-base-content/67 underline",
 						context === "site"
 							? "tooltip tooltip-start tooltip-left decoration-dotted decoration-2"
 							: "border-b",

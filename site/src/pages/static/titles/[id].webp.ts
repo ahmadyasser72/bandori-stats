@@ -28,7 +28,7 @@ export const GET: APIRoute<Props, Params> = async ({ props }) => {
 	const { default: sharp } = await import("sharp");
 	const image = await sharp(baseImage)
 		.composite(layers.map((buffer) => ({ input: buffer, left: 0, top: 0 })))
-		.webp()
+		.webp({ quality: 67 })
 		.toBuffer();
 
 	return new Response(Buffer.from(image));

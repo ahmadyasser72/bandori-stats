@@ -9,6 +9,7 @@ import {
 import { schemaTask, tags } from "@trigger.dev/sdk";
 import z from "zod";
 
+import { rebuildSite } from "../github";
 import { AccountSchema } from "../schema";
 
 const SnapshotSchema = z.strictObject({
@@ -54,26 +55,6 @@ export const updateStatsRedis = schemaTask({
 		if (newTitles === 0) return;
 
 		await tags.add(`titles_+${newTitles}`);
-		if (ctx.deployment?.git) {
-			const { ghUsername, commitRef } = ctx.deployment.git;
-
-			if (ghUsername && commitRef) {
-				const token = process.env.GITHUB_TOKEN;
-				if (!token) return;
-
-				await tags.add("site_rebuild");
-				await fetch(
-					`https://api.github.com/repos/${ghUsername}/bandori-stats/actions/workflows/deploy.yaml/dispatches`,
-					{
-						method: "POST",
-						headers: {
-							Authorization: `Bearer ${token}`,
-							"X-GitHub-Api-Version": "2022-11-28",
-						},
-						body: JSON.stringify({ ref: commitRef }),
-					},
-				);
-			}
-		}
+		await rebuildSite(ctx);
 	},
 });

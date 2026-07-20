@@ -1,5 +1,6 @@
 import type { APIContext } from "astro";
 import { experimental_getFontFileURL, fontData } from "astro:assets";
+import { env } from "cloudflare:workers";
 import { ImageResponse } from "takumi-js/response";
 
 import stylesheet from "~/styles/global.css?inline";
@@ -22,6 +23,21 @@ export const render = async (context: APIContext, props: SnapshotCardProps) => {
 		fetchFont("M PLUS Rounded 1c", "--font-m-plus-rounded-1c"),
 	]);
 
+	const images = props.account.profileArt
+		? [
+				{
+					src: "icon",
+					data: () =>
+						env.ASSETS.fetch(
+							new URL(
+								`/static/accounts/${props.account.id}-icon.webp`,
+								context.url,
+							),
+						).then((response) => response.arrayBuffer()),
+				},
+			]
+		: undefined;
+
 	return new ImageResponse(
 		<div
 			class="bg-base-100 p-2"
@@ -37,6 +53,7 @@ export const render = async (context: APIContext, props: SnapshotCardProps) => {
 			jsx: { tailwindClassesProperty: "class" },
 			emoji: "blobmoji",
 			fonts,
+			images,
 		},
 	);
 };

@@ -9,6 +9,7 @@ import {
 } from "@trigger.dev/sdk";
 import z from "zod";
 
+import { rebuildSite } from "../github";
 import { bestdoriProfile } from "./bestdori-profile";
 
 export const updateProfile = schemaTask({
@@ -17,7 +18,7 @@ export const updateProfile = schemaTask({
 		username: z.string().nonempty(),
 		date: z.iso.date(),
 	}),
-	run: async ({ username, date }) => {
+	run: async ({ username, date }, { ctx }) => {
 		const { card } = await bestdoriProfile
 			.triggerAndWait(
 				{ username },
@@ -53,6 +54,7 @@ export const updateProfile = schemaTask({
 					profileArt: card ? { id: card.id, trained: card.trainedArt } : null,
 				})
 				.where(eq(accounts.id, existing.id));
+			await rebuildSite(ctx);
 		}
 	},
 });
