@@ -1,8 +1,9 @@
+import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import {
-	ABBREVIATED_STAT_NAMES,
-	STAT_NAMES,
-} from "@bandori-stats/bestdori/constants";
-import { compareValue, sum } from "@bandori-stats/bestdori/helpers";
+	abbreviateStatName,
+	compareValue,
+	sum,
+} from "@bandori-stats/bestdori/helpers";
 import {
 	fetchDegrees,
 	sortDegrees,
@@ -91,8 +92,7 @@ export const updateStats = schemaTask({
 				difference
 					.filter(({ delta }) => delta > 0)
 					.map(
-						({ name, delta }) =>
-							`diff_${ABBREVIATED_STAT_NAMES[name]}+${delta}`,
+						({ name, delta }) => `diff_${abbreviateStatName(name)}+${delta}`,
 					),
 			);
 

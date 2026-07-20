@@ -8,7 +8,7 @@ import { PlayerLeaderboard } from "@bandori-stats/bestdori/schema/player/leaderb
 import { AbortTaskRunError, schemaTask, tags } from "@trigger.dev/sdk";
 import z from "zod";
 
-import { bestdori, bestdoriQueue } from "~/bestdori";
+import { bestdori, bestdoriQueue } from "../bestdori";
 
 const leaderboardTypeMap: Record<StatName, RawStatName> = {
 	highScoreRating: "hsr",

@@ -1,15 +1,20 @@
 {
 	"name": "@bandori-stats/discord-bot",
-	"type": "module",
 	"private": true,
+	"type": "module",
 	"exports": {
 		".": "./src/index.ts"
+	},
+	"scripts": {
+		"check": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@bandori-stats/bestdori": "workspace:*",
 		"@bandori-stats/database": "workspace:*",
-		"dayjs": "1.11.21",
 		"discord-interactions": "4.4.0",
 		"hono": "4.12.30"
+	},
+	"devDependencies": {
+		"typescript": "5.9.3"
 	}
 }

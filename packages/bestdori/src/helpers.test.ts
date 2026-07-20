@@ -1,12 +1,11 @@
 import { describe, expect, test } from "bun:test";
+
 import {
 	accountHasNickname,
 	compareValue,
 	displayValue,
 	formatNumber,
 	getValue,
-	sum,
-	titleCase,
 } from "./helpers";
 
 describe("accountHasNickname", () => {
@@ -19,7 +18,9 @@ describe("accountHasNickname", () => {
 	});
 
 	test("returns false when nickname equals username", () => {
-		expect(accountHasNickname({ username: "foo", nickname: "foo" })).toBeFalse();
+		expect(
+			accountHasNickname({ username: "foo", nickname: "foo" }),
+		).toBeFalse();
 	});
 
 	test("returns true when nickname differs from username", () => {
@@ -100,33 +101,5 @@ describe("formatNumber", () => {
 
 	test("does not add sign for negatives", () => {
 		expect(formatNumber(-5, { positiveSign: true })).toBe("-5");
-	});
-});
-
-describe("sum", () => {
-	test("adds all values", () => {
-		expect(sum([1, 2, 3])).toBe(6);
-	});
-
-	test("returns 0 for empty array", () => {
-		expect(sum([])).toBe(0);
-	});
-});
-
-describe("titleCase", () => {
-	test("splits camelCase and capitalizes each word", () => {
-		expect(titleCase("fullComboCount")).toBe("Full Combo Count");
-	});
-
-	test("handles single word", () => {
-		expect(titleCase("score")).toBe("Score");
-	});
-
-	test("handles empty string", () => {
-		expect(titleCase("")).toBe("");
-	});
-
-	test("handles multiple consecutive uppercase", () => {
-		expect(titleCase("allFullCombo")).toBe("All Full Combo");
 	});
 });

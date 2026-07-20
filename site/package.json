@@ -1,13 +1,13 @@
 {
 	"name": "@bandori-stats/site",
-	"type": "module",
 	"version": "0.0.1",
+	"type": "module",
 	"scripts": {
+		"astro": "astro",
+		"build": "astro build",
 		"check": "astro check",
-		"dev": "astro dev",
-		"build": "bun check && astro build",
 		"deploy": "wrangler deploy",
-		"astro": "astro"
+		"dev": "astro dev"
 	},
 	"dependencies": {
 		"@astrojs/cloudflare": "14.1.3",
@@ -15,15 +15,13 @@
 		"@bandori-stats/bestdori": "workspace:*",
 		"@bandori-stats/database": "workspace:*",
 		"@bandori-stats/discord-bot": "workspace:*",
-		"@bandori-stats/scheduled": "workspace:*",
-		"@tailwindcss/vite": "4.3.3",
 		"@zumer/snapdom": "2.16.0",
 		"astro": "7.1.1",
 		"clsx": "2.1.1",
 		"daisyui": "5.6.18",
-		"dayjs": "1.11.21",
 		"htmx.org": "2.0.10",
 		"iconify-icon": "3.0.2",
+		"preact": "10.29.7",
 		"tailwindcss": "4.3.3",
 		"takumi-js": "2.2.3",
 		"vanilla-calendar-pro": "3.1.0",
@@ -32,8 +30,8 @@
 	"devDependencies": {
 		"@astrojs/check": "0.9.9",
 		"@catppuccin/daisyui": "2.1.1",
+		"@tailwindcss/vite": "4.3.3",
 		"@types/node": "26.1.1",
-		"preact": "10.29.7",
 		"sharp": "0.35.3",
 		"typescript": "5.9.3",
 		"wrangler": "4.112.0"

@@ -1,11 +1,11 @@
 ---
+import dayjs from "@bandori-stats/bestdori/date";
 import { db } from "@bandori-stats/database";
 
 import type { FormatDateString } from "vanilla-calendar-pro";
 import z from "zod";
 
 import type { CalendarData } from "~/lib/calendar";
-import dayjs from "~/lib/date";
 import { IdSchema, IsoDateWithDefault } from "~/lib/schema";
 import { computeStatDeltas } from "~/lib/stats";
 

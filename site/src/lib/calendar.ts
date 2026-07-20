@@ -1,3 +1,5 @@
+import { mapValues } from "@bandori-stats/bestdori/helpers";
+
 import {
 	Calendar,
 	type DateAny,
@@ -117,12 +119,9 @@ export const initCalendar = <T extends CalendarData>(
 				: undefined,
 
 			popups: config.popups
-				? Object.fromEntries(
-						Object.entries(data.items).map(([date, it]) => [
-							date,
-							{ html: config.popups!({ calendar: element, it }) },
-						]),
-					)
+				? mapValues(data.items, (it) => ({
+						html: config.popups!({ calendar: element, it }),
+					}))
 				: undefined,
 		}).init();
 	};

@@ -1,5 +1,8 @@
 {
+  "files": ["./object.d.ts"],
 	"compilerOptions": {
+		"composite": true,
+
 		// Environment setup & latest features
 		"lib": ["ESNext"],
 		"target": "ESNext",
@@ -18,7 +21,7 @@
 		"strict": true,
 		"skipLibCheck": true,
 		"noFallthroughCasesInSwitch": true,
-		"noUncheckedIndexedAccess": true,
+		"noUncheckedIndexedAccess": false,
 		"noImplicitOverride": true,
 
 		// Some stricter flags (disabled by default)
@@ -26,8 +29,6 @@
 		"noUnusedParameters": true,
 		"noPropertyAccessFromIndexSignature": false,
 
-		"baseUrl": ".",
-		"paths": { "~/*": ["./src/*"] },
-		"types": ["../../object.d.ts"]
-	}
+		"types": ["node", "bun"]
+	},
 }

@@ -1,5 +1,6 @@
 ---
 import { STAT_NAMES, type StatName } from "@bandori-stats/bestdori/constants";
+import dayjs from "@bandori-stats/bestdori/date";
 import { db } from "@bandori-stats/database";
 
 import z from "zod";
@@ -7,7 +8,6 @@ import z from "zod";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import BaseLayout from "~/layouts/base-layout.astro";
-import dayjs from "~/lib/date";
 import { IdSchema, RatioSchema } from "~/lib/schema";
 import PlayerCard from "./_player-card.astro";
 import StatCompareCard from "./_stat-compare-card.astro";

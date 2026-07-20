@@ -1,7 +1,7 @@
+import dayjs from "@bandori-stats/bestdori/date";
+
 import { defineMiddleware } from "astro:middleware";
 import z from "zod";
-
-import dayjs from "~/lib/date";
 
 const querySchema = z.instanceof(URLSearchParams).transform((searchParams) =>
 	[...searchParams.entries()].reduce(

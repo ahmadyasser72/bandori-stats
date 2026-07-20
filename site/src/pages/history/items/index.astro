@@ -1,10 +1,10 @@
 ---
+import dayjs from "@bandori-stats/bestdori/date";
 import { db } from "@bandori-stats/database";
 
 import z from "zod";
 
 import Icon from "~/components/icon.astro";
-import dayjs from "~/lib/date";
 import { paginate } from "~/lib/paginate";
 import { QuerySchema, RatioSchema } from "~/lib/schema";
 import PopoverDropdown from "./_popover-dropdown.astro";

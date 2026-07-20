@@ -1,11 +1,18 @@
+import { exec } from "node:child_process";
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join as joinPath } from "node:path";
 
-import { limitFunction } from "p-limit";
+import { limitAsync } from "es-toolkit";
 
-const BESTDORI_CACHE_DIR = ".bestdori-cache";
+export const GIT_ROOT_PATH = await new Promise<string>((resolve, reject) => {
+	exec("git rev-parse --show-toplevel", (error, stdout) =>
+		error ? reject(error) : resolve(stdout.trim()),
+	);
+});
 
-export const fetchBestdori = limitFunction(
+const BESTDORI_CACHE_DIR = joinPath(GIT_ROOT_PATH, ".bestdori-cache");
+
+export const fetchBestdori = limitAsync(
 	async (pathname: string, cache: boolean): Promise<Response> => {
 		const url = new URL(pathname, "https://bestdori.com");
 
@@ -33,7 +40,7 @@ export const fetchBestdori = limitFunction(
 
 		return response;
 	},
-	{ concurrency: 4 },
+	4,
 );
 
 const getCachePath = (url: URL) => {

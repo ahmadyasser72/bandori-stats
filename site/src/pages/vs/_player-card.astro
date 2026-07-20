@@ -1,5 +1,5 @@
 ---
-import { titleCase } from "@bandori-stats/bestdori/helpers";
+import { startCase } from "@bandori-stats/bestdori/helpers";
 import type { Account, Snapshot } from "@bandori-stats/database/schema";
 
 import IconLoader from "~/components/icon-loader.astro";
@@ -78,7 +78,7 @@ const otherSide = isPlayer1 ? "player-2" : "player-1";
 					style={`anchor-name: ${anchorName}`}
 				>
 					<Icon class="size-6" name="lucide:plus" />
-					<span class="text-sm font-bold">{titleCase(side)}</span>
+					<span class="text-sm font-bold">{startCase(side)}</span>
 				</button>
 
 				<div

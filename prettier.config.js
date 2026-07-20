@@ -9,6 +9,7 @@ const config = {
 	useTabs: true,
 
 	plugins: [
+		"prettier-plugin-packagejson",
 		"prettier-plugin-astro",
 		"@ianvs/prettier-plugin-sort-imports",
 		"prettier-plugin-tailwindcss",

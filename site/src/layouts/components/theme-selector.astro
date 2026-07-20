@@ -85,8 +85,9 @@ import Icon from "~/components/icon.astro";
 			.matchMedia("(prefers-color-scheme: dark)")
 			.addEventListener("change", (event) => {
 				const theme = event.matches ? "mocha" : "latte";
-				const themeInputs = themeSelector.querySelectorAll("input");
-				for (const input of themeInputs) input.checked = input.value === theme;
+				themeSelector
+					.querySelectorAll("input")
+					.forEach((input) => (input.checked = input.value === theme));
 				switchTheme(theme);
 			});
 	});

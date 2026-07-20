@@ -1,23 +1,24 @@
 {
 	"name": "@bandori-stats/database",
-	"type": "module",
 	"private": true,
+	"type": "module",
 	"exports": {
 		".": "./src/db.ts",
 		"./redis": "./src/redis.ts",
 		"./schema": "./src/schema/index.ts"
 	},
 	"scripts": {
+		"check": "tsc --noEmit",
 		"db:push": "drizzle-kit push"
-	},
-	"devDependencies": {
-		"drizzle-kit": "1.0.0-rc.4-ca0f029"
 	},
 	"dependencies": {
 		"@bandori-stats/bestdori": "workspace:*",
 		"@libsql/client": "0.17.4",
 		"@upstash/redis": "1.38.0",
-		"dayjs": "1.11.21",
 		"drizzle-orm": "1.0.0-rc.4-de6c356"
+	},
+	"devDependencies": {
+		"drizzle-kit": "1.0.0-rc.4-ca0f029",
+		"typescript": "5.9.3"
 	}
 }

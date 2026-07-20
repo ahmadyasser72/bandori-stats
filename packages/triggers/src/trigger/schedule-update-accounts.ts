@@ -1,11 +1,10 @@
-import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
+import { GBP_TIMEZONE, STAT_NAMES } from "@bandori-stats/bestdori/constants";
+import dayjs from "@bandori-stats/bestdori/date";
 import { db, eq } from "@bandori-stats/database";
 import { accounts } from "@bandori-stats/database/schema";
 
 import { AbortTaskRunError, schedules, tags } from "@trigger.dev/sdk";
 
-import { GBP_TIMEZONE } from "~/constants";
-import dayjs from "~/date";
 import { bestdoriLeaderboard } from "./bestdori-leaderboard";
 
 export const scheduleUpdateAccounts = schedules.task({

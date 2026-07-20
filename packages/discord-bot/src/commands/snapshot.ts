@@ -1,3 +1,4 @@
+import dayjs from "@bandori-stats/bestdori/date";
 import { accountHasNickname } from "@bandori-stats/bestdori/helpers";
 import { accountSnapshots } from "@bandori-stats/database/schema";
 
@@ -12,7 +13,6 @@ import {
 	type MessageComponent,
 } from "discord-interactions";
 
-import dayjs from "../date";
 import { CommandOptionType, type Command, type CommandHandler } from "./types";
 
 export const command = {

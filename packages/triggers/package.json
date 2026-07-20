@@ -1,22 +1,20 @@
 {
-	"name": "@bandori-stats/scheduled",
-	"type": "module",
+	"name": "@bandori-stats/triggers",
 	"private": true,
-	"exports": {
-		"./constants": "./src/constants.ts"
-	},
+	"type": "module",
 	"scripts": {
+		"check": "tsc --noEmit",
 		"deploy": "trigger deploy"
-	},
-	"devDependencies": {
-		"@trigger.dev/build": "4.5.4",
-		"trigger.dev": "4.5.4"
 	},
 	"dependencies": {
 		"@bandori-stats/bestdori": "workspace:*",
 		"@bandori-stats/database": "workspace:*",
 		"@trigger.dev/sdk": "4.5.4",
-		"dayjs": "1.11.21",
 		"fast-shuffle": "6.2.1"
+	},
+	"devDependencies": {
+		"@trigger.dev/build": "4.5.4",
+		"trigger.dev": "4.5.4",
+		"typescript": "5.9.3"
 	}
 }

@@ -22,7 +22,7 @@ export const accountSnapshots = sqliteTable(
 			.notNull()
 			.references(() => accounts.id, { onDelete: "cascade" }),
 
-		stats: text({ mode: "json" }).$type<Omit<Stats, "uid">>().notNull(),
+		stats: text({ mode: "json" }).$type<Stats>().notNull(),
 
 		snapshotDate: text()
 			.default(sql`(CURRENT_DATE)`)

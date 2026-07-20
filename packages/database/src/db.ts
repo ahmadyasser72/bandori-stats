@@ -1,6 +1,5 @@
 import { drizzle } from "drizzle-orm/libsql/http";
 
-import * as schema from "./schema";
 import { relations } from "./schema/relations";
 
 const { DATABASE_URL, DATABASE_AUTH_TOKEN } = process.env;
@@ -11,7 +10,6 @@ export const databaseUrl = DATABASE_URL;
 export const databaseToken = DATABASE_AUTH_TOKEN!;
 
 export const db = drizzle({
-	schema,
 	relations,
 	connection: { url: databaseUrl, authToken: databaseToken },
 });

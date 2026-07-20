@@ -4,7 +4,7 @@ import {
 	displayValue,
 	formatNumber,
 	getValue,
-	titleCase,
+	startCase,
 	type StatValue,
 } from "@bandori-stats/bestdori/helpers";
 import type { Snapshot } from "@bandori-stats/database/schema";
@@ -71,7 +71,7 @@ const id = `comparison-${name}`;
 		<div
 			class="inline-flex items-center justify-center gap-2 text-sm font-medium text-base-content/67"
 		>
-			{titleCase(isRatio ? name.replace("Count", "Ratio") : name)}
+			{startCase(isRatio ? name.replace("Count", "Ratio") : name)}
 
 			{
 				ratioAvailable && (

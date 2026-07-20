@@ -3,7 +3,7 @@ import { PlayerProfile } from "@bandori-stats/bestdori/schema/player/profile";
 import { AbortTaskRunError, schemaTask, tags } from "@trigger.dev/sdk/v3";
 import z from "zod";
 
-import { bestdori, bestdoriQueue } from "~/bestdori";
+import { bestdori, bestdoriQueue } from "../bestdori";
 
 export const bestdoriProfile = schemaTask({
 	id: "bestdori-profile",

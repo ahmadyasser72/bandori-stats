@@ -18,13 +18,12 @@ jobs:
       - name: Cache bestdori responses
         uses: actions/cache@v6.1.0
         with:
-          path: site/.bestdori-cache
+          path: .bestdori-cache
           key: bestdori-response-${{ github.run_id }}
           restore-keys: bestdori-response-
 
       - name: Build site
-        run: bun run build
-        working-directory: site/
+        run: bun run --workspaces check && bun run --cwd=site build
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DATABASE_AUTH_TOKEN: ${{ secrets.DATABASE_AUTH_TOKEN }}
@@ -76,8 +75,7 @@ jobs:
 
       - name: Register Discord commands
         if: ${{ github.ref == 'refs/heads/main' }}
-        run: bun run src/register.ts
-        working-directory: packages/discord-bot
+        run: bun run packages/discord-bot/src/register.ts
         env:
           DISCORD_APPLICATION_ID: ${{ secrets.DISCORD_APPLICATION_ID }}
           DISCORD_APPLICATION_TOKEN: ${{ secrets.DISCORD_APPLICATION_TOKEN }}

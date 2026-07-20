@@ -1,7 +1,5 @@
-import {
-	ABBREVIATED_STAT_NAMES,
-	STAT_NAMES,
-} from "@bandori-stats/bestdori/constants";
+import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
+import { abbreviateStatName } from "@bandori-stats/bestdori/helpers";
 import {
 	PLAYER_STATS_SORTED_SET_PREFIX,
 	PLAYER_TITLES_SET,
@@ -11,7 +9,7 @@ import {
 import { schemaTask, tags } from "@trigger.dev/sdk";
 import z from "zod";
 
-import { AccountSchema } from "~/schema";
+import { AccountSchema } from "../schema";
 
 const SnapshotSchema = z.strictObject({
 	accountId: z.number().nonnegative(),
@@ -44,7 +42,7 @@ export const updateStatsRedis = schemaTask({
 		if (newStatsBest.length > 0)
 			await tags.add(
 				newStatsBest.map(
-					({ stat }) => `${ABBREVIATED_STAT_NAMES[stat]}_NEW_HIGHEST`,
+					({ stat }) => `${abbreviateStatName(stat)}_NEW_HIGHEST`,
 				),
 			);
 

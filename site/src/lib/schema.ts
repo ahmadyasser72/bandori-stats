@@ -1,6 +1,6 @@
-import z from "zod";
+import dayjs from "@bandori-stats/bestdori/date";
 
-import dayjs from "./date";
+import z from "zod";
 
 export const maybeArray = <T extends z.ZodType>(schema: T) =>
 	z.union([z.array(schema).nonempty(), schema]);

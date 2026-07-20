@@ -1,15 +1,15 @@
+import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import {
-	ABBREVIATED_STAT_NAMES,
-	STAT_NAMES,
-} from "@bandori-stats/bestdori/constants";
-import { displayValue } from "@bandori-stats/bestdori/helpers";
+	abbreviateStatName,
+	displayValue,
+} from "@bandori-stats/bestdori/helpers";
 import { PlayerStats } from "@bandori-stats/bestdori/schema/player/stats";
 
 import { AbortTaskRunError, schemaTask, tags } from "@trigger.dev/sdk/v3";
 import z from "zod";
 
-import { bestdori, bestdoriQueue } from "~/bestdori";
-import { AccountSchema } from "~/schema";
+import { bestdori, bestdoriQueue } from "../bestdori";
+import { AccountSchema } from "../schema";
 
 export const bestdoriStats = schemaTask({
 	id: "bestdori-stats",
@@ -43,8 +43,7 @@ export const bestdoriStats = schemaTask({
 
 		await tags.add([
 			...STAT_NAMES.map(
-				(name) =>
-					`${ABBREVIATED_STAT_NAMES[name]}_${displayValue(stats?.[name])}`,
+				(name) => `${abbreviateStatName(name)}_${displayValue(stats?.[name])}`,
 			),
 			`TITLES_${displayValue(stats?.titles?.length)}`,
 			`UID_${displayValue(uid)}`,

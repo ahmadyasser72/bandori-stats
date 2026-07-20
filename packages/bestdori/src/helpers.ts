@@ -1,9 +1,29 @@
 import type { Stats } from "@bandori-stats/bestdori/constants";
 
+import { startCase, words } from "es-toolkit";
+
 export const accountHasNickname = (account: {
 	username: string;
 	nickname: string | null;
 }) => account.nickname?.trim() && account.username !== account.nickname;
+
+export const abbreviateStatName = (name: keyof Stats) => {
+	switch (name) {
+		case "allPerfectCount":
+		case "fullComboCount":
+		case "bandRating":
+		case "highScoreRating":
+			return words(name.replace(/Count$/, ""))
+				.map((s) => s.charAt(0))
+				.join("")
+				.toUpperCase();
+		case "clearCount":
+			return "CLEAR";
+		case "rank":
+		case "titles":
+			return name.toUpperCase();
+	}
+};
 
 export const simplifyStatName = (name: keyof Stats) => {
 	switch (name) {
@@ -18,11 +38,11 @@ export const simplifyStatName = (name: keyof Stats) => {
 		case "allPerfectCount":
 			return "AP";
 		default:
-			return titleCase(name);
+			return startCase(name);
 	}
 };
 
-export type StatValue = Exclude<Stats[keyof Stats], string> | undefined;
+export type StatValue = Stats[keyof Stats] | undefined;
 export const getValue = (it: NonNullable<StatValue>) =>
 	Array.isArray(it) ? it.length : it;
 
@@ -65,12 +85,4 @@ export const formatNumber = (
 	return positiveSign && n > 0 ? `+${formatted}` : formatted;
 };
 
-export const sum = (values: number[]) =>
-	values.reduce((acc, next) => acc + next, 0);
-
-export const titleCase = (s: string) =>
-	s
-		.replace(/([a-z])([A-Z])/g, "$1 $2")
-		.split(" ")
-		.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-		.join(" ");
+export * from "es-toolkit";

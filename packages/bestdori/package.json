@@ -1,18 +1,21 @@
 {
 	"name": "@bandori-stats/bestdori",
-	"type": "module",
 	"private": true,
+	"type": "module",
 	"exports": {
-		"./constants": "./src/constants.ts",
-		"./fetch": "./src/fetch.ts",
-		"./helpers": "./src/helpers.ts",
-		"./schema/*": "./src/schema/*.ts"
+		"./*": "./src/*.ts"
+	},
+	"scripts": {
+		"check": "tsc --noEmit"
 	},
 	"dependencies": {
-		"p-limit": "7.3.0",
+		"dayjs": "1.11.21",
+		"es-toolkit": "1.49.0",
 		"zod": "4.4.3"
 	},
 	"devDependencies": {
-		"@types/node": "26.1.1"
+		"@types/bun": "1.3.14",
+		"@types/node": "26.1.1",
+		"typescript": "5.9.3"
 	}
 }

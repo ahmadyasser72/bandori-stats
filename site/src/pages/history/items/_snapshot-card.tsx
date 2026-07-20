@@ -1,9 +1,10 @@
+import dayjs from "@bandori-stats/bestdori/date";
 import {
 	accountHasNickname,
 	compareValue,
 	displayValue,
 	formatNumber,
-	titleCase,
+	startCase,
 	type StatValue,
 } from "@bandori-stats/bestdori/helpers";
 import type { Account, Snapshot } from "@bandori-stats/database/schema";
@@ -12,7 +13,6 @@ import { clsx } from "clsx";
 import type { ComponentChildren } from "preact";
 import type z from "zod";
 
-import dayjs from "~/lib/date";
 import type { RatioSchema } from "~/lib/schema";
 import { STAT_BADGES, STAT_TOOLTIPS } from "./_stat-colors";
 
@@ -154,7 +154,7 @@ const StatCell = ({
 		>
 			<div>
 				<p class={clsx(["text-base-content/67", ratio && "max-sm:text-xs"])}>
-					{titleCase(name.replace(/Count$/, ""))}
+					{startCase(name.replace(/Count$/, ""))}
 					{ratio && " (%)"}
 				</p>
 				<div class="inline-flex flex-wrap items-center gap-x-1 gap-y-0.5 font-bold">
