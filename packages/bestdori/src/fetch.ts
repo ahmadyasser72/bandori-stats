@@ -8,6 +8,9 @@ export const GIT_ROOT_PATH = await new Promise<string>((resolve, reject) => {
 	exec("git rev-parse --show-toplevel", (error, stdout) =>
 		error ? reject(error) : resolve(stdout.trim()),
 	);
+}).catch((error) => {
+	console.error("Failed getting git root directory:", error);
+	return ".";
 });
 
 const BESTDORI_CACHE_DIR = joinPath(GIT_ROOT_PATH, ".bestdori-cache");
