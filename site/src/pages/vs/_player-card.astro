@@ -7,7 +7,7 @@ import Icon from "~/components/icon.astro";
 
 interface Props {
 	side: "player-1" | "player-2";
-	player?: Pick<Account, "username" | "id"> & {
+	player?: Pick<Account, "username" | "id" | "profileArt"> & {
 		snapshots: Pick<Snapshot, "snapshotDate">[];
 	};
 	other?: number;
@@ -32,43 +32,62 @@ const otherSide = isPlayer1 ? "player-2" : "player-1";
 		player ? (
 			<div
 				class:list={[
-					"flex h-16 flex-col items-center justify-center gap-1",
-					isPlayer1 ? "sm:items-start" : "sm:items-end",
+					"flex h-16 items-center gap-2 sm:gap-4",
+					!isPlayer1 && "flex-row-reverse",
 				]}
 			>
+				{player.profileArt && (
+					<div class="avatar">
+						<div class="size-16 rounded-box">
+							<img
+								src={`/static/accounts/${player.id}-icon.webp`}
+								loading="lazy"
+							/>
+						</div>
+					</div>
+				)}
+
 				<div
 					class:list={[
-						"flex items-center gap-2",
-						!isPlayer1 && "sm:flex-row-reverse",
+						"flex flex-col justify-center gap-1",
+						!isPlayer1 && "items-end",
 					]}
 				>
 					<div
 						class:list={[
-							"text-2xl font-bold",
-							isPlayer1 ? "text-primary" : "text-accent",
+							"flex items-center gap-2",
+							!isPlayer1 && "flex-row-reverse",
 						]}
-						style={`view-transition-name: player-card-title-${player.id}`}
 					>
-						@{player.username}
+						<div
+							class:list={[
+								"text-2xl font-bold",
+								isPlayer1 ? "text-primary" : "text-accent",
+							]}
+							style={`view-transition-name: player-card-title-${player.id}`}
+						>
+							@{player.username}
+						</div>
 					</div>
-					<button
-						hx-get="/vs"
-						class="btn btn-circle btn-ghost btn-sm hover:btn-error"
-						hx-indicator="this"
-						hx-replace-url="true"
-						hx-select-oob="#players, #comparison, #actions"
-						hx-swap="none"
-						hx-vals={JSON.stringify({ [otherSide]: other })}
+					<span
+						class="font-mono text-xs text-base-content/67"
+						style={`view-transition-name: player-card-date-${player.id}`}
 					>
-						<IconLoader class="size-5" name="lucide:x" />
-					</button>
+						SNAPSHOT @ {player.snapshots[0].snapshotDate}
+					</span>
 				</div>
-				<span
-					class="font-mono text-xs text-base-content/67"
-					style={`view-transition-name: player-card-date-${player.id}`}
+
+				<button
+					hx-get="/vs"
+					class="btn btn-circle btn-ghost btn-sm hover:btn-error"
+					hx-indicator="this"
+					hx-replace-url="true"
+					hx-select-oob="#players, #comparison, #actions"
+					hx-swap="none"
+					hx-vals={JSON.stringify({ [otherSide]: other })}
 				>
-					SNAPSHOT @ {player.snapshots[0].snapshotDate}
-				</span>
+					<IconLoader class="size-5" name="lucide:x" />
+				</button>
 			</div>
 		) : (
 			<>

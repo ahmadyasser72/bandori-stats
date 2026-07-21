@@ -64,6 +64,7 @@ export const SnapshotCard = ({
 										? `/static/accounts/${account.id}-icon.webp`
 										: "icon"
 								}
+								loading="lazy"
 							/>
 						</div>
 					</div>
