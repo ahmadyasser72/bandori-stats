@@ -32,6 +32,7 @@ const { query, ratio, date } = Astro.locals.parseQuery(
 			<div
 				class="dropdown dropdown-start mt-2 rounded-box border border-primary/20 bg-base-100 p-2 shadow-md"
 				id="history-search"
+				ontoggle="event.newState === 'open' && this.querySelector('input').focus()"
 				popover
 				style="position-anchor: --anchor-history-search"
 			>
