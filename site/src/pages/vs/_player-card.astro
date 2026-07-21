@@ -1,5 +1,5 @@
 ---
-import { startCase } from "@bandori-stats/bestdori/helpers";
+import { accountHasNickname, startCase } from "@bandori-stats/bestdori/helpers";
 import type { Account, Snapshot } from "@bandori-stats/database/schema";
 
 import IconLoader from "~/components/icon-loader.astro";
@@ -7,7 +7,7 @@ import Icon from "~/components/icon.astro";
 
 interface Props {
 	side: "player-1" | "player-2";
-	player?: Pick<Account, "username" | "id" | "profileArt"> & {
+	player?: Pick<Account, "id" | "username" | "nickname" | "profileArt"> & {
 		snapshots: Pick<Snapshot, "snapshotDate">[];
 	};
 	other?: number;
@@ -22,12 +22,7 @@ const inputId = isPlayer1 ? "search_player1" : "search_player2";
 const otherSide = isPlayer1 ? "player-2" : "player-1";
 ---
 
-<div
-	class:list={[
-		"grid flex-1",
-		isPlayer1 ? "sm:place-items-start" : "sm:place-items-end",
-	]}
->
+<div class="grid flex-1">
 	{
 		player ? (
 			<div
@@ -49,19 +44,34 @@ const otherSide = isPlayer1 ? "player-2" : "player-1";
 
 				<div
 					class:list={[
-						"flex flex-col justify-center gap-1",
-						!isPlayer1 && "items-end",
+						"flex min-w-0 flex-1 flex-col justify-center gap-1",
+						!isPlayer1 && "text-end",
 					]}
 				>
 					<div
 						class:list={[
-							"flex items-center gap-2",
-							!isPlayer1 && "flex-row-reverse",
+							"tooltip tooltip-bottom grid w-full",
+							isPlayer1
+								? "tooltip-start tooltip-primary"
+								: "tooltip-end tooltip-accent",
 						]}
 					>
+						{accountHasNickname(player) && (
+							<div class="tooltip-content">
+								<div
+									class:list={[
+										"flex flex-col",
+										isPlayer1 ? "items-start" : "items-end",
+									]}
+								>
+									<div class="text-xs">@{player.username}</div>
+									<div class="text-lg font-medium">{player.nickname}</div>
+								</div>
+							</div>
+						)}
 						<div
 							class:list={[
-								"text-2xl font-bold",
+								"truncate text-2xl font-bold",
 								isPlayer1 ? "text-primary" : "text-accent",
 							]}
 							style={`view-transition-name: player-card-title-${player.id}`}
