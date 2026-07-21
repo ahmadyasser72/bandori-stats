@@ -183,8 +183,9 @@ const StatCell = ({
 							"text-sm",
 							context === "site" && ratio && "tooltip",
 							STAT_TOOLTIPS[name],
+							name === "allPerfectCount" ? "tooltip-start" : "tooltip-end",
 						])}
-						data-tip={displayValue(value)}
+						data-tip={`${displayValue(previousValue)} to ${displayValue(value)} (${formatNumber(delta, { positiveSign: true })})`}
 					>
 						{displayValue(ratio ?? value)}
 						{ratio && "%"}
@@ -241,15 +242,16 @@ const StatCellDeltaBadge = ({
 	return (
 		<span
 			class={clsx([
-				"badge badge-soft font-bold",
-				displayDelta > 0 ? STAT_BADGES[name] : "badge-error",
+				"tooltip-bottom badge badge-soft font-bold",
 				context === "site" && "tooltip",
+				displayDelta > 0 ? STAT_BADGES[name] : "badge-error",
 				displayDelta > 0 ? STAT_TOOLTIPS[name] : "tooltip-error",
+				name === "allPerfectCount" ? "tooltip-start" : "tooltip-end",
 				className,
 			])}
 			data-tip={
 				displayDelta && previousRatio
-					? `${displayDelta > 0 ? "rise" : "dropped"} from: ${displayValue(previousRatio)}%`
+					? `${displayDelta > 0 ? "rise" : "drop"} from: ${displayValue(previousRatio)}%`
 					: `from: ${displayValue(previousValue)}`
 			}
 		>
