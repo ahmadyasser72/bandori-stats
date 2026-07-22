@@ -22,6 +22,13 @@ jobs:
           key: bestdori-response-${{ github.run_id }}
           restore-keys: bestdori-response-
 
+      - name: Cache Astro build artifacts
+        uses: actions/cache@v6.1.0
+        with:
+          path: site/.astro
+          key: astro-${{ github.run_id }}
+          restore-keys: astro-
+
       - name: Build site
         run: bun run --workspaces check && bun run --cwd=site build
         env:
