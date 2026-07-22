@@ -58,7 +58,7 @@ const { title, containerClass } = Astro.props;
 	</head>
 	<body>
 		<main
-			hx-indicator="#app-loader"
+			hx-indicator:inherited="#app-loader"
 			class:list={["container mx-auto p-4", containerClass]}
 		>
 			{

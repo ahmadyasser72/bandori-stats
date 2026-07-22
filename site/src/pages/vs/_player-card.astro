@@ -89,11 +89,12 @@ const otherSide = isPlayer1 ? "player-2" : "player-1";
 
 				<button
 					hx-get="/vs"
+					hx-select="main"
+					hx-swap="outerMorph"
+					hx-target="main"
 					class="btn btn-circle btn-ghost btn-sm hover:btn-error"
 					hx-indicator="this"
 					hx-replace-url="true"
-					hx-select-oob="#players, #comparison, #actions"
-					hx-swap="none"
 					hx-vals={JSON.stringify({ [otherSide]: other })}
 				>
 					<IconLoader class="size-5" name="lucide:x" />
@@ -124,23 +125,24 @@ const otherSide = isPlayer1 ? "player-2" : "player-1";
 						<IconLoader name="lucide:search" />
 						<input
 							hx-get="/vs/search"
+							hx-target="next .menu"
 							hx-trigger="keyup changed delay:300ms, intersect once"
 							id={inputId}
 							name="query"
 							type="text"
 							hx-indicator="closest .input"
-							hx-target="next .menu"
 							hx-vals={JSON.stringify({ side, other })}
 						/>
 					</label>
 
 					<ul
+						hx-select:inherited="main"
+						hx-swap:inherited="outerMorph transition:true"
+						hx-target:inherited="main"
 						class="menu mt-4 max-h-64 w-full flex-nowrap overflow-y-auto p-0"
-						hx-disabled-elt={`#${popoverId} button, #${popoverId} input`}
-						hx-indicator="previous .input"
-						hx-replace-url="true"
-						hx-select-oob="#players, #comparison, #actions"
-						hx-swap="none"
+						hx-disable:inherited={`#${popoverId} button, #${popoverId} input`}
+						hx-indicator:inherited="previous .input"
+						hx-replace-url:inherited="true"
 					>
 						<li>
 							<button class="btn btn-ghost" disabled>

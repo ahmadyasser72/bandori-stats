@@ -154,8 +154,9 @@ if (Astro.cache.enabled) {
 			window.htmx
 				.ajax("get", "/vs", {
 					source: calendar,
-					swap: "none",
-					selectOOB: "#players, #comparison",
+					target: "main",
+					select: "main",
+					swap: "outerMorph transition:true",
 					replace: date
 						? `/vs?player-1=${player1}&player-2=${player2}&date=${date}`
 						: `/vs?player-1=${player1}&player-2=${player2}`,

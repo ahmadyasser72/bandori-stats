@@ -64,7 +64,7 @@ if ((player1 || player2) && Astro.cache.enabled) {
 	<div
 		class="flex w-full flex-col border-b border-base-content/67 py-4 pb-6 sm:flex-row sm:pb-4"
 		id="players"
-		hx-vals={JSON.stringify({ ratio })}
+		hx-vals:inherited={JSON.stringify({ ratio })}
 	>
 		<PlayerCard other={player2?.id} player={player1} side="player-1" />
 
@@ -105,12 +105,13 @@ if ((player1 || player2) && Astro.cache.enabled) {
 		<div class="join" style="anchor-name: --anchor-vs-player-action">
 			<button
 				hx-get="/vs"
+				hx-select="main"
+				hx-swap="outerMorph transition:true"
+				hx-target="main"
 				class="btn join-item flex-1 btn-soft btn-primary"
-				hx-disabled-elt="#actions button"
+				hx-disable="#actions button"
 				hx-indicator="this"
 				hx-replace-url="true"
-				hx-select-oob="#players, #comparison, #actions"
-				hx-swap="none transition:true"
 				hx-vals={JSON.stringify({
 					"player-1": player2?.id,
 					"player-2": player1?.id,
@@ -140,13 +141,13 @@ if ((player1 || player2) && Astro.cache.enabled) {
 		>
 			<div
 				class="relative flex min-h-70 min-w-75 justify-center"
-				hx-indicator="#vs-date-loader"
+				hx-indicator:inherited="#vs-date-loader"
 			>
 				<div
 					hx-get="/vs/calendar"
-					hx-trigger="intersect once"
 					hx-swap="outerHTML"
 					hx-target="this"
+					hx-trigger="intersect once"
 					hx-vals={JSON.stringify({
 						date,
 						"player-1": player1?.id,

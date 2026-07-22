@@ -77,12 +77,13 @@ const id = `comparison-${name}`;
 				ratioAvailable && (
 					<button
 						hx-get="/vs"
+						hx-select="main"
+						hx-swap="outerMorph transition:true"
+						hx-target="main"
 						data-tip={ratioTooltip[name]}
-						hx-disabled-elt={`#${id} button`}
+						hx-disable={`#${id} button`}
 						hx-indicator="this"
 						hx-replace-url="true"
-						hx-select-oob={`#${id}, #actions, #players`}
-						hx-swap="none transition:true"
 						hx-vals={JSON.stringify({
 							"player-1": leftId,
 							"player-2": rightId,

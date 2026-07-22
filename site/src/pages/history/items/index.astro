@@ -128,7 +128,7 @@ if (snapshots.length > 0 && Astro.cache.enabled) {
 				>
 					<div
 						class="card-actions justify-end"
-						hx-disabled-elt={`#snapshot-${id} .card-actions button`}
+						hx-disable:inherited={`#snapshot-${id} .card-actions button`}
 						style={`anchor-name: --anchor-${id}-actions`}
 					>
 						<button
@@ -160,13 +160,13 @@ if (snapshots.length > 0 && Astro.cache.enabled) {
 						<PopoverDropdown class="overflow-visible" {id} name="calendar">
 							<div
 								class="relative flex min-h-70 min-w-75 justify-center"
-								hx-indicator={`#calendar-${id}-loader`}
+								hx-indicator:inherited={`#calendar-${id}-loader`}
 							>
 								<div
 									hx-get={`/history/items/${id}/calendar`}
-									hx-trigger="intersect once"
 									hx-swap="outerHTML"
 									hx-target="this"
+									hx-trigger="intersect once"
 									hx-vals={
 										date
 											? JSON.stringify({
@@ -194,14 +194,14 @@ if (snapshots.length > 0 && Astro.cache.enabled) {
 							<PopoverDropdown class="max-h-56 w-84" {id} name="titles">
 								<div
 									class="titles flex flex-wrap justify-center gap-x-1 gap-y-1.5 *:w-24 sm:*:w-32"
-									hx-indicator="closest .titles"
+									hx-indicator:inherited="closest .titles"
 								>
 									<div
 										hx-get={`/history/items/${id}/titles`}
-										hx-trigger="intersect once"
-										class="aspect-23/5 skeleton"
 										hx-swap="outerHTML"
 										hx-target="this"
+										hx-trigger="intersect once"
+										class="aspect-23/5 skeleton"
 									/>
 
 									{Array.from(

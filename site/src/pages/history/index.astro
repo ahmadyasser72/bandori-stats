@@ -19,7 +19,7 @@ const { query, ratio, date } = Astro.locals.parseQuery(
 	<div
 		class="mt-2 flex justify-center"
 		id="history-filter"
-		hx-include="#history-filter input"
+		hx-include:inherited="#history-filter input"
 	>
 		<div class="flex gap-2">
 			<button
@@ -40,13 +40,13 @@ const { query, ratio, date } = Astro.locals.parseQuery(
 					<IconLoader name="lucide:search" />
 					<input
 						hx-get="/history/items"
+						hx-target="#history-grid"
 						hx-trigger="keyup changed delay:300ms"
 						id="history-search-query"
 						name="query"
 						type="search"
 						value={query}
 						hx-indicator="closest .input"
-						hx-target="#history-grid"
 					/>
 				</label>
 			</div>
@@ -68,10 +68,10 @@ const { query, ratio, date } = Astro.locals.parseQuery(
 				<input name="date" type="hidden" value={date} />
 				<div
 					hx-get="/history/calendar"
-					hx-trigger="intersect once, htmx:afterRequest from:#history-search-query"
+					hx-target="#history-date-calendar"
+					hx-trigger="intersect once, htmx:after:request from:#history-search-query"
 					class="relative flex min-h-70 min-w-75 justify-center"
 					hx-indicator="#history-date-loader"
-					hx-target="#history-date-calendar"
 				>
 					<div class="contents" id="history-date-calendar"></div>
 					<div
@@ -100,11 +100,11 @@ const { query, ratio, date } = Astro.locals.parseQuery(
 				style="position-anchor: --anchor-history-settings"
 			>
 				<fieldset
+					hx-target:inherited="#history-grid"
 					class="fieldset w-64 rounded-box border bg-base-100 p-4 pt-3 shadow-sm dark:bg-base-300"
 					id="history-settings-ratio"
-					hx-disabled-elt="#history-settings fieldset"
-					hx-indicator="#history-settings-ratio .fieldset-legend"
-					hx-target="#history-grid"
+					hx-disable:inherited="#history-settings fieldset"
+					hx-indicator:inherited="#history-settings-ratio .fieldset-legend"
 				>
 					<legend class="fieldset-legend py-0">
 						<IconLoader name="lucide:percent" />
@@ -146,14 +146,14 @@ const { query, ratio, date } = Astro.locals.parseQuery(
 	<ul
 		class="mx-auto mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3"
 		id="history-grid"
-		hx-indicator="#history-loader"
+		hx-indicator:inherited="#history-loader"
 	>
 		<div
 			hx-get="/history/items"
+			hx-swap="outerHTML"
 			hx-trigger="intersect once"
 			hx-include="#history-filter input"
 			hx-indicator="#app-loader"
-			hx-swap="outerHTML"
 		>
 		</div>
 	</ul>

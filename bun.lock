@@ -79,7 +79,7 @@
         "astro": "7.1.3",
         "clsx": "2.1.1",
         "daisyui": "5.7.0",
-        "htmx.org": "2.0.10",
+        "htmx.org": "4.0.0-beta5",
         "iconify-icon": "3.0.2",
         "preact": "10.29.7",
         "tailwindcss": "4.3.3",
@@ -1131,7 +1131,7 @@
 
     "html-void-elements": ["html-void-elements@3.0.0", "", {}, "sha512-bEqo66MRXsUGxWHV5IP0PUiAWwoEjba4VCzg0LjFJBpchPaTfyfCKTG6bc5F8ucKec3q5y6qOdGyYTSBEvhCrg=="],
 
-    "htmx.org": ["htmx.org@2.0.10", "", {}, "sha512-kdeJe7ZVwaS6QMz/ebBIVtZdpwen6L0OQ5GOhPV9MKBb196TCZeZu4yA7ZIQsaLKv7EpXz+So7KSXNuHXhj7Cw=="],
+    "htmx.org": ["htmx.org@4.0.0-beta5", "", { "bin": { "upgrade-check": "dist/scripts/upgrade-check.js" } }, "sha512-hIgrmD9GgLj0FRUZC5G9ZyUeGDca0Lk/QTqWQUmBsfbXxee3a3cTPmmkFzzVEEmtt7KZPGFJpRVJTH9FzP3pxQ=="],
 
     "http-cache-semantics": ["http-cache-semantics@4.2.0", "", {}, "sha512-dTxcvPXqPvXBQpq5dUr6mEMJX4oIEFv6bwom3FDwKRDsuIjjJGANqhBuoAn9c1RQJIdAKav33ED65E2ys+87QQ=="],
 
