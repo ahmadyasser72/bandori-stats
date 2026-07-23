@@ -102,4 +102,19 @@ const { title, containerClass } = Astro.props;
 			else image.addEventListener("load", done, { once: true });
 		}
 	});
+
+	htmx.on("htmx:before:swap", () => {
+		const openPopover = document.querySelector(":popover-open");
+		if (!(openPopover instanceof HTMLElement)) return;
+
+		openPopover.setAttribute("hx-morph-skip", "true");
+		openPopover.style.viewTransitionName = "popover-open";
+	});
+	htmx.on("htmx:after:swap", () => {
+		const openPopover = document.querySelector(":popover-open");
+		if (!(openPopover instanceof HTMLElement)) return;
+
+		openPopover.style.viewTransitionName = "";
+		openPopover.removeAttribute("hx-morph-skip");
+	});
 </script>
