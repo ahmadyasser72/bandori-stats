@@ -75,6 +75,7 @@ const page = await paginate({
 	extraProps: {
 		"hx-target": "closest .grid",
 		"hx-swap": "beforeend",
+		"hx-include": "#history-filter input",
 	},
 });
 
