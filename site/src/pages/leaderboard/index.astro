@@ -1,0 +1,45 @@
+---
+import { STAT_NAMES, type StatName } from "@bandori-stats/bestdori/constants";
+import { startCase } from "@bandori-stats/bestdori/helpers";
+
+import Icon from "~/components/icon.astro";
+import BaseLayout from "~/layouts/base-layout.astro";
+
+const STAT_ICONS = {
+	highScoreRating: "lucide:crown",
+	bandRating: "lucide:guitar",
+	allPerfectCount: "lucide:sparkles",
+	fullComboCount: "lucide:zap",
+	clearCount: "lucide:circle-check-big",
+	rank: "lucide:award",
+} satisfies Record<StatName, string>;
+---
+
+<BaseLayout title="Leaderboard" containerClass="max-w-5xl">
+	<div class="mt-4 grid gap-8 lg:grid-cols-2">
+		{
+			STAT_NAMES.map((stat) => (
+				<div class="card bg-base-100 shadow-sm card-border dark:bg-base-300">
+					<div class="card-body px-0">
+						<h2 class="card-title self-center">
+							<Icon class="text-primary" name={STAT_ICONS[stat]} />
+							{startCase(stat)}
+						</h2>
+
+						<div
+							hx-get="/leaderboard/top"
+							hx-trigger="intersect once"
+							class="list mt-1 max-h-100 overflow-y-auto px-8 py-1"
+							hx-indicator="this"
+							hx-vals={JSON.stringify({ stat, limit: 10 })}
+						>
+							{Array.from({ length: 5 }).map(() => (
+								<div class="list-row h-18 skeleton not-last:mb-2" />
+							))}
+						</div>
+					</div>
+				</div>
+			))
+		}
+	</div>
+</BaseLayout>
