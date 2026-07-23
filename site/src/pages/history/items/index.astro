@@ -168,15 +168,11 @@ if (snapshots.length > 0 && Astro.cache.enabled) {
 									hx-swap="outerHTML"
 									hx-target="this"
 									hx-trigger="intersect once"
-									hx-vals={
-										date
-											? JSON.stringify({
-													date: dayjs(date)
-														.startOf("month")
-														.format("YYYY-MM-DD"),
-												})
-											: undefined
-									}
+									hx-vals={JSON.stringify({
+										date: dayjs(snapshotDate)
+											.startOf("month")
+											.format("YYYY-MM-DD"),
+									})}
 								/>
 
 								<div
