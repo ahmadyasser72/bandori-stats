@@ -9,15 +9,10 @@ import {
 } from "@bandori-stats/bestdori/helpers";
 import type { Snapshot } from "@bandori-stats/database/schema";
 
-import type z from "zod";
-
-import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
-import type { RatioSchema } from "~/lib/schema";
 
 interface Props {
 	name: keyof Snapshot["stats"];
-	ratio: z.infer<typeof RatioSchema>;
 	left: StatValue;
 	"left-id"?: number;
 	"left-ratio-reference"?: StatValue;
@@ -26,7 +21,7 @@ interface Props {
 	"right-ratio-reference"?: StatValue;
 }
 
-const { name, ratio, "left-id": leftId, "right-id": rightId } = Astro.props;
+const { name, "left-id": leftId, "right-id": rightId } = Astro.props;
 
 const compute = (valueRaw: StatValue, reference: StatValue) => {
 	let value = getValue(valueRaw ?? 0);
@@ -57,12 +52,6 @@ const total = left.value + right.value;
 const leftPercent = total === 0 ? 50 : (left.value / total) * 100;
 const rightPercent = 100 - leftPercent;
 
-const ratioAvailable = name === "fullComboCount" || name === "allPerfectCount";
-const ratioTooltip = {
-	fullComboCount: "Show FC / Clear ratio",
-	allPerfectCount: "Show AP / Clear ratio",
-};
-
 const id = `comparison-${name}`;
 ---
 
@@ -72,34 +61,6 @@ const id = `comparison-${name}`;
 			class="inline-flex items-center justify-center gap-2 text-sm font-medium text-base-content/67"
 		>
 			{startCase(isRatio ? name.replace("Count", "Ratio") : name)}
-
-			{
-				ratioAvailable && (
-					<button
-						hx-get="/vs"
-						hx-select="main"
-						hx-swap="outerMorph transition:true"
-						hx-target="main"
-						data-tip={ratioTooltip[name]}
-						hx-disable={`#${id} button`}
-						hx-indicator="this"
-						hx-replace-url="true"
-						hx-vals={JSON.stringify({
-							"player-1": leftId,
-							"player-2": rightId,
-							ratio: ratio.includes(name)
-								? ratio.filter((it) => it !== name)
-								: [...ratio, name],
-						})}
-						class:list={[
-							"tooltip btn btn-circle tooltip-info btn-xs",
-							ratio.includes(name) ? "btn-info" : "btn-outline hover:btn-info",
-						]}
-					>
-						<IconLoader class="size-3.5" name="lucide:percent" />
-					</button>
-				)
-			}
 		</div>
 
 		<div class="flex items-center justify-between">

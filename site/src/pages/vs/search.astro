@@ -45,7 +45,10 @@ if (Astro.cache.enabled) {
 		<li>
 			<button
 				hx-get="/vs"
-				hx-vals={JSON.stringify({ [side]: account.id, [otherSide]: otherId })}
+				hx-vals={JSON.stringify({
+					[side]: account.id,
+					[otherSide]: otherId,
+				})}
 				{...(otherId && {
 					"data-umami-event": "compare-account",
 					[`data-umami-event-${side}`]: account.id,
