@@ -42,7 +42,10 @@ const left = compute(Astro.props.left, Astro.props["left-ratio-reference"]);
 const right = compute(Astro.props.right, Astro.props["right-ratio-reference"]);
 const isRatio = left.isRatio || right.isRatio;
 
-const delta = compareValue(left.value || null, right.value || null);
+const delta = compareValue(
+	left.value || Astro.props.left,
+	right.value || Astro.props.right,
+);
 let deltaDisplay = (isRatio ? Math.abs(delta) >= 0.01 : Math.abs(delta) > 0)
 	? formatNumber(Math.abs(delta), { autoCompact: true, positiveSign: true })
 	: "N/A";
@@ -82,7 +85,9 @@ const id = `comparison-${name}`;
 				<Icon
 					class="size-5"
 					name={delta === 0
-						? "lucide:minus"
+						? left.value === right.value
+							? "lucide:equal"
+							: "lucide:minus"
 						: delta > 0
 							? "lucide:arrow-right"
 							: "lucide:arrow-left"}
