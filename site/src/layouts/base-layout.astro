@@ -75,7 +75,7 @@ const { title, containerClass } = Astro.props;
 		</main>
 
 		<div
-			class="htmx-indicator fixed inset-0 z-20 bg-base-100/50"
+			class="htmx-indicator fixed inset-0 z-20 bg-base-100/67"
 			id="app-loader"
 		>
 			<Icon class="center absolute size-24" name="svg-spinners:3-dots-move" />
@@ -89,14 +89,8 @@ const { title, containerClass } = Astro.props;
 	window.htmx = htmx;
 
 	htmx.onLoad((node) => {
-		if (!(node instanceof HTMLElement)) return;
-
-		if (
-			node instanceof HTMLImageElement &&
-			node.classList.contains("skeleton") &&
-			node.classList.contains("border")
-		) {
-			const image = node;
+		if (node.matches("img.skeleton.border")) {
+			const image = node as HTMLImageElement;
 			const done = () => image.classList.remove("skeleton", "border");
 			if (image.complete) done();
 			else image.addEventListener("load", done, { once: true });
@@ -108,13 +102,13 @@ const { title, containerClass } = Astro.props;
 		if (!(openPopover instanceof HTMLElement)) return;
 
 		openPopover.setAttribute("hx-morph-skip", "true");
-		openPopover.style.viewTransitionName = "popover-open";
+		openPopover.style.setProperty("view-transition-name", "popover-open");
 	});
 	htmx.on("htmx:after:swap", () => {
 		const openPopover = document.querySelector(":popover-open");
 		if (!(openPopover instanceof HTMLElement)) return;
 
-		openPopover.style.viewTransitionName = "";
+		openPopover.style.removeProperty("view-transition-name");
 		openPopover.removeAttribute("hx-morph-skip");
 	});
 </script>

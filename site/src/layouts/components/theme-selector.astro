@@ -10,7 +10,7 @@ import Icon from "~/components/icon.astro";
 	<Icon class="size-5" name="lucide:palette" />
 </button>
 <ul
-	class="dropdown dropdown-end mt-1 w-28 rounded-box bg-base-300 p-2"
+	class="dropdown dropdown-end mt-1 w-28"
 	id="theme-selector"
 	popover
 	style="view-transition-name: theme-selector"
@@ -74,6 +74,7 @@ import Icon from "~/components/icon.astro";
 			transition.finished.finally(() => {
 				document.documentElement.style.removeProperty("--tx");
 				document.documentElement.style.removeProperty("--ty");
+				document.documentElement.style.removeProperty("--radius");
 				document.documentElement.classList.remove("theme-transition");
 			});
 		};

@@ -4,7 +4,9 @@ import { db } from "@bandori-stats/database";
 
 import z from "zod";
 
+import CalendarLoader from "~/components/calendar-loader.astro";
 import Icon from "~/components/icon.astro";
+import TitlesLoader from "~/components/titles-loader.astro";
 import { paginate } from "~/lib/paginate";
 import { QuerySchema, RatioSchema } from "~/lib/schema";
 import PopoverDropdown from "./_popover-dropdown.astro";
@@ -74,8 +76,9 @@ const page = await paginate({
 	size: 12,
 	extraProps: {
 		"hx-target": "closest .grid",
-		"hx-swap": "beforeend",
+		"hx-swap": "append",
 		"hx-include": "#history-filter input",
+		"hx-indicator": "#history-loader",
 	},
 });
 
@@ -159,55 +162,23 @@ if (snapshots.length > 0 && Astro.cache.enabled) {
 						)}
 
 						<PopoverDropdown class="overflow-visible" {id} name="calendar">
-							<div
-								class="relative flex min-h-70 min-w-75 justify-center"
-								hx-indicator:inherited={`#calendar-${id}-loader`}
-							>
-								<div
-									hx-get={`/history/items/${id}/calendar`}
-									hx-swap="outerHTML"
-									hx-target="this"
-									hx-trigger="intersect once"
-									hx-vals={JSON.stringify({
-										date: dayjs(snapshotDate)
-											.startOf("month")
-											.format("YYYY-MM-DD"),
-									})}
-								/>
-
-								<div
-									class="htmx-indicator absolute inset-0 bg-base-100/67"
-									id={`calendar-${id}-loader`}
-								>
-									<Icon
-										class="center absolute size-32"
-										name="svg-spinners:bars-scale"
-									/>
-								</div>
-							</div>
+							<CalendarLoader
+								name={`${id}-snapshot`}
+								hx-vals={JSON.stringify({
+									date: dayjs(snapshotDate)
+										.startOf("month")
+										.format("YYYY-MM-DD"),
+								})}
+								url={`/history/snapshots/${id}/calendar`}
+							/>
 						</PopoverDropdown>
 
 						{stats.titles && (
-							<PopoverDropdown class="max-h-56 w-84" {id} name="titles">
-								<div
-									class="titles flex flex-wrap justify-center gap-x-1 gap-y-1.5 *:w-24 sm:*:w-32"
-									hx-indicator:inherited="closest .titles"
-								>
-									<div
-										hx-get={`/history/items/${id}/titles`}
-										hx-swap="outerHTML"
-										hx-target="this"
-										hx-trigger="intersect once"
-										class="aspect-23/5 skeleton"
-									/>
-
-									{Array.from(
-										{ length: Math.min(stats.titles.length - 1, 5) },
-										() => (
-											<div class="htmx-indicator aspect-23/5 skeleton" />
-										),
-									)}
-								</div>
+							<PopoverDropdown {id} name="titles">
+								<TitlesLoader
+									size={stats.titles.length}
+									url={`/history/snapshots/${id}/titles`}
+								/>
 							</PopoverDropdown>
 						)}
 					</div>

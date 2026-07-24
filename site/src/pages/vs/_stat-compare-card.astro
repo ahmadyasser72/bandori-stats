@@ -35,7 +35,7 @@ const compute = (valueRaw: StatValue, reference: StatValue) => {
 		: displayValue(valueRaw);
 	if (isRatio) display += "%";
 
-	return { value, display, isRatio };
+	return { raw: valueRaw, value, display, isRatio };
 };
 
 const left = compute(Astro.props.left, Astro.props["left-ratio-reference"]);
@@ -58,7 +58,7 @@ const rightPercent = 100 - leftPercent;
 const id = `comparison-${name}`;
 ---
 
-<div class="card bg-base-100 shadow-sm card-border dark:bg-base-200" {id}>
+<div class="card" {id}>
 	<div class="card-body gap-2 p-4">
 		<div
 			class="inline-flex items-center justify-center gap-2 text-sm font-medium text-base-content/67"
@@ -85,7 +85,9 @@ const id = `comparison-${name}`;
 				<Icon
 					class="size-5"
 					name={delta === 0
-						? left.value === right.value
+						? typeof left.raw === "number" &&
+							typeof right.raw === "number" &&
+							left.raw === right.raw
 							? "lucide:equal"
 							: "lucide:minus"
 						: delta > 0

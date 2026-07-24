@@ -1,0 +1,26 @@
+---
+import type { JSX } from "astro/jsx-runtime";
+
+interface Props extends JSX.HTMLAttributes {
+	url: string;
+	size: number;
+}
+
+const { url, size, ...props } = Astro.props;
+---
+
+<div class="titles" hx-indicator:inherited="closest .titles" {...props}>
+	<div
+		hx-get={url}
+		hx-swap="outerHTML"
+		hx-trigger="intersect once"
+		class="aspect-23/5 skeleton"
+	>
+	</div>
+
+	{
+		Array.from({ length: Math.min(size - 1, 5) }, () => (
+			<div class="htmx-indicator aspect-23/5 skeleton" />
+		))
+	}
+</div>

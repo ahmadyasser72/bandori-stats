@@ -7,14 +7,14 @@ interface Props {
 <div class="breadcrumbs">
 	<ul class="justify-center">
 		<li>
-			<a href="/">bandori-stats</a>
+			<a href="/" style="view-transition-name: site-heading">bandori-stats</a>
 		</li>
 		{
 			Astro.props.pathname
 				.split("/")
 				.filter(Boolean)
 				.map((path, idx, parts) => (
-					<li>
+					<li style={`view-transition-name: site-path-${path}`}>
 						{idx === parts.length - 1 ? (
 							path
 						) : (

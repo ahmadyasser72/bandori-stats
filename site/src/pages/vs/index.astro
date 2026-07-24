@@ -5,6 +5,7 @@ import { db } from "@bandori-stats/database";
 
 import z from "zod";
 
+import CalendarLoader from "~/components/calendar-loader.astro";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import BaseLayout from "~/layouts/base-layout.astro";
@@ -111,38 +112,21 @@ if ((player1 || player2) && Astro.cache.enabled) {
 				<span>{date ?? "Date"}</span>
 			</button>
 			<div
-				class="dropdown dropdown-center dropdown-top mb-2 overflow-visible rounded-box border border-primary/20 bg-base-100 p-2 shadow-md"
+				class="dropdown dropdown-center dropdown-top overflow-visible"
 				id="vs-date"
 				popover
 				style="position-anchor: --anchor-vs-player-action"
 			>
-				<div
-					class="relative flex min-h-70 min-w-75 justify-center"
-					hx-indicator:inherited="#vs-date-loader"
-				>
-					<div
-						hx-get="/vs/calendar"
-						hx-swap="outerHTML"
-						hx-target="this"
-						hx-trigger="intersect once"
-						hx-vals={JSON.stringify({
-							date,
-							"player-1": player1?.id,
-							"player-2": player2?.id,
-							ratio,
-						})}
-					>
-					</div>
-					<div
-						class="htmx-indicator absolute inset-0 bg-base-100/67"
-						id="vs-date-loader"
-					>
-						<Icon
-							class="center absolute size-32"
-							name="svg-spinners:bars-scale"
-						/>
-					</div>
-				</div>
+				<CalendarLoader
+					name="vs"
+					hx-vals={JSON.stringify({
+						date,
+						"player-1": player1?.id,
+						"player-2": player2?.id,
+						ratio,
+					})}
+					url="/vs/calendar"
+				/>
 			</div>
 
 			<button
@@ -154,7 +138,7 @@ if ((player1 || player2) && Astro.cache.enabled) {
 				Settings
 			</button>
 			<div
-				class="dropdown dropdown-center dropdown-top mb-2 rounded-box border border-primary/20 bg-base-100 p-2 shadow-md"
+				class="dropdown dropdown-center dropdown-top"
 				id="vs-settings"
 				popover
 				style="position-anchor: --anchor-vs-player-actions"
@@ -163,7 +147,7 @@ if ((player1 || player2) && Astro.cache.enabled) {
 					hx-select:inherited="main"
 					hx-swap:inherited="outerMorph transition:true"
 					hx-target:inherited="main"
-					class="fieldset w-64 rounded-box border bg-base-100 p-4 pt-3 shadow-sm dark:bg-base-300"
+					class="fieldset w-64"
 					id="vs-settings-ratio"
 					hx-disable:inherited="#vs-settings fieldset"
 					hx-include:inherited="#vs-settings input"

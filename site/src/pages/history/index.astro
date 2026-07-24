@@ -1,6 +1,7 @@
 ---
 import z from "zod";
 
+import CalendarLoader from "~/components/calendar-loader.astro";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import BaseLayout from "~/layouts/base-layout.astro";
@@ -30,7 +31,7 @@ const { query, ratio, date } = Astro.locals.parseQuery(
 				<Icon name="lucide:search" />
 			</button>
 			<div
-				class="dropdown dropdown-start mt-2 rounded-box border border-primary/20 bg-base-100 p-2 shadow-md"
+				class="dropdown dropdown-start"
 				id="history-search"
 				ontoggle="event.newState === 'open' && this.querySelector('input').focus()"
 				popover
@@ -39,7 +40,7 @@ const { query, ratio, date } = Astro.locals.parseQuery(
 				<label class="input">
 					<IconLoader name="lucide:search" />
 					<input
-						hx-get="/history/items"
+						hx-get="/history/snapshots"
 						hx-target="#history-grid"
 						hx-trigger="keyup changed delay:300ms"
 						id="history-search-query"
@@ -60,30 +61,17 @@ const { query, ratio, date } = Astro.locals.parseQuery(
 				<span>{date ?? "Choose Date"}</span>
 			</button>
 			<div
-				class="dropdown dropdown-center mt-2 rounded-box border border-primary/20 bg-base-100 p-2 shadow-md"
+				class="dropdown dropdown-center"
 				id="history-date"
 				popover
 				style="position-anchor: --anchor-history-date"
 			>
 				<input name="date" type="hidden" value={date} />
-				<div
-					hx-get="/history/calendar"
-					hx-target="#history-date-calendar"
-					hx-trigger="intersect once, htmx:after:request from:#history-search-query"
-					class="relative flex min-h-70 min-w-75 justify-center"
-					hx-indicator="#history-date-loader"
-				>
-					<div class="contents" id="history-date-calendar"></div>
-					<div
-						class="htmx-indicator absolute inset-0 bg-base-100/67"
-						id="history-date-loader"
-					>
-						<Icon
-							class="center absolute size-32"
-							name="svg-spinners:bars-scale"
-						/>
-					</div>
-				</div>
+				<CalendarLoader
+					hx-trigger="htmx:after:request from:#history-search-query"
+					name="history"
+					url="/history/calendar"
+				/>
 			</div>
 
 			<button
@@ -94,14 +82,14 @@ const { query, ratio, date } = Astro.locals.parseQuery(
 				<Icon name="lucide:settings" />
 			</button>
 			<div
-				class="dropdown dropdown-end mt-2 rounded-box border border-primary/20 bg-base-100 p-2 shadow-md"
+				class="dropdown dropdown-end"
 				id="history-settings"
 				popover
 				style="position-anchor: --anchor-history-settings"
 			>
 				<fieldset
 					hx-target:inherited="#history-grid"
-					class="fieldset w-64 rounded-box border bg-base-100 p-4 pt-3 shadow-sm dark:bg-base-300"
+					class="fieldset w-64"
 					id="history-settings-ratio"
 					hx-disable:inherited="#history-settings fieldset"
 					hx-indicator:inherited="#history-settings-ratio .fieldset-legend"
@@ -113,7 +101,7 @@ const { query, ratio, date } = Astro.locals.parseQuery(
 					<div class="flex flex-wrap gap-4 text-sm">
 						<label class="label">
 							<input
-								hx-get="/history/items"
+								hx-get="/history/snapshots"
 								class="checkbox checkbox-sm"
 								name="ratio"
 								type="checkbox"
@@ -124,7 +112,7 @@ const { query, ratio, date } = Astro.locals.parseQuery(
 						</label>
 						<label class="label">
 							<input
-								hx-get="/history/items"
+								hx-get="/history/snapshots"
 								class="checkbox checkbox-sm"
 								name="ratio"
 								type="checkbox"
@@ -144,18 +132,19 @@ const { query, ratio, date } = Astro.locals.parseQuery(
 
 	<!-- TODO: use css-grid-lanes (masonry layout) when it arrives https://caniuse.com/css-grid-lanes -->
 	<ul
+		hx-get="/history/snapshots"
+		hx-trigger="intersect once"
 		class="mx-auto mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3"
 		id="history-grid"
-		hx-indicator:inherited="#history-loader"
+		hx-include="#history-filter input"
 	>
-		<div
-			hx-get="/history/items"
-			hx-swap="outerHTML"
-			hx-trigger="intersect once"
-			hx-include="#history-filter input"
-			hx-indicator="#app-loader"
-		>
-		</div>
+		{
+			Array.from({ length: 6 }).map(() => (
+				<div class="card h-84">
+					<div class="m-4 card-body skeleton p-0" />
+				</div>
+			))
+		}
 	</ul>
 
 	<div

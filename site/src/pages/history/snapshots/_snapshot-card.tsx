@@ -49,10 +49,7 @@ export const SnapshotCard = ({
 	children,
 	...props
 }: SnapshotCardProps) => (
-	<div
-		class="card w-full bg-base-100 shadow-sm card-border dark:bg-base-300"
-		{...props}
-	>
+	<div class="card w-full dark:bg-base-300" {...props}>
 		<div class="card-body gap-2 p-4">
 			<div class="flex h-12 w-full gap-2">
 				{account.profileArt && (
@@ -78,7 +75,7 @@ export const SnapshotCard = ({
 						)}
 					>
 						<h2 class="card-title">{account.nickname}</h2>
-						<p class="text-xs text-base-content/80">@{account.username}</p>
+						<p class="text-xs text-base-content/67">@{account.username}</p>
 					</div>
 				) : (
 					<h2 class="card-title self-center text-xl">@{account.username}</h2>

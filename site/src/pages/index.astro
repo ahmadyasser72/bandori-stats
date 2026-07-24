@@ -5,18 +5,38 @@ import BaseLayout from "~/layouts/base-layout.astro";
 
 <BaseLayout title="Homepage">
 	<div class="absolute inset-0 flex flex-col items-center justify-center">
-		<h1 class="font-medium">bandori-stats</h1>
+		<h1 class="font-medium" style="view-transition-name: site-heading">
+			bandori-stats
+		</h1>
 
-		<div class="mt-4 flex flex-wrap justify-center gap-2">
-			<a class="btn btn-primary btn-sm" href="/history">
+		<div
+			hx-select:inherited="main"
+			hx-swap:inherited="outerHTML transition:true"
+			hx-target:inherited="main"
+			class="mt-4 flex flex-wrap justify-center gap-2"
+			hx-boost:inherited="true"
+		>
+			<a
+				class="btn btn-primary btn-sm"
+				href="/history"
+				style="view-transition-name: site-path-history"
+			>
 				<Icon name="lucide:calendar-clock" />
 				History
 			</a>
-			<a class="btn btn-primary btn-sm" href="/leaderboard">
+			<a
+				class="btn btn-primary btn-sm"
+				href="/leaderboard"
+				style="view-transition-name: site-path-leaderboard"
+			>
 				<Icon name="lucide:crown" />
 				Leaderboard
 			</a>
-			<a class="btn btn-primary btn-sm" href="/vs">
+			<a
+				class="btn btn-primary btn-sm"
+				href="/vs"
+				style="view-transition-name: site-path-vs"
+			>
 				<Icon name="lucide:flame" />
 				VS
 			</a>

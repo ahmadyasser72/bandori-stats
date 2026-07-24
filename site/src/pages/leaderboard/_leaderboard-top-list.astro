@@ -28,6 +28,7 @@ const AURA_DURATION = [15_000, 12_000, 9_000];
 	players.map(({ player, trueRank }, idx) => (
 		<div
 			class:list={[
+				"group",
 				trueRank < 3 && "aura not-last:mb-1.5",
 				trueRank === 0 && "aura-holo",
 				trueRank === 1 && "aura-gold",
@@ -76,7 +77,7 @@ const AURA_DURATION = [15_000, 12_000, 9_000];
 					{accountHasNickname(player) ? (
 						<div class="flex flex-col">
 							<span class="truncate font-medium">{player.nickname}</span>
-							<span class="text-xs text-base-content/80">
+							<span class="text-xs text-base-content/67">
 								@{player.username}
 							</span>
 						</div>

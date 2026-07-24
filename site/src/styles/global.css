@@ -31,6 +31,22 @@
 	}
 }
 
+@utility card {
+	@apply bg-base-100 shadow-sm card-border dark:bg-base-200;
+}
+
+@utility dropdown {
+	@apply my-2 rounded-box border border-primary/20 bg-base-100 p-2 shadow-md;
+
+	&:has(.titles) {
+		@apply max-h-56 w-84 lg:w-96;
+	}
+}
+
+@utility fieldset {
+	@apply rounded-box border bg-base-100 p-4 pt-3 shadow-sm dark:bg-base-200;
+}
+
 :not(.htmx-request) > .htmx-indicator:not(.htmx-request),
 .htmx-indicator-replace.htmx-request,
 .htmx-request > .htmx-indicator-replace {
@@ -40,4 +56,12 @@
 .absolute.center,
 .fixed.center {
 	@apply top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2;
+}
+
+@utility titles {
+	@apply flex flex-wrap justify-center gap-x-1 gap-y-1.5;
+
+	.aspect-23\/5 {
+		@apply w-24 lg:w-28;
+	}
 }

@@ -66,7 +66,7 @@ const data = {
 	oldest: oldest?.snapshotDate,
 	latest: latest?.snapshotDate,
 
-	url: `/history/items/${id}/calendar`,
+	url: `/history/snapshots/${id}/calendar`,
 	params: {},
 	items: snapshots
 		? Object.fromEntries(
@@ -98,7 +98,7 @@ if (!isNotFound && Astro.cache.enabled) {
 	import {
 		STAT_BADGES,
 		STAT_STATUSES,
-	} from "~/pages/history/items/_stat-colors";
+	} from "~/pages/history/snapshots/_stat-colors";
 	import type { Data } from "./calendar.astro";
 
 	initCalendar<Data>({

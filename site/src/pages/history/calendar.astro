@@ -114,7 +114,7 @@ if (Astro.cache.enabled) {
 			inputElement.value = date ?? "";
 
 			window.htmx
-				.ajax("get", "/history/items", {
+				.ajax("get", "/history/snapshots", {
 					source: calendar,
 					target: "#history-grid",
 					values: date ? { date } : {},

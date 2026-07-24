@@ -1,0 +1,33 @@
+---
+import type { JSX } from "astro/jsx-runtime";
+
+import Icon from "./icon.astro";
+
+interface Props extends JSX.HTMLAttributes {
+	name: string;
+	url: string;
+	"hx-trigger"?: string;
+}
+
+const { name, url, "hx-trigger": hxTrigger, ...props } = Astro.props;
+const id = `calendar-${name}`;
+---
+
+<div
+	hx-get={url}
+	hx-target={`#${id}`}
+	hx-trigger={hxTrigger
+		? ["intersect once", hxTrigger].join(", ")
+		: "intersect once"}
+	class="relative flex min-h-70 min-w-75 justify-center"
+	hx-indicator:inherited={`#${id}-loader`}
+	{...props}
+>
+	<div class="contents" {id}></div>
+	<div
+		class="htmx-indicator absolute inset-0 bg-base-100/67"
+		id={`${id}-loader`}
+	>
+		<Icon class="center absolute size-32" name="svg-spinners:bars-scale" />
+	</div>
+</div>

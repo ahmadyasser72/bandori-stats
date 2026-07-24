@@ -243,7 +243,7 @@ export const handle: CommandHandler = async (request, { type, data }) => {
 					items: currentSnapshot
 						? [currentSnapshot].map(({ id, snapshotDate }) => {
 								const image = new URL(
-									`/history/items/${id}/card.png`,
+									`/history/snapshots/${id}/card.png`,
 									request.url,
 								);
 								image.searchParams.set("account", accountId.toString());
