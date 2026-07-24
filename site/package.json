@@ -19,11 +19,11 @@
 		"astro": "7.1.3",
 		"clsx": "2.1.1",
 		"daisyui": "5.7.0",
-		"htmx.org": "4.0.0-beta5",
+		"htmx.org": "4.0.0-beta6",
 		"iconify-icon": "3.0.2",
 		"preact": "10.29.7",
 		"tailwindcss": "4.3.3",
-		"takumi-js": "2.4.0",
+		"takumi-js": "2.4.2",
 		"vanilla-calendar-pro": "3.1.0",
 		"zod": "4.4.3"
 	},
@@ -35,6 +35,6 @@
 		"devalue": "5.8.2",
 		"sharp": "0.35.3",
 		"typescript": "5.9.3",
-		"wrangler": "4.113.0"
+		"wrangler": "4.114.0"
 	}
 }

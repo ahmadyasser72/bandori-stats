@@ -9,12 +9,12 @@
 	"dependencies": {
 		"@bandori-stats/bestdori": "workspace:*",
 		"@bandori-stats/database": "workspace:*",
-		"@trigger.dev/sdk": "4.5.6",
+		"@trigger.dev/sdk": "4.5.7",
 		"fast-shuffle": "6.2.1"
 	},
 	"devDependencies": {
-		"@trigger.dev/build": "4.5.6",
-		"trigger.dev": "4.5.6",
+		"@trigger.dev/build": "4.5.7",
+		"trigger.dev": "4.5.7",
 		"typescript": "5.9.3"
 	}
 }
