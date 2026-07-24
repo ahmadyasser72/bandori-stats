@@ -7,6 +7,7 @@ import { PLAYER_TITLES_SET, redis } from "@bandori-stats/database/redis";
 
 import { exactRegex } from "@rolldown/pluginutils";
 import * as devalue from "devalue";
+import type { Category, Grade, Rank } from "virtual:bandori-leaderboard";
 
 export default function bandoriLeaderboard() {
 	const virtualModuleId = "virtual:bandori-leaderboard";
@@ -37,8 +38,8 @@ export default function bandoriLeaderboard() {
 					})
 					.sort((a, b) => compareDegreeRank(a.rank, b.rank));
 
-				const tops = new Map<string, Set<number>>();
-				const getTitles = (key: string) => {
+				const tops = new Map<Category, Set<number>>();
+				const getTitles = (key: Category) => {
 					let titles = tops.get(key);
 					if (!titles) {
 						titles = new Set();
@@ -48,41 +49,53 @@ export default function bandoriLeaderboard() {
 					return titles;
 				};
 
-				const byName = new Map<string, Map<number, number>>();
+				const byName = new Map<string, Map<number, Set<number>>>();
 				for (const { id, name, rank } of playerTitles) {
 					if (typeof name !== "string") continue;
-
 					if (typeof rank === "string" && rank.startsWith("grade_")) {
-						const grades = ["silver", "gold", "platinum"];
+						const grades = ["silver", "gold", "platinum"] as const;
 
 						const [, thisGrade] = rank.split("_");
-						for (const grade of grades.slice(0, grades.indexOf(thisGrade) + 1))
+						const gradeIdx = grades.indexOf(thisGrade as Grade);
+						for (const grade of grades.slice(0, gradeIdx + 1))
 							getTitles(`monthly-${grade}`).add(id);
+
 						continue;
-					} else if (typeof rank !== "number" || rank > 1000) continue;
+					}
+					if (typeof rank !== "number" || rank > 10_000) continue;
 
 					let normalized = rank;
-					if ([20, 30, 40, 50].includes(rank)) normalized = 100;
-					if ([200, 300, 400, 500].includes(rank)) normalized = 1000;
+					if (rank > 10 && rank < 100) normalized = 100;
+					else if (rank > 100 && rank < 1000) normalized = 1000;
+					else if (rank > 1000 && rank < 10_000) normalized = 10_000;
 
 					let ranks = byName.get(name);
 					if (!ranks) {
 						ranks = new Map();
 						byName.set(name, ranks);
 					}
-					ranks.set(normalized, id);
 
-					getTitles(`top-${normalized}`).add(id);
+					let ids = ranks.get(normalized);
+					if (!ids) {
+						ids = new Set();
+						ranks.set(normalized, ids);
+					}
+					ids.add(id);
+
+					getTitles(`t${normalized as Rank}`).add(id);
 				}
 
-				const thresholds = [1, 2, 3, 10, 100, 1000];
+				const thresholds = [1, 2, 3, 10, 100, 1000, 10_000] satisfies Rank[];
 				for (const ranks of byName.values()) {
 					const inherited = new Set<number>();
-					for (const threshold of thresholds) {
-						const id = ranks.get(threshold);
-						if (id !== undefined) inherited.add(id);
 
-						const titles = getTitles(`top-${threshold}`);
+					for (const threshold of thresholds) {
+						const ids = ranks.get(threshold);
+						if (ids) {
+							for (const id of ids) inherited.add(id);
+						}
+
+						const titles = getTitles(`t${threshold}`);
 						for (const id of inherited) titles.add(id);
 					}
 				}
@@ -121,16 +134,17 @@ export default function bandoriLeaderboard() {
 				})();
 
 				const sorted = (() => {
-					const keys = [
-						"top-1",
-						"top-2",
-						"top-3",
-						"top-10",
-						"top-100",
-						"top-1000",
-						"monthly-silver",
-						"monthly-gold",
+					const keys: Category[] = [
+						"t1",
+						"t2",
+						"t3",
+						"t10",
+						"t100",
+						"t1000",
+						"t10000",
 						"monthly-platinum",
+						"monthly-gold",
+						"monthly-silver",
 					];
 
 					return Object.fromEntries(

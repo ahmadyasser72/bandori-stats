@@ -1,5 +1,5 @@
 ---
-import { startCase } from "@bandori-stats/bestdori/helpers";
+import { capitalize, startCase } from "@bandori-stats/bestdori/helpers";
 
 import { titles } from "virtual:bandori-leaderboard";
 
@@ -10,7 +10,10 @@ export const partial = true;
 
 {
 	Object.keys(titles).map((name) => (
-		<LeaderboardCard name="titles" title={`Titles (${startCase(name)})`}>
+		<LeaderboardCard
+			name="titles"
+			title={(name.startsWith("t") ? capitalize : startCase)(name)}
+		>
 			<div
 				hx-get="/leaderboard/titles/list"
 				hx-trigger="intersect once"
