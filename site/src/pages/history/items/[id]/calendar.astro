@@ -17,7 +17,7 @@ const { date: queryDate } = Astro.locals.parseQuery(
 );
 
 const date = dayjs(queryDate);
-const snapshot = await db.query.accountSnapshots.findFirst({
+const snapshot = await db().query.accountSnapshots.findFirst({
 	columns: { accountId: true, snapshotDate: true },
 	where: { id },
 });
@@ -29,13 +29,13 @@ const monthStart = date.startOf("month").format("YYYY-MM-DD");
 const monthEnd = date.endOf("month").format("YYYY-MM-DD");
 const [oldest, latest, snapshots, firstPreviousSnapshot] = isNotFound
 	? []
-	: await db.batch([
-			db.query.accountSnapshots.findFirst({
+	: await db().batch([
+			db().query.accountSnapshots.findFirst({
 				columns: { snapshotDate: true },
 				orderBy: { snapshotDate: "asc" },
 				where: { accountId: snapshot.accountId },
 			}),
-			db.query.accountSnapshots.findFirst({
+			db().query.accountSnapshots.findFirst({
 				columns: { snapshotDate: true },
 				orderBy: { snapshotDate: "desc" },
 				where: {
@@ -43,7 +43,7 @@ const [oldest, latest, snapshots, firstPreviousSnapshot] = isNotFound
 					snapshotDate: { lte: snapshot.snapshotDate },
 				},
 			}),
-			db.query.accountSnapshots.findMany({
+			db().query.accountSnapshots.findMany({
 				columns: { snapshotDate: true, stats: true },
 				where: {
 					id: { lte: id },
@@ -51,7 +51,7 @@ const [oldest, latest, snapshots, firstPreviousSnapshot] = isNotFound
 					snapshotDate: { gte: monthStart, lte: monthEnd },
 				},
 			}),
-			db.query.accountSnapshots.findFirst({
+			db().query.accountSnapshots.findFirst({
 				columns: { stats: true },
 				where: {
 					accountId: snapshot.accountId,

@@ -34,7 +34,7 @@ const useRatio = (name: StatName) =>
 const [player1, player2] = await Promise.all(
 	[player1_id, player2_id].map((id) => {
 		if (!id) return;
-		return db.query.accounts.findFirst({
+		return db().query.accounts.findFirst({
 			columns: { id: true, username: true, nickname: true, profileArt: true },
 			where: { id },
 			with: {

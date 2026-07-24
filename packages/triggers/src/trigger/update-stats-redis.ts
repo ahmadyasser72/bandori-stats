@@ -28,7 +28,7 @@ export const updateStatsRedis = schemaTask({
 				const score = stats[stat];
 				if (score === null) return null;
 
-				return redis.zadd(
+				return redis().zadd(
 					`${PLAYER_STATS_SORTED_SET_PREFIX}:${stat}`,
 					{ gt: true, ch: true },
 					{ member: accountId, score },
@@ -51,7 +51,7 @@ export const updateStatsRedis = schemaTask({
 		if (titles.length === 0) return;
 
 		// @ts-expect-error should works
-		const newTitles = await redis.sadd(PLAYER_TITLES_SET, ...titles);
+		const newTitles = await redis().sadd(PLAYER_TITLES_SET, ...titles);
 		if (newTitles === 0) return;
 
 		await tags.add(`titles_+${newTitles}`);

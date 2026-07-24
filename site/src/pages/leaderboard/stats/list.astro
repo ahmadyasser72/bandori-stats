@@ -1,0 +1,67 @@
+---
+import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
+import { db } from "@bandori-stats/database";
+import {
+	PLAYER_STATS_SORTED_SET_PREFIX,
+	redis,
+} from "@bandori-stats/database/redis";
+
+import z from "zod";
+
+import LeaderboardTopList from "../_leaderboard-top-list.astro";
+
+export const partial = true;
+
+const { stat, limit } = Astro.locals.parseQuery(
+	z.object({
+		stat: z.enum(STAT_NAMES),
+		limit: z.coerce.number().min(5).max(10),
+	}),
+);
+
+const topids = await (async () => {
+	const key = `${PLAYER_STATS_SORTED_SET_PREFIX}:${stat}`;
+	const topData = await redis().zrange<number[]>(key, 0, limit - 1, {
+		rev: true,
+		withScores: true,
+	});
+
+	if (topData.length < 10) return topData.filter((_, index) => index % 2 === 0);
+
+	const lastPlaceScore = topData[limit * 2 - 1];
+	return redis().zrange<number[]>(key, "+inf", lastPlaceScore, {
+		rev: true,
+		byScore: true,
+	});
+})();
+
+const players = await (async () => {
+	const accounts = await db().query.accounts.findMany({
+		columns: { id: true, username: true, nickname: true, profileArt: true },
+		where: { id: { in: topids } },
+		with: {
+			snapshots: {
+				limit: 1,
+				columns: { stats: true },
+				orderBy: { id: "desc" },
+			},
+		},
+	});
+
+	return accounts
+		.sort((a, b) => topids.indexOf(a.id) - topids.indexOf(b.id))
+		.map(({ snapshots, ...account }) => ({
+			...account,
+			value: snapshots[0].stats[stat]!,
+		}));
+})();
+
+if (players.length > 0 && Astro.cache.enabled) {
+	Astro.cache.set({
+		etag: `"${__GIT_HASH__}-${players.map(({ id }) => id).join(".")}"`,
+		maxAge: 60 * 60,
+	});
+}
+---
+
+<LeaderboardTopList {players} />

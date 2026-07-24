@@ -41,7 +41,7 @@ export const updateStats = schemaTask({
 			return;
 		}
 
-		const existing = await db.query.accounts.findFirst({
+		const existing = await db().query.accounts.findFirst({
 			columns: { id: true, uid: true },
 			where: { username },
 			with: {
@@ -96,7 +96,7 @@ export const updateStats = schemaTask({
 					),
 			);
 
-			const [newSnapshot] = await db
+			const [newSnapshot] = await db()
 				.insert(accountSnapshots)
 				.values({ accountId: existing.id, stats, snapshotDate: date })
 				.onConflictDoUpdate({
@@ -108,14 +108,14 @@ export const updateStats = schemaTask({
 			snapshotId = newSnapshot?.id;
 			await tags.add("snapshot_update");
 		} else {
-			const [newAccount] = await db
+			const [newAccount] = await db()
 				.insert(accounts)
 				.values({ username })
 				.onConflictDoNothing()
 				.returning({ id: accounts.id });
 			accountId = newAccount ? newAccount.id : existing!.id;
 
-			const [newSnapshot] = await db
+			const [newSnapshot] = await db()
 				.insert(accountSnapshots)
 				.values({ accountId, stats, snapshotDate: date })
 				.returning({ id: accountSnapshots.id });
@@ -130,7 +130,7 @@ export const updateStats = schemaTask({
 				{ tags: `@_${username}` },
 			);
 
-			await db
+			await db()
 				.update(accounts)
 				.set({ lastUpdated: date, uid: existing?.uid ?? uid })
 				.where(eq(accounts.id, accountId));

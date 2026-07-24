@@ -27,8 +27,8 @@ const {
 const date = dayjs(queryDate);
 const monthStart = date.startOf("month").format("YYYY-MM-DD");
 const monthEnd = date.endOf("month").format("YYYY-MM-DD");
-const [oldest, latest, accounts, accountsPreviousSnapshot] = await db.batch([
-	db.query.accounts.findMany({
+const [oldest, latest, accounts, accountsPreviousSnapshot] = await db().batch([
+	db().query.accounts.findMany({
 		columns: {},
 		where: { id: { in: [player1_id, player2_id] } },
 		with: {
@@ -39,11 +39,11 @@ const [oldest, latest, accounts, accountsPreviousSnapshot] = await db.batch([
 			},
 		},
 	}),
-	db.query.accountSnapshots.findFirst({
+	db().query.accountSnapshots.findFirst({
 		columns: { snapshotDate: true },
 		orderBy: { snapshotDate: "desc" },
 	}),
-	db.query.accounts.findMany({
+	db().query.accounts.findMany({
 		columns: { id: true, username: true },
 		where: { id: { in: [player1_id, player2_id] } },
 		with: {
@@ -53,7 +53,7 @@ const [oldest, latest, accounts, accountsPreviousSnapshot] = await db.batch([
 			},
 		},
 	}),
-	db.query.accounts.findMany({
+	db().query.accounts.findMany({
 		columns: { id: true },
 		where: { id: { in: [player1_id, player2_id] } },
 		with: {

@@ -20,7 +20,7 @@ const {
 );
 const otherSide = side === "player-1" ? "player-2" : "player-1";
 
-const accounts = await db.query.accounts.findMany({
+const accounts = await db().query.accounts.findMany({
 	columns: { id: true, username: true, nickname: true },
 	limit: 24,
 	orderBy: { lastUpdated: "desc", username: "asc" },

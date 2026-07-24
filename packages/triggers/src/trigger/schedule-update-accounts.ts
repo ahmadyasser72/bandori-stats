@@ -35,7 +35,7 @@ export const scheduleUpdateAccounts = schedules.task({
 				usernameToNickname.set(username, nickname);
 		}
 
-		const existingAccounts = await db.query.accounts.findMany();
+		const existingAccounts = await db().query.accounts.findMany();
 		const rowsAffected = await Promise.all(
 			[...usernameToNickname.entries()].map(([username, nickname]) => {
 				const existing = existingAccounts.find(
@@ -43,11 +43,11 @@ export const scheduleUpdateAccounts = schedules.task({
 				);
 
 				return existing !== undefined
-					? db
+					? db()
 							.update(accounts)
 							.set({ nickname: nickname })
 							.where(eq(accounts.id, existing.id))
-					: db.insert(accounts).values({ username, nickname });
+					: db().insert(accounts).values({ username, nickname });
 			}),
 		).then((results) =>
 			results.reduce((acc, { rowsAffected }) => acc + rowsAffected, 0),

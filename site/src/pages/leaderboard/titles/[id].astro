@@ -1,0 +1,60 @@
+---
+import { db } from "@bandori-stats/database";
+
+import { titles } from "virtual:bandori-leaderboard";
+import z from "zod";
+
+import { paginate } from "~/lib/paginate";
+import { IdSchema } from "~/lib/schema";
+
+export const partial = true;
+
+const id = IdSchema.parse(Astro.params.id);
+const { category } = Astro.locals.parseQuery(
+	z.object({ category: z.enum(Object.keys(titles)) }),
+);
+
+const account = await db().query.accounts.findFirst({
+	columns: {},
+	where: { id },
+	with: {
+		snapshots: {
+			limit: 1,
+			columns: { stats: true },
+			orderBy: { id: "desc" },
+		},
+	},
+});
+
+const filtered =
+	account?.snapshots
+		.at(0)
+		?.stats.titles?.filter((id) => titles[category].includes(id)) ?? [];
+const isNotFound = !account || filtered.length === 0;
+if (isNotFound) Astro.response.status = 404;
+
+const page = await paginate({
+	items: filtered,
+	context: Astro,
+	size: 96,
+	extraProps: { "hx-swap": "afterend" },
+});
+
+if (!isNotFound && Astro.cache.enabled) {
+	Astro.cache.set({
+		etag: `"${__GIT_HASH__}-${page.items.join(".")}"`,
+		maxAge: 60 * 60,
+	});
+}
+---
+
+{
+	page.items.map((id, idx) => (
+		<img
+			{...(page.isLastElement(idx) && page.props)}
+			class="aspect-23/5 skeleton rounded-2xl border border-base-content/67"
+			src={`/static/titles/${id}.webp`}
+			loading="lazy"
+		/>
+	))
+}

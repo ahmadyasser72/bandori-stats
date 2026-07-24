@@ -7,7 +7,7 @@ import { IdSchema } from "~/lib/schema";
 export const partial = true;
 
 const id = IdSchema.parse(Astro.params.id);
-const snapshot = await db.query.accountSnapshots.findFirst({
+const snapshot = await db().query.accountSnapshots.findFirst({
 	columns: { accountId: true, stats: true },
 	where: { id },
 	orderBy: { id: "desc" },
@@ -19,7 +19,7 @@ if (isNotFound) Astro.response.status = 404;
 
 const previous = isNotFound
 	? undefined
-	: await db.query.accountSnapshots.findFirst({
+	: await db().query.accountSnapshots.findFirst({
 			columns: { stats: true },
 			where: { id: { lt: id }, accountId: snapshot.accountId },
 			orderBy: { id: "desc" },

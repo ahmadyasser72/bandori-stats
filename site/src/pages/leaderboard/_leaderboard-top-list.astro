@@ -1,0 +1,99 @@
+---
+import {
+	accountHasNickname,
+	displayValue,
+} from "@bandori-stats/bestdori/helpers";
+import type { Account } from "@bandori-stats/database/schema";
+
+interface Props {
+	players: (Pick<Account, "id" | "username" | "nickname" | "profileArt"> & {
+		value: number;
+	})[];
+	anchor?: string;
+}
+
+const players = (() => {
+	let trueRank = 0;
+	return Astro.props.players.map((player, idx) => {
+		if (idx === 0 || player.value !== Astro.props.players[idx - 1].value)
+			trueRank = idx;
+		return { player, trueRank };
+	});
+})();
+
+const AURA_DURATION = [15_000, 12_000, 9_000];
+---
+
+{
+	players.map(({ player, trueRank }, idx) => (
+		<div
+			class:list={[
+				trueRank < 3 && "aura not-last:mb-1.5",
+				trueRank === 0 && "aura-holo",
+				trueRank === 1 && "aura-gold",
+				trueRank === 2 && "aura-silver",
+			]}
+			style={
+				trueRank < 3 &&
+				`transition-duration: ${AURA_DURATION[trueRank] + idx * 1000}`
+			}
+		>
+			<div
+				class:list={[
+					"list-row items-center",
+					trueRank < 3 && "bg-base-100 dark:bg-base-300",
+				]}
+				style={
+					Astro.props.anchor &&
+					`anchor-name: --anchor-${player.id}-${Astro.props.anchor}`
+				}
+			>
+				<span
+					class:list={[
+						"badge min-h-8 min-w-8",
+						trueRank === 0 && "badge-primary",
+						trueRank === 1 && "badge-accent",
+						trueRank === 2 && "badge-secondary",
+						trueRank > 2 && "badge-ghost",
+					]}
+				>
+					{trueRank + 1}
+				</span>
+
+				<div class="list-col-grow flex items-center gap-2">
+					{player.profileArt && (
+						<div class="avatar">
+							<div class="size-10 rounded-box">
+								<img
+									src={`/static/accounts/${player.id}-icon.webp`}
+									alt={player.username}
+									loading="lazy"
+								/>
+							</div>
+						</div>
+					)}
+
+					{accountHasNickname(player) ? (
+						<div class="flex flex-col">
+							<span class="truncate font-medium">{player.nickname}</span>
+							<span class="text-xs text-base-content/80">
+								@{player.username}
+							</span>
+						</div>
+					) : (
+						<span class="truncate text-lg font-medium">@{player.username}</span>
+					)}
+				</div>
+
+				<span
+					class="font-mono text-sm max-sm:list-col-wrap"
+					set:html={
+						Astro.slots.has("value")
+							? Astro.slots.render("value", [player])
+							: displayValue(player.value)
+					}
+				/>
+			</div>
+		</div>
+	))
+}

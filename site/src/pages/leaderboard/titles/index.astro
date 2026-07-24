@@ -1,0 +1,27 @@
+---
+import { startCase } from "@bandori-stats/bestdori/helpers";
+
+import { titles } from "virtual:bandori-leaderboard";
+
+import LeaderboardCard from "../_leaderboard-card.astro";
+
+export const partial = true;
+---
+
+{
+	Object.keys(titles).map((name) => (
+		<LeaderboardCard name="titles" title={`Titles (${startCase(name)})`}>
+			<div
+				hx-get="/leaderboard/titles/list"
+				hx-trigger="intersect once"
+				class="list mt-1 max-h-100 overflow-y-auto px-8 py-1"
+				hx-indicator="this"
+				hx-vals={JSON.stringify({ category: name })}
+			>
+				{Array.from({ length: 5 }).map(() => (
+					<div class="list-row h-18 skeleton not-last:mb-2" />
+				))}
+			</div>
+		</LeaderboardCard>
+	))
+}

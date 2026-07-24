@@ -37,7 +37,7 @@ if (!Astro.url.searchParams.has("page")) {
 const page = await paginate({
 	items: {
 		get: (limit, offset) =>
-			db.query.accountSnapshots.findMany({
+			db().query.accountSnapshots.findMany({
 				limit,
 				offset,
 				where: {
@@ -81,7 +81,7 @@ const page = await paginate({
 
 const currentSnapshots = page.items;
 const previousSnapshots = (
-	await db.query.accounts.findMany({
+	await db().query.accounts.findMany({
 		columns: {},
 		where: { id: { in: currentSnapshots.map(({ accountId }) => accountId) } },
 		with: {

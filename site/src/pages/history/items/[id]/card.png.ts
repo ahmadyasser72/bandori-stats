@@ -12,7 +12,7 @@ export const GET: APIRoute = async (context) => {
 		z.object({ account: IdSchema, ratio: RatioSchema }),
 	);
 
-	const snapshots = await db.query.accountSnapshots.findMany({
+	const snapshots = await db().query.accountSnapshots.findMany({
 		limit: 2,
 		columns: { snapshotDate: true, stats: true },
 		where: { id: { lte: id }, accountId: account },

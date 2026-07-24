@@ -60,7 +60,7 @@ export const getStaticPaths = (async () => {
 	const degrees = await fetchDegrees(import.meta.env.DEV);
 
 	const imageEntries = [] as [number, string[]][];
-	const titles = await redis.smembers<number[]>(PLAYER_TITLES_SET);
+	const titles = await redis().smembers<number[]>(PLAYER_TITLES_SET);
 	degrees.forEach((degree, id) => {
 		if (!titles.includes(id)) return;
 

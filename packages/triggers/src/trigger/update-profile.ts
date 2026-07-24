@@ -32,7 +32,7 @@ export const updateProfile = schemaTask({
 			)
 			.unwrap();
 
-		const existing = await db.query.accounts.findFirst({
+		const existing = await db().query.accounts.findFirst({
 			columns: { id: true, profileArt: true },
 			where: { username },
 		});
@@ -47,7 +47,7 @@ export const updateProfile = schemaTask({
 			existing.profileArt?.id !== card?.id ||
 			existing.profileArt?.trained !== card?.trainedArt
 		) {
-			await db
+			await db()
 				.update(accounts)
 				.set({
 					lastUpdated: date,

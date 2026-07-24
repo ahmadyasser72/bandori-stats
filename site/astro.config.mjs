@@ -7,6 +7,8 @@ import preact from "@astrojs/preact";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, envField, fontProviders } from "astro/config";
 
+import bandoriLeaderboard from "./vite-plugins/bandori-leaderboard";
+
 const GIT_HASH = await new Promise((resolve, reject) => {
 	exec("git rev-parse --short HEAD", (error, stdout) =>
 		error ? reject(error) : resolve(stdout.trim()),
@@ -92,7 +94,7 @@ export default defineConfig({
 	},
 
 	vite: {
-		plugins: [tailwindcss()],
+		plugins: [bandoriLeaderboard(), tailwindcss()],
 		server: { allowedHosts: [".lhr.life", ".opah-barley.ts.net"] },
 
 		build: {

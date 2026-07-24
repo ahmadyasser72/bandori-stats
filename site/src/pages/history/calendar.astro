@@ -33,16 +33,16 @@ const {
 );
 
 const date = dayjs(queryDate);
-const [oldest, latest, snapshots] = await db.batch([
-	db.query.accountSnapshots.findFirst({
+const [oldest, latest, snapshots] = await db().batch([
+	db().query.accountSnapshots.findFirst({
 		columns: { snapshotDate: true },
 		orderBy: { snapshotDate: "asc" },
 	}),
-	db.query.accountSnapshots.findFirst({
+	db().query.accountSnapshots.findFirst({
 		columns: { snapshotDate: true },
 		orderBy: { snapshotDate: "desc" },
 	}),
-	db
+	db()
 		.select({
 			date: accountSnapshots.snapshotDate,
 			count: count(accountSnapshots.id),

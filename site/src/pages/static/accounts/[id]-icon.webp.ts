@@ -31,7 +31,7 @@ export const GET: APIRoute<Props, Params> = async ({ props: { card } }) => {
 
 export const getStaticPaths = (async () => {
 	const cards = await fetchCards(import.meta.env.DEV);
-	const accounts = await db.query.accounts.findMany({
+	const accounts = await db().query.accounts.findMany({
 		columns: { id: true, profileArt: true },
 		where: { profileArt: { isNotNull: true } },
 	});

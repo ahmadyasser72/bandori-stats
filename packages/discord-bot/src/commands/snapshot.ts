@@ -69,7 +69,7 @@ export const handle: CommandHandler = async (request, { type, data }) => {
 
 			if (accountOption?.focused) {
 				const typed = accountOption.value;
-				const accounts = await db.query.accounts.findMany({
+				const accounts = await db().query.accounts.findMany({
 					columns: { id: true, username: true, nickname: true },
 					limit: 25,
 					orderBy: { lastUpdated: "desc", username: "asc" },
@@ -99,7 +99,7 @@ export const handle: CommandHandler = async (request, { type, data }) => {
 				typeof accountOption?.value === "number"
 			) {
 				const typed = dateOption.value;
-				const snapshots = await db.query.accountSnapshots.findMany({
+				const snapshots = await db().query.accountSnapshots.findMany({
 					columns: { snapshotDate: true },
 					limit: 25,
 					where: {
@@ -156,7 +156,7 @@ export const handle: CommandHandler = async (request, { type, data }) => {
 
 					let page = 0;
 					if (date && !Number.isNaN(accountId)) {
-						page = await db.$count(
+						page = await db().$count(
 							accountSnapshots,
 							and(
 								eq(accountSnapshots.accountId, accountId),
@@ -191,7 +191,7 @@ export const handle: CommandHandler = async (request, { type, data }) => {
 
 			const queryOffset = Math.max(0, page - 1);
 			const queryLimit = page === 0 ? 2 : 3;
-			const account = await db.query.accounts.findFirst({
+			const account = await db().query.accounts.findFirst({
 				columns: { username: true, nickname: true, uid: true },
 				where: { id: accountId },
 				with: {

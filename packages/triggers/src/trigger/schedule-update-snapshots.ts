@@ -19,8 +19,10 @@ export const scheduleUpdateSnapshots = schedules.task({
 		const date = now.startOf("day").format("YYYY-MM-DD");
 
 		const shuffle = createShuffle(dayjs.tz(date, GBP_TIMEZONE).unix());
-		const accounts = await db.query.accounts
-			.findMany({ columns: { id: true, username: true, lastUpdated: true } })
+		const accounts = await db()
+			.query.accounts.findMany({
+				columns: { id: true, username: true, lastUpdated: true },
+			})
 			.then((entries) =>
 				shuffle(entries)
 					.map((account, idx) => ({ ...account, idx }))

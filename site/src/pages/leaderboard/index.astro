@@ -1,43 +1,58 @@
 ---
-import { STAT_NAMES, type StatName } from "@bandori-stats/bestdori/constants";
 import { startCase } from "@bandori-stats/bestdori/helpers";
 
-import Icon from "~/components/icon.astro";
+import z from "zod";
+
+import IconLoader from "~/components/icon-loader.astro";
 import BaseLayout from "~/layouts/base-layout.astro";
 
-const STAT_ICONS = {
-	highScoreRating: "lucide:crown",
-	bandRating: "lucide:guitar",
-	allPerfectCount: "lucide:sparkles",
-	fullComboCount: "lucide:zap",
-	clearCount: "lucide:circle-check-big",
-	rank: "lucide:award",
-} satisfies Record<StatName, string>;
+const TABS = ["stats", "titles"] as const;
+const params = Astro.locals.parseQuery(
+	z.object({ for: z.enum(TABS).catch("stats") }),
+);
+
+const TAB_ICON = {
+	stats: "lucide:bar-chart-3",
+	titles: "lucide:podium",
+};
 ---
 
 <BaseLayout title="Leaderboard" containerClass="max-w-5xl">
-	<div class="mt-4 grid gap-8 lg:grid-cols-2">
+	<div
+		class="tabs-border my-4 tabs justify-center tabs-lg text-primary"
+		id="leaderboard-tabs"
+		role="tablist"
+	>
 		{
-			STAT_NAMES.map((stat) => (
-				<div class="card bg-base-100 shadow-sm card-border dark:bg-base-300">
-					<div class="card-body px-0">
-						<h2 class="card-title self-center">
-							<Icon class="text-primary" name={STAT_ICONS[stat]} />
-							{startCase(stat)}
-						</h2>
+			TABS.map((it) => (
+				<label class="tab [--tab-bg:var(--color-primary-content)] hover:text-primary has-checked:[--tab-border-color:var(--color-primary)] max-sm:flex-1 sm:px-16">
+					<input
+						hx-get={`/leaderboard/${it}`}
+						hx-target="#leaderboard-grid"
+						name="for"
+						type="radio"
+						hx-disable="#leaderboard-tabs input"
+						hx-indicator="closest .tab"
+						hx-replace-url={`/leaderboard?for=${it}`}
+						checked={params.for === it}
+					/>
+					<IconLoader class="mr-2 size-5" name={TAB_ICON[it]} />
+					{startCase(it)}
+				</label>
+			))
+		}
+	</div>
 
-						<div
-							hx-get="/leaderboard/top"
-							hx-trigger="intersect once"
-							class="list mt-1 max-h-100 overflow-y-auto px-8 py-1"
-							hx-indicator="this"
-							hx-vals={JSON.stringify({ stat, limit: 10 })}
-						>
-							{Array.from({ length: 5 }).map(() => (
-								<div class="list-row h-18 skeleton not-last:mb-2" />
-							))}
-						</div>
-					</div>
+	<div
+		hx-get={`/leaderboard/${params.for}`}
+		hx-trigger="load"
+		class="grid gap-8 lg:grid-cols-2"
+		id="leaderboard-grid"
+	>
+		{
+			Array.from({ length: 5 }).map(() => (
+				<div class="card h-120 bg-base-100 shadow-sm card-border dark:bg-base-300">
+					<div class="m-8 card-body skeleton p-0" />
 				</div>
 			))
 		}

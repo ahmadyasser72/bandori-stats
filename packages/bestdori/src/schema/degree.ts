@@ -46,25 +46,6 @@ export const fetchDegrees = (cache: boolean = true) =>
 
 type AllDegrees = z.infer<typeof AllDegrees>;
 export const sortDegrees = (degrees: number[], allDegrees: AllDegrees) => {
-	type DegreeRank = BestdoriDegree["rank"][0];
-	const rankOrder = [
-		"none",
-		"normal",
-		"extra",
-		"grade_silver",
-		"grade_gold",
-		"grade_platinum",
-	] satisfies Exclude<DegreeRank, number | null>[];
-	const compareRank = (a: DegreeRank, b: DegreeRank) => {
-		if (typeof a === "number" && typeof b === "number") return a - b;
-		else if (a === null && b === null) return 0;
-		else if (typeof a === "number") return -1;
-		else if (typeof b === "number") return 1;
-		else if (a === null) return 1;
-		else if (b === null) return -1;
-		else return rankOrder.indexOf(a) - rankOrder.indexOf(b);
-	};
-
 	const compareNullableString = (a: string | null, b: string | null) => {
 		if (a === null && b === null) return 0;
 		else if (a === null) return 1;
@@ -76,8 +57,28 @@ export const sortDegrees = (degrees: number[], allDegrees: AllDegrees) => {
 		const [aDegree, bDegree] = [allDegrees.get(a)!, allDegrees.get(b)!];
 
 		return (
-			compareRank(aDegree.rank[1], bDegree.rank[1]) ||
+			compareDegreeRank(aDegree.rank[1], bDegree.rank[1]) ||
 			compareNullableString(aDegree.baseImageName[1], bDegree.baseImageName[1])
 		);
 	});
+};
+
+type DegreeRank = BestdoriDegree["rank"][0];
+const rankOrder = [
+	"none",
+	"normal",
+	"extra",
+	"grade_silver",
+	"grade_gold",
+	"grade_platinum",
+] satisfies Exclude<DegreeRank, number | null>[];
+
+export const compareDegreeRank = (a: DegreeRank, b: DegreeRank) => {
+	if (typeof a === "number" && typeof b === "number") return a - b;
+	else if (a === null && b === null) return 0;
+	else if (typeof a === "number") return -1;
+	else if (typeof b === "number") return 1;
+	else if (a === null) return 1;
+	else if (b === null) return -1;
+	else return rankOrder.indexOf(a) - rankOrder.indexOf(b);
 };
