@@ -1,13 +1,17 @@
 ---
 import Icon from "~/components/icon.astro";
 import BaseLayout from "~/layouts/base-layout.astro";
+import ThemeSelector from "~/layouts/components/theme-selector.astro";
 ---
 
 <BaseLayout title="Homepage">
 	<div class="absolute inset-0 flex flex-col items-center justify-center">
-		<h1 class="font-medium" style="view-transition-name: site-heading">
-			bandori-stats
-		</h1>
+		<div class="flex items-center gap-2">
+			<h1 class="font-medium" style="view-transition-name: site-heading">
+				bandori-stats
+			</h1>
+			<ThemeSelector compact />
+		</div>
 
 		<div
 			hx-select:inherited="main"
@@ -44,7 +48,7 @@ import BaseLayout from "~/layouts/base-layout.astro";
 
 		<div class="mt-2 flex flex-wrap justify-center gap-2">
 			<a
-				class="btn btn-accent"
+				class="btn btn-secondary"
 				data-umami-event="homepage-view-source-code"
 				href={`${__GIT_URL__}/tree/${__GIT_HASH__}`}
 				rel="noopener noreferrer"
@@ -54,7 +58,7 @@ import BaseLayout from "~/layouts/base-layout.astro";
 				Source code
 			</a>
 			<a
-				class="btn btn-accent"
+				class="btn btn-secondary"
 				data-umami-event="homepage-invite-discord-bot"
 				href="/discord-bot/invite"
 				rel="noopener noreferrer"

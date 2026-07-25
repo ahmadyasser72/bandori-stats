@@ -1,17 +1,29 @@
 ---
 import Icon from "~/components/icon.astro";
+
+interface Props {
+	compact?: boolean;
+}
+
+const { compact = false } = Astro.props;
 ---
 
 <button
-	class="btn btn-primary max-sm:btn-circle"
+	id="theme-selector-button"
+	class:list={[
+		"btn btn-accent",
+		compact ? "btn-circle btn-sm" : "max-sm:btn-circle",
+	]}
 	popovertarget="theme-selector"
+	style="view-transition-name: theme-selector-button"
 >
-	<span class="max-sm:hidden">Theme</span>
-	<Icon class="size-5" name="lucide:palette" />
+	{!compact && <span class="max-sm:hidden">Theme</span>}
+	<Icon class={compact ? "size-4" : "size-5"} name="lucide:palette" />
 </button>
 <ul
 	class="dropdown dropdown-end mt-1 w-28"
 	id="theme-selector"
+	hx-preserve="true"
 	popover
 	style="view-transition-name: theme-selector"
 >
@@ -40,9 +52,10 @@ import Icon from "~/components/icon.astro";
 	document.addEventListener("DOMContentLoaded", () => {
 		const themeSelector =
 			document.querySelector<HTMLElement>("#theme-selector")!;
-		const triggerButton = document.querySelector<HTMLElement>(
-			'[popovertarget="theme-selector"]',
-		)!;
+		const triggerButton = () =>
+			document.querySelector<HTMLButtonElement>(
+				'[popovertarget="theme-selector"]',
+			)!;
 
 		const local = localStorage.getItem("theme");
 		if (local) {
@@ -58,7 +71,7 @@ import Icon from "~/components/icon.astro";
 				return;
 			}
 
-			const rect = triggerButton.getBoundingClientRect();
+			const rect = triggerButton().getBoundingClientRect();
 			const cx = ((rect.left + rect.width / 2) / window.innerWidth) * 100;
 			const cy = ((rect.top + rect.height / 2) / window.innerHeight) * 100;
 			const radius = Math.hypot(
