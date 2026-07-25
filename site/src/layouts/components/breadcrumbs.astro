@@ -4,7 +4,13 @@ interface Props {
 }
 ---
 
-<div class="breadcrumbs">
+<div
+	hx-select:inherited="main"
+	hx-swap:inherited="outerHTML transition:true"
+	hx-target:inherited="main"
+	class="breadcrumbs"
+	hx-boost:inherited="true"
+>
 	<ul class="justify-center">
 		<li>
 			<a href="/" style="view-transition-name: site-heading">bandori-stats</a>
