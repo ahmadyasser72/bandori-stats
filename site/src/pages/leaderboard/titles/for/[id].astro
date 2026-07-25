@@ -51,7 +51,7 @@ if (!isNotFound && Astro.cache.enabled) {
 	page.items.map((id, idx) => (
 		<img
 			{...(page.isLastElement(idx) && page.props)}
-			class="aspect-23/5 skeleton rounded-2xl border border-base-content/67"
+			class="aspect-23/5 rounded-2xl"
 			src={`/static/titles/${id}.webp`}
 			loading="lazy"
 		/>

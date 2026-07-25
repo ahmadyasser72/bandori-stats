@@ -52,7 +52,7 @@ if (!isNotFound && Astro.cache.enabled) {
 			{...(page.isLastElement(idx) && page.props)}
 			src={`/static/titles/${id}.webp`}
 			class:list={[
-				"aspect-23/5 skeleton rounded-2xl border border-base-content/67",
+				"aspect-23/5 rounded-2xl",
 				hasNewTitle && !isNew && "opacity-34",
 			]}
 			loading="lazy"

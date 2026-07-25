@@ -88,15 +88,6 @@ const { title, containerClass } = Astro.props;
 
 	window.htmx = htmx;
 
-	htmx.onLoad((node) => {
-		if (node.matches("img.skeleton.border")) {
-			const image = node as HTMLImageElement;
-			const done = () => image.classList.remove("skeleton", "border");
-			if (image.complete) done();
-			else image.addEventListener("load", done, { once: true });
-		}
-	});
-
 	htmx.on("htmx:before:swap", () => {
 		const openPopover = document.querySelector(":popover-open");
 		if (!(openPopover instanceof HTMLElement)) return;
