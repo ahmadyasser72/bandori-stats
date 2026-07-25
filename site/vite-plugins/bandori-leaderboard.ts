@@ -2,6 +2,7 @@ import { capitalize } from "@bandori-stats/bestdori/helpers";
 import {
 	compareDegreeRank,
 	fetchDegrees,
+	sortDegrees,
 } from "@bandori-stats/bestdori/schema/degree";
 import { db } from "@bandori-stats/database";
 import { PLAYER_TITLES_SET, redis } from "@bandori-stats/database/redis";
@@ -212,7 +213,7 @@ export default function bandoriLeaderboard() {
 				const titles = Object.fromEntries(
 					[...tops.entries()]
 						.sort(([a], [b]) => categories.indexOf(a) - categories.indexOf(b))
-						.map(([k, set]) => [k, [...set]]),
+						.map(([k, set]) => [k, sortDegrees([...set], degrees)]),
 				);
 
 				const titlesSubstitutes = Object.fromEntries([
