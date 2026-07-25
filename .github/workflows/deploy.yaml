@@ -22,12 +22,12 @@ jobs:
           key: bestdori-response-${{ github.run_id }}
           restore-keys: bestdori-response-
 
-      - name: Cache Astro build artifacts
+      - name: Cache Astro build fonts
         uses: actions/cache@v6.1.0
         with:
-          path: site/.astro
-          key: astro-${{ github.run_id }}
-          restore-keys: astro-
+          path: site/node_modules/.astro/fonts
+          key: astro-font-${{ github.run_id }}
+          restore-keys: astro-font-
 
       - name: Build site
         run: bun run --workspaces check && bun run --cwd=site build
