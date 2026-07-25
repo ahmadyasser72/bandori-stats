@@ -1,4 +1,12 @@
-import { fetchBestdori } from "@bandori-stats/bestdori/fetch";
+import { openAsBlob } from "node:fs";
+import { writeFile } from "node:fs/promises";
+import path from "node:path";
+import {
+	exists,
+	fetchBestdori,
+	getCachePath,
+} from "@bandori-stats/bestdori/fetch";
+import { imageConfig, vips } from "@bandori-stats/bestdori/image";
 import {
 	BestdoriDegree,
 	fetchDegrees,
@@ -15,23 +23,35 @@ import type {
 export const prerender = true;
 
 export const GET: APIRoute<Props, Params> = async ({ props }) => {
-	const [baseImage, ...layers] = await Promise.all(
+	const imageBytes = await Promise.all(
 		props.images.map((path) =>
 			fetchBestdori(path, true)
 				.then((response) => response.arrayBuffer())
-				.then(Buffer.from),
+				.then((buffer) => new Uint8Array(buffer)),
 		),
 	);
 
-	if (layers.length === 0) return new Response(baseImage);
+	if (imageBytes.length === 1) return new Response(imageBytes[0]);
 
-	const { default: sharp } = await import("sharp");
-	const image = await sharp(baseImage)
-		.composite(layers.map((buffer) => ({ input: buffer, left: 0, top: 0 })))
-		.webp({ quality: 67 })
-		.toBuffer();
+	const basenames = props.images.map((it) =>
+		path.basename(it).replace(".png", ""),
+	);
+	const cachePath = getCachePath(`_title_${basenames.join("+")}.avif`);
+	const cacheExists = await exists(cachePath);
+	if (cacheExists) {
+		const blob = await openAsBlob(cachePath);
+		return new Response(blob);
+	}
 
-	return new Response(Buffer.from(image));
+	const images = imageBytes.map((bytes) => vips.Image.newFromBuffer(bytes));
+	const combined = vips.Image.composite(images, vips.BlendMode.over);
+	const out = combined.heifsaveBuffer(imageConfig);
+	await writeFile(cachePath, out);
+
+	for (const image of images) image.delete();
+	combined.delete();
+
+	return new Response(out as Uint8Array<ArrayBuffer>);
 };
 
 const pickRegion = <T>(tuple: T[]) => tuple.at(1) ?? tuple.at(0)!;

@@ -11,6 +11,7 @@
 	"dependencies": {
 		"dayjs": "1.11.21",
 		"es-toolkit": "1.49.0",
+		"wasm-vips": "0.0.18",
 		"zod": "4.4.3"
 	},
 	"devDependencies": {

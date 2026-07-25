@@ -58,7 +58,7 @@ export const SnapshotCard = ({
 							<img
 								src={
 									context === "site"
-										? `/static/accounts/${account.id}-icon.webp`
+										? `/static/accounts/${account.username}.avif`
 										: "icon"
 								}
 								loading="lazy"

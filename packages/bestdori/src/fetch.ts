@@ -1,10 +1,11 @@
 import { exec } from "node:child_process";
-import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { join as joinPath } from "node:path";
+import { openAsBlob } from "node:fs";
+import { access, constants, writeFile } from "node:fs/promises";
+import path from "node:path";
 
-import { limitAsync } from "es-toolkit";
+import { limitAsync, retry } from "es-toolkit";
 
-export const GIT_ROOT_PATH = await new Promise<string>((resolve, reject) => {
+const GIT_ROOT_PATH = await new Promise<string>((resolve, reject) => {
 	exec("git rev-parse --show-toplevel", (error, stdout) =>
 		error ? reject(error) : resolve(stdout.trim()),
 	);
@@ -13,19 +14,20 @@ export const GIT_ROOT_PATH = await new Promise<string>((resolve, reject) => {
 	return ".";
 });
 
-const BESTDORI_CACHE_DIR = joinPath(GIT_ROOT_PATH, ".bestdori-cache");
+const BESTDORI_CACHE_DIR = path.join(GIT_ROOT_PATH, ".bestdori-cache");
 
 export const fetchBestdori = limitAsync(
 	async (pathname: string, cache: boolean): Promise<Response> => {
 		const url = new URL(pathname, "https://bestdori.com");
 
-		const cachePath = getCachePath(url);
-		if (cache && existsSync(cachePath)) {
-			const cached = readFileSync(cachePath);
-			return new Response(cached);
+		const cachePath = getCachePath(url.pathname);
+		const cacheExists = cache && (await exists(cachePath));
+		if (cacheExists) {
+			const blob = await openAsBlob(cachePath);
+			return new Response(blob);
 		}
 
-		const response = await fetch(url);
+		const response = await retry(() => fetch(url), { retries: 5 });
 		if (!isResponseOk(response)) {
 			if (pathname.startsWith("/assets/en"))
 				return fetchBestdori(
@@ -36,9 +38,9 @@ export const fetchBestdori = limitAsync(
 			throw new Error(`request to ${url.href} failed`);
 		}
 
-		if (cache && shouldPutCache(cachePath, response)) {
+		if (cache) {
 			const buffer = await response.clone().arrayBuffer().then(Buffer.from);
-			writeFileSync(cachePath, buffer);
+			await writeFile(cachePath, buffer);
 		}
 
 		return response;
@@ -46,11 +48,16 @@ export const fetchBestdori = limitAsync(
 	4,
 );
 
-const getCachePath = (url: URL) => {
-	const filename = url.pathname.slice(1).replaceAll("/", "-");
-	const path = joinPath(BESTDORI_CACHE_DIR, filename);
+export const getCachePath = (target: string) =>
+	path.join(BESTDORI_CACHE_DIR, target.replace(/^\//, "").replaceAll("/", "-"));
 
-	return path;
+export const exists = async (path: string) => {
+	try {
+		await access(path, constants.F_OK);
+		return true;
+	} catch {
+		return false;
+	}
 };
 
 const isResponseOk = (response: Response) => {
@@ -59,12 +66,4 @@ const isResponseOk = (response: Response) => {
 	// bestdori doesn't return a 404 status on not found
 	// so instead we check if we get their 404 page
 	return response.headers.get("content-type") !== "text/html";
-};
-
-const shouldPutCache = (path: string, response: Response) => {
-	if (!existsSync(path)) return true;
-
-	const fileSize = statSync(path).size.toString();
-	const responseSize = response.headers.get("content-length");
-	return fileSize !== responseSize;
 };
