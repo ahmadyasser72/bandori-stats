@@ -11,6 +11,7 @@ export const accounts = sqliteTable("accounts", {
 	profileArt: text({ mode: "json" }).$type<{ id: number; trained: boolean }>(),
 
 	lastUpdated: text().$default(() => sql`(CURRENT_DATE)`),
+	disabledAt: text(),
 });
 
 export const accountSnapshots = sqliteTable(

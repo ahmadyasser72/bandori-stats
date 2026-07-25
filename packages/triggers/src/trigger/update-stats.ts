@@ -15,6 +15,7 @@ import { idempotencyKeys, schemaTask, tags } from "@trigger.dev/sdk";
 import z from "zod";
 
 import { bestdoriStats } from "./bestdori-stats";
+import { githubRedeploy } from "./github-redeploy";
 import { updateStatsRedis } from "./update-stats-redis";
 
 export const updateStats = schemaTask({
@@ -24,7 +25,7 @@ export const updateStats = schemaTask({
 		date: z.iso.date(),
 	}),
 	run: async ({ username, date }) => {
-		const { uid, stats } = await bestdoriStats
+		const account = await bestdoriStats
 			.triggerAndWait(
 				{ username },
 				{
@@ -36,8 +37,13 @@ export const updateStats = schemaTask({
 				},
 			)
 			.unwrap();
-		if (!stats) {
+
+		if (!account.stats) {
 			await tags.add("snapshot_unavailable");
+			await db()
+				.update(accounts)
+				.set({ lastUpdated: date, disabledAt: date })
+				.where(eq(accounts.username, username));
 			return;
 		}
 
@@ -54,6 +60,7 @@ export const updateStats = schemaTask({
 			},
 		});
 
+		const { uid, stats } = account;
 		if (stats.titles && stats.titles.length > 0) {
 			const existingTitles = existing?.snapshots.at(0)?.stats.titles;
 			if (!existingTitles || stats.titles.length > existingTitles.length) {
@@ -77,24 +84,32 @@ export const updateStats = schemaTask({
 				}
 			}
 
-			const difference = [...STAT_NAMES, "titles" as const].map((name) => ({
-				name,
-				delta: compareValue(stats[name], previousStats[name]),
-			}));
+			const difference = Object.fromEntries(
+				[...STAT_NAMES, "titles" as const].map(
+					(name): [typeof name, number] => [
+						name,
+						compareValue(stats[name], previousStats[name]),
+					],
+				),
+			);
 
-			const deltaTotal = sum(difference.map(({ delta }) => delta));
+			const deltaTotal = sum(Object.values(difference));
 			if (deltaTotal === 0) {
 				await tags.add("diff_none");
 				return;
 			}
 
 			await tags.add(
-				difference
-					.filter(({ delta }) => delta > 0)
-					.map(
-						({ name, delta }) => `diff_${abbreviateStatName(name)}+${delta}`,
-					),
+				Object.entries(difference)
+					.filter(([, delta]) => delta > 0)
+					.map(([name, delta]) => `diff_${abbreviateStatName(name)}+${delta}`),
 			);
+
+			if (difference.titles !== 0) {
+				await githubRedeploy.trigger(undefined, {
+					idempotencyKey: `redeploy-${username}-${date}`,
+				});
+			}
 
 			const [newSnapshot] = await db()
 				.insert(accountSnapshots)

@@ -45,7 +45,7 @@ export const scheduleUpdateAccounts = schedules.task({
 				return existing !== undefined
 					? db()
 							.update(accounts)
-							.set({ nickname: nickname })
+							.set({ nickname })
 							.where(eq(accounts.id, existing.id))
 					: db().insert(accounts).values({ username, nickname });
 			}),

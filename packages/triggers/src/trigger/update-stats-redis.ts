@@ -9,7 +9,6 @@ import {
 import { schemaTask, tags } from "@trigger.dev/sdk";
 import z from "zod";
 
-import { rebuildSite } from "../github";
 import { AccountSchema } from "../schema";
 
 const SnapshotSchema = z.strictObject({
@@ -20,7 +19,7 @@ const SnapshotSchema = z.strictObject({
 export const updateStatsRedis = schemaTask({
 	id: "update-stats-redis",
 	schema: z.strictObject({ snapshot: SnapshotSchema }),
-	run: async ({ snapshot }, { ctx }) => {
+	run: async ({ snapshot }) => {
 		const { accountId, stats } = snapshot;
 
 		const newStatsBest = await Promise.all(
@@ -55,6 +54,5 @@ export const updateStatsRedis = schemaTask({
 		if (newTitles === 0) return;
 
 		await tags.add(`titles_+${newTitles}`);
-		await rebuildSite(ctx);
 	},
 });

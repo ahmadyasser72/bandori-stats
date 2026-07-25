@@ -18,36 +18,39 @@ export const scheduleUpdateSnapshots = schedules.task({
 		const now = dayjs.tz(context.timestamp, GBP_TIMEZONE);
 		const date = now.startOf("day").format("YYYY-MM-DD");
 
-		const shuffle = createShuffle(dayjs.tz(date, GBP_TIMEZONE).unix());
+		const shuffle = createShuffle(now.unix());
 		const accounts = await db()
 			.query.accounts.findMany({
 				columns: { id: true, username: true, lastUpdated: true },
+				where: { disabledAt: { isNull: true } },
 			})
-			.then((entries) =>
-				shuffle(entries)
+			.then((accounts) =>
+				shuffle(accounts)
 					.map((account, idx) => ({ ...account, idx }))
 					.filter((account) => {
 						if (account.lastUpdated === null) return true;
 
 						const lastUpdated = dayjs(account.lastUpdated);
 						const isRecentlyUpdated = now.diff(lastUpdated, "weeks") < 2;
+						const daysSinceUpdate = now.diff(lastUpdated, "days");
+						const jitter = account.id % 7;
 
-						return isRecentlyUpdated || account.id % 7 === now.day();
+						return isRecentlyUpdated || daysSinceUpdate >= 7 + jitter;
 					}),
 			);
 
-		const payloads: Parameters<typeof updateStats.batchTrigger>[0] = accounts
-			.map(({ username, idx }) => ({
+		const TOTAL_MINUTES = 24 * 60 - 10;
+		const slot = TOTAL_MINUTES / accounts.length;
+		const payloads: Parameters<typeof updateStats.batchTrigger>[0] =
+			accounts.map(({ username, idx }) => ({
 				payload: { username, date },
 				options: {
 					delay: now
-						.set("hours", idx % 24)
-						.add(Math.random() * 50, "minutes")
+						.add(Math.floor(idx * slot + Math.random() * slot), "minutes")
 						.toDate(),
 					tags: `@_${username}`,
 				},
-			}))
-			.sort((a, b) => a.options.delay.valueOf() - b.options.delay.valueOf());
+			}));
 
 		const maxBatchSize = 1000;
 		for (let idx = 0; idx < payloads.length; idx += maxBatchSize) {
