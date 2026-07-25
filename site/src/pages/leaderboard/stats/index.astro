@@ -6,6 +6,10 @@ import LeaderboardCard from "../_leaderboard-card.astro";
 export const partial = true;
 ---
 
+<hx-partial hx-swap="outerHTML" hx-target="#leaderboard-sub-tabs">
+	<div id="leaderboard-sub-tabs"></div>
+</hx-partial>
+
 {
 	STAT_NAMES.map((stat) => (
 		<LeaderboardCard name={stat}>

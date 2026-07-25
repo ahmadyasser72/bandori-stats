@@ -93,17 +93,24 @@ export default function bandoriLeaderboard() {
 						}
 
 						// general event point and song ranking (exclude t10k+)
-						if (typeof rank !== "number" || rank > 10_000) continue;
+						if (
+							typeof rank !== "number" ||
+							rank > 10_000 ||
+							(type !== "event_point" && type !== "score_ranking")
+						)
+							continue;
 
 						let normalized = rank;
 						if (rank > 10 && rank < 100) normalized = 100;
 						else if (rank > 100 && rank < 1000) normalized = 1000;
 						else if (rank > 1000 && rank < 10_000) normalized = 10_000;
 
-						let ranks = byName.get(name);
+						const prefix = type === "event_point" ? "event" : "song";
+
+						let ranks = byName.get(`${prefix}:${name}`);
 						if (!ranks) {
 							ranks = new Map();
-							byName.set(name, ranks);
+							byName.set(`${prefix}:${name}`, ranks);
 						}
 
 						let ids = ranks.get(normalized);
@@ -113,7 +120,7 @@ export default function bandoriLeaderboard() {
 						}
 						ids.add(id);
 
-						getTitles(`t${normalized as Rank}`).add(id);
+						getTitles(`${prefix}-t${normalized as Rank}`).add(id);
 					}
 
 					{
@@ -160,7 +167,9 @@ export default function bandoriLeaderboard() {
 						const thresholds = [
 							1, 2, 3, 10, 100, 1000, 10_000,
 						] satisfies Rank[];
-						for (const ranks of byName.values()) {
+
+						for (const [key, ranks] of byName.entries()) {
+							const prefix = key.split(":")[0] as "event" | "song";
 							const inherited = new Set<number>();
 
 							for (const threshold of thresholds) {
@@ -169,7 +178,7 @@ export default function bandoriLeaderboard() {
 									for (const id of ids) inherited.add(id);
 								}
 
-								const titles = getTitles(`t${threshold}`);
+								const titles = getTitles(`${prefix}-t${threshold}`);
 								for (const id of inherited) titles.add(id);
 							}
 						}
@@ -179,13 +188,20 @@ export default function bandoriLeaderboard() {
 				})();
 
 				const categories = [
-					"t1",
-					"t2",
-					"t3",
-					"t10",
-					"t100",
-					"t1000",
-					"t10000",
+					"event-t1",
+					"song-t1",
+					"event-t2",
+					"song-t2",
+					"event-t3",
+					"song-t3",
+					"event-t10",
+					"song-t10",
+					"event-t100",
+					"song-t100",
+					"event-t1000",
+					"song-t1000",
+					"event-t10000",
+					"song-t10000",
 					"ex-live-goals",
 					"live-goals",
 					"monthly-platinum",
@@ -203,22 +219,21 @@ export default function bandoriLeaderboard() {
 					...substitutes.entries(),
 				]);
 				const titlesDisplay = Object.fromEntries(
-					categories.map((category): [Category, string] => {
+					categories.map((it): [Category, string] => {
 						let out = "";
-						if (category.startsWith("t")) out = category.toUpperCase();
-						if (category.startsWith("monthly")) {
-							const [, grade] = category.split("-");
+						if (it.startsWith("event-t") || it.startsWith("song-t")) {
+							const [prefix, rank] = it.split("-");
+							out = `${capitalize(prefix)} ${rank.toUpperCase()}`;
+						} else if (it.endsWith("live-goals")) {
+							out = it === "ex-live-goals" ? "EX Live Goals" : "Live Goals";
+						} else if (it.startsWith("monthly")) {
+							const [, grade] = it.split("-");
 							out = `Monthly Ranking (${capitalize(grade)})`;
 						}
-						if (category.endsWith("live-goals")) {
-							out =
-								category === "ex-live-goals" ? "EX Live Goals" : "Live Goals";
-						}
 
-						if (!out)
-							throw new Error(`no display format defined for ${category}`);
+						if (!out) throw new Error(`no display format defined for ${it}`);
 
-						return [category, out];
+						return [it, out];
 					}),
 				);
 

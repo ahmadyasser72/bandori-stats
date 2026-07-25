@@ -1,20 +1,80 @@
 ---
 import { categories, titlesDisplay } from "virtual:bandori-leaderboard";
+import z from "zod";
 
+import IconLoader from "~/components/icon-loader.astro";
 import LeaderboardCard from "~/pages/leaderboard/_leaderboard-card.astro";
 
 export const partial = true;
+
+const groups = {
+	event: {
+		label: "Event Rank",
+		icon: "lucide:calendar",
+		items: categories.filter((it) => it.startsWith("event-")),
+	},
+	song: {
+		label: "Song Rank",
+		icon: "lucide:music",
+		items: categories.filter((it) => it.startsWith("song-")),
+	},
+	goals: {
+		label: "Live Goals",
+		icon: "lucide:target",
+		items: categories.filter((it) => it.endsWith("live-goals")),
+	},
+	monthly: {
+		label: "Monthly Ranking",
+		icon: "lucide:crown",
+		items: categories.filter((it) => it.startsWith("monthly-")),
+	},
+} as const;
+
+const params = Astro.locals.parseQuery(
+	z.object({
+		group: z.enum(["event", "song", "monthly", "goals"]).catch("event"),
+	}),
+);
 ---
 
+<hx-partial hx-swap="outerHTML" hx-target="#leaderboard-sub-tabs">
+	<div
+		class="tabs-border mt-4 tabs justify-center tabs-sm text-accent"
+		id="leaderboard-sub-tabs"
+		role="tablist"
+	>
+		{
+			Object.entries(groups).map(([name, { icon, label }]) => (
+				<label class="tab h-16 flex-col hover:text-accent max-md:flex-1 md:px-12">
+					<input
+						hx-get="/leaderboard/titles"
+						hx-target="#leaderboard-grid"
+						name="group"
+						type="radio"
+						value={name}
+						hx-disable=".tabs input"
+						hx-indicator="closest .tab"
+						hx-replace-url={`/leaderboard?tab=titles-${name}`}
+						checked={name === params.group}
+					/>
+					<IconLoader class="size-5" name={icon} />
+					<span class="max-sm:hidden">{label}</span>
+					<span class="sm:hidden">{label.replace(/Rank.*/, "")}</span>
+				</label>
+			))
+		}
+	</div>
+</hx-partial>
+
 {
-	categories.map((category) => (
+	groups[params.group].items.map((category) => (
 		<LeaderboardCard name="titles" title={titlesDisplay[category]}>
 			<div
 				hx-get="/leaderboard/titles/list"
 				hx-trigger="intersect once"
 				class="list mt-1 max-h-100 overflow-y-auto px-8 py-1"
 				hx-indicator="this"
-				hx-vals={JSON.stringify({ category: category })}
+				hx-vals={JSON.stringify({ category })}
 			>
 				{Array.from({ length: 5 }).map(() => (
 					<div class="list-row h-18 skeleton not-last:mb-2" />

@@ -2,7 +2,8 @@ declare module "virtual:bandori-leaderboard" {
 	type Rank = 1 | 2 | 3 | 10 | 100 | 1000 | 10_000;
 	type Grade = "silver" | "gold" | "platinum";
 	type LiveGoals = "live-goals" | "ex-live-goals";
-	type Category = `t${Rank}` | `monthly-${Grade}` | LiveGoals;
+	type Category =
+		`event-t${Rank}` | `song-t${Rank}` | `monthly-${Grade}` | LiveGoals;
 
 	const categories: Category[];
 	const titles: Record<Category, number[]>;

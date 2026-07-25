@@ -8,7 +8,23 @@ import BaseLayout from "~/layouts/base-layout.astro";
 
 const TABS = ["stats", "titles"] as const;
 const params = Astro.locals.parseQuery(
-	z.object({ for: z.enum(TABS).catch("stats") }),
+	z.object({
+		tab: z
+			.union([
+				z.literal("stats"),
+				z.templateLiteral([
+					"titles-",
+					z.enum(["event", "song", "monthly", "goals"]),
+				]),
+			])
+			.catch("stats")
+			.transform((value) => {
+				if (value === "stats") return { name: value };
+
+				const [name, group] = value.split("-");
+				return { name, values: { group } };
+			}),
+	}),
 );
 
 const TAB_ICON = {
@@ -19,36 +35,37 @@ const TAB_ICON = {
 
 <BaseLayout title="Leaderboard" containerClass="max-w-5xl">
 	<div
-		class="tabs-border my-4 tabs justify-center tabs-lg text-primary"
+		class="tabs-border mt-4 tabs justify-center tabs-lg text-primary"
 		id="leaderboard-tabs"
 		role="tablist"
 	>
 		{
-			TABS.map((it) => (
-				<label class="tab [--tab-bg:var(--color-primary-content)] hover:text-primary has-checked:[--tab-border-color:var(--color-primary)] max-sm:flex-1 sm:px-16">
+			TABS.map((tab) => (
+				<label class="tab hover:text-primary max-sm:flex-1 sm:px-16">
 					<input
-						hx-get={`/leaderboard/${it}`}
+						hx-get={`/leaderboard/${tab}`}
 						hx-target="#leaderboard-grid"
-						name="for"
+						name="tab"
 						type="radio"
-						value={it}
-						hx-disable="#leaderboard-tabs input"
+						hx-disable=".tabs input"
 						hx-indicator="closest .tab"
-						hx-replace-url={`/leaderboard?for=${it}`}
-						checked={params.for === it}
+						hx-replace-url={`/leaderboard?tab=${tab === "titles" ? "titles-event" : "stats"}`}
+						checked={params.tab.name === tab}
 					/>
-					<IconLoader class="mr-2 size-5" name={TAB_ICON[it]} />
-					{startCase(it)}
+					<IconLoader class="mr-2 size-5" name={TAB_ICON[tab]} />
+					{startCase(tab)}
 				</label>
 			))
 		}
 	</div>
+	<div id="leaderboard-sub-tabs"></div>
 
 	<div
-		hx-get={`/leaderboard/${params.for}`}
+		hx-get={`/leaderboard/${params.tab.name}`}
 		hx-trigger="load"
-		class="grid gap-8 lg:grid-cols-2"
+		class="mt-4 grid gap-8 lg:grid-cols-2"
 		id="leaderboard-grid"
+		hx-vals={JSON.stringify({ ...params.tab.values })}
 	>
 		{
 			Array.from({ length: 5 }).map(() => (
