@@ -1,7 +1,7 @@
 ---
 import { db } from "@bandori-stats/database";
 
-import { leaderboards, titles } from "virtual:bandori-leaderboard";
+import { categories, leaderboards } from "virtual:bandori-leaderboard";
 import z from "zod";
 
 import Icon from "~/components/icon.astro";
@@ -11,7 +11,7 @@ import LeaderboardTopList from "~/pages/leaderboard/_leaderboard-top-list.astro"
 export const partial = true;
 
 const { category } = Astro.locals.parseQuery(
-	z.object({ category: z.enum(Object.keys(titles)) }),
+	z.object({ category: z.enum(categories) }),
 );
 
 const players = await (async () => {

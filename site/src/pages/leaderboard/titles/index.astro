@@ -1,7 +1,5 @@
 ---
-import { capitalize, startCase } from "@bandori-stats/bestdori/helpers";
-
-import { titles } from "virtual:bandori-leaderboard";
+import { categories, titlesDisplay } from "virtual:bandori-leaderboard";
 
 import LeaderboardCard from "~/pages/leaderboard/_leaderboard-card.astro";
 
@@ -9,17 +7,14 @@ export const partial = true;
 ---
 
 {
-	Object.keys(titles).map((name) => (
-		<LeaderboardCard
-			name="titles"
-			title={(name.startsWith("t") ? capitalize : startCase)(name)}
-		>
+	categories.map((category) => (
+		<LeaderboardCard name="titles" title={titlesDisplay[category]}>
 			<div
 				hx-get="/leaderboard/titles/list"
 				hx-trigger="intersect once"
 				class="list mt-1 max-h-100 overflow-y-auto px-8 py-1"
 				hx-indicator="this"
-				hx-vals={JSON.stringify({ category: name })}
+				hx-vals={JSON.stringify({ category: category })}
 			>
 				{Array.from({ length: 5 }).map(() => (
 					<div class="list-row h-18 skeleton not-last:mb-2" />

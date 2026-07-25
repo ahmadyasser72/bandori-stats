@@ -1,3 +1,4 @@
+import { capitalize } from "@bandori-stats/bestdori/helpers";
 import {
 	compareDegreeRank,
 	fetchDegrees,
@@ -32,73 +33,194 @@ export default function bandoriLeaderboard() {
 						const degree = degrees.get(id);
 						return {
 							id,
+							type: degree?.degreeType.at(1) ?? null,
 							name: degree?.baseImageName.at(1) ?? null,
 							rank: degree?.rank.at(1) ?? null,
 						};
 					})
 					.sort((a, b) => compareDegreeRank(a.rank, b.rank));
 
-				const tops = new Map<Category, Set<number>>();
-				const getTitles = (key: Category) => {
-					let titles = tops.get(key);
-					if (!titles) {
-						titles = new Set();
-						tops.set(key, titles);
-					}
-
-					return titles;
-				};
-
-				const byName = new Map<string, Map<number, Set<number>>>();
-				for (const { id, name, rank } of playerTitles) {
-					if (typeof name !== "string") continue;
-					if (typeof rank === "string" && rank.startsWith("grade_")) {
-						const grades = ["silver", "gold", "platinum"] as const;
-
-						const [, thisGrade] = rank.split("_");
-						const gradeIdx = grades.indexOf(thisGrade as Grade);
-						for (const grade of grades.slice(0, gradeIdx + 1))
-							getTitles(`monthly-${grade}`).add(id);
-
-						continue;
-					}
-					if (typeof rank !== "number" || rank > 10_000) continue;
-
-					let normalized = rank;
-					if (rank > 10 && rank < 100) normalized = 100;
-					else if (rank > 100 && rank < 1000) normalized = 1000;
-					else if (rank > 1000 && rank < 10_000) normalized = 10_000;
-
-					let ranks = byName.get(name);
-					if (!ranks) {
-						ranks = new Map();
-						byName.set(name, ranks);
-					}
-
-					let ids = ranks.get(normalized);
-					if (!ids) {
-						ids = new Set();
-						ranks.set(normalized, ids);
-					}
-					ids.add(id);
-
-					getTitles(`t${normalized as Rank}`).add(id);
-				}
-
-				const thresholds = [1, 2, 3, 10, 100, 1000, 10_000] satisfies Rank[];
-				for (const ranks of byName.values()) {
-					const inherited = new Set<number>();
-
-					for (const threshold of thresholds) {
-						const ids = ranks.get(threshold);
-						if (ids) {
-							for (const id of ids) inherited.add(id);
+				const { tops, substitutes } = (() => {
+					const tops = new Map<Category, Set<number>>();
+					const substitutes = new Map<number, number>();
+					const getTitles = (category: Category) => {
+						let titles = tops.get(category);
+						if (!titles) {
+							titles = new Set();
+							tops.set(category, titles);
 						}
 
-						const titles = getTitles(`t${threshold}`);
-						for (const id of inherited) titles.add(id);
+						return titles;
+					};
+
+					const goals = new Map<string, { normal?: number; extra?: number }>();
+					const monthly = new Map<
+						string,
+						{ silver?: number; gold?: number; platinum?: number }
+					>();
+
+					const byName = new Map<string, Map<number, Set<number>>>();
+
+					for (const { id, type, name, rank } of playerTitles) {
+						if (typeof name !== "string") continue;
+
+						// live goals
+						if (
+							type === "try_clear" &&
+							(rank === "normal" || rank === "extra")
+						) {
+							let goal = goals.get(name);
+							if (!goal) {
+								goal = {};
+								goals.set(name, goal);
+							}
+
+							goal[rank] = id;
+							continue;
+						}
+
+						// monthly ranking
+						if (typeof rank === "string" && rank.startsWith("grade_")) {
+							let grades = monthly.get(name);
+							if (!grades) {
+								grades = {};
+								monthly.set(name, grades);
+							}
+
+							const [, grade] = rank.split("_");
+							grades[grade as Grade] = id;
+							continue;
+						}
+
+						// general event point and song ranking (exclude t10k+)
+						if (typeof rank !== "number" || rank > 10_000) continue;
+
+						let normalized = rank;
+						if (rank > 10 && rank < 100) normalized = 100;
+						else if (rank > 100 && rank < 1000) normalized = 1000;
+						else if (rank > 1000 && rank < 10_000) normalized = 10_000;
+
+						let ranks = byName.get(name);
+						if (!ranks) {
+							ranks = new Map();
+							byName.set(name, ranks);
+						}
+
+						let ids = ranks.get(normalized);
+						if (!ids) {
+							ids = new Set();
+							ranks.set(normalized, ids);
+						}
+						ids.add(id);
+
+						getTitles(`t${normalized as Rank}`).add(id);
 					}
-				}
+
+					{
+						const base = getTitles("live-goals");
+						const ex = getTitles("ex-live-goals");
+
+						for (const { normal, extra } of goals.values()) {
+							if (normal) {
+								base.add(normal);
+
+								if (extra) substitutes.set(normal, extra);
+							} else if (extra) {
+								base.add(extra);
+							}
+
+							if (extra) ex.add(extra);
+						}
+					}
+
+					{
+						const silver = getTitles("monthly-silver");
+						const gold = getTitles("monthly-gold");
+						const platinum = getTitles("monthly-platinum");
+
+						for (const grades of monthly.values()) {
+							if (grades.silver) {
+								silver.add(grades.silver);
+
+								if (grades.gold) substitutes.set(grades.silver, grades.gold);
+							}
+
+							if (grades.gold) {
+								gold.add(grades.gold);
+
+								if (grades.platinum)
+									substitutes.set(grades.gold, grades.platinum);
+							}
+
+							if (grades.platinum) platinum.add(grades.platinum);
+						}
+					}
+
+					{
+						const thresholds = [
+							1, 2, 3, 10, 100, 1000, 10_000,
+						] satisfies Rank[];
+						for (const ranks of byName.values()) {
+							const inherited = new Set<number>();
+
+							for (const threshold of thresholds) {
+								const ids = ranks.get(threshold);
+								if (ids) {
+									for (const id of ids) inherited.add(id);
+								}
+
+								const titles = getTitles(`t${threshold}`);
+								for (const id of inherited) titles.add(id);
+							}
+						}
+					}
+
+					return { tops, substitutes };
+				})();
+
+				const categories = [
+					"t1",
+					"t2",
+					"t3",
+					"t10",
+					"t100",
+					"t1000",
+					"t10000",
+					"ex-live-goals",
+					"live-goals",
+					"monthly-platinum",
+					"monthly-gold",
+					"monthly-silver",
+				] satisfies Category[];
+
+				const titles = Object.fromEntries(
+					[...tops.entries()]
+						.sort(([a], [b]) => categories.indexOf(a) - categories.indexOf(b))
+						.map(([k, set]) => [k, [...set]]),
+				);
+
+				const titlesSubstitutes = Object.fromEntries([
+					...substitutes.entries(),
+				]);
+				const titlesDisplay = Object.fromEntries(
+					categories.map((category): [Category, string] => {
+						let out = "";
+						if (category.startsWith("t")) out = category.toUpperCase();
+						if (category.startsWith("monthly")) {
+							const [, grade] = category.split("-");
+							out = `Monthly Ranking (${capitalize(grade)})`;
+						}
+						if (category.endsWith("live-goals")) {
+							out =
+								category === "ex-live-goals" ? "EX Live Goals" : "Live Goals";
+						}
+
+						if (!out)
+							throw new Error(`no display format defined for ${category}`);
+
+						return [category, out];
+					}),
+				);
 
 				const leaderboards = await (async () => {
 					const accounts = await db().query.accounts.findMany({
@@ -116,13 +238,26 @@ export default function bandoriLeaderboard() {
 						[...tops.entries()].map(([category, set]) => {
 							const players = accounts
 								.map(({ id, snapshots }) => {
-									const titles =
-										snapshots
-											.at(0)
-											?.stats.titles?.filter((id) => set.has(id)) ?? [];
-									if (titles.length === 0) return null;
+									const owned = new Set(snapshots.at(0)?.stats.titles ?? []);
 
-									return { id, titles };
+									const matched: number[] = [];
+
+									for (const primary of set) {
+										let current: number | undefined = primary;
+
+										while (current !== undefined) {
+											if (owned.has(current)) {
+												matched.push(primary);
+												break;
+											}
+
+											current = substitutes.get(current);
+										}
+									}
+
+									if (matched.length === 0) return null;
+
+									return { id, titles: matched };
 								})
 								.filter((p): p is NonNullable<typeof p> => p !== null)
 								.sort((a, b) => b.titles.length - a.titles.length)
@@ -133,31 +268,16 @@ export default function bandoriLeaderboard() {
 					);
 				})();
 
-				const sorted = (() => {
-					const keys: Category[] = [
-						"t1",
-						"t2",
-						"t3",
-						"t10",
-						"t100",
-						"t1000",
-						"t10000",
-						"monthly-platinum",
-						"monthly-gold",
-						"monthly-silver",
-					];
+				const module = {
+					categories,
+					titles,
+					titlesSubstitutes,
+					titlesDisplay,
+					leaderboards,
+				};
+				const exports = Object.keys(module);
 
-					return Object.fromEntries(
-						[...tops.entries()]
-							.sort(([a], [b]) => keys.indexOf(a) - keys.indexOf(b))
-							.map(([key, set]) => [key, [...set]]),
-					);
-				})();
-
-				return [
-					`export const titles = ${devalue.uneval(sorted)}`,
-					`export const leaderboards = ${devalue.uneval(leaderboards)}`,
-				].join(";");
+				return `export const { ${exports.join(", ")} } = ${devalue.uneval(module)}`;
 			},
 		},
 	};

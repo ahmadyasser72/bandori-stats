@@ -6,6 +6,7 @@ import z from "zod";
 
 import { paginate } from "~/lib/paginate";
 import { IdSchema } from "~/lib/schema";
+import { getOwnedTitles } from "~/lib/titles";
 
 export const partial = true;
 
@@ -26,10 +27,8 @@ const account = await db().query.accounts.findFirst({
 	},
 });
 
-const filtered =
-	account?.snapshots
-		.at(0)
-		?.stats.titles?.filter((id) => titles[category].includes(id)) ?? [];
+const owned = account?.snapshots.at(0)?.stats.titles ?? [];
+const filtered = getOwnedTitles(owned, category);
 const isNotFound = !account || filtered.length === 0;
 if (isNotFound) Astro.response.status = 404;
 
