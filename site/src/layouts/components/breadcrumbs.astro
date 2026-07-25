@@ -20,7 +20,7 @@ interface Props {
 				.split("/")
 				.filter(Boolean)
 				.map((path, idx, parts) => (
-					<li style={`view-transition-name: site-path-${path}`}>
+					<li>
 						{idx === parts.length - 1 ? (
 							path
 						) : (
