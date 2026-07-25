@@ -33,7 +33,7 @@ const isNotFound = !account || filtered.length === 0;
 if (isNotFound) Astro.response.status = 404;
 
 const page = await paginate({
-	items: filtered,
+	items: [...filtered].reverse(),
 	context: Astro,
 	size: 96,
 	extraProps: { "hx-swap": "afterend" },
