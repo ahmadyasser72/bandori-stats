@@ -29,7 +29,7 @@ export const GET: APIRoute<Props, Params> = async ({ props }) => {
 		.then((response) => response.arrayBuffer())
 		.then((buffer) => new Uint8Array(buffer));
 
-	const cachePath = getCachePath(`_card_${props.card.id}_${type}.avif`);
+	const cachePath = getCachePath(`_card_${props.card.id}_${type}.webp`);
 	const cacheExists = await exists(cachePath);
 	if (cacheExists) {
 		const blob = await openAsBlob(cachePath);
@@ -37,10 +37,12 @@ export const GET: APIRoute<Props, Params> = async ({ props }) => {
 	}
 
 	const image = vips.Image.newFromBuffer(bytes);
-	const out = image.heifsaveBuffer(imageConfig);
+	const small = image.thumbnailImage(64);
+	const out = small.webpsaveBuffer(imageConfig);
 	await writeFile(cachePath, out);
 
 	image.delete();
+	small.delete();
 
 	return new Response(out as Uint8Array<ArrayBuffer>);
 };

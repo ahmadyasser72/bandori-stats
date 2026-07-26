@@ -30,7 +30,7 @@ export const render = async (context: APIContext, props: SnapshotCardProps) => {
 					data: () =>
 						env.ASSETS.fetch(
 							new URL(
-								`/static/accounts/${props.account.username}.avif`,
+								`/static/accounts/${props.account.username}.webp`,
 								context.url,
 							),
 						).then((response) => response.arrayBuffer()),

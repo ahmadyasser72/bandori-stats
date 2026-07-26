@@ -36,7 +36,7 @@ export const GET: APIRoute<Props, Params> = async ({ props }) => {
 	const basenames = props.images.map((it) =>
 		path.basename(it).replace(".png", ""),
 	);
-	const cachePath = getCachePath(`_title_${basenames.join("+")}.avif`);
+	const cachePath = getCachePath(`_title_${basenames.join("+")}.webp`);
 	const cacheExists = await exists(cachePath);
 	if (cacheExists) {
 		const blob = await openAsBlob(cachePath);
@@ -45,11 +45,13 @@ export const GET: APIRoute<Props, Params> = async ({ props }) => {
 
 	const images = imageBytes.map((bytes) => vips.Image.newFromBuffer(bytes));
 	const combined = vips.Image.composite(images, vips.BlendMode.over);
-	const out = combined.heifsaveBuffer(imageConfig);
+	const small = combined.thumbnailImage(120);
+	const out = small.webpsaveBuffer(imageConfig);
 	await writeFile(cachePath, out);
 
-	for (const image of images) image.delete();
+	small.delete();
 	combined.delete();
+	for (const image of images) image.delete();
 
 	return new Response(out as Uint8Array<ArrayBuffer>);
 };
