@@ -3,6 +3,7 @@ import { experimental_getFontFileURL, fontData } from "astro:assets";
 import { env } from "cloudflare:workers";
 import { ImageResponse } from "takumi-js/response";
 
+import { getProfileIcon } from "~/lib/image";
 import stylesheet from "~/styles/global.css?inline";
 import { SnapshotCard, type SnapshotCardProps } from "../_snapshot-card";
 
@@ -29,10 +30,7 @@ export const render = async (context: APIContext, props: SnapshotCardProps) => {
 					src: "icon",
 					data: () =>
 						env.ASSETS.fetch(
-							new URL(
-								`/static/accounts/${props.account.username}.webp`,
-								context.url,
-							),
+							new URL(getProfileIcon(props.account), context.url),
 						).then((response) => response.arrayBuffer()),
 				},
 			]

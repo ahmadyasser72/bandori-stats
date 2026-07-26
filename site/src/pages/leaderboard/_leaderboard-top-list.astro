@@ -5,6 +5,8 @@ import {
 } from "@bandori-stats/bestdori/helpers";
 import type { Account } from "@bandori-stats/database/schema";
 
+import { getProfileIcon } from "~/lib/image";
+
 interface Props {
 	players: (Pick<Account, "id" | "username" | "nickname" | "profileArt"> & {
 		value: number;
@@ -66,7 +68,7 @@ const AURA_DURATION = [15_000, 12_000, 9_000];
 						<div class="avatar">
 							<div class="size-10 rounded-box">
 								<img
-									src={`/static/accounts/${player.username}.webp`}
+									src={getProfileIcon(player)}
 									alt={player.username}
 									loading="lazy"
 								/>

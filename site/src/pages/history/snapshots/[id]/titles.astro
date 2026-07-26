@@ -1,6 +1,7 @@
 ---
 import { db } from "@bandori-stats/database";
 
+import { getTitleImage } from "~/lib/image";
 import { paginate } from "~/lib/paginate";
 import { IdSchema } from "~/lib/schema";
 
@@ -50,7 +51,7 @@ if (!isNotFound && Astro.cache.enabled) {
 	page.items.map(({ id, isNew }, idx) => (
 		<img
 			{...(page.isLastElement(idx) && page.props)}
-			src={`/static/titles/${id}.webp`}
+			src={getTitleImage(id)}
 			class:list={[
 				"aspect-23/5 rounded-2xl",
 				hasNewTitle && !isNew && "opacity-34",

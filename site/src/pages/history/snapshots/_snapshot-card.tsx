@@ -13,6 +13,7 @@ import { clsx } from "clsx";
 import type { ComponentChildren } from "preact";
 import type z from "zod";
 
+import { getProfileIcon } from "~/lib/image";
 import type { RatioSchema } from "~/lib/schema";
 import { STAT_BADGES, STAT_TOOLTIPS } from "./_stat-colors";
 
@@ -56,11 +57,7 @@ export const SnapshotCard = ({
 					<div class="avatar">
 						<div class="size-12 rounded-box">
 							<img
-								src={
-									context === "site"
-										? `/static/accounts/${account.username}.webp`
-										: "icon"
-								}
+								src={context === "site" ? getProfileIcon(account) : "icon"}
 								loading="lazy"
 							/>
 						</div>

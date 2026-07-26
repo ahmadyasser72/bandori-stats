@@ -5,6 +5,7 @@ import {
 	fetchBestdori,
 	getCachePath,
 } from "@bandori-stats/bestdori/fetch";
+import { uniqBy } from "@bandori-stats/bestdori/helpers";
 import { imageConfig, vips } from "@bandori-stats/bestdori/image";
 import { fetchCards } from "@bandori-stats/bestdori/schema/cards";
 import { db } from "@bandori-stats/database";
@@ -50,14 +51,13 @@ export const GET: APIRoute<Props, Params> = async ({ props }) => {
 export const getStaticPaths = (async () => {
 	const cards = await fetchCards(import.meta.env.DEV);
 	const accounts = await db().query.accounts.findMany({
-		columns: { username: true, profileArt: true },
+		columns: { profileArt: true },
 		where: { profileArt: { isNotNull: true } },
 	});
 
-	return accounts.map(({ username, profileArt }) => {
-		const card = cards.get(profileArt!.id)!;
-
+	const paths = accounts.map(({ profileArt }) => {
 		let trained = profileArt!.trained;
+		const card = cards.get(profileArt!.id)!;
 		if (card.stat.training === undefined) {
 			// no trained art
 			trained = false;
@@ -67,10 +67,12 @@ export const getStaticPaths = (async () => {
 		}
 
 		return {
-			params: { username },
+			params: { id: `${profileArt!.id}-${trained ? "trained" : "normal"}` },
 			props: { card: { ...card, ...profileArt!, trained } },
 		};
 	});
+
+	return uniqBy(paths, ({ params }) => params.id);
 }) satisfies GetStaticPaths;
 
 type Props = InferGetStaticPropsType<typeof getStaticPaths>;
