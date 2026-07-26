@@ -67,7 +67,9 @@ export const getStaticPaths = (async () => {
 		}
 
 		return {
-			params: { id: `${profileArt!.id}-${trained ? "trained" : "normal"}` },
+			params: {
+				id: `${profileArt!.id}-${profileArt!.trained ? "trained" : "normal"}`,
+			},
 			props: { card: { ...card, ...profileArt!, trained } },
 		};
 	});
