@@ -1,0 +1,29 @@
+---
+import IconLoader from "~/components/icon-loader.astro";
+
+export const partial = true;
+---
+
+<hx-partial hx-swap="outerHTML" hx-target="#leaderboard-tab-actions">
+	<div class="mt-4 flex justify-center" id="leaderboard-tab-actions">
+		<label class="input">
+			<IconLoader name="lucide:search" />
+			<input
+				hx-get="/leaderboard/events/items"
+				hx-target="#leaderboard-cards"
+				hx-trigger="keyup changed delay:300ms, intersect once"
+				name="query"
+				type="text"
+				hx-indicator="closest .input"
+			/>
+		</label>
+	</div>
+</hx-partial>
+
+{
+	Array.from({ length: 4 }).map(() => (
+		<div class="card h-100">
+			<div class="m-8 card-body skeleton p-0" />
+		</div>
+	))
+}

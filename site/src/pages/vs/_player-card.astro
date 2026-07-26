@@ -112,7 +112,7 @@ const otherSide = isPlayer1 ? "player-2" : "player-1";
 				<div
 					id={popoverId}
 					class:list={[
-						"dropdown dropdown-bottom mt-1 w-84 rounded-box border border-primary/20 bg-base-100 p-4 shadow-md",
+						"dropdown dropdown-bottom mt-1 w-84",
 						!isPlayer1 && "sm:dropdown-end",
 					]}
 					ontoggle={`event.newState === "open" && ${inputId}.focus()`}

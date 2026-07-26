@@ -37,22 +37,22 @@ const params = Astro.locals.parseQuery(
 );
 ---
 
-<hx-partial hx-swap="outerHTML" hx-target="#leaderboard-sub-tabs">
-	<div
+<hx-partial hx-swap="outerHTML" hx-target="#leaderboard-tab-actions">
+	<fieldset
 		class="tabs-border mt-4 tabs justify-center tabs-sm text-accent"
-		id="leaderboard-sub-tabs"
+		id="leaderboard-tab-actions"
 		role="tablist"
 	>
 		{
 			Object.entries(groups).map(([name, { icon, label }]) => (
-				<label class="tab h-16 flex-col hover:text-accent max-md:flex-1 md:px-12">
+				<label class="tab h-16 flex-col hover:text-accent has-disabled:tab-disabled max-md:flex-1 md:px-12">
 					<input
 						hx-get="/leaderboard/titles"
-						hx-target="#leaderboard-grid"
+						hx-target="#leaderboard-cards"
 						name="group"
 						type="radio"
 						value={name}
-						hx-disable=".tabs input"
+						hx-disable="closest .tabs"
 						hx-indicator="closest .tab"
 						hx-replace-url={`/leaderboard?tab=titles-${name}`}
 						checked={name === params.group}
@@ -63,7 +63,7 @@ const params = Astro.locals.parseQuery(
 				</label>
 			))
 		}
-	</div>
+	</fieldset>
 </hx-partial>
 
 {

@@ -1,0 +1,175 @@
+---
+import { accountHasNickname, groupBy } from "@bandori-stats/bestdori/helpers";
+import { db } from "@bandori-stats/database";
+
+import { leaderboards, type Category } from "virtual:bandori-leaderboard";
+import z from "zod";
+
+import IconLoader from "~/components/icon-loader.astro";
+import { getProfileIcon, getTitleImage } from "~/lib/image";
+
+export const partial = true;
+
+const params = Astro.locals.parseQuery(
+	z.object({
+		event: z.coerce.number().refine((id) => id in leaderboards.events, {
+			error: "event unavailable",
+		}),
+		group: z.enum(["event", "song", "goals"]).catch("event"),
+	}),
+);
+
+const event = leaderboards.events[params.event];
+const groups = groupBy(Object.entries(event.items), ([category]) => {
+	if (category.startsWith("event")) return "event";
+	if (category.startsWith("song")) return "song";
+	if (category.endsWith("live-goals")) return "goals";
+	throw new Error(`invalid category while grouping event items: ${category}`);
+});
+
+const playersByCategory = await (async () => {
+	const accounts = await db().query.accounts.findMany({
+		where: {
+			id: {
+				in: groups[params.group].flatMap(([, items]) =>
+					items.map(({ id }) => id),
+				),
+			},
+		},
+		columns: { id: true, username: true, nickname: true, profileArt: true },
+	});
+
+	return groups[params.group].map(([category, players]) => ({
+		category,
+		players: players.map((player) => ({
+			...player,
+			...accounts.find(({ id }) => id === player.id)!,
+		})),
+	}));
+})();
+
+const isPodium = (category: Category) => category.match(/t[123]$/);
+const getCategoryLabel = (category: Category) => {
+	if (category === "ex-live-goals") return "EX";
+	if (category === "live-goals") return "N";
+	return `T${category.split("-t").at(-1)!}`;
+};
+
+const AURA_DURATION = {
+	t1: 15_000,
+	t2: 12_000,
+	t3: 9_000,
+};
+
+const GROUP_ICONS = {
+	event: "lucide:calendar",
+	song: "lucide:music",
+	goals: "lucide:target",
+};
+
+const GROUP_LABELS = {
+	event: "Event Points",
+	song: "Song Ranking",
+	goals: "Live Goals",
+};
+
+if (Astro.cache.enabled) {
+	Astro.cache.set({ etag: `"${__GIT_HASH__}"`, maxAge: 60 * 60 * 24 * 365 });
+}
+---
+
+<fieldset class="tabs-border tabs justify-center text-accent" role="tablist">
+	{
+		Object.keys(groups).map((group) => (
+			<label class="tab flex-1 hover:text-accent has-disabled:tab-disabled">
+				<input
+					hx-get={`/leaderboard/events/list?event=${params.event}`}
+					name="group"
+					type="radio"
+					value={group}
+					hx-disable="closest .tabs"
+					hx-indicator="closest .tab"
+					checked={params.group === group}
+				/>
+				<IconLoader class="mr-2 size-5" name={GROUP_ICONS[group]} />
+				{GROUP_LABELS[group]}
+			</label>
+		))
+	}
+</fieldset>
+
+<div class="list mt-4">
+	{
+		playersByCategory.map(({ category, players }) =>
+			players.map((player) => (
+				<div
+					class:list={[
+						isPodium(category) && "aura not-last:mb-1.5",
+						category.endsWith("-t1") && "aura-holo",
+						category.endsWith("-t2") && "aura-gold",
+						category.endsWith("-t3") && "aura-silver",
+					]}
+					style={
+						isPodium(category)
+							? `transition-duration: ${AURA_DURATION[category.split("-t")[1] as "t1" | "t2" | "t3"]}ms`
+							: undefined
+					}
+				>
+					<div
+						class:list={[
+							"list-row items-center",
+							isPodium(category) && "bg-base-100 dark:bg-base-300",
+						]}
+					>
+						<span
+							class:list={[
+								"badge min-h-8 min-w-8 font-mono",
+								category.endsWith("-t1") && "badge-primary",
+								category.endsWith("-t2") && "badge-accent",
+								category.endsWith("-t3") && "badge-secondary",
+								!isPodium(category) && "badge-ghost",
+							]}
+						>
+							{getCategoryLabel(category)}
+						</span>
+
+						<div class="list-col-grow flex min-w-0 items-center gap-2">
+							{player.profileArt && (
+								<div class="avatar">
+									<div class="size-10 rounded-box">
+										<img
+											src={getProfileIcon(player)}
+											alt={player.username}
+											loading="lazy"
+										/>
+									</div>
+								</div>
+							)}
+
+							{accountHasNickname(player) ? (
+								<div class="flex min-w-0 flex-col">
+									<span class="truncate font-medium text-ellipsis">
+										{player.nickname}
+									</span>
+									<span class="truncate text-xs text-ellipsis text-base-content/67">
+										@{player.username}
+									</span>
+								</div>
+							) : (
+								<span class="truncate text-lg font-medium text-ellipsis">
+									@{player.username}
+								</span>
+							)}
+						</div>
+
+						<img
+							class="aspect-23/5 w-36 rounded-2xl max-sm:list-col-wrap"
+							src={getTitleImage(player.titles[0])}
+							loading="lazy"
+						/>
+					</div>
+				</div>
+			)),
+		)
+	}
+</div>

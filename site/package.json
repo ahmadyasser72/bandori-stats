@@ -31,6 +31,7 @@
 	},
 	"devDependencies": {
 		"@astrojs/check": "0.9.9",
+		"@oxvg/napi": "0.0.6",
 		"@types/node": "26.1.1",
 		"devalue": "5.8.2",
 		"typescript": "5.9.3",

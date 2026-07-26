@@ -1,0 +1,175 @@
+---
+import { leaderboards, titlesDisplay } from "virtual:bandori-leaderboard";
+import z from "zod";
+
+import Icon from "~/components/icon.astro";
+import { paginate } from "~/lib/paginate";
+import { QuerySchema } from "~/lib/schema";
+
+export const partial = true;
+
+const { query } = Astro.locals.parseQuery(
+	z.object({ query: QuerySchema.transform((s) => s.toLowerCase()) }),
+);
+const events = Object.values(leaderboards.events)
+	.reverse()
+	.filter(
+		({ name, attribute, band, characters, type }) =>
+			!query ||
+			name.toLowerCase().includes(query) ||
+			attribute.id.includes(query) ||
+			type.includes(query) ||
+			(!Array.isArray(band) && band.name.includes(query)) ||
+			characters.some(({ name }) => name.includes(query)),
+	);
+
+const page = await paginate({
+	items: events,
+	context: Astro,
+	size: 12,
+	extraProps: { "hx-swap": "outerHTML", "hx-indicator": "this" },
+});
+
+if (Astro.cache.enabled) {
+	Astro.cache.set({ etag: `"${__GIT_HASH__}"`, maxAge: 60 * 60 });
+}
+---
+
+{
+	page.items.map((event) => (
+		<div class="card">
+			<figure>
+				<img
+					class="mt-8 aspect-3/1 w-full max-w-100"
+					src={`/static/events/${event.id}-banner.webp`}
+					loading="lazy"
+				/>
+			</figure>
+			<div class="card-body items-center">
+				<h2 class="card-title flex-1 items-center text-center">{event.name}</h2>
+
+				<div class="my-2 flex flex-col justify-center gap-2">
+					<div class="flex flex-wrap justify-center gap-x-2 gap-y-1.5">
+						<div class="badge badge-soft badge-md uppercase badge-primary">
+							<img
+								class="size-4"
+								src={`/static/attributes/${event.attribute.id}.svg`}
+							/>
+							{event.attribute.id}
+						</div>
+
+						<div class="badge badge-soft badge-md badge-primary">
+							{event.type}
+						</div>
+
+						<div class="badge badge-soft badge-md badge-primary">
+							{Array.isArray(event.band) ? (
+								"MIXED"
+							) : (
+								<>
+									<img
+										class="size-4"
+										src={`/static/bands/${event.band.id}.svg`}
+									/>
+									<span>{event.band.name}</span>
+								</>
+							)}
+						</div>
+					</div>
+
+					<div class="flex max-w-96 flex-wrap items-start justify-center gap-x-2 gap-y-1.5">
+						{event.characters.map(({ id, name }) => (
+							<div class="badge badge-soft badge-lg badge-accent">
+								<img class="size-5" src={`/static/characters/${id}.webp`} />
+								<span>{name}</span>
+							</div>
+						))}
+					</div>
+				</div>
+
+				<div
+					class="card-actions w-full max-w-64"
+					style={`anchor-name: --anchor-event-${event.id}-actions`}
+				>
+					<button
+						class="btn flex-1 btn-primary btn-sm"
+						popovertarget={`event-${event.id}-detail`}
+					>
+						<Icon name="lucide:list" />
+						Detail
+					</button>
+					<div
+						class="dropdown dropdown-center dropdown-top w-80 sm:w-md"
+						id={`event-${event.id}-detail`}
+						popover
+						style={`position-anchor: --anchor-event-${event.id}-actions`}
+					>
+						<div
+							hx-get="/leaderboard/events/list"
+							hx-target:inherited="this"
+							hx-trigger="intersect once"
+							class="max-h-64 overflow-y-auto px-2 py-1"
+							hx-indicator="this"
+							hx-vals={JSON.stringify({ event: event.id })}
+						>
+							<div class="list">
+								{Array.from({ length: 5 }).map(() => (
+									<div class="list-row h-18 skeleton not-last:mb-2" />
+								))}
+							</div>
+						</div>
+					</div>
+
+					<button
+						class="btn btn-secondary btn-sm"
+						popovertarget={`event-${event.id}-preview`}
+					>
+						<Icon name="lucide:eye" />
+						Preview ({event.count})
+					</button>
+					<div
+						class="dropdown dropdown-center dropdown-top w-max max-w-64"
+						id={`event-${event.id}-preview`}
+						popover
+						style={`position-anchor: --anchor-event-${event.id}-actions`}
+					>
+						<div class="flex flex-wrap justify-center gap-x-1 gap-y-0.5">
+							{Object.entries(event.items).map(([category, items]) => (
+								<div
+									class:list={[
+										"badge badge-soft badge-sm",
+										category.startsWith("event-") && "badge-primary",
+										(category.startsWith("song-") ||
+											category.endsWith("live-goals")) &&
+											"badge-accent",
+									]}
+								>
+									{titlesDisplay[category]}{" "}
+									{!category.match(/t[123]$/) && `(${items.length})`}
+								</div>
+							))}
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	))
+}
+
+{
+	page.hasNextPage && (
+		<div
+			class="card h-64 w-full max-w-120 place-self-center lg:col-span-2"
+			{...page.props}
+		>
+			<div class="card-body">
+				<div class="absolute inset-0 bg-base-100/67">
+					<Icon
+						class="center absolute size-32"
+						name="svg-spinners:bars-scale"
+					/>
+				</div>
+			</div>
+		</div>
+	)
+}

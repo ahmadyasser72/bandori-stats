@@ -1,4 +1,9 @@
-import { capitalize } from "@bandori-stats/bestdori/helpers";
+import {
+	capitalize,
+	pick,
+	startCase,
+	sumBy,
+} from "@bandori-stats/bestdori/helpers";
 import {
 	compareDegreeRank,
 	fetchDegrees,
@@ -9,7 +14,67 @@ import { PLAYER_TITLES_SET, redis } from "@bandori-stats/database/redis";
 
 import { exactRegex } from "@rolldown/pluginutils";
 import * as devalue from "devalue";
-import type { Category, Grade, Rank } from "virtual:bandori-leaderboard";
+import type {
+	Category,
+	Grade,
+	PlayerData,
+	Rank,
+} from "virtual:bandori-leaderboard";
+import z from "zod";
+
+const fetchEvents = async () => {
+	const response = await fetch(
+		// https://github.com/ahmadyasser72/hina-is
+		"https://hina-is.notsweet.workers.dev/data/events-all.json",
+	);
+
+	const schema = z.object({
+		values: z.array(
+			z.object({
+				id: z.coerce.number().positive(),
+				name: z.string().nonempty(),
+
+				attribute: z.object({
+					id: z.enum(["powerful", "cool", "pure", "happy"]),
+				}),
+				band: z.union([
+					z.array(z.unknown()).nonempty(),
+					z.object({
+						id: z.coerce.number().positive(),
+						name: z.string().nonempty(),
+					}),
+				]),
+				characters: z.array(
+					z.object({
+						id: z.coerce.number().positive(),
+						name: z.string().nonempty(),
+					}),
+				),
+				type: z
+					.enum([
+						"normal",
+						"vs-live",
+						"mission-live",
+						"challenge-live",
+						"live-goals",
+						"medley-live",
+						"team-live-festival",
+					])
+					.transform((type) =>
+						type === "vs-live" ? "VS Live" : startCase(type),
+					),
+
+				startAt: z.object({ en: z.number().nullable() }),
+				titles: z.object({ raw: z.array(z.number().positive()).nonempty() }),
+
+				bannerAssetBundleName: z.string(),
+			}),
+		),
+	});
+
+	const { values } = await response.json().then(schema.parse);
+	return values.filter(({ startAt }) => startAt.en !== null);
+};
 
 export default function bandoriLeaderboard() {
 	const virtualModuleId = "virtual:bandori-leaderboard";
@@ -26,7 +91,16 @@ export default function bandoriLeaderboard() {
 		load: {
 			filter: { id: exactRegex(resolvedVirtualModuleId) },
 			async handler() {
+				const events = await fetchEvents();
 				const degrees = await fetchDegrees(import.meta.env.DEV);
+
+				const titleIdToEventId = new Map<number, number>();
+				for (const event of events) {
+					for (const titleId of event.titles.raw) {
+						titleIdToEventId.set(titleId, event.id);
+					}
+				}
+
 				const playerTitles = (
 					await redis().smembers<number[]>(PLAYER_TITLES_SET)
 				)
@@ -41,16 +115,17 @@ export default function bandoriLeaderboard() {
 					})
 					.sort((a, b) => compareDegreeRank(a.rank, b.rank));
 
-				const { tops, substitutes } = (() => {
+				const { tops, substitutes, titleIdToExactCategory } = (() => {
 					const tops = new Map<Category, Set<number>>();
 					const substitutes = new Map<number, number>();
+					const titleIdToExactCategory = new Map<number, Category>();
+
 					const getTitles = (category: Category) => {
 						let titles = tops.get(category);
 						if (!titles) {
 							titles = new Set();
 							tops.set(category, titles);
 						}
-
 						return titles;
 					};
 
@@ -70,6 +145,10 @@ export default function bandoriLeaderboard() {
 							type === "try_clear" &&
 							(rank === "normal" || rank === "extra")
 						) {
+							const exactCategory =
+								rank === "normal" ? "live-goals" : "ex-live-goals";
+							titleIdToExactCategory.set(id, exactCategory);
+
 							let goal = goals.get(name);
 							if (!goal) {
 								goal = {};
@@ -82,13 +161,15 @@ export default function bandoriLeaderboard() {
 
 						// monthly ranking
 						if (typeof rank === "string" && rank.startsWith("grade_")) {
+							const [, grade] = rank.split("_");
+							titleIdToExactCategory.set(id, `monthly-${grade as Grade}`);
+
 							let grades = monthly.get(name);
 							if (!grades) {
 								grades = {};
 								monthly.set(name, grades);
 							}
 
-							const [, grade] = rank.split("_");
 							grades[grade as Grade] = id;
 							continue;
 						}
@@ -107,6 +188,9 @@ export default function bandoriLeaderboard() {
 						else if (rank > 1000 && rank < 10_000) normalized = 10_000;
 
 						const prefix = type === "event_point" ? "event" : "song";
+						const exactCategory = `${prefix}-t${normalized as Rank}` as const;
+
+						titleIdToExactCategory.set(id, exactCategory);
 
 						let ranks = byName.get(`${prefix}:${name}`);
 						if (!ranks) {
@@ -121,7 +205,7 @@ export default function bandoriLeaderboard() {
 						}
 						ids.add(id);
 
-						getTitles(`${prefix}-t${normalized as Rank}`).add(id);
+						getTitles(exactCategory).add(id);
 					}
 
 					{
@@ -185,23 +269,23 @@ export default function bandoriLeaderboard() {
 						}
 					}
 
-					return { tops, substitutes };
+					return { tops, substitutes, titleIdToExactCategory };
 				})();
 
 				const categories = [
 					"event-t1",
-					"song-t1",
 					"event-t2",
-					"song-t2",
 					"event-t3",
-					"song-t3",
 					"event-t10",
-					"song-t10",
 					"event-t100",
-					"song-t100",
 					"event-t1000",
-					"song-t1000",
 					"event-t10000",
+					"song-t1",
+					"song-t2",
+					"song-t3",
+					"song-t10",
+					"song-t100",
+					"song-t1000",
 					"song-t10000",
 					"ex-live-goals",
 					"live-goals",
@@ -250,38 +334,144 @@ export default function bandoriLeaderboard() {
 						},
 					});
 
-					return Object.fromEntries(
-						[...tops.entries()].map(([category, set]) => {
-							const players = accounts
-								.map(({ id, snapshots }) => {
-									const owned = new Set(snapshots.at(0)?.stats.titles ?? []);
+					const generatedGlobalLeaderboards = new Map<Category, PlayerData[]>();
+					const generatedEventLeaderboards = new Map<
+						number,
+						Map<Category, Map<number, number[]>>
+					>();
 
-									const matched: number[] = [];
+					for (const account of accounts) {
+						const owned = new Set(account.snapshots.at(0)?.stats.titles ?? []);
 
-									for (const primary of set) {
-										let current: number | undefined = primary;
+						for (const titleId of owned) {
+							const eventId = titleIdToEventId.get(titleId);
 
-										while (current !== undefined) {
-											if (owned.has(current)) {
-												matched.push(primary);
-												break;
-											}
+							if (eventId !== undefined) {
+								const exactCategory = titleIdToExactCategory.get(titleId);
 
-											current = substitutes.get(current);
-										}
+								if (exactCategory) {
+									let eventCategoriesMap =
+										generatedEventLeaderboards.get(eventId);
+									if (!eventCategoriesMap) {
+										eventCategoriesMap = new Map();
+										generatedEventLeaderboards.set(eventId, eventCategoriesMap);
 									}
 
-									if (matched.length === 0) return null;
+									let playersMap = eventCategoriesMap.get(exactCategory);
+									if (!playersMap) {
+										playersMap = new Map();
+										eventCategoriesMap.set(exactCategory, playersMap);
+									}
 
-									return { id, titles: matched };
-								})
-								.filter((p): p is NonNullable<typeof p> => p !== null)
-								.sort((a, b) => b.titles.length - a.titles.length)
-								.slice(0, 10);
+									let playerTitles = playersMap.get(account.id);
+									if (!playerTitles) {
+										playerTitles = [];
+										playersMap.set(account.id, playerTitles);
+									}
 
-							return [category, players];
-						}),
-					);
+									playerTitles.push(titleId);
+								}
+							}
+						}
+
+						for (const [category, categorySet] of tops.entries()) {
+							const matchedTitles: number[] = [];
+
+							for (const primaryTitle of categorySet) {
+								let currentTitle: number | undefined = primaryTitle;
+
+								while (currentTitle !== undefined) {
+									if (owned.has(currentTitle)) {
+										matchedTitles.push(primaryTitle);
+										break;
+									}
+									currentTitle = substitutes.get(currentTitle);
+								}
+							}
+
+							if (matchedTitles.length > 0) {
+								let globalCategoryPlayers =
+									generatedGlobalLeaderboards.get(category);
+								if (!globalCategoryPlayers) {
+									globalCategoryPlayers = [];
+									generatedGlobalLeaderboards.set(
+										category,
+										globalCategoryPlayers,
+									);
+								}
+
+								globalCategoryPlayers.push({
+									id: account.id,
+									titles: sortDegrees(matchedTitles, degrees),
+								});
+							}
+						}
+					}
+
+					return {
+						global: Object.fromEntries(
+							[...generatedGlobalLeaderboards.entries()].map(
+								([category, players]) => [
+									category,
+									players
+										.sort((a, b) => b.titles.length - a.titles.length)
+										.slice(0, 10),
+								],
+							),
+						),
+						events: (() => {
+							const leaderboards: (typeof import("virtual:bandori-leaderboard"))["leaderboards"]["events"] =
+								{};
+
+							for (const [
+								eventId,
+								map,
+							] of generatedEventLeaderboards.entries()) {
+								const event = pick(
+									events.find(({ id }) => eventId === id)!,
+									[
+										"id",
+										"name",
+										"attribute",
+										"band",
+										"characters",
+										"type",
+										"bannerAssetBundleName",
+									],
+								);
+
+								const categoriesPerEvent = {} as Record<Category, PlayerData[]>;
+								for (const [category, players] of map.entries()) {
+									categoriesPerEvent[category] = [...players.entries()]
+										.map(([id, titles]) => ({ id, titles }))
+										.sort((a, b) => {
+											const aDegree = degrees.get(a.titles[0])!;
+											const bDegree = degrees.get(b.titles[0])!;
+											return compareDegreeRank(
+												aDegree.rank[1],
+												bDegree.rank[1],
+											);
+										});
+								}
+
+								leaderboards[eventId] = {
+									...event,
+									count: sumBy(
+										Object.values(categoriesPerEvent),
+										(players) => players.length,
+									),
+									items: Object.fromEntries(
+										Object.entries(categoriesPerEvent).sort(
+											([a], [b]) =>
+												categories.indexOf(a) - categories.indexOf(b),
+										),
+									),
+								};
+							}
+
+							return leaderboards;
+						})(),
+					};
 				})();
 
 				const module = {

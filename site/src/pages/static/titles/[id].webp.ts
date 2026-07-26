@@ -33,10 +33,11 @@ export const GET: APIRoute<Props, Params> = async ({ props }) => {
 
 	if (imageBytes.length === 1) return new Response(imageBytes[0]);
 
-	const basenames = props.images.map((it) =>
-		path.basename(it).replace(".png", ""),
-	);
-	const cachePath = getCachePath(`_title_${basenames.join("+")}.webp`);
+	const IMAGE_WIDTH = 150;
+	const basenames = props.images
+		.map((it) => path.basename(it).replace(".png", ""))
+		.join("+");
+	const cachePath = getCachePath(`_title_${basenames}.w${IMAGE_WIDTH}.webp`);
 	const cacheExists = await exists(cachePath);
 	if (cacheExists) {
 		const blob = await openAsBlob(cachePath);
@@ -45,7 +46,7 @@ export const GET: APIRoute<Props, Params> = async ({ props }) => {
 
 	const images = imageBytes.map((bytes) => vips.Image.newFromBuffer(bytes));
 	const combined = vips.Image.composite(images, vips.BlendMode.over);
-	const small = combined.thumbnailImage(120);
+	const small = combined.thumbnailImage(IMAGE_WIDTH);
 	const out = small.webpsaveBuffer(imageConfig);
 	await writeFile(cachePath, out);
 

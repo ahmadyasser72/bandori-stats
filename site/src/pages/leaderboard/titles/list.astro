@@ -15,7 +15,7 @@ const { category } = Astro.locals.parseQuery(
 );
 
 const players = await (async () => {
-	const leaderboard = leaderboards[category];
+	const leaderboard = leaderboards.global[category];
 	const accounts = await db().query.accounts.findMany({
 		where: { id: { in: leaderboard.map(({ id }) => id) } },
 		columns: { id: true, username: true, nickname: true, profileArt: true },

@@ -32,13 +32,14 @@ export const paginate = async <T>({
 	const hasNextPage = Array.isArray(items)
 		? offset + size < items.length
 		: pageItems.length === size;
-	if (!hasNextPage) return { ...out, props: {} };
+	if (!hasNextPage) return { ...out, hasNextPage, props: {} };
 
 	const url = new URL(context.url);
 	url.search = "";
 	url.searchParams.set("page", (current + 1).toString());
 	return {
 		...out,
+		hasNextPage,
 		props: {
 			"hx-get": `${url.pathname}${url.search}`,
 			"hx-trigger": "intersect once",

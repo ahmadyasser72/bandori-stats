@@ -95,6 +95,7 @@
       },
       "devDependencies": {
         "@astrojs/check": "0.9.9",
+        "@oxvg/napi": "0.0.6",
         "@types/node": "26.1.1",
         "devalue": "5.8.2",
         "typescript": "5.9.3",
@@ -526,6 +527,16 @@
     "@oslojs/encoding": ["@oslojs/encoding@1.1.0", "", {}, "sha512-70wQhgYmndg4GCPxPPxPGevRKqTIJ2Nh4OkiMWmDAVYsTQ+Ta7Sq+rPevXyXGdzr30/qZBnyOalCszoMxlyldQ=="],
 
     "@oxc-project/types": ["@oxc-project/types@0.139.0", "", {}, "sha512-r9gHphtCs+1M7J0pw6Sn/hh/Wpa/iQrOOkrNAlVLF/gHq+/CJmHIWKKUUhdWjcD6CIa8idarspCsASiXCXvFUw=="],
+
+    "@oxvg/napi": ["@oxvg/napi@0.0.6", "", { "optionalDependencies": { "@oxvg/napi-darwin-arm64": "0.0.6", "@oxvg/napi-darwin-x64": "0.0.6", "@oxvg/napi-linux-x64-gnu": "0.0.6", "@oxvg/napi-win32-x64-msvc": "0.0.6" } }, "sha512-EubYzVgLUjvHLh+cPVAqmkzF3+ueqn+q3ZZf7MAFopmCJeJltBM3zn8U0NWTnJRXTa020qZ/X/4ethGoiYe+pA=="],
+
+    "@oxvg/napi-darwin-arm64": ["@oxvg/napi-darwin-arm64@0.0.6", "", { "os": "darwin", "cpu": "arm64" }, "sha512-ImmgFf3rn7Hb/SQ+ZIs0EU5iNYSmYwKsSbSibFRSKvpUH2IlWI/Uw+ETtM7heAEWn9wVG47onrYnHdFuSAf36A=="],
+
+    "@oxvg/napi-darwin-x64": ["@oxvg/napi-darwin-x64@0.0.6", "", { "os": "darwin", "cpu": "x64" }, "sha512-lDGjcMIznxebEZ3BIUGTnzpYs6vjYhj72rKTGD8gdSjpZVjQVryUb9Wm5lkLVIIAfsT1cJi7N8u5bHn2QLRoFQ=="],
+
+    "@oxvg/napi-linux-x64-gnu": ["@oxvg/napi-linux-x64-gnu@0.0.6", "", { "os": "linux", "cpu": "x64" }, "sha512-4ovgD0HtBK2EvwJNahkKNBWnh2+hoBgusP1R6T9Uo8gpfp8RA0iGkS8G6TqM5G/320BdlkYuz2ZtSQtc/Z3Ivg=="],
+
+    "@oxvg/napi-win32-x64-msvc": ["@oxvg/napi-win32-x64-msvc@0.0.6", "", { "os": "win32", "cpu": "x64" }, "sha512-1GGGj39m7EANGDQAa2+OErO9eZ+nhIfuX9ohaiBhOMjAPUa+M7amd33vLo8DlHicCq98esxzDSuywlKrQTh8Cw=="],
 
     "@poppinss/colors": ["@poppinss/colors@4.1.5", "", { "dependencies": { "kleur": "^4.1.5" } }, "sha512-FvdDqtcRCtz6hThExcFOgW0cWX+xwSMWcRuQe5ZEb2m7cVQOAVZOIMt+/v9RxGiD9/OY16qJBXK4CVKWAPalBw=="],
 

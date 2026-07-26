@@ -6,12 +6,13 @@ import z from "zod";
 import IconLoader from "~/components/icon-loader.astro";
 import BaseLayout from "~/layouts/base-layout.astro";
 
-const TABS = ["stats", "titles"] as const;
+const TABS = ["stats", "titles", "events"] as const;
 const params = Astro.locals.parseQuery(
 	z.object({
 		tab: z
 			.union([
 				z.literal("stats"),
+				z.literal("events"),
 				z.templateLiteral([
 					"titles-",
 					z.enum(["event", "song", "monthly", "goals"]),
@@ -30,26 +31,28 @@ const params = Astro.locals.parseQuery(
 const TAB_ICON = {
 	stats: "lucide:bar-chart-3",
 	titles: "lucide:podium",
+	events: "lucide:calendar-days",
 };
 ---
 
 <BaseLayout title="Leaderboard" containerClass="max-w-5xl">
-	<div
+	<fieldset
 		class="tabs-border mt-4 tabs justify-center tabs-lg text-primary"
 		id="leaderboard-tabs"
 		role="tablist"
 	>
 		{
 			TABS.map((tab) => (
-				<label class="tab hover:text-primary max-sm:flex-1 sm:px-16">
+				<label class="tab hover:text-primary has-disabled:tab-disabled max-sm:flex-1 sm:px-16">
 					<input
 						hx-get={`/leaderboard/${tab}`}
-						hx-target="#leaderboard-grid"
+						hx-target="#leaderboard-cards"
 						name="tab"
 						type="radio"
-						hx-disable=".tabs input"
+						value={tab}
+						hx-disable="closest .tabs"
 						hx-indicator="closest .tab"
-						hx-replace-url={`/leaderboard?tab=${tab === "titles" ? "titles-event" : "stats"}`}
+						hx-replace-url={`/leaderboard?tab=${tab === "titles" ? "titles-event" : tab}`}
 						checked={params.tab.name === tab}
 					/>
 					<IconLoader class="mr-2 size-5" name={TAB_ICON[tab]} />
@@ -57,18 +60,18 @@ const TAB_ICON = {
 				</label>
 			))
 		}
-	</div>
-	<div id="leaderboard-sub-tabs"></div>
+	</fieldset>
+	<div id="leaderboard-tab-actions"></div>
 
 	<div
 		hx-get={`/leaderboard/${params.tab.name}`}
 		hx-trigger="load"
 		class="mt-4 grid gap-8 lg:grid-cols-2"
-		id="leaderboard-grid"
+		id="leaderboard-cards"
 		hx-vals={JSON.stringify({ ...params.tab.values })}
 	>
 		{
-			Array.from({ length: 5 }).map(() => (
+			Array.from({ length: 4 }).map(() => (
 				<div class="card h-120">
 					<div class="m-8 card-body skeleton p-0" />
 				</div>
