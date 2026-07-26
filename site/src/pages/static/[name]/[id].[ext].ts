@@ -20,11 +20,19 @@ export const GET: APIRoute<Props, Params> = async ({ params, props }) => {
 	const response = await fetchBestdori(props.path, true);
 
 	if (params.ext === "svg") {
-		const { optimise } = await import("@oxvg/napi");
-		const svg = await response.text().then(optimise);
-		return new Response(svg, {
-			headers: { "content-type": "image/svg+xml" },
-		});
+		const svg = await response.text();
+
+		try {
+			const { optimise } = await import("@oxvg/napi");
+			return new Response(optimise(svg), {
+				headers: { "content-type": "image/svg+xml" },
+			});
+		} catch (error) {
+			console.error("failed to optimize svg", { error, params });
+			return new Response(svg, {
+				headers: { "content-type": "image/svg+xml" },
+			});
+		}
 	}
 
 	const bytes = await response
