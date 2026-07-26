@@ -20,8 +20,7 @@ export const GET: APIRoute<Props, Params> = async ({ params, props }) => {
 	const response = await fetchBestdori(props.path, true);
 
 	if (params.ext === "svg") {
-		const svg = await response.text();
-
+		const svg = (await response.text()).replace(/<!DOCTYPE.+dtd">/, "");
 		try {
 			const { optimise } = await import("@oxvg/napi");
 			return new Response(optimise(svg), {
