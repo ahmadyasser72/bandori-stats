@@ -50,6 +50,7 @@ const TAB_ICON = {
 						name="tab"
 						type="radio"
 						value={tab}
+						hx-browser-indicator="true"
 						hx-disable="closest .tabs"
 						hx-indicator="closest .tab"
 						hx-replace-url={`/leaderboard?tab=${tab === "titles" ? "titles-event" : tab}`}

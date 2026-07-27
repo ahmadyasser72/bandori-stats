@@ -45,6 +45,11 @@ const { title, containerClass } = Astro.props;
 		<meta name="generator" content={Astro.generator} />
 		<title>bandori-stats &bullet; {title}</title>
 
+		<meta
+			name="htmx-config"
+			content="extensions:browser-indicator boostBrowserIndicator:true"
+		/>
+
 		{
 			import.meta.env.PROD && UMAMI_SITE_ID && (
 				<script
@@ -85,6 +90,8 @@ const { title, containerClass } = Astro.props;
 
 <script>
 	import htmx from "htmx.org";
+
+	import "htmx.org/dist/ext/hx-browser-indicator";
 
 	window.htmx = htmx;
 

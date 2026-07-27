@@ -52,6 +52,7 @@ const params = Astro.locals.parseQuery(
 						name="group"
 						type="radio"
 						value={name}
+						hx-browser-indicator="true"
 						hx-disable="closest .tabs"
 						hx-indicator="closest .tab"
 						hx-replace-url={`/leaderboard?tab=titles-${name}`}
