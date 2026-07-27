@@ -11,9 +11,7 @@ import { QuerySchema } from "~/lib/schema";
 
 export const partial = true;
 
-const params = Astro.locals.parseQuery(
-	z.object({ query: QuerySchema.transform((s) => s.toLowerCase()) }),
-);
+const params = Astro.locals.parseQuery(z.object({ query: QuerySchema }));
 const { events, suggestions = [] } = await (async () => {
 	const values = Object.values(leaderboards.events).reverse();
 	if (!params.query) return { events: values };

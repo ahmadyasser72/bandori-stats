@@ -17,5 +17,5 @@ export const RatioSchema = z
 	.catch(() => []);
 export const QuerySchema = z
 	.string()
-	.transform((s) => s.replace(/^@/, ""))
+	.transform((s) => s.replace(/^@/, "").toLowerCase())
 	.catch("");

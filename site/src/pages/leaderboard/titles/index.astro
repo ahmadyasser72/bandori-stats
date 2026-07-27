@@ -1,9 +1,17 @@
 ---
-import { categories, titlesDisplay } from "virtual:bandori-leaderboard";
+import { uniqBy } from "@bandori-stats/bestdori/helpers";
+
+import {
+	categories,
+	leaderboards,
+	titlesDisplay,
+} from "virtual:bandori-leaderboard";
 import z from "zod";
 
 import IconLoader from "~/components/icon-loader.astro";
+import { QuerySchema } from "~/lib/schema";
 import LeaderboardCard from "~/pages/leaderboard/_leaderboard-card.astro";
+import { playerSearchIndex } from "./_player-search";
 
 export const partial = true;
 
@@ -33,38 +41,80 @@ const groups = {
 const params = Astro.locals.parseQuery(
 	z.object({
 		group: z.enum(["event", "song", "monthly", "goals"]).catch("event"),
+		query: QuerySchema,
 	}),
 );
+
+const suggestions = [] as string[];
+if (params.query) {
+	const categories = groups[params.group].items;
+	const players = uniqBy(
+		categories.flatMap((category) => leaderboards.global[category]),
+		({ id }) => id,
+	);
+	const index = playerSearchIndex(players);
+	suggestions.push(
+		...index
+			.autoSuggest(params.query)
+			.slice(0, 10)
+			.map(({ suggestion }) => suggestion),
+	);
+}
 ---
 
 <hx-partial hx-swap="outerHTML" hx-target="#leaderboard-tab-actions">
-	<fieldset
-		class="tabs-border mt-4 tabs justify-center tabs-sm text-accent"
+	<div
+		class="mt-4 flex flex-col items-center gap-2"
 		id="leaderboard-tab-actions"
-		role="tablist"
 	>
-		{
-			Object.entries(groups).map(([name, { icon, label }]) => (
-				<label class="tab h-16 flex-col hover:text-accent has-disabled:tab-disabled max-md:flex-1 md:px-12">
-					<input
-						hx-get="/leaderboard/titles"
-						hx-target="#leaderboard-cards"
-						name="group"
-						type="radio"
-						value={name}
-						hx-browser-indicator="true"
-						hx-disable="closest .tabs"
-						hx-indicator="closest .tab"
-						hx-replace-url={`/leaderboard?tab=titles-${name}`}
-						checked={name === params.group}
-					/>
-					<IconLoader class="size-5" name={icon} />
-					<span class="max-sm:hidden">{label}</span>
-					<span class="sm:hidden">{label.replace(/Rank.*/, "")}</span>
-				</label>
-			))
-		}
-	</fieldset>
+		<label class="input">
+			<IconLoader name="lucide:search" />
+			<input
+				hx-get="/leaderboard/titles"
+				hx-target="#leaderboard-cards"
+				hx-trigger="keyup changed delay:300ms, intersect once"
+				id="titles-search"
+				name="query"
+				type="text"
+				hx-include=".tabs input"
+				hx-indicator="closest .input"
+				hx-preserve="true"
+				hx-select-oob="#titles-search-suggestions"
+				list="titles-search-suggestions"
+				placeholder="search players in top 100..."
+			/>
+			<datalist id="titles-search-suggestions">
+				{suggestions.map((value) => <option {value} />)}
+			</datalist>
+		</label>
+		<fieldset
+			class="tabs-border tabs justify-center tabs-sm text-accent"
+			role="tablist"
+		>
+			{
+				Object.entries(groups).map(([name, { icon, label }]) => (
+					<label class="tab h-16 flex-col hover:text-accent has-disabled:tab-disabled max-md:flex-1 md:px-12">
+						<input
+							hx-get="/leaderboard/titles"
+							hx-target="#leaderboard-cards"
+							name="group"
+							type="radio"
+							value={name}
+							hx-browser-indicator="true"
+							hx-disable="closest .tabs"
+							hx-include="#titles-search"
+							hx-indicator="closest .tab"
+							hx-replace-url={`/leaderboard?tab=titles-${name}`}
+							checked={name === params.group}
+						/>
+						<IconLoader class="size-5" name={icon} />
+						<span class="max-sm:hidden">{label}</span>
+						<span class="sm:hidden">{label.replace(/Rank.*/, "")}</span>
+					</label>
+				))
+			}
+		</fieldset>
+	</div>
 </hx-partial>
 
 {
@@ -75,7 +125,7 @@ const params = Astro.locals.parseQuery(
 				hx-trigger="intersect once"
 				class="list mt-1 max-h-100 overflow-y-auto px-8 py-1"
 				hx-indicator="this"
-				hx-vals={JSON.stringify({ category })}
+				hx-vals={JSON.stringify({ category, query: params.query })}
 			>
 				{Array.from({ length: 5 }).map(() => (
 					<div class="list-row h-18 skeleton not-last:mb-2" />
