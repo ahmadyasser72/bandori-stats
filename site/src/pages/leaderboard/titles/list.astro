@@ -40,7 +40,6 @@ const page = await paginate({
 	size: 10,
 	extraProps: {
 		"hx-swap": "outerHTML",
-		"hx-indicator": "this",
 		"hx-vals": JSON.stringify(params),
 	},
 });

@@ -91,7 +91,6 @@ const otherSide = isPlayer1 ? "player-2" : "player-1";
 					hx-swap="outerMorph"
 					hx-target="main"
 					class="btn btn-circle btn-ghost btn-sm hover:btn-error"
-					hx-indicator="this"
 					hx-replace-url="true"
 					hx-vals={JSON.stringify({ [otherSide]: other })}
 				>
@@ -127,8 +126,7 @@ const otherSide = isPlayer1 ? "player-2" : "player-1";
 							hx-trigger="keyup changed delay:300ms, intersect once"
 							id={inputId}
 							name="query"
-							type="text"
-							hx-indicator="closest .input"
+							type="search"
 							hx-vals={JSON.stringify({ side, other })}
 						/>
 					</label>

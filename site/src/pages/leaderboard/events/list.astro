@@ -56,17 +56,16 @@ if (Astro.cache.enabled) {
 }
 ---
 
-<fieldset class="tabs-border tabs justify-center text-accent" role="tablist">
+<fieldset class="tabs text-accent" role="tablist">
 	{
 		Object.keys(groups).map((group) => (
-			<label class="tab flex-1 hover:text-accent has-disabled:tab-disabled">
+			<label class="tab flex-1 hover:text-accent">
 				<input
 					hx-get={`/leaderboard/events/list?event=${params.event}`}
 					name="group"
 					type="radio"
 					value={group}
 					hx-disable="closest .tabs"
-					hx-indicator="closest .tab"
 					checked={params.group === group}
 				/>
 				<IconLoader class="mr-2 size-5" name={GROUP_ICONS[group]} />

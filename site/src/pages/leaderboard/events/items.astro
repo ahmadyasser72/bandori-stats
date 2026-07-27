@@ -64,7 +64,6 @@ const page = await paginate({
 	size: 12,
 	extraProps: {
 		"hx-swap": "outerHTML",
-		"hx-indicator": "this",
 		"hx-vals": JSON.stringify(params),
 	},
 });
@@ -163,12 +162,11 @@ if (Astro.cache.enabled) {
 							hx-target:inherited="this"
 							hx-trigger="intersect once"
 							class="max-h-64 overflow-y-auto px-2 py-1"
-							hx-indicator="this"
 							hx-vals={JSON.stringify({ event: event.id })}
 						>
 							<div class="list">
 								{Array.from({ length: 5 }).map(() => (
-									<div class="list-row h-18 skeleton not-last:mb-2" />
+									<div class="list-row skeleton" />
 								))}
 							</div>
 						</div>
@@ -219,7 +217,7 @@ if (Astro.cache.enabled) {
 			<div class="card-body">
 				<div class="absolute inset-0 bg-base-100/67">
 					<Icon
-						class="center absolute size-32"
+						class="absolute center size-32"
 						name="svg-spinners--bars-scale"
 					/>
 				</div>

@@ -1,8 +1,6 @@
 ---
 import { UMAMI_SITE_ID } from "astro:env/server";
 
-import Icon from "~/components/icon.astro";
-
 import "~/styles/global.css";
 
 import { Font } from "astro:assets";
@@ -47,7 +45,7 @@ const { title, containerClass } = Astro.props;
 
 		<meta
 			name="htmx-config"
-			content="extensions:browser-indicator boostBrowserIndicator:true"
+			content="extensions:browser-indicator boostBrowserIndicator:true includeIndicatorCSS:false"
 		/>
 
 		{
@@ -62,10 +60,7 @@ const { title, containerClass } = Astro.props;
 		}
 	</head>
 	<body>
-		<main
-			hx-indicator:inherited="#app-loader"
-			class:list={["container mx-auto p-4", containerClass]}
-		>
+		<main class:list={["container mx-auto p-4", containerClass]}>
 			{
 				Astro.url.pathname !== "/" && (
 					<div class="flex items-center justify-between">
@@ -78,13 +73,6 @@ const { title, containerClass } = Astro.props;
 
 			<slot />
 		</main>
-
-		<div
-			class="htmx-indicator fixed inset-0 z-20 bg-base-100/67"
-			id="app-loader"
-		>
-			<Icon class="center absolute size-24" name="svg-spinners--3-dots-move" />
-		</div>
 	</body>
 </html>
 

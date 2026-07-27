@@ -75,9 +75,8 @@ if (params.query) {
 				hx-trigger="keyup changed delay:300ms, intersect once"
 				id="titles-search"
 				name="query"
-				type="text"
+				type="search"
 				hx-include=".tabs input"
-				hx-indicator="closest .input"
 				hx-preserve="true"
 				hx-select-oob="#titles-search-suggestions"
 				list="titles-search-suggestions"
@@ -87,13 +86,10 @@ if (params.query) {
 				{suggestions.map((value) => <option {value} />)}
 			</datalist>
 		</label>
-		<fieldset
-			class="tabs-border tabs justify-center tabs-sm text-accent"
-			role="tablist"
-		>
+		<fieldset class="tabs w-full tabs-sm text-accent" role="tablist">
 			{
 				Object.entries(groups).map(([name, { icon, label }]) => (
-					<label class="tab h-16 flex-col hover:text-accent has-disabled:tab-disabled max-md:flex-1 md:px-12">
+					<label class="tab h-16 flex-col hover:text-accent max-md:flex-1 md:px-12">
 						<input
 							hx-get="/leaderboard/titles"
 							hx-target="#leaderboard-cards"
@@ -103,7 +99,6 @@ if (params.query) {
 							hx-browser-indicator="true"
 							hx-disable="closest .tabs"
 							hx-include="#titles-search"
-							hx-indicator="closest .tab"
 							hx-replace-url={`/leaderboard?tab=titles-${name}`}
 							checked={name === params.group}
 						/>
@@ -124,11 +119,10 @@ if (params.query) {
 				hx-get="/leaderboard/titles/list"
 				hx-trigger="intersect once"
 				class="list mt-1 max-h-100 overflow-y-auto px-8 py-1"
-				hx-indicator="this"
 				hx-vals={JSON.stringify({ category, query: params.query })}
 			>
 				{Array.from({ length: 5 }).map(() => (
-					<div class="list-row h-18 skeleton not-last:mb-2" />
+					<div class="list-row skeleton" />
 				))}
 			</div>
 		</LeaderboardCard>

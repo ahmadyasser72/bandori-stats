@@ -37,13 +37,13 @@ const TAB_ICON = {
 
 <BaseLayout title="Leaderboard" containerClass="max-w-5xl">
 	<fieldset
-		class="tabs-border mt-4 tabs justify-center tabs-lg text-primary"
+		class="mt-4 tabs tabs-lg text-primary"
 		id="leaderboard-tabs"
 		role="tablist"
 	>
 		{
 			TABS.map((tab) => (
-				<label class="tab hover:text-primary has-disabled:tab-disabled max-sm:flex-1 sm:px-16">
+				<label class="tab hover:text-primary max-sm:flex-1 sm:px-16">
 					<input
 						hx-get={`/leaderboard/${tab}`}
 						hx-target="#leaderboard-cards"
@@ -52,7 +52,6 @@ const TAB_ICON = {
 						value={tab}
 						hx-browser-indicator="true"
 						hx-disable="closest .tabs"
-						hx-indicator="closest .tab"
 						hx-replace-url={`/leaderboard?tab=${tab === "titles" ? "titles-event" : tab}`}
 						checked={params.tab.name === tab}
 					/>

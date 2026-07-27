@@ -17,11 +17,10 @@ export const partial = true;
 				hx-get="/leaderboard/stats/list"
 				hx-trigger="intersect once"
 				class="list mt-1 max-h-100 overflow-y-auto px-8 py-1"
-				hx-indicator="this"
 				hx-vals={JSON.stringify({ stat, limit: 10 })}
 			>
 				{Array.from({ length: 5 }).map(() => (
-					<div class="list-row h-18 skeleton not-last:mb-2" />
+					<div class="list-row skeleton" />
 				))}
 			</div>
 		</LeaderboardCard>
