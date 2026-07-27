@@ -1,4 +1,5 @@
 ---
+import MiniSearch from "minisearch";
 import { leaderboards, titlesDisplay } from "virtual:bandori-leaderboard";
 import z from "zod";
 
@@ -8,32 +9,77 @@ import { QuerySchema } from "~/lib/schema";
 
 export const partial = true;
 
-const { query } = Astro.locals.parseQuery(
+const params = Astro.locals.parseQuery(
 	z.object({ query: QuerySchema.transform((s) => s.toLowerCase()) }),
 );
-const events = Object.values(leaderboards.events)
-	.reverse()
-	.filter(
-		({ name, attribute, band, characters, type }) =>
-			!query ||
-			name.toLowerCase().includes(query) ||
-			attribute.id.includes(query) ||
-			type.includes(query) ||
-			(!Array.isArray(band) && band.name.includes(query)) ||
-			characters.some(({ name }) => name.includes(query)),
-	);
+const { events, suggestions = [] } = await (async () => {
+	const values = Object.values(leaderboards.events).reverse();
+	if (!params.query) return { events: values };
+
+	const index = new MiniSearch<(typeof values)[number]>({
+		searchOptions: {
+			combineWith: "AND",
+			fuzzy: true,
+			prefix: true,
+			boost: { name: 2, characters: 1.5 },
+		},
+		fields: ["name", "attribute", "type", "band", "characters"],
+		extractField: (document, fieldName) => {
+			if (fieldName === "attribute") return document.attribute.id;
+			if (fieldName === "band")
+				return Array.isArray(document.band) ? "mix mixed" : document.band.name;
+			if (fieldName === "characters")
+				return document.characters.map(({ name }) => name.split(" ")).join(" ");
+
+			return fieldName
+				.split(".")
+				.reduce((doc, key) => doc && doc[key as never], document);
+		},
+	});
+	index.addAll(values);
+
+	return {
+		events: index
+			.search(params.query)
+			.sort((a, b) => b.score - a.score || b.id - a.id)
+			.map(({ id }) => leaderboards.events[id]),
+		suggestions: index
+			.autoSuggest(params.query)
+			.slice(0, 10)
+			.map(({ suggestion }) => suggestion),
+	};
+})();
 
 const page = await paginate({
 	items: events,
 	context: Astro,
 	size: 12,
-	extraProps: { "hx-swap": "outerHTML", "hx-indicator": "this" },
+	extraProps: {
+		"hx-swap": "outerHTML",
+		"hx-indicator": "this",
+		"hx-vals": JSON.stringify(params),
+	},
 });
 
 if (Astro.cache.enabled) {
 	Astro.cache.set({ etag: `"${__GIT_HASH__}"`, maxAge: 60 * 60 });
 }
 ---
+
+<hx-partial hx-target="#event-search-suggestions">
+	{suggestions.map((value) => <option {value} />)}
+</hx-partial>
+
+{
+	page.items.length === 0 && (
+		<div class="card col-span-full py-16">
+			<div class="card-body items-center text-center">
+				<Icon class="size-16 opacity-50" name="lucide:search-x" />
+				<h2 class="card-title text-lg">No events found</h2>
+			</div>
+		</div>
+	)
+}
 
 {
 	page.items.map((event) => (
@@ -159,7 +205,7 @@ if (Astro.cache.enabled) {
 {
 	page.hasNextPage && (
 		<div
-			class="card h-64 w-full max-w-120 place-self-center lg:col-span-2"
+			class="card col-span-full h-64 w-full max-w-120 place-self-center"
 			{...page.props}
 		>
 			<div class="card-body">
