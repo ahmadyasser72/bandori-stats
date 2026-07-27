@@ -66,7 +66,7 @@ const AURA_DURATION = [15_000, 12_000, 9_000];
 					{trueRank + 1}
 				</span>
 
-				<div class="list-col-grow flex items-center gap-2">
+				<div class="list-col-grow flex min-w-0 items-center gap-2">
 					{player.profileArt && (
 						<div class="avatar">
 							<div class="size-10 rounded-box">
@@ -80,14 +80,18 @@ const AURA_DURATION = [15_000, 12_000, 9_000];
 					)}
 
 					{accountHasNickname(player) ? (
-						<div class="flex flex-col">
-							<span class="truncate font-medium">{player.nickname}</span>
-							<span class="text-xs text-base-content/67">
+						<div class="flex min-w-0 flex-col">
+							<span class="truncate font-medium text-ellipsis">
+								{player.nickname}
+							</span>
+							<span class="truncate text-xs text-ellipsis text-base-content/67">
 								@{player.username}
 							</span>
 						</div>
 					) : (
-						<span class="truncate text-lg font-medium">@{player.username}</span>
+						<span class="truncate text-lg font-medium text-ellipsis">
+							@{player.username}
+						</span>
 					)}
 				</div>
 
