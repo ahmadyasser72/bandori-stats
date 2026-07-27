@@ -10,6 +10,7 @@ import { getProfileIcon } from "~/lib/image";
 interface Props {
 	players: (Pick<Account, "id" | "username" | "nickname" | "profileArt"> & {
 		value: number;
+		trueRank?: number;
 	})[];
 	anchor?: string;
 }
@@ -17,6 +18,8 @@ interface Props {
 const players = (() => {
 	let trueRank = 0;
 	return Astro.props.players.map((player, idx) => {
+		if (player.trueRank) return { player, trueRank: player.trueRank };
+
 		if (idx === 0 || player.value !== Astro.props.players[idx - 1].value)
 			trueRank = idx;
 		return { player, trueRank };
@@ -27,7 +30,7 @@ const AURA_DURATION = [15_000, 12_000, 9_000];
 ---
 
 {
-	players.map(({ player, trueRank }, idx) => (
+	players.map(({ player, trueRank }) => (
 		<div
 			class:list={[
 				"group",
@@ -38,7 +41,7 @@ const AURA_DURATION = [15_000, 12_000, 9_000];
 			]}
 			style={
 				trueRank < 3 &&
-				`transition-duration: ${AURA_DURATION[trueRank] + idx * 1000}ms`
+				`transition-duration: ${AURA_DURATION[trueRank] + (player.id % 10) * 100}ms`
 			}
 		>
 			<div

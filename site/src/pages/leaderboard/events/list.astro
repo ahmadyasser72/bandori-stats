@@ -1,6 +1,5 @@
 ---
 import { accountHasNickname, groupBy } from "@bandori-stats/bestdori/helpers";
-import { db } from "@bandori-stats/database";
 
 import { leaderboards, type Category } from "virtual:bandori-leaderboard";
 import z from "zod";
@@ -26,27 +25,6 @@ const groups = groupBy(Object.entries(event.items), ([category]) => {
 	if (category.endsWith("live-goals")) return "goals";
 	throw new Error(`invalid category while grouping event items: ${category}`);
 });
-
-const playersByCategory = await (async () => {
-	const accounts = await db().query.accounts.findMany({
-		where: {
-			id: {
-				in: groups[params.group].flatMap(([, items]) =>
-					items.map(({ id }) => id),
-				),
-			},
-		},
-		columns: { id: true, username: true, nickname: true, profileArt: true },
-	});
-
-	return groups[params.group].map(([category, players]) => ({
-		category,
-		players: players.map((player) => ({
-			...player,
-			...accounts.find(({ id }) => id === player.id)!,
-		})),
-	}));
-})();
 
 const isPodium = (category: Category) => category.match(/t[123]$/);
 const getCategoryLabel = (category: Category) => {
@@ -100,7 +78,7 @@ if (Astro.cache.enabled) {
 
 <div class="list mt-4">
 	{
-		playersByCategory.map(({ category, players }) =>
+		groups[params.group].map(([category, players]) =>
 			players.map((player) => (
 				<div
 					class:list={[

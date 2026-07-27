@@ -1,4 +1,6 @@
 ---
+import { accountHasNickname } from "@bandori-stats/bestdori/helpers";
+
 import MiniSearch from "minisearch";
 import { leaderboards, titlesDisplay } from "virtual:bandori-leaderboard";
 import z from "zod";
@@ -32,7 +34,11 @@ const { events, suggestions = [] } = await (async () => {
 				return document.characters.map(({ name }) => name);
 			if (fieldName === "accounts")
 				return Object.values(document.items).flatMap((players) =>
-					players.map(({ name }) => name),
+					players.map((player) =>
+						accountHasNickname(player)
+							? `${player.username} (${player.nickname})`
+							: player.username,
+					),
 				);
 
 			return fieldName

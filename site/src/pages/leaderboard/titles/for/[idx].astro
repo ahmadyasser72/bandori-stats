@@ -1,0 +1,39 @@
+---
+import { leaderboards } from "virtual:bandori-leaderboard";
+import z from "zod";
+
+import { getTitleImage } from "~/lib/image";
+import { paginate } from "~/lib/paginate";
+import { IdSchema } from "~/lib/schema";
+
+export const partial = true;
+
+const { category } = Astro.locals.parseQuery(
+	z.object({ category: z.enum(Object.keys(leaderboards.global)) }),
+);
+
+const leaderboard = leaderboards.global[category];
+const idx = IdSchema.refine(
+	(id) => id < leaderboard.length,
+	"player idx out of bound",
+).parse(Astro.params.idx);
+
+const { titles } = leaderboard[idx];
+const page = await paginate({
+	items: [...titles].reverse(),
+	context: Astro,
+	size: 96,
+	extraProps: { "hx-swap": "afterend" },
+});
+---
+
+{
+	page.items.map((id, idx) => (
+		<img
+			{...(page.isLastElement(idx) && page.props)}
+			class="aspect-23/5 rounded-2xl"
+			src={getTitleImage(id)}
+			loading="lazy"
+		/>
+	))
+}

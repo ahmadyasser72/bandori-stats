@@ -5,9 +5,11 @@ declare module "virtual:bandori-leaderboard" {
 	type Category =
 		`event-t${Rank}` | `song-t${Rank}` | `monthly-${Grade}` | LiveGoals;
 
-	interface PlayerData {
-		id: number;
-		name: string;
+	type Player = Pick<
+		import("@bandori-stats/database/schema").Account,
+		"id" | "username" | "nickname" | "profileArt"
+	>;
+	interface PlayerData extends Player {
 		titles: number[];
 	}
 

@@ -1,11 +1,10 @@
 ---
-import { db } from "@bandori-stats/database";
-
 import { categories, leaderboards } from "virtual:bandori-leaderboard";
 import z from "zod";
 
 import Icon from "~/components/icon.astro";
 import TitlesLoader from "~/components/titles-loader.astro";
+import { paginate } from "~/lib/paginate";
 import LeaderboardTopList from "~/pages/leaderboard/_leaderboard-top-list.astro";
 
 export const partial = true;
@@ -14,26 +13,33 @@ const { category } = Astro.locals.parseQuery(
 	z.object({ category: z.enum(categories) }),
 );
 
-const players = await (async () => {
-	const leaderboard = leaderboards.global[category];
-	const accounts = await db().query.accounts.findMany({
-		where: { id: { in: leaderboard.map(({ id }) => id) } },
-		columns: { id: true, username: true, nickname: true, profileArt: true },
-	});
-
-	return leaderboard.map((player) => ({
+const players = (() => {
+	const all = leaderboards.global[category].map((player, idx) => ({
+		idx,
 		...player,
-		...accounts.find(({ id }) => id === player.id)!,
 		value: player.titles.length,
 	}));
+
+	let trueRank = 0;
+	return all.map((player, idx) => {
+		if (idx === 0 || player.value !== all[idx - 1].value) trueRank = idx;
+		return { ...player, trueRank };
+	});
 })();
 
-if (Astro.cache.enabled) {
-	Astro.cache.set({ etag: `"${__GIT_HASH__}"`, maxAge: 60 * 60 * 24 * 365 });
-}
+const page = await paginate({
+	items: players,
+	context: Astro,
+	size: 10,
+	extraProps: {
+		"hx-swap": "outerHTML",
+		"hx-indicator": "this",
+		"hx-vals": JSON.stringify({ category }),
+	},
+});
 ---
 
-<LeaderboardTopList anchor={category} {players}>
+<LeaderboardTopList anchor={category} players={page.items}>
 	<fragment slot="value">
 		{
 			(player: (typeof players)[number]) => (
@@ -54,7 +60,7 @@ if (Astro.cache.enabled) {
 							<TitlesLoader
 								hx-vals:inherited={JSON.stringify({ category })}
 								size={player.titles.length}
-								url={`/leaderboard/titles/for/${player.id}`}
+								url={`/leaderboard/titles/for/${player.idx}`}
 							/>
 						</div>
 
@@ -67,3 +73,16 @@ if (Astro.cache.enabled) {
 		}
 	</fragment>
 </LeaderboardTopList>
+
+{
+	page.hasNextPage && (
+		<div class="list-row items-center" {...page.props}>
+			<div class="badge size-8 badge-ghost">~</div>
+			<div class="list-col-grow flex items-center gap-2">
+				<Icon class="size-10" name="svg-spinners:bars-scale-middle" />
+				<span class="text-lg font-medium">Loading players...</span>
+			</div>
+			<span class="font-mono text-sm max-sm:list-col-wrap">X titles</span>
+		</div>
+	)
+}
