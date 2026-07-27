@@ -18,22 +18,22 @@ export const partial = true;
 const groups = {
 	event: {
 		label: "Event Rank",
-		icon: "lucide:calendar",
+		icon: "lucide--calendar",
 		items: categories.filter((it) => it.startsWith("event-")),
 	},
 	song: {
 		label: "Song Rank",
-		icon: "lucide:music",
+		icon: "lucide--music",
 		items: categories.filter((it) => it.startsWith("song-")),
 	},
 	goals: {
 		label: "Live Goals",
-		icon: "lucide:target",
+		icon: "lucide--target",
 		items: categories.filter((it) => it.endsWith("live-goals")),
 	},
 	monthly: {
 		label: "Monthly Ranking",
-		icon: "lucide:crown",
+		icon: "lucide--crown",
 		items: categories.filter((it) => it.startsWith("monthly-")),
 	},
 } as const;
@@ -68,7 +68,7 @@ if (params.query) {
 		id="leaderboard-tab-actions"
 	>
 		<label class="input">
-			<IconLoader name="lucide:search" />
+			<IconLoader name="lucide--search" />
 			<input
 				hx-get="/leaderboard/titles"
 				hx-target="#leaderboard-cards"

@@ -18,7 +18,7 @@ const { compact = false } = Astro.props;
 	style="view-transition-name: theme-selector-button"
 >
 	{!compact && <span class="max-sm:hidden">Theme</span>}
-	<Icon class={compact ? "size-4" : "size-5"} name="lucide:palette" />
+	<Icon class={compact ? "size-4" : "size-5"} name="lucide--palette" />
 </button>
 <ul
 	class="dropdown dropdown-end mt-1 w-28"
@@ -32,7 +32,7 @@ const { compact = false } = Astro.props;
 			class="btn w-full justify-start btn-sm not-has-checked:btn-ghost has-checked:btn-primary"
 		>
 			<input class="hidden" name="theme-select" type="radio" value="latte" />
-			<Icon name="lucide:sun" />
+			<Icon name="lucide--sun" />
 			Latte
 		</label>
 	</li>
@@ -42,7 +42,7 @@ const { compact = false } = Astro.props;
 			class="btn w-full justify-start btn-sm not-has-checked:btn-ghost has-checked:btn-primary"
 		>
 			<input class="hidden" name="theme-select" type="radio" value="mocha" />
-			<Icon name="lucide:moon" />
+			<Icon name="lucide--moon" />
 			Mocha
 		</label>
 	</li>

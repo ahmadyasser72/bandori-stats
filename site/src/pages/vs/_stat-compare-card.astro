@@ -88,11 +88,11 @@ const id = `comparison-${name}`;
 						? typeof left.raw === "number" &&
 							typeof right.raw === "number" &&
 							left.raw === right.raw
-							? "lucide:equal"
-							: "lucide:minus"
+							? "lucide--equal"
+							: "lucide--minus"
 						: delta > 0
-							? "lucide:arrow-right"
-							: "lucide:arrow-left"}
+							? "lucide--arrow-right"
+							: "lucide--arrow-left"}
 					style={`view-transition-name: stat-compare-${name}-delta`}
 				/>
 

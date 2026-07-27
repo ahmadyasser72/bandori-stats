@@ -12,14 +12,14 @@ interface Props {
 const { name, title } = Astro.props;
 
 const STAT_ICONS = {
-	highScoreRating: "lucide:crown",
-	bandRating: "lucide:guitar",
-	allPerfectCount: "lucide:sparkles",
-	fullComboCount: "lucide:zap",
-	clearCount: "lucide:circle-check-big",
-	rank: "lucide:award",
-	titles: "lucide:podium",
-} satisfies Record<keyof Snapshot["stats"], string>;
+	highScoreRating: "lucide--crown",
+	bandRating: "lucide--guitar",
+	allPerfectCount: "lucide--sparkles",
+	fullComboCount: "lucide--zap",
+	clearCount: "lucide--circle-check-big",
+	rank: "lucide--award",
+	titles: "lucide--podium",
+} as const satisfies Record<keyof Snapshot["stats"], string>;
 ---
 
 <div class="card">

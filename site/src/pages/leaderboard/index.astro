@@ -29,10 +29,10 @@ const params = Astro.locals.parseQuery(
 );
 
 const TAB_ICON = {
-	stats: "lucide:bar-chart-3",
-	titles: "lucide:podium",
-	events: "lucide:calendar-days",
-};
+	stats: "lucide--bar-chart-3",
+	titles: "lucide--podium",
+	events: "lucide--calendar-days",
+} as const;
 ---
 
 <BaseLayout title="Leaderboard" containerClass="max-w-5xl">

@@ -82,7 +82,7 @@ if (Astro.cache.enabled) {
 	page.items.length === 0 && (
 		<div class="card col-span-full py-16">
 			<div class="card-body items-center text-center">
-				<Icon class="size-16 opacity-50" name="lucide:search-x" />
+				<Icon class="size-16 opacity-50" name="lucide--search-x" />
 				<h2 class="card-title text-lg">No events found</h2>
 			</div>
 		</div>
@@ -149,7 +149,7 @@ if (Astro.cache.enabled) {
 						class="btn flex-1 btn-primary btn-sm"
 						popovertarget={`event-${event.id}-detail`}
 					>
-						<Icon name="lucide:list" />
+						<Icon name="lucide--list" />
 						Detail
 					</button>
 					<div
@@ -178,7 +178,7 @@ if (Astro.cache.enabled) {
 						class="btn btn-secondary btn-sm"
 						popovertarget={`event-${event.id}-preview`}
 					>
-						<Icon name="lucide:eye" />
+						<Icon name="lucide--eye" />
 						Preview ({event.count})
 					</button>
 					<div
@@ -220,7 +220,7 @@ if (Astro.cache.enabled) {
 				<div class="absolute inset-0 bg-base-100/67">
 					<Icon
 						class="center absolute size-32"
-						name="svg-spinners:bars-scale"
+						name="svg-spinners--bars-scale"
 					/>
 				</div>
 			</div>

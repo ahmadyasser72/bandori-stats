@@ -1,6 +1,9 @@
 ---
+export type IconSets = "lucide" | "svg-spinners" | "line-md";
+export type IconName = `${IconSets}--${string}`;
+
 interface Props {
-	name: string;
+	name: IconName;
 	class?: string;
 	style?: string;
 }
@@ -8,14 +11,16 @@ interface Props {
 const { name, class: className, style } = Astro.props;
 ---
 
-<iconify-icon class={className} icon={name} {style} width="none"></iconify-icon>
+<span class:list={["iconify", name, className]} {style}></span>
 
 <style is:global>
 	@reference "../styles/global.css";
 
-	iconify-icon:not([class^="size-"]):not([class*=" size-"]) {
+	@plugin "@iconify/tailwind4" {
+		prefixes: lucide, svg-spinners, line-md;
+	}
+
+	@utility iconify {
 		@apply size-4;
 	}
 </style>
-
-<script src="iconify-icon"></script>

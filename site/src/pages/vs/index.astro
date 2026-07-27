@@ -108,7 +108,7 @@ if ((player1 || player2) && Astro.cache.enabled) {
 				disabled={!player1 || !player2}
 				popovertarget="vs-date"
 			>
-				<IconLoader name="lucide:calendar" />
+				<IconLoader name="lucide--calendar" />
 				<span>{date ?? "Date"}</span>
 			</button>
 			<div
@@ -134,7 +134,7 @@ if ((player1 || player2) && Astro.cache.enabled) {
 				popovertarget="vs-settings"
 				style="anchor-name: --anchor-vs-player-actions"
 			>
-				<Icon name="lucide:settings" />
+				<Icon name="lucide--settings" />
 				Settings
 			</button>
 			<div
@@ -160,7 +160,7 @@ if ((player1 || player2) && Astro.cache.enabled) {
 					})}
 				>
 					<legend class="fieldset-legend py-0">
-						<IconLoader name="lucide:percent" />
+						<IconLoader name="lucide--percent" />
 						Show Ratio
 					</legend>
 					<div class="flex flex-wrap gap-4 text-sm">
@@ -209,7 +209,7 @@ if ((player1 || player2) && Astro.cache.enabled) {
 				})}
 				disabled={!player1 && !player2}
 			>
-				<IconLoader name="lucide:arrow-left-right" />
+				<IconLoader name="lucide--arrow-left-right" />
 				Swap
 			</button>
 		</div>
@@ -222,7 +222,7 @@ if ((player1 || player2) && Astro.cache.enabled) {
 				data-player-2={player2?.username}
 				disabled={!player1 || !player2}
 			>
-				<IconLoader name="lucide:arrow-down-to-line" />
+				<IconLoader name="lucide--arrow-down-to-line" />
 				Download
 			</button>
 			<button
@@ -232,7 +232,7 @@ if ((player1 || player2) && Astro.cache.enabled) {
 				data-player-2={player2?.username}
 				disabled={!player1 || !player2}
 			>
-				<IconLoader name="lucide:share-2" />
+				<IconLoader name="lucide--share-2" />
 				Share
 			</button>
 		</div>
