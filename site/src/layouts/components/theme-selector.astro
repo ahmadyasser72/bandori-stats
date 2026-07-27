@@ -57,8 +57,13 @@ const { compact = false } = Astro.props;
 				'[popovertarget="theme-selector"]',
 			)!;
 
-		const local = localStorage.getItem("theme");
-		if (local) {
+		const systemIsDark = window.matchMedia("(prefers-color-scheme: dark)");
+
+		{
+			const local =
+				(localStorage.getItem("theme") ?? systemIsDark.matches)
+					? "mocha"
+					: "latte";
 			const input = themeSelector.querySelector(`input[value="${local}"]`)!;
 			if (input instanceof HTMLInputElement) input.checked = true;
 		}
@@ -96,15 +101,13 @@ const { compact = false } = Astro.props;
 			switchTheme((event.target as HTMLInputElement).value);
 		});
 
-		window
-			.matchMedia("(prefers-color-scheme: dark)")
-			.addEventListener("change", (event) => {
-				const theme = event.matches ? "mocha" : "latte";
-				themeSelector
-					.querySelectorAll("input")
-					.forEach((input) => (input.checked = input.value === theme));
-				switchTheme(theme);
-			});
+		systemIsDark.addEventListener("change", (event) => {
+			const theme = event.matches ? "mocha" : "latte";
+			themeSelector
+				.querySelectorAll("input")
+				.forEach((input) => (input.checked = input.value === theme));
+			switchTheme(theme);
+		});
 	});
 </script>
 
