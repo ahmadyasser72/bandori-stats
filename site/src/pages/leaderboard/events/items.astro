@@ -21,15 +21,19 @@ const { events, suggestions = [] } = await (async () => {
 			combineWith: "AND",
 			fuzzy: true,
 			prefix: true,
-			boost: { name: 2, characters: 1.5 },
+			boost: { name: 2, characters: 1.5, accounts: 0.5 },
 		},
-		fields: ["name", "attribute", "type", "band", "characters"],
+		fields: ["name", "attribute", "type", "band", "characters", "accounts"],
 		extractField: (document, fieldName) => {
 			if (fieldName === "attribute") return document.attribute.id;
 			if (fieldName === "band")
 				return Array.isArray(document.band) ? "mix mixed" : document.band.name;
 			if (fieldName === "characters")
-				return document.characters.map(({ name }) => name.split(" ")).join(" ");
+				return document.characters.map(({ name }) => name);
+			if (fieldName === "accounts")
+				return Object.values(document.items).flatMap((players) =>
+					players.map(({ name }) => name),
+				);
 
 			return fieldName
 				.split(".")

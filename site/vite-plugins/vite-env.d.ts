@@ -7,6 +7,7 @@ declare module "virtual:bandori-leaderboard" {
 
 	interface PlayerData {
 		id: number;
+		name: string;
 		titles: number[];
 	}
 

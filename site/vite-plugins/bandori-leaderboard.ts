@@ -1,4 +1,5 @@
 import {
+	accountHasNickname,
 	capitalize,
 	pick,
 	startCase,
@@ -324,7 +325,7 @@ export default function bandoriLeaderboard() {
 
 				const leaderboards = await (async () => {
 					const accounts = await db().query.accounts.findMany({
-						columns: { id: true },
+						columns: { id: true, username: true, nickname: true },
 						with: {
 							snapshots: {
 								limit: 1,
@@ -402,6 +403,9 @@ export default function bandoriLeaderboard() {
 
 								globalCategoryPlayers.push({
 									id: account.id,
+									name: accountHasNickname(account)
+										? `${account.username} (${account.nickname})`
+										: account.username,
 									titles: sortDegrees(matchedTitles, degrees),
 								});
 							}
@@ -443,7 +447,19 @@ export default function bandoriLeaderboard() {
 								const categoriesPerEvent = {} as Record<Category, PlayerData[]>;
 								for (const [category, players] of map.entries()) {
 									categoriesPerEvent[category] = [...players.entries()]
-										.map(([id, titles]) => ({ id, titles }))
+										.map(([id, titles]) => {
+											const account = accounts.find(
+												(account) => account.id === id,
+											)!;
+
+											return {
+												id,
+												name: accountHasNickname(account)
+													? `${account.username} (${account.nickname})`
+													: account.username,
+												titles,
+											};
+										})
 										.sort((a, b) => {
 											const aDegree = degrees.get(a.titles[0])!;
 											const bDegree = degrees.get(b.titles[0])!;
