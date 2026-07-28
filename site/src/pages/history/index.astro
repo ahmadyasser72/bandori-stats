@@ -47,6 +47,7 @@ const { query, ratio, date } = Astro.locals.parseQuery(
 						name="query"
 						type="search"
 						value={query}
+						hx-sync="this:replace"
 					/>
 				</label>
 			</div>

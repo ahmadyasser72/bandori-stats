@@ -62,11 +62,8 @@ if (params.query) {
 }
 ---
 
-<hx-partial hx-swap="outerHTML" hx-target="#leaderboard-tab-actions">
-	<div
-		class="mt-4 flex flex-col items-center gap-2"
-		id="leaderboard-tab-actions"
-	>
+<hx-partial hx-target="#leaderboard-tab-actions">
+	<div class="mt-4 flex flex-col items-center gap-2">
 		<label class="input">
 			<IconLoader name="lucide--search" />
 			<input
@@ -79,6 +76,7 @@ if (params.query) {
 				hx-include=".tabs input"
 				hx-preserve="true"
 				hx-select-oob="#titles-search-suggestions"
+				hx-sync="this:replace"
 				list="titles-search-suggestions"
 				placeholder="search players in top 100..."
 			/>

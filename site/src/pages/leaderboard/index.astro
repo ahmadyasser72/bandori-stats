@@ -37,7 +37,7 @@ const TAB_ICON = {
 
 <BaseLayout title="Leaderboard" containerClass="max-w-5xl">
 	<fieldset
-		class="mt-4 tabs tabs-lg text-primary"
+		class="tabs mt-4 tabs-lg text-primary"
 		id="leaderboard-tabs"
 		role="tablist"
 	>
@@ -61,7 +61,7 @@ const TAB_ICON = {
 			))
 		}
 	</fieldset>
-	<div id="leaderboard-tab-actions"></div>
+	<div class="contents" id="leaderboard-tab-actions"></div>
 
 	<div
 		hx-get={`/leaderboard/${params.tab.name}`}

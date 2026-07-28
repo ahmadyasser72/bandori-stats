@@ -127,6 +127,7 @@ const otherSide = isPlayer1 ? "player-2" : "player-1";
 							id={inputId}
 							name="query"
 							type="search"
+							hx-sync="this:replace"
 							hx-vals={JSON.stringify({ side, other })}
 						/>
 					</label>
