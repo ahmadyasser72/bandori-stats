@@ -5,12 +5,16 @@ import {
 } from "@bandori-stats/bestdori/helpers";
 import type { Account } from "@bandori-stats/database/schema";
 
+import type { MatchInfo } from "minisearch";
+
+import { filterTerms, highlight } from "~/lib/highlight";
 import { getProfileIcon } from "~/lib/image";
 
 interface Props {
 	players: (Pick<Account, "id" | "username" | "nickname" | "profileArt"> & {
 		value: number;
 		trueRank?: number;
+		match?: MatchInfo;
 	})[];
 	anchor?: string;
 }
@@ -25,6 +29,16 @@ const players = (() => {
 		return { player, trueRank };
 	});
 })();
+
+const highlightTerms = (
+	data: (typeof players)[number]["player"],
+	text: string,
+	key: "username" | "nickname",
+) => {
+	if (!("match" in data) || !data.match) return text;
+	const terms = filterTerms(data.match, key);
+	return highlight(text, terms);
+};
 
 const AURA_DURATION = [15_000, 12_000, 9_000];
 ---
@@ -81,17 +95,28 @@ const AURA_DURATION = [15_000, 12_000, 9_000];
 
 					{accountHasNickname(player) ? (
 						<div class="flex min-w-0 flex-col">
-							<span class="truncate font-medium text-ellipsis">
-								{player.nickname}
-							</span>
-							<span class="truncate text-xs text-ellipsis text-base-content/67">
-								@{player.username}
-							</span>
+							<span
+								class="truncate font-medium text-ellipsis"
+								set:html={highlightTerms(player, player.nickname!, "nickname")}
+							></span>
+							<span
+								class="truncate text-xs text-ellipsis text-base-content/67"
+								set:html={highlightTerms(
+									player,
+									`@${player.username}`,
+									"username",
+								)}
+							></span>
 						</div>
 					) : (
-						<span class="truncate text-lg font-medium text-ellipsis">
-							@{player.username}
-						</span>
+						<span
+							class="truncate text-lg font-medium text-ellipsis"
+							set:html={highlightTerms(
+								player,
+								`@${player.username}`,
+								"username",
+							)}
+						/>
 					)}
 				</div>
 

@@ -1,16 +1,29 @@
 ---
-import { accountHasNickname } from "@bandori-stats/bestdori/helpers";
-
+import * as devalue from "devalue";
 import MiniSearch from "minisearch";
-import { leaderboards, titlesDisplay } from "virtual:bandori-leaderboard";
+import {
+	leaderboards,
+	titlesDisplay,
+	type Category,
+} from "virtual:bandori-leaderboard";
 import z from "zod";
 
 import Icon from "~/components/icon.astro";
+import { filterTerms, highlight } from "~/lib/highlight";
 import { paginate } from "~/lib/paginate";
 import { QuerySchema } from "~/lib/schema";
 
 export const partial = true;
 
+const searchFields = [
+	"name",
+	"attribute",
+	"type",
+	"band",
+	"characters",
+	"username",
+	"nickname",
+] as const;
 const params = Astro.locals.parseQuery(z.object({ query: QuerySchema }));
 const { events, suggestions = [] } = await (async () => {
 	const values = Object.values(leaderboards.events).reverse();
@@ -18,30 +31,28 @@ const { events, suggestions = [] } = await (async () => {
 
 	const index = new MiniSearch<(typeof values)[number]>({
 		searchOptions: {
-			combineWith: "AND",
+			combineWith: "OR",
 			fuzzy: true,
 			prefix: true,
-			boost: { name: 2, characters: 1.5, accounts: 0.5 },
+			boost: { name: 2, characters: 1.5, username: 0.5, nickname: 0.5 },
 		},
-		fields: ["name", "attribute", "type", "band", "characters", "accounts"],
+		fields: [...searchFields],
 		extractField: (document, fieldName) => {
 			if (fieldName === "attribute") return document.attribute.id;
 			if (fieldName === "band")
-				return Array.isArray(document.band) ? "mix mixed" : document.band.name;
+				return Array.isArray(document.band) ? "mixed" : document.band.name;
 			if (fieldName === "characters")
 				return document.characters.map(({ name }) => name);
-			if (fieldName === "accounts")
+			if (fieldName === "username")
 				return Object.values(document.items).flatMap((players) =>
-					players.map((player) =>
-						accountHasNickname(player)
-							? `${player.username} (${player.nickname})`
-							: player.username,
-					),
+					players.map((player) => player.username),
+				);
+			if (fieldName === "nickname")
+				return Object.values(document.items).flatMap((players) =>
+					players.map((player) => player.nickname),
 				);
 
-			return fieldName
-				.split(".")
-				.reduce((doc, key) => doc && doc[key as never], document);
+			return document[fieldName as never];
 		},
 	});
 	index.addAll(values);
@@ -50,7 +61,36 @@ const { events, suggestions = [] } = await (async () => {
 		events: index
 			.search(params.query)
 			.sort((a, b) => b.score - a.score || b.id - a.id)
-			.map(({ id }) => leaderboards.events[id]),
+			.map(({ id, match }) => {
+				const event = leaderboards.events[id];
+				const usernameTerms = filterTerms(match, "username");
+				const nicknameTerms = filterTerms(match, "nickname");
+
+				if (usernameTerms.length === 0 && nicknameTerms.length === 0)
+					return { match, ...event };
+
+				const matchedPositions = new Map<
+					`${Category}:${number}`,
+					{ username: string[]; nickname: string[] }
+				>();
+				for (const [category, players] of Object.entries(event.items)) {
+					for (const [idx, player] of players.entries()) {
+						const terms = {
+							username: usernameTerms.filter((term) =>
+								player.username.toLowerCase().includes(term),
+							),
+							nickname: nicknameTerms.filter((term) =>
+								player.nickname?.toLowerCase().includes(term),
+							),
+						};
+
+						if (terms.username.length || terms.nickname.length)
+							matchedPositions.set(`${category}:${idx}`, terms);
+					}
+				}
+
+				return { match, matchedPositions, ...event };
+			}),
 		suggestions: index
 			.autoSuggest(params.query)
 			.slice(0, 10)
@@ -58,7 +98,17 @@ const { events, suggestions = [] } = await (async () => {
 	};
 })();
 
-const page = await paginate({
+const highlightTerms = (
+	data: (typeof events)[number],
+	text: string,
+	key: (typeof searchFields)[number],
+) => {
+	if (!("match" in data)) return text;
+	const terms = filterTerms(data.match, key);
+	return highlight(text, terms);
+};
+
+const page = await paginate<(typeof events)[number]>({
 	items: events,
 	context: Astro,
 	size: 12,
@@ -99,7 +149,10 @@ if (Astro.cache.enabled) {
 				/>
 			</figure>
 			<div class="card-body items-center">
-				<h2 class="card-title flex-1 items-center text-center">{event.name}</h2>
+				<h2
+					class="card-title flex-1 items-center text-center"
+					set:html={highlightTerms(event, event.name, "name")}
+				/>
 
 				<div class="my-2 flex flex-col justify-center gap-2">
 					<div class="flex flex-wrap justify-center gap-x-2 gap-y-1.5">
@@ -108,23 +161,32 @@ if (Astro.cache.enabled) {
 								class="size-4"
 								src={`/static/attributes/${event.attribute.id}.svg`}
 							/>
-							{event.attribute.id}
+							<span
+								set:html={highlightTerms(
+									event,
+									event.attribute.id,
+									"attribute",
+								)}
+							/>
 						</div>
 
-						<div class="badge badge-soft badge-md badge-primary">
-							{event.type}
-						</div>
+						<div
+							class="badge badge-soft badge-md badge-primary"
+							set:html={highlightTerms(event, event.type, "type")}
+						/>
 
 						<div class="badge badge-soft badge-md badge-primary">
 							{Array.isArray(event.band) ? (
-								"MIXED"
+								<span set:html={highlightTerms(event, "mixed", "band")} />
 							) : (
 								<>
 									<img
 										class="size-4"
 										src={`/static/bands/${event.band.id}.svg`}
 									/>
-									<span>{event.band.name}</span>
+									<span
+										set:html={highlightTerms(event, event.band.name, "band")}
+									/>
 								</>
 							)}
 						</div>
@@ -134,7 +196,7 @@ if (Astro.cache.enabled) {
 						{event.characters.map(({ id, name }) => (
 							<div class="badge badge-soft badge-lg badge-accent">
 								<img class="size-5" src={`/static/characters/${id}.webp`} />
-								<span>{name}</span>
+								<span set:html={highlightTerms(event, name, "characters")} />
 							</div>
 						))}
 					</div>
@@ -144,13 +206,20 @@ if (Astro.cache.enabled) {
 					class="card-actions w-full max-w-64"
 					style={`anchor-name: --anchor-event-${event.id}-actions`}
 				>
-					<button
-						class="btn flex-1 btn-primary btn-sm"
-						popovertarget={`event-${event.id}-detail`}
-					>
-						<Icon name="lucide--list" />
-						Detail
-					</button>
+					<div class="indicator flex-1 indicator-center indicator-bottom">
+						{"matchedPositions" in event && event.matchedPositions.size > 0 && (
+							<div class="indicator-item pointer-events-none badge badge-soft badge-xs badge-primary">
+								{event.matchedPositions.size} match
+							</div>
+						)}
+						<button
+							class="btn w-full btn-primary btn-sm"
+							popovertarget={`event-${event.id}-detail`}
+						>
+							<Icon name="lucide--list" />
+							Detail
+						</button>
+					</div>
 					<div
 						class="dropdown dropdown-center dropdown-top w-80 sm:w-md"
 						id={`event-${event.id}-detail`}
@@ -162,7 +231,15 @@ if (Astro.cache.enabled) {
 							hx-target:inherited="this"
 							hx-trigger="intersect once"
 							class="max-h-64 overflow-y-auto px-2 py-1"
-							hx-vals={JSON.stringify({ event: event.id })}
+							hx-vals:inherited={JSON.stringify({
+								event: event.id,
+								...("matchedPositions" in event && {
+									matches:
+										event.matchedPositions.size > 0
+											? devalue.stringify(event.matchedPositions)
+											: undefined,
+								}),
+							})}
 						>
 							<div class="list">
 								{Array.from({ length: 5 }).map(() => (

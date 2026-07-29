@@ -1,10 +1,21 @@
 ---
-import { accountHasNickname, groupBy } from "@bandori-stats/bestdori/helpers";
+import {
+	accountHasNickname,
+	countBy,
+	groupBy,
+	sortKeys,
+} from "@bandori-stats/bestdori/helpers";
 
-import { leaderboards, type Category } from "virtual:bandori-leaderboard";
+import * as devalue from "devalue";
+import {
+	leaderboards,
+	type Category,
+	type PlayerData,
+} from "virtual:bandori-leaderboard";
 import z from "zod";
 
 import IconLoader from "~/components/icon-loader.astro";
+import { highlight } from "~/lib/highlight";
 import { getProfileIcon, getTitleImage } from "~/lib/image";
 
 export const partial = true;
@@ -15,16 +26,59 @@ const params = Astro.locals.parseQuery(
 			error: "event unavailable",
 		}),
 		group: z.enum(["event", "song", "goals"]).catch("event"),
+		matches: z
+			.string()
+			.optional()
+			.transform(
+				(
+					match,
+				): Map<
+					`${Category}:${number}`,
+					{ username: string[]; nickname: string[] }
+				> => (match ? devalue.parse(match) : new Map()),
+			),
 	}),
 );
 
-const event = leaderboards.events[params.event];
-const groups = groupBy(Object.entries(event.items), ([category]) => {
-	if (category.startsWith("event")) return "event";
-	if (category.startsWith("song")) return "song";
-	if (category.endsWith("live-goals")) return "goals";
-	throw new Error(`invalid category while grouping event items: ${category}`);
+interface PlayeDataHighlight extends PlayerData {
+	terms?: { username: string[]; nickname: string[] };
+}
+
+const matchedEntries = [] as [Category, PlayeDataHighlight[]][];
+
+const playerEntries = Object.entries(
+	leaderboards.events[params.event].items,
+).map(([category, players]): [Category, PlayeDataHighlight[]] => {
+	if (params.matches.size === 0) return [category, players];
+
+	const unmatched: PlayeDataHighlight[] = [];
+	for (const [idx, player] of players.entries()) {
+		const terms = params.matches.get(`${category}:${idx}`);
+		if (terms) {
+			matchedEntries.push([category, [{ ...player, terms }]]);
+		} else {
+			unmatched.push(player);
+		}
+	}
+	return [category, unmatched];
 });
+
+const groupCategory = (category: Category) => {
+	if (category.startsWith("event")) return "event" as const;
+	if (category.startsWith("song")) return "song" as const;
+	if (category.endsWith("live-goals")) return "goals" as const;
+	throw new Error(`invalid category while grouping event items: ${category}`);
+};
+
+const groups = sortKeys(
+	groupBy([...matchedEntries, ...playerEntries], ([category]) =>
+		groupCategory(category),
+	),
+);
+
+const matchCounts = countBy(matchedEntries, ([category]) =>
+	groupCategory(category),
+);
 
 const isPodium = (category: Category) => category.match(/t[123]$/);
 const getCategoryLabel = (category: Category) => {
@@ -59,9 +113,10 @@ if (Astro.cache.enabled) {
 <fieldset class="tabs text-accent" role="tablist">
 	{
 		Object.keys(groups).map((group) => (
-			<label class="tab flex-1 hover:text-accent">
+			<label class="tab indicator flex-1 indicator-center indicator-bottom hover:text-accent">
 				<input
-					hx-get={`/leaderboard/events/list?event=${params.event}`}
+					hx-get="/leaderboard/events/list"
+					class="peer"
 					name="group"
 					type="radio"
 					value={group}
@@ -70,6 +125,12 @@ if (Astro.cache.enabled) {
 				/>
 				<IconLoader class="mr-2 size-5" name={GROUP_ICONS[group]} />
 				{GROUP_LABELS[group]}
+
+				{matchCounts[group] > 0 && (
+					<span class="indicator-item pointer-events-none badge badge-xs badge-accent not-peer-checked:badge-soft">
+						{matchCounts[group]}
+					</span>
+				)}
 			</label>
 		))
 	}
@@ -125,17 +186,29 @@ if (Astro.cache.enabled) {
 
 							{accountHasNickname(player) ? (
 								<div class="flex min-w-0 flex-col">
-									<span class="truncate font-medium text-ellipsis">
-										{player.nickname}
-									</span>
-									<span class="truncate text-xs text-ellipsis text-base-content/67">
-										@{player.username}
-									</span>
+									<span
+										class="truncate font-medium text-ellipsis"
+										set:html={highlight(
+											player.nickname!,
+											player.terms?.nickname,
+										)}
+									/>
+									<span
+										class="truncate text-xs text-ellipsis text-base-content/67"
+										set:html={highlight(
+											`@${player.username}`,
+											player.terms?.username,
+										)}
+									/>
 								</div>
 							) : (
-								<span class="truncate text-lg font-medium text-ellipsis">
-									@{player.username}
-								</span>
+								<span
+									class="truncate text-lg font-medium text-ellipsis"
+									set:html={highlight(
+										`@${player.username}`,
+										(player as PlayeDataHighlight).terms?.username ?? [],
+									)}
+								/>
 							)}
 						</div>
 

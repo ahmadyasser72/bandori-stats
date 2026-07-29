@@ -27,14 +27,20 @@ const players = (() => {
 		if (idx === 0 || player.value !== all[idx - 1].value) trueRank = idx;
 		return { ...player, trueRank };
 	});
-	if (!params.query) return withRank;
+	if (!params.query)
+		return withRank.map((player) => ({ ...player, match: undefined }));
 
 	const index = playerSearchIndex(withRank);
-	const match = index.search(params.query).map(({ id }) => id);
-	return withRank.filter(({ id }) => match.includes(id));
+	const matches = Object.fromEntries(
+		index.search(params.query).map(({ id, match }) => [id, match]),
+	);
+
+	return withRank
+		.filter(({ id }) => id in matches)
+		.map((player) => ({ ...player, match: matches[player.id] }));
 })();
 
-const page = await paginate({
+const page = await paginate<(typeof players)[number]>({
 	items: players,
 	context: Astro,
 	size: 10,
