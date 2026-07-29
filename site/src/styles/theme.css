@@ -10,7 +10,7 @@
 @utility aura {
 	&::before,
 	&::after {
-		filter: blur(0.125rem);
+		@apply blur-none md:blur-xs lg:blur-sm;
 		will-change: filter;
 		transform: translate3d(0, 0, 0);
 	}
