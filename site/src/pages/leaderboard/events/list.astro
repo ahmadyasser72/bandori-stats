@@ -52,12 +52,12 @@ const playerEntries = Object.entries(
 	if (params.matches.size === 0) return [category, players];
 
 	const unmatched: PlayeDataHighlight[] = [];
-	for (const [idx, player] of players.entries()) {
+	for (const [idx, { player, titles }] of players.entries()) {
 		const terms = params.matches.get(`${category}:${idx}`);
 		if (terms) {
-			matchedEntries.push([category, [{ ...player, terms }]]);
+			matchedEntries.push([category, [{ player, titles, terms }]]);
 		} else {
-			unmatched.push(player);
+			unmatched.push({ player, titles });
 		}
 	}
 	return [category, unmatched];
@@ -139,7 +139,7 @@ if (Astro.cache.enabled) {
 <div class="list mt-4">
 	{
 		groups[params.group].map(([category, players]) =>
-			players.map((player) => (
+			players.map(({ player, titles, terms }) => (
 				<div
 					class:list={[
 						isPodium(category) && "aura not-last:mb-1.5",
@@ -188,33 +188,24 @@ if (Astro.cache.enabled) {
 								<div class="flex min-w-0 flex-col">
 									<span
 										class="truncate font-medium text-ellipsis"
-										set:html={highlight(
-											player.nickname!,
-											player.terms?.nickname,
-										)}
+										set:html={highlight(player.nickname!, terms?.nickname)}
 									/>
 									<span
 										class="truncate text-xs text-ellipsis text-base-content/67"
-										set:html={highlight(
-											`@${player.username}`,
-											player.terms?.username,
-										)}
+										set:html={highlight(`@${player.username}`, terms?.username)}
 									/>
 								</div>
 							) : (
 								<span
 									class="truncate text-lg font-medium text-ellipsis"
-									set:html={highlight(
-										`@${player.username}`,
-										(player as PlayeDataHighlight).terms?.username ?? [],
-									)}
+									set:html={highlight(`@${player.username}`, terms?.username)}
 								/>
 							)}
 						</div>
 
 						<img
 							class="aspect-23/5 w-36 rounded-2xl max-sm:list-col-wrap"
-							src={getTitleImage(player.titles[0])}
+							src={getTitleImage(titles[0])}
 							loading="lazy"
 						/>
 					</div>

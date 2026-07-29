@@ -1,11 +1,8 @@
-import type { Account } from "@bandori-stats/database/schema";
-
 import MiniSearch from "minisearch";
+import type { Player, PlayerData } from "virtual:bandori-leaderboard";
 
-export const playerSearchIndex = (
-	players: Pick<Account, "username" | "nickname">[],
-) => {
-	const index = new MiniSearch<(typeof players)[number]>({
+export const playerSearchIndex = (players: Pick<PlayerData, "player">[]) => {
+	const index = new MiniSearch<Player>({
 		fields: ["username", "nickname"],
 		searchOptions: {
 			combineWith: "OR",
@@ -14,7 +11,7 @@ export const playerSearchIndex = (
 			boost: { username: 2 },
 		},
 	});
-	index.addAll(players);
+	index.addAll(players.map(({ player }) => player));
 
 	return index;
 };

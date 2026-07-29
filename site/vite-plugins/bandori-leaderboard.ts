@@ -16,8 +16,10 @@ import { PLAYER_TITLES_SET, redis } from "@bandori-stats/database/redis";
 import { exactRegex } from "@rolldown/pluginutils";
 import * as devalue from "devalue";
 import type {
+	BandoriLeaderboard,
 	Category,
 	Grade,
+	Player,
 	PlayerData,
 	Rank,
 } from "virtual:bandori-leaderboard";
@@ -35,11 +37,16 @@ const fetchEvents = async () => {
 				id: z.coerce.number().positive(),
 				name: z.string().nonempty(),
 
-				attribute: z.object({
-					id: z.enum(["powerful", "cool", "pure", "happy"]),
-				}),
+				attribute: z
+					.object({
+						id: z.enum(["powerful", "cool", "pure", "happy"]),
+					})
+					.transform(({ id }) => id),
 				band: z.union([
-					z.array(z.unknown()).nonempty(),
+					z
+						.array(z.unknown())
+						.nonempty()
+						.transform(() => ({ id: 0, name: "mixed" })),
 					z.object({
 						id: z.coerce.number().positive(),
 						name: z.string().nonempty(),
@@ -295,15 +302,6 @@ export default function bandoriLeaderboard() {
 					"monthly-silver",
 				] satisfies Category[];
 
-				const titles = Object.fromEntries(
-					[...tops.entries()]
-						.sort(([a], [b]) => categories.indexOf(a) - categories.indexOf(b))
-						.map(([k, set]) => [k, sortDegrees([...set], degrees)]),
-				);
-
-				const titlesSubstitutes = Object.fromEntries([
-					...substitutes.entries(),
-				]);
 				const titlesDisplay = Object.fromEntries(
 					categories.map((it): [Category, string] => {
 						let out = "";
@@ -346,7 +344,10 @@ export default function bandoriLeaderboard() {
 						Map<Category, Map<number, number[]>>
 					>();
 
+					const accountById = new Map<number, Player>();
 					for (const account of accounts) {
+						accountById.set(account.id, omit(account, ["snapshots"]));
+
 						const owned = new Set(account.snapshots.at(0)?.stats.titles ?? []);
 
 						for (const titleId of owned) {
@@ -407,7 +408,7 @@ export default function bandoriLeaderboard() {
 								}
 
 								globalCategoryPlayers.push({
-									...omit(account, ["snapshots"]),
+									player: accountById.get(account.id)!,
 									titles: sortDegrees(matchedTitles, degrees),
 								});
 							}
@@ -449,13 +450,10 @@ export default function bandoriLeaderboard() {
 								const categoriesPerEvent = {} as Record<Category, PlayerData[]>;
 								for (const [category, players] of map.entries()) {
 									categoriesPerEvent[category] = [...players.entries()]
-										.map(([id, titles]) => {
-											const account = accounts.find(
-												(account) => account.id === id,
-											)!;
-
-											return { ...omit(account, ["snapshots"]), titles };
-										})
+										.map(([id, titles]) => ({
+											player: accountById.get(id)!,
+											titles,
+										}))
 										.sort((a, b) => {
 											const aDegree = degrees.get(a.titles[0])!;
 											const bDegree = degrees.get(b.titles[0])!;
@@ -488,11 +486,9 @@ export default function bandoriLeaderboard() {
 
 				const module = {
 					categories,
-					titles,
-					titlesSubstitutes,
 					titlesDisplay,
 					leaderboards,
-				};
+				} satisfies BandoriLeaderboard;
 				const exports = Object.keys(module);
 
 				return `export const { ${exports.join(", ")} } = ${devalue.uneval(module)}`;

@@ -38,18 +38,16 @@ const { events, suggestions = [] } = await (async () => {
 		},
 		fields: [...searchFields],
 		extractField: (document, fieldName) => {
-			if (fieldName === "attribute") return document.attribute.id;
-			if (fieldName === "band")
-				return Array.isArray(document.band) ? "mixed" : document.band.name;
+			if (fieldName === "band") return document.band.name;
 			if (fieldName === "characters")
 				return document.characters.map(({ name }) => name);
 			if (fieldName === "username")
 				return Object.values(document.items).flatMap((players) =>
-					players.map((player) => player.username),
+					players.map(({ player }) => player.username),
 				);
 			if (fieldName === "nickname")
 				return Object.values(document.items).flatMap((players) =>
-					players.map((player) => player.nickname),
+					players.map(({ player }) => player.nickname),
 				);
 
 			return document[fieldName as never];
@@ -74,7 +72,7 @@ const { events, suggestions = [] } = await (async () => {
 					{ username: string[]; nickname: string[] }
 				>();
 				for (const [category, players] of Object.entries(event.items)) {
-					for (const [idx, player] of players.entries()) {
+					for (const [idx, { player }] of players.entries()) {
 						const terms = {
 							username: usernameTerms.filter((term) =>
 								player.username.toLowerCase().includes(term),
@@ -159,14 +157,10 @@ if (Astro.cache.enabled) {
 						<div class="badge badge-soft badge-md uppercase badge-primary">
 							<img
 								class="size-4"
-								src={`/static/attributes/${event.attribute.id}.svg`}
+								src={`/static/attributes/${event.attribute}.svg`}
 							/>
 							<span
-								set:html={highlightTerms(
-									event,
-									event.attribute.id,
-									"attribute",
-								)}
+								set:html={highlightTerms(event, event.attribute, "attribute")}
 							/>
 						</div>
 
@@ -176,7 +170,7 @@ if (Astro.cache.enabled) {
 						/>
 
 						<div class="badge badge-soft badge-md badge-primary">
-							{Array.isArray(event.band) ? (
+							{event.band.id === 0 ? (
 								<span set:html={highlightTerms(event, "mixed", "band")} />
 							) : (
 								<>

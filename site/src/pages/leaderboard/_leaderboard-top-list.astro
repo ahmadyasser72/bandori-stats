@@ -3,35 +3,36 @@ import {
 	accountHasNickname,
 	displayValue,
 } from "@bandori-stats/bestdori/helpers";
-import type { Account } from "@bandori-stats/database/schema";
 
 import type { MatchInfo } from "minisearch";
+import type { Player } from "virtual:bandori-leaderboard";
 
 import { filterTerms, highlight } from "~/lib/highlight";
 import { getProfileIcon } from "~/lib/image";
 
 interface Props {
-	players: (Pick<Account, "id" | "username" | "nickname" | "profileArt"> & {
+	players: {
+		player: Player;
 		value: number;
 		trueRank?: number;
 		match?: MatchInfo;
-	})[];
+	}[];
 	anchor?: string;
 }
 
 const players = (() => {
 	let trueRank = 0;
-	return Astro.props.players.map((player, idx) => {
-		if (player.trueRank) return { player, trueRank: player.trueRank };
+	return Astro.props.players.map((data, idx) => {
+		if (data.trueRank) return { ...data, trueRank: data.trueRank };
 
-		if (idx === 0 || player.value !== Astro.props.players[idx - 1].value)
+		if (idx === 0 || data.value !== Astro.props.players[idx - 1].value)
 			trueRank = idx;
-		return { player, trueRank };
+		return { ...data, trueRank };
 	});
 })();
 
 const highlightTerms = (
-	data: (typeof players)[number]["player"],
+	data: Pick<(typeof players)[number], "match">,
 	text: string,
 	key: "username" | "nickname",
 ) => {
@@ -44,7 +45,7 @@ const AURA_DURATION = [15_000, 12_000, 9_000];
 ---
 
 {
-	players.map(({ player, trueRank }) => (
+	players.map(({ player, trueRank, ...data }, idx) => (
 		<div
 			class:list={[
 				"group",
@@ -97,25 +98,21 @@ const AURA_DURATION = [15_000, 12_000, 9_000];
 						<div class="flex min-w-0 flex-col">
 							<span
 								class="truncate font-medium text-ellipsis"
-								set:html={highlightTerms(player, player.nickname!, "nickname")}
-							></span>
+								set:html={highlightTerms(data, player.nickname!, "nickname")}
+							/>
 							<span
 								class="truncate text-xs text-ellipsis text-base-content/67"
 								set:html={highlightTerms(
-									player,
+									data,
 									`@${player.username}`,
 									"username",
 								)}
-							></span>
+							/>
 						</div>
 					) : (
 						<span
 							class="truncate text-lg font-medium text-ellipsis"
-							set:html={highlightTerms(
-								player,
-								`@${player.username}`,
-								"username",
-							)}
+							set:html={highlightTerms(data, `@${player.username}`, "username")}
 						/>
 					)}
 				</div>
@@ -124,8 +121,8 @@ const AURA_DURATION = [15_000, 12_000, 9_000];
 					class="font-mono text-sm max-sm:list-col-wrap"
 					set:html={
 						Astro.slots.has("value")
-							? Astro.slots.render("value", [player])
-							: displayValue(player.value)
+							? Astro.slots.render("value", [players[idx]])
+							: displayValue(data.value)
 					}
 				/>
 			</div>

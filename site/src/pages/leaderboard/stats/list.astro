@@ -51,14 +51,14 @@ const players = await (async () => {
 	return accounts
 		.sort((a, b) => topids.indexOf(a.id) - topids.indexOf(b.id))
 		.map(({ snapshots, ...account }) => ({
-			...account,
+			player: account,
 			value: snapshots[0].stats[stat]!,
 		}));
 })();
 
 if (players.length > 0 && Astro.cache.enabled) {
 	Astro.cache.set({
-		etag: `"${__GIT_HASH__}-${players.map(({ id }) => id).join(".")}"`,
+		etag: `"${__GIT_HASH__}-${players.map(({ player }) => player.id).join(".")}"`,
 		maxAge: 60 * 60,
 	});
 }

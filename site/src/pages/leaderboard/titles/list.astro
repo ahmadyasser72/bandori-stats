@@ -16,19 +16,21 @@ const params = Astro.locals.parseQuery(
 );
 
 const players = (() => {
-	const all = leaderboards.global[params.category].map((player, idx) => ({
-		idx,
-		...player,
-		value: player.titles.length,
-	}));
+	const all = leaderboards.global[params.category].map(
+		({ player, titles }, idx) => ({
+			idx,
+			player,
+			titles,
+			value: titles.length,
+		}),
+	);
 
 	let trueRank = 0;
-	const withRank = all.map((player, idx) => {
-		if (idx === 0 || player.value !== all[idx - 1].value) trueRank = idx;
-		return { ...player, trueRank };
+	const withRank = all.map((data, idx) => {
+		if (idx === 0 || data.value !== all[idx - 1].value) trueRank = idx;
+		return { ...data, trueRank };
 	});
-	if (!params.query)
-		return withRank.map((player) => ({ ...player, match: undefined }));
+	if (!params.query) return withRank;
 
 	const index = playerSearchIndex(withRank);
 	const matches = Object.fromEntries(
@@ -36,8 +38,8 @@ const players = (() => {
 	);
 
 	return withRank
-		.filter(({ id }) => id in matches)
-		.map((player) => ({ ...player, match: matches[player.id] }));
+		.filter(({ player }) => player.id in matches)
+		.map((data) => ({ ...data, match: matches[data.player.id] }));
 })();
 
 const page = await paginate<(typeof players)[number]>({
@@ -65,7 +67,7 @@ const page = await paginate<(typeof players)[number]>({
 <LeaderboardTopList anchor={params.category} players={page.items}>
 	<fragment slot="value">
 		{
-			(player: (typeof players)[number]) => (
+			({ idx, player, value }: (typeof players)[number]) => (
 				<>
 					<div class="flex items-center gap-2 lg:flex-row-reverse">
 						<button
@@ -84,13 +86,13 @@ const page = await paginate<(typeof players)[number]>({
 								hx-vals:inherited={JSON.stringify({
 									category: params.category,
 								})}
-								size={player.titles.length}
-								url={`/leaderboard/titles/for/${player.idx}`}
+								size={value}
+								url={`/leaderboard/titles/for/${idx}`}
 							/>
 						</div>
 
 						<div>
-							{player.value} title{player.value > 1 && "s"}
+							{value} title{value > 1 && "s"}
 						</div>
 					</div>
 				</>

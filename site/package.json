@@ -38,7 +38,9 @@
 		"@astrojs/check": "0.9.9",
 		"@oxvg/napi": "0.0.6",
 		"@types/node": "26.1.1",
+		"@vitejs/devtools": "0.4.10",
 		"typescript": "5.9.3",
+		"vite-plugin-inspect": "11.4.1",
 		"wrangler": "4.113.0"
 	}
 }

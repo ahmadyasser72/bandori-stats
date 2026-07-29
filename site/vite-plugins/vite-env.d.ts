@@ -9,31 +9,34 @@ declare module "virtual:bandori-leaderboard" {
 		import("@bandori-stats/database/schema").Account,
 		"id" | "username" | "nickname" | "profileArt"
 	>;
-	interface PlayerData extends Player {
+	interface PlayerData {
+		player: Player;
 		titles: number[];
 	}
 
-	const categories: Category[];
-	const titles: Record<Category, number[]>;
-	const titlesSubstitutes: Record<number, number>;
-	const titlesDisplay: Record<Category, string>;
-	const leaderboards: {
-		global: Record<Category, PlayerData[]>;
-		events: Record<
-			number,
-			{
-				id: number;
-				name: string;
-				attribute: { id: "powerful" | "cool" | "pure" | "happy" };
-				band: unknown[] | { id: number; name: string };
-				characters: { id: number; name: string }[];
-				type: string;
+	interface BandoriLeaderboard {
+		categories: Category[];
+		titlesDisplay: Record<Category, string>;
+		leaderboards: {
+			global: Record<Category, PlayerData[]>;
+			events: Record<
+				number,
+				{
+					id: number;
+					name: string;
+					attribute: "powerful" | "cool" | "pure" | "happy";
+					band: { id: number; name: string };
+					characters: { id: number; name: string }[];
+					type: string;
 
-				items: Record<Category, PlayerData[]>;
-				count: number;
+					items: Record<Category, PlayerData[]>;
+					count: number;
 
-				bannerAssetBundleName: string;
-			}
-		>;
-	};
+					bannerAssetBundleName: string;
+				}
+			>;
+		};
+	}
+
+	const { categories, leaderboards, titlesDisplay }: BandoriLeaderboard;
 }
