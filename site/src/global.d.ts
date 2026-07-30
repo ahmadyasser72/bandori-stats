@@ -1,8 +1,10 @@
 declare global {
 	declare const __GIT_HASH__: string;
-	declare const __GIT_URL__: string;
+	declare const __GITHUB_URL__: string;
 
-	var htmx: typeof import("htmx.org").default;
+	interface Window {
+		htmx: typeof import("htmx.org").default;
+	}
 }
 
 export {};

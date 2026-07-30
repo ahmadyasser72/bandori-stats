@@ -1,0 +1,67 @@
+---
+import IconLoader from "~/components/icon-loader.astro";
+import Icon from "~/components/icon.astro";
+import { LINKS, PAGES } from "~/layouts/base-layout.astro";
+import MegaMenuItem from "./mega-menu-item.astro";
+
+interface Props {
+	page: keyof typeof PAGES | null;
+}
+
+const { page } = Astro.props;
+---
+
+<button
+	class="btn btn-secondary sm:hidden"
+	popovertarget="site-megamenu"
+	style="view-transition-name: site-heading"
+>
+	<Icon name="lucide--menu" />
+	Menu
+</button>
+
+<div
+	class="megamenu bg-base-100 p-2 shadow-sm max-sm:megamenu-vertical max-sm:mt-4 dark:bg-base-200"
+	id="site-megamenu"
+	popover
+	style="view-transition-name: site-heading"
+>
+	<span class="megamenu-active"></span>
+
+	<button popovertarget="site-menu">
+		<span class="max-sm:hidden">bandori-stats</span>
+		<span class="sm:hidden">Pages</span>
+	</button>
+	<div id="site-menu" popover>
+		<ul class="menu menu-paged min-w-40">
+			<li>
+				<a href="/" class:list={[page === null && "menu-active"]}>
+					<IconLoader class="size-4" name="lucide--home" />
+					Home
+				</a>
+			</li>
+
+			{
+				Object.entries(PAGES).map(([key, item]) => (
+					<MegaMenuItem active={page === key} {item} />
+				))
+			}
+		</ul>
+	</div>
+
+	<button popovertarget="site-links">Links</button>
+	<div id="site-links" popover>
+		<ul class="menu">
+			{
+				LINKS.map(({ icon, label, url }) => (
+					<li>
+						<a href={url} target="_blank">
+							<Icon name={icon} />
+							{label}
+						</a>
+					</li>
+				))
+			}
+		</ul>
+	</div>
+</div>

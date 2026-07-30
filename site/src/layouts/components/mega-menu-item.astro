@@ -1,0 +1,44 @@
+---
+import IconLoader from "~/components/icon-loader.astro";
+import Icon from "~/components/icon.astro";
+import type { PageMetadata } from "~/layouts/base-layout.astro";
+
+interface Props {
+	item: PageMetadata;
+	active: boolean;
+	level?: number;
+}
+
+const { item, active, level = 0 } = Astro.props;
+const isParent = level === 0;
+---
+
+{
+	item.items ? (
+		<li>
+			<details class={isParent ? "group/parent" : "group/child"}>
+				<summary class:list={[active && "menu-active"]}>
+					<Icon
+						class={
+							isParent ? "group-open/parent:hidden" : "group-open/child:hidden"
+						}
+						name={item.icon}
+					/>
+					{item.label}
+				</summary>
+				<ul>
+					{item.items.map((subitem) => (
+						<Astro.self active={false} item={subitem} level={level + 1} />
+					))}
+				</ul>
+			</details>
+		</li>
+	) : (
+		<li>
+			<a href={item.url} class:list={[active && "menu-active"]}>
+				<IconLoader name={item.icon} />
+				{item.label}
+			</a>
+		</li>
+	)
+}

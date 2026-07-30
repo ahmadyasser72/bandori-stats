@@ -5,15 +5,99 @@ import "~/styles/global.css";
 
 import { Font } from "astro:assets";
 
-import Breadcrumbs from "./components/breadcrumbs.astro";
+import type { IconName } from "~/components/icon.astro";
+import MegaMenu from "./components/mega-menu.astro";
 import ThemeSelector from "./components/theme-selector.astro";
+
+export interface PageMetadata {
+	icon: IconName;
+	url: string;
+	label: string;
+	items?: PageMetadata[];
+}
+
+export const PAGES = {
+	history: {
+		icon: "lucide--calendar-clock",
+		url: "/history",
+		label: "History",
+	},
+	leaderboard: {
+		icon: "lucide--crown",
+		url: "/leaderboard",
+		label: "Leaderboard",
+		items: [
+			{
+				icon: "lucide--bar-chart-3",
+				url: "/leaderboard?tab=stats",
+				label: "Stats",
+			},
+			{
+				icon: "lucide--podium",
+				url: "/leaderboard?tab=titles-event",
+				label: "Titles",
+				items: [
+					{
+						label: "Event Rank",
+						url: "/leaderboard?tab=titles-event",
+						icon: "lucide--calendar",
+					},
+					{
+						label: "Song Rank",
+						url: "/leaderboard?tab=titles-song",
+						icon: "lucide--music",
+					},
+					{
+						label: "Live Goals",
+						url: "/leaderboard?tab=titles-goals",
+						icon: "lucide--target",
+					},
+					{
+						label: "Monthly Ranking",
+						url: "/leaderboard?tab=titles-monthly",
+						icon: "lucide--crown",
+					},
+				],
+			},
+			{
+				icon: "lucide--calendar-days",
+				url: "/leaderboard?tab=events",
+				label: "Events",
+			},
+		],
+	},
+	vs: {
+		icon: "lucide--flame",
+		url: "/vs",
+		label: "VS",
+	},
+} satisfies Record<string, PageMetadata>;
+
+export const LINKS = [
+	{
+		icon: "line-md--github-loop",
+		url: `${__GITHUB_URL__}/tree/${__GIT_HASH__}`,
+		label: "Source Code",
+	},
+	{
+		icon: "line-md--document-code",
+		url: `${__GITHUB_URL__}/blob/${__GIT_HASH__}/LICENSE`,
+		label: "License",
+	},
+	{
+		icon: "line-md--discord",
+		url: "/discord-bot/invite",
+		label: "Discord bot",
+	},
+] satisfies Omit<PageMetadata, "items">[];
 
 interface Props {
 	title: string;
+	page: keyof typeof PAGES | null;
 	containerClass?: string;
 }
 
-const { title, containerClass } = Astro.props;
+const { title, page, containerClass } = Astro.props;
 ---
 
 <html lang="en">
@@ -60,11 +144,14 @@ const { title, containerClass } = Astro.props;
 		}
 	</head>
 	<body>
-		<main class:list={["container mx-auto p-4", containerClass]}>
+		<main
+			hx-boost:inherited="transition:true"
+			class:list={["container mx-auto p-4", containerClass]}
+		>
 			{
-				Astro.url.pathname !== "/" && (
-					<div class="flex items-center justify-between">
-						<Breadcrumbs pathname={Astro.url.pathname} />
+				page && (
+					<div class="mb-4 flex items-center justify-between">
+						<MegaMenu {page} />
 
 						<ThemeSelector />
 					</div>

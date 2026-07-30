@@ -10,10 +10,7 @@ const { compact = false } = Astro.props;
 
 <button
 	id="theme-selector-button"
-	class:list={[
-		"btn btn-accent",
-		compact ? "btn-circle btn-sm" : "max-sm:btn-circle",
-	]}
+	class:list={["btn btn-accent", compact ? "btn-circle" : "max-sm:btn-circle"]}
 	popovertarget="theme-selector"
 	style="view-transition-name: theme-selector-button"
 >

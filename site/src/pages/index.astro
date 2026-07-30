@@ -1,11 +1,11 @@
 ---
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
-import BaseLayout from "~/layouts/base-layout.astro";
+import BaseLayout, { LINKS, PAGES } from "~/layouts/base-layout.astro";
 import ThemeSelector from "~/layouts/components/theme-selector.astro";
 ---
 
-<BaseLayout title="Homepage">
+<BaseLayout title="Homepage" page={null}>
 	<div class="absolute inset-0 flex flex-col items-center justify-center">
 		<div class="flex items-center gap-2">
 			<h1 class="font-medium" style="view-transition-name: site-heading">
@@ -14,48 +14,26 @@ import ThemeSelector from "~/layouts/components/theme-selector.astro";
 			<ThemeSelector compact />
 		</div>
 
-		<div
-			hx-select:inherited="main"
-			hx-swap:inherited="outerHTML transition:true"
-			hx-target:inherited="main"
-			class="mt-4 flex flex-wrap justify-center gap-2"
-			hx-boost:inherited="true"
-		>
-			<a class="btn btn-primary btn-sm" href="/history">
-				<IconLoader name="lucide--calendar-clock" />
-				History
-			</a>
-			<a class="btn btn-primary btn-sm" href="/leaderboard">
-				<IconLoader name="lucide--crown" />
-				Leaderboard
-			</a>
-			<a class="btn btn-primary btn-sm" href="/vs">
-				<IconLoader name="lucide--flame" />
-				VS
-			</a>
+		<div class="mt-4 flex flex-wrap justify-center gap-2">
+			{
+				Object.values(PAGES).map(({ icon, label, url }) => (
+					<a class="btn btn-primary btn-sm" href={url}>
+						<IconLoader name={icon} />
+						{label}
+					</a>
+				))
+			}
 		</div>
 
 		<div class="mt-2 flex flex-wrap justify-center gap-2">
-			<a
-				class="btn btn-secondary"
-				data-umami-event="homepage-view-source-code"
-				href={`${__GIT_URL__}/tree/${__GIT_HASH__}`}
-				rel="noopener noreferrer"
-				target="_blank"
-			>
-				<Icon class="size-5" name="line-md--github-loop" />
-				Source code
-			</a>
-			<a
-				class="btn btn-secondary"
-				data-umami-event="homepage-invite-discord-bot"
-				href="/discord-bot/invite"
-				rel="noopener noreferrer"
-				target="_blank"
-			>
-				<Icon class="size-5" name="line-md--discord" />
-				Discord bot
-			</a>
+			{
+				LINKS.map(({ icon, label, url }) => (
+					<a class="btn btn-secondary" href={url} target="_blank">
+						<Icon class="size-5" name={icon} />
+						{label}
+					</a>
+				))
+			}
 		</div>
 	</div>
 </BaseLayout>

@@ -120,7 +120,7 @@ export default defineConfig({
 
 		define: {
 			__GIT_HASH__: JSON.stringify(GIT_HASH),
-			__GIT_URL__: JSON.stringify(GIT_URL),
+			__GITHUB_URL__: JSON.stringify(GIT_URL),
 		},
 	},
 

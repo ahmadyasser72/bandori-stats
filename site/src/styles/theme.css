@@ -45,6 +45,11 @@
 	}
 }
 
+@utility menu-active {
+	--menu-active-fg: var(--color-primary-content);
+	--menu-active-bg: var(--color-primary);
+}
+
 @utility tabs {
 	@apply tabs-border justify-center;
 }

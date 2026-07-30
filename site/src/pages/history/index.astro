@@ -16,9 +16,9 @@ const { query, ratio, date } = Astro.locals.parseQuery(
 );
 ---
 
-<BaseLayout title="History">
+<BaseLayout title="History" page="history">
 	<div
-		class="mt-2 flex justify-center"
+		class="flex justify-center"
 		id="history-filter"
 		hx-include:inherited="#history-filter input"
 	>
