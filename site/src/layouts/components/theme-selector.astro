@@ -61,9 +61,8 @@ const { compact = false } = Astro.props;
 
 		{
 			const local =
-				(localStorage.getItem("theme") ?? systemIsDark.matches)
-					? "mocha"
-					: "latte";
+				localStorage.getItem("theme") ??
+				(systemIsDark.matches ? "mocha" : "latte");
 			const input = themeSelector.querySelector(`input[value="${local}"]`)!;
 			if (input instanceof HTMLInputElement) input.checked = true;
 		}
