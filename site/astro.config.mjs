@@ -99,25 +99,6 @@ export default defineConfig({
 		plugins: [Inspect(), bandoriLeaderboard(), tailwindcss()],
 		server: { allowedHosts: [".lhr.life", ".opah-barley.ts.net"] },
 
-		build: {
-			rolldownOptions: {
-				output: { assetFileNames: "_astro/[hash][extname]" },
-			},
-		},
-		environments: {
-			client: {
-				build: {
-					rolldownOptions: {
-						output: {
-							entryFileNames: "_astro/js/[hash].js",
-							chunkFileNames: "_astro/js/[hash].js",
-							assetFileNames: "_astro/[hash][extname]",
-						},
-					},
-				},
-			},
-		},
-
 		define: {
 			__GIT_HASH__: JSON.stringify(GIT_HASH),
 			__GITHUB_URL__: JSON.stringify(GIT_URL),
