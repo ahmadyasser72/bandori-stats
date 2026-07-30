@@ -12,10 +12,10 @@
 		"@bandori-stats/bestdori": "workspace:*",
 		"@bandori-stats/database": "workspace:*",
 		"discord-interactions": "4.4.0",
-		"hono": "4.12.31"
+		"hono": "4.12.32"
 	},
 	"devDependencies": {
-		"@types/node": "26.1.1",
+		"@types/node": "26.1.2",
 		"typescript": "5.9.3"
 	}
 }
