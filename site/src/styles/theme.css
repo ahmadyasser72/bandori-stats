@@ -45,6 +45,12 @@
 	}
 }
 
+@utility menu-paged {
+	details:open > summary > .iconify {
+		@apply hidden;
+	}
+}
+
 @utility menu-active {
 	--menu-active-fg: var(--color-primary-content);
 	--menu-active-bg: var(--color-primary);

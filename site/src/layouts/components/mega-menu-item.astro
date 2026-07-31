@@ -6,29 +6,22 @@ import type { PageMetadata } from "~/layouts/base-layout.astro";
 interface Props {
 	item: PageMetadata;
 	active: boolean;
-	level?: number;
 }
 
-const { item, active, level = 0 } = Astro.props;
-const isParent = level === 0;
+const { item, active } = Astro.props;
 ---
 
 {
 	item.items ? (
 		<li>
-			<details class={isParent ? "group/parent" : "group/child"}>
+			<details>
 				<summary class:list={[active && "menu-active"]}>
-					<Icon
-						class={
-							isParent ? "group-open/parent:hidden" : "group-open/child:hidden"
-						}
-						name={item.icon}
-					/>
+					<Icon name={item.icon} />
 					{item.label}
 				</summary>
 				<ul>
 					{item.items.map((subitem) => (
-						<Astro.self active={false} item={subitem} level={level + 1} />
+						<Astro.self active={false} item={subitem} />
 					))}
 				</ul>
 			</details>
