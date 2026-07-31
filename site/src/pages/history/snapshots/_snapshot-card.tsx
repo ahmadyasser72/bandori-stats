@@ -254,7 +254,7 @@ const StatCellDeltaBadge = ({
 			}
 		>
 			{formatNumber(displayDelta, { autoCompact: true, positiveSign: true })}
-			{ratioDelta ? "%" : ""}
+			{ratioDelta && "%"}
 		</span>
 	);
 };
