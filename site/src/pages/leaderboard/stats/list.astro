@@ -8,60 +8,88 @@ import {
 
 import z from "zod";
 
+import Icon from "~/components/icon.astro";
+import { paginate } from "~/lib/paginate";
 import LeaderboardTopList from "../_leaderboard-top-list.astro";
 
 export const partial = true;
 
-const { stat, limit } = Astro.locals.parseQuery(
-	z.object({
-		stat: z.enum(STAT_NAMES),
-		limit: z.coerce.number().min(5).max(10),
-	}),
+const { stat } = Astro.locals.parseQuery(
+	z.object({ stat: z.enum(STAT_NAMES) }),
 );
 
-const topids = await (async () => {
-	const key = `${PLAYER_STATS_SORTED_SET_PREFIX}:${stat}`;
-	const topData = await redis().zrange<number[]>(key, 0, limit - 1, {
-		rev: true,
-		withScores: true,
-	});
+const page = await paginate({
+	items: {
+		get: async (limit, offset) => {
+			const topPlayers = await (async () => {
+				const TOP_SIZE = 100;
+				const key = `${PLAYER_STATS_SORTED_SET_PREFIX}:${stat}`;
+				const results = await redis().zrange<number[]>(key, 0, TOP_SIZE - 1, {
+					rev: true,
+					withScores: true,
+				});
 
-	if (topData.length < 10) return topData.filter((_, index) => index % 2 === 0);
+				let trueRank = 0;
+				const topData = Array.from({ length: results.length / 2 }, (_, idx) => {
+					const id = results[idx * 2];
+					const value = results[idx * 2 + 1];
+					if (idx === 0 || value !== results[(idx - 1) * 2 + 1]) trueRank = idx;
+					return { id, value, trueRank };
+				});
 
-	const lastPlaceScore = topData[limit * 2 - 1];
-	return redis().zrange<number[]>(key, "+inf", lastPlaceScore, {
-		rev: true,
-		byScore: true,
-	});
-})();
+				const last = topData.at(-1)!;
+				const ids = await redis().zrange<number[]>(key, "+inf", last.value, {
+					rev: true,
+					byScore: true,
+				});
 
-const players = await (async () => {
-	const accounts = await db().query.accounts.findMany({
-		columns: { id: true, username: true, nickname: true, profileArt: true },
-		where: { id: { in: topids } },
-		with: {
-			snapshots: {
-				limit: 1,
-				columns: { stats: true },
-				orderBy: { id: "desc" },
-			},
+				if (ids.length > topData.length) {
+					topData.push(...ids.slice(TOP_SIZE).map((id) => ({ ...last, id })));
+				}
+
+				return topData;
+			})();
+
+			const paged = topPlayers.slice(offset, offset + limit);
+			const players = await db().query.accounts.findMany({
+				columns: { id: true, username: true, nickname: true, profileArt: true },
+				where: { id: { in: paged.map(({ id }) => id) } },
+			});
+
+			return paged.map(({ id, ...data }) => ({
+				player: players.find((player) => player.id === id)!,
+				...data,
+			}));
 		},
-	});
+	},
+	context: Astro,
+	size: 10,
+	extraProps: {
+		"hx-swap": "outerHTML",
+		"hx-vals": JSON.stringify({ stat }),
+	},
+});
 
-	return accounts
-		.sort((a, b) => topids.indexOf(a.id) - topids.indexOf(b.id))
-		.map(({ snapshots, ...account }) => ({
-			player: account,
-			value: snapshots[0].stats[stat]!,
-		}));
-})();
-
-if (players.length > 0 && Astro.cache.enabled) {
+if (page.items.length > 0 && Astro.cache.enabled) {
 	Astro.cache.set({
-		etag: `"${__GIT_HASH__}-${players.map(({ player }) => player.id).join(".")}"`,
+		etag: `"${__GIT_HASH__}-${page.items.map(({ player }) => player.id).join(".")}"`,
 		maxAge: 60 * 60,
 	});
 }
 ---
 
-<LeaderboardTopList {players} />
+<LeaderboardTopList players={page.items} />
+
+{
+	page.hasNextPage && page.current < 10 && (
+		<div class="list-row items-center" {...page.props}>
+			<div class="badge size-8 badge-ghost">~</div>
+			<div class="flex items-center gap-2 list-col-grow">
+				<span class="text-lg font-medium">Loading players...</span>
+			</div>
+			<span class="font-mono text-sm max-sm:list-col-wrap">
+				<Icon class="size-10" name="svg-spinners--bars-scale-middle" />
+			</span>
+		</div>
+	)
+}

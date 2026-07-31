@@ -106,10 +106,11 @@ const page = await paginate<(typeof players)[number]>({
 		<div class="list-row items-center" {...page.props}>
 			<div class="badge size-8 badge-ghost">~</div>
 			<div class="flex items-center gap-2 list-col-grow">
-				<Icon class="size-10" name="svg-spinners--bars-scale-middle" />
 				<span class="text-lg font-medium">Loading players...</span>
 			</div>
-			<span class="font-mono text-sm max-sm:list-col-wrap">X titles</span>
+			<span class="font-mono text-sm max-sm:list-col-wrap">
+				<Icon class="size-10" name="svg-spinners--bars-scale-middle" />
+			</span>
 		</div>
 	)
 }
