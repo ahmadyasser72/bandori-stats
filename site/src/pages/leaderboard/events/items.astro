@@ -9,6 +9,7 @@ import {
 import z from "zod";
 
 import Icon from "~/components/icon.astro";
+import InfiniteGridLoader from "~/components/infinite-grid-loader.astro";
 import { filterTerms, highlight } from "~/lib/highlight";
 import { paginate } from "~/lib/paginate";
 import { QuerySchema } from "~/lib/schema";
@@ -279,20 +280,4 @@ if (Astro.cache.enabled) {
 	))
 }
 
-{
-	page.hasNextPage && (
-		<div
-			class="card col-span-full h-64 w-full max-w-120 place-self-center"
-			{...page.props}
-		>
-			<div class="card-body">
-				<div class="absolute inset-0 bg-base-100/67">
-					<Icon
-						class="absolute center size-32"
-						name="svg-spinners--bars-scale"
-					/>
-				</div>
-			</div>
-		</div>
-	)
-}
+{page.hasNextPage && <InfiniteGridLoader item="events" {...page.props} />}

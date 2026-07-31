@@ -1,0 +1,18 @@
+---
+import type { JSX } from "astro/jsx-runtime";
+
+type Props = JSX.HTMLAttributes;
+
+const { class: className, ...props } = Astro.props;
+---
+
+<div class:list={["list-row items-center", className]} {...props}>
+	<div class="badge size-8 badge-ghost">#</div>
+	<div class="flex items-center gap-2 list-col-grow">
+		<div class="size-10 skeleton"></div>
+		<div class="h-10 w-36 skeleton"></div>
+	</div>
+	<div class="font-mono text-sm max-sm:list-col-wrap">
+		<div class="h-5 w-24 skeleton"></div>
+	</div>
+</div>

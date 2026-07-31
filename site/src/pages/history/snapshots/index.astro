@@ -6,6 +6,7 @@ import z from "zod";
 
 import CalendarLoader from "~/components/calendar-loader.astro";
 import Icon from "~/components/icon.astro";
+import InfiniteGridLoader from "~/components/infinite-grid-loader.astro";
 import TitlesLoader from "~/components/titles-loader.astro";
 import { paginate } from "~/lib/paginate";
 import { QuerySchema, RatioSchema } from "~/lib/schema";
@@ -75,10 +76,8 @@ const page = await paginate({
 	context: Astro,
 	size: 12,
 	extraProps: {
-		"hx-target": "closest .grid",
-		"hx-swap": "append",
+		"hx-swap": "outerHTML",
 		"hx-include": "#history-filter input",
-		"hx-indicator": "#history-loader",
 	},
 });
 
@@ -119,71 +118,62 @@ if (snapshots.length > 0 && Astro.cache.enabled) {
 ---
 
 {
-	snapshots.map(
-		({ id, accountId, account, snapshotDate, stats, previous }, idx) => (
-			<li class="contents" id={`snapshot-${id}`}>
-				<SnapshotCard
-					{account}
-					{previous}
-					{ratio}
-					{snapshotDate}
-					{stats}
-					{...(page.isLastElement(idx) && page.props)}
+	snapshots.map(({ id, accountId, account, snapshotDate, stats, previous }) => (
+		<li class="contents" id={`snapshot-${id}`}>
+			<SnapshotCard {account} {previous} {ratio} {snapshotDate} {stats}>
+				<div
+					class="card-actions justify-end"
+					hx-disable:inherited={`#snapshot-${id} .card-actions button`}
+					style={`anchor-name: --anchor-${id}-actions`}
 				>
-					<div
-						class="card-actions justify-end"
-						hx-disable:inherited={`#snapshot-${id} .card-actions button`}
-						style={`anchor-name: --anchor-${id}-actions`}
+					<button
+						class="btn btn-soft btn-primary btn-sm"
+						data-umami-event="view-calendar"
+						data-umami-event-date={snapshotDate}
+						data-umami-event-id={accountId}
+						data-umami-event-username={account.username}
+						popovertarget={`calendar-${id}`}
 					>
+						<Icon name="lucide--calendar" />
+						Calendar
+					</button>
+
+					{stats.titles && (
 						<button
-							class="btn btn-soft btn-primary btn-sm"
-							data-umami-event="view-calendar"
+							class="btn btn-soft btn-accent btn-sm"
+							data-umami-event="view-titles"
 							data-umami-event-date={snapshotDate}
 							data-umami-event-id={accountId}
 							data-umami-event-username={account.username}
-							popovertarget={`calendar-${id}`}
+							popovertarget={`titles-${id}`}
 						>
-							<Icon name="lucide--calendar" />
-							Calendar
+							<Icon name="lucide--crown" />
+							Titles
 						</button>
+					)}
 
-						{stats.titles && (
-							<button
-								class="btn btn-soft btn-accent btn-sm"
-								data-umami-event="view-titles"
-								data-umami-event-date={snapshotDate}
-								data-umami-event-id={accountId}
-								data-umami-event-username={account.username}
-								popovertarget={`titles-${id}`}
-							>
-								<Icon name="lucide--crown" />
-								Titles
-							</button>
-						)}
+					<PopoverDropdown class="overflow-visible" {id} name="calendar">
+						<CalendarLoader
+							name={`${id}-snapshot`}
+							hx-vals={JSON.stringify({
+								date: dayjs(snapshotDate).startOf("month").format("YYYY-MM-DD"),
+							})}
+							url={`/history/snapshots/${id}/calendar`}
+						/>
+					</PopoverDropdown>
 
-						<PopoverDropdown class="overflow-visible" {id} name="calendar">
-							<CalendarLoader
-								name={`${id}-snapshot`}
-								hx-vals={JSON.stringify({
-									date: dayjs(snapshotDate)
-										.startOf("month")
-										.format("YYYY-MM-DD"),
-								})}
-								url={`/history/snapshots/${id}/calendar`}
+					{stats.titles && (
+						<PopoverDropdown {id} name="titles">
+							<TitlesLoader
+								size={stats.titles.length}
+								url={`/history/snapshots/${id}/titles`}
 							/>
 						</PopoverDropdown>
-
-						{stats.titles && (
-							<PopoverDropdown {id} name="titles">
-								<TitlesLoader
-									size={stats.titles.length}
-									url={`/history/snapshots/${id}/titles`}
-								/>
-							</PopoverDropdown>
-						)}
-					</div>
-				</SnapshotCard>
-			</li>
-		),
-	)
+					)}
+				</div>
+			</SnapshotCard>
+		</li>
+	))
 }
+
+{page.hasNextPage && <InfiniteGridLoader item="snapshots" {...page.props} />}

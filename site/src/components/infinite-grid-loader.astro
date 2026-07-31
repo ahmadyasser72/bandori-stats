@@ -1,0 +1,22 @@
+---
+import type { JSX } from "astro/jsx-runtime";
+
+import Icon from "./icon.astro";
+
+interface Props extends JSX.HTMLAttributes {
+	item: string;
+}
+
+const { item, class: className, ...props } = Astro.props;
+---
+
+<div class:list={["card col-span-full h-64 w-full", className]} {...props}>
+	<div class="card-body relative">
+		<div class="absolute center flex flex-col items-center gap-2">
+			<Icon class="size-32" name="svg-spinners--3-dots-fade" />
+			<span class="skeleton skeleton-text text-lg font-medium">
+				loading {item}...
+			</span>
+		</div>
+	</div>
+</div>

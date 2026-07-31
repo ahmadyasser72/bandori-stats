@@ -23,7 +23,7 @@ const page = await paginate({
 	items: [...titles].reverse(),
 	context: Astro,
 	size: 96,
-	extraProps: { "hx-swap": "afterend" },
+	extraProps: { "hx-swap": "append" },
 });
 ---
 
