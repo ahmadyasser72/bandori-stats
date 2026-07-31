@@ -8,7 +8,6 @@ import {
 
 import z from "zod";
 
-import Icon from "~/components/icon.astro";
 import { paginate } from "~/lib/paginate";
 import LeaderboardTopList from "../_leaderboard-top-list.astro";
 
@@ -83,13 +82,14 @@ if (page.items.length > 0 && Astro.cache.enabled) {
 {
 	page.hasNextPage && page.current < 10 && (
 		<div class="list-row items-center" {...page.props}>
-			<div class="badge size-8 badge-ghost">~</div>
+			<div class="badge size-8 badge-ghost">#</div>
 			<div class="flex items-center gap-2 list-col-grow">
-				<span class="text-lg font-medium">Loading players...</span>
+				<div class="size-10 skeleton" />
+				<div class="h-10 w-36 skeleton" />
 			</div>
-			<span class="font-mono text-sm max-sm:list-col-wrap">
-				<Icon class="size-10" name="svg-spinners--bars-scale-middle" />
-			</span>
+			<div class="font-mono text-sm max-sm:list-col-wrap">
+				<div class="h-5 w-24 skeleton" />
+			</div>
 		</div>
 	)
 }
