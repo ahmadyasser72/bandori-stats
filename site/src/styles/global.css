@@ -9,6 +9,10 @@
 @import "./icons.css";
 @import "./theme.css";
 
+:root {
+	@apply scrollbar-thin scrollbar-thumb-primary scrollbar-track-primary-content scrollbar-gutter-stable;
+}
+
 .htmx-indicator-replace:is(
 	.htmx-request,
 	.htmx-request > *,

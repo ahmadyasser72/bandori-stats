@@ -5,6 +5,8 @@ interface Props {
 	compact?: boolean;
 }
 
+const THEMES = { light: "latte", dark: "mocha" } as const;
+
 const { compact = false } = Astro.props;
 ---
 
@@ -24,28 +26,22 @@ const { compact = false } = Astro.props;
 	popover
 	style="view-transition-name: theme-selector"
 >
-	<li>
-		<label
-			class="btn w-full justify-start btn-sm not-has-checked:btn-ghost has-checked:btn-primary"
-		>
-			<input class="hidden" name="theme-select" type="radio" value="latte" />
-			<Icon name="lucide--sun" />
-			Latte
-		</label>
-	</li>
-
-	<li>
-		<label
-			class="btn w-full justify-start btn-sm not-has-checked:btn-ghost has-checked:btn-primary"
-		>
-			<input class="hidden" name="theme-select" type="radio" value="mocha" />
-			<Icon name="lucide--moon" />
-			Mocha
-		</label>
-	</li>
+	{
+		Object.entries(THEMES).map(([mode, name]) => (
+			<li>
+				<label class="btn w-full justify-start capitalize btn-sm not-has-checked:btn-ghost has-checked:btn-primary">
+					<input class="hidden" name="theme-select" type="radio" value={name} />
+					<Icon name={mode === "light" ? "lucide--sun" : "lucide--moon"} />
+					{name}
+				</label>
+			</li>
+		))
+	}
 </ul>
 
 <script>
+	const THEMES = { light: "latte", dark: "mocha" } as const;
+
 	document.addEventListener("DOMContentLoaded", () => {
 		const themeSelector =
 			document.querySelector<HTMLElement>("#theme-selector")!;
@@ -54,19 +50,32 @@ const { compact = false } = Astro.props;
 				'[popovertarget="theme-selector"]',
 			)!;
 
-		const systemIsDark = window.matchMedia("(prefers-color-scheme: dark)");
+		const updateThemeColor = () => {
+			const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+			if (!(themeColorMeta instanceof HTMLMetaElement)) return;
 
+			const styles = getComputedStyle(document.documentElement);
+			const primaryColor = styles.getPropertyValue("--color-primary");
+			if (primaryColor) themeColorMeta.setAttribute("content", primaryColor);
+		};
+
+		const systemIsDark = window.matchMedia("(prefers-color-scheme: dark)");
 		{
 			const local =
 				localStorage.getItem("theme") ??
-				(systemIsDark.matches ? "mocha" : "latte");
+				(systemIsDark.matches ? THEMES.dark : THEMES.light);
 			const input = themeSelector.querySelector(`input[value="${local}"]`)!;
 			if (input instanceof HTMLInputElement) input.checked = true;
+			updateThemeColor();
 		}
 
 		const switchTheme = (theme: string) => {
 			localStorage.setItem("theme", theme);
-			const update = () => (document.documentElement.dataset.theme = theme);
+			const update = () => {
+				document.documentElement.dataset.theme = theme;
+				updateThemeColor();
+			};
+
 			if (!document.startViewTransition) {
 				update();
 				return;
@@ -98,7 +107,7 @@ const { compact = false } = Astro.props;
 		});
 
 		systemIsDark.addEventListener("change", (event) => {
-			const theme = event.matches ? "mocha" : "latte";
+			const theme = event.matches ? THEMES.dark : THEMES.light;
 			themeSelector
 				.querySelectorAll("input")
 				.forEach((input) => (input.checked = input.value === theme));
