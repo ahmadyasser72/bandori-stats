@@ -1,9 +1,9 @@
 declare module "virtual:bandori-leaderboard" {
+	type Ranking = "event" | "song" | "monthly";
 	type Rank = 1 | 2 | 3 | 10 | 100 | 1000 | 10_000;
-	type Grade = "silver" | "gold" | "platinum";
+	type MonthlyGrade = "silver" | "gold" | "platinum";
 	type LiveGoals = "live-goals" | "ex-live-goals";
-	type Category =
-		`event-t${Rank}` | `song-t${Rank}` | `monthly-${Grade}` | LiveGoals;
+	type Category = `${Ranking}-t${Rank}` | `monthly-${MonthlyGrade}` | LiveGoals;
 
 	type Player = Pick<
 		import("@bandori-stats/database/schema").Account,

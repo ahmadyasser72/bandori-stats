@@ -18,10 +18,12 @@ import * as devalue from "devalue";
 import type {
 	BandoriLeaderboard,
 	Category,
-	Grade,
+	LiveGoals,
+	MonthlyGrade,
 	Player,
 	PlayerData,
 	Rank,
+	Ranking,
 } from "virtual:bandori-leaderboard";
 import z from "zod";
 
@@ -137,13 +139,16 @@ export default function bandoriLeaderboard() {
 						return titles;
 					};
 
-					const goals = new Map<string, { normal?: number; extra?: number }>();
+					const goals = new Map<string, Partial<Record<LiveGoals, number>>>();
 					const monthly = new Map<
 						string,
-						{ silver?: number; gold?: number; platinum?: number }
+						Partial<Record<MonthlyGrade, number>>
 					>();
 
-					const byName = new Map<string, Map<number, Set<number>>>();
+					const byName = new Map<
+						`${Ranking}:${string}`,
+						Map<number, Set<number>>
+					>();
 
 					for (const { id, type, name, rank } of playerTitles) {
 						if (typeof name !== "string") continue;
@@ -163,14 +168,14 @@ export default function bandoriLeaderboard() {
 								goals.set(name, goal);
 							}
 
-							goal[rank] = id;
+							goal[exactCategory] = id;
 							continue;
 						}
 
 						// monthly ranking
 						if (typeof rank === "string" && rank.startsWith("grade_")) {
-							const [, grade] = rank.split("_");
-							titleIdToExactCategory.set(id, `monthly-${grade as Grade}`);
+							const grade = rank.split("_")[1] as MonthlyGrade;
+							titleIdToExactCategory.set(id, `monthly-${grade}`);
 
 							let grades = monthly.get(name);
 							if (!grades) {
@@ -178,7 +183,7 @@ export default function bandoriLeaderboard() {
 								monthly.set(name, grades);
 							}
 
-							grades[grade as Grade] = id;
+							grades[grade] = id;
 							continue;
 						}
 
@@ -190,14 +195,16 @@ export default function bandoriLeaderboard() {
 						)
 							continue;
 
-						let normalized = rank;
+						let prefix: Ranking = "event";
+						if (name.startsWith("degree_monthly_ranking")) prefix = "monthly";
+						else if (type === "score_ranking") prefix = "song";
+
+						let normalized = rank as Rank;
 						if (rank > 10 && rank < 100) normalized = 100;
 						else if (rank > 100 && rank < 1000) normalized = 1000;
 						else if (rank > 1000 && rank < 10_000) normalized = 10_000;
 
-						const prefix = type === "event_point" ? "event" : "song";
-						const exactCategory = `${prefix}-t${normalized as Rank}` as const;
-
+						const exactCategory = `${prefix}-t${normalized}` satisfies Category;
 						titleIdToExactCategory.set(id, exactCategory);
 
 						let ranks = byName.get(`${prefix}:${name}`);
@@ -217,19 +224,22 @@ export default function bandoriLeaderboard() {
 					}
 
 					{
-						const base = getTitles("live-goals");
-						const ex = getTitles("ex-live-goals");
+						const normal = getTitles("live-goals");
+						const extra = getTitles("ex-live-goals");
 
-						for (const { normal, extra } of goals.values()) {
-							if (normal) {
-								base.add(normal);
+						for (const {
+							"live-goals": liveGoals,
+							"ex-live-goals": exLiveGoals,
+						} of goals.values()) {
+							if (liveGoals) {
+								normal.add(liveGoals);
 
-								if (extra) substitutes.set(normal, extra);
-							} else if (extra) {
-								base.add(extra);
+								if (exLiveGoals) substitutes.set(liveGoals, exLiveGoals);
+							} else if (exLiveGoals) {
+								normal.add(exLiveGoals);
 							}
 
-							if (extra) ex.add(extra);
+							if (exLiveGoals) extra.add(exLiveGoals);
 						}
 					}
 
@@ -262,10 +272,12 @@ export default function bandoriLeaderboard() {
 						] satisfies Rank[];
 
 						for (const [key, ranks] of byName.entries()) {
-							const prefix = key.split(":")[0] as "event" | "song";
-							const inherited = new Set<number>();
+							const prefix = key.split(":")[0] as Ranking;
 
+							const inherited = new Set<number>();
 							for (const threshold of thresholds) {
+								if (prefix === "monthly" && threshold > 1000) continue;
+
 								const ids = ranks.get(threshold);
 								if (ids) {
 									for (const id of ids) inherited.add(id);
@@ -297,6 +309,13 @@ export default function bandoriLeaderboard() {
 					"song-t10000",
 					"ex-live-goals",
 					"live-goals",
+					"monthly-t1",
+					"monthly-t2",
+					"monthly-t3",
+					"monthly-t10",
+					"monthly-t100",
+					"monthly-t1000",
+					"monthly-t10000",
 					"monthly-platinum",
 					"monthly-gold",
 					"monthly-silver",
@@ -311,8 +330,8 @@ export default function bandoriLeaderboard() {
 						} else if (it.endsWith("live-goals")) {
 							out = it === "ex-live-goals" ? "EX Live Goals" : "Live Goals";
 						} else if (it.startsWith("monthly")) {
-							const [, grade] = it.split("-");
-							out = `Monthly Ranking (${capitalize(grade)})`;
+							const [, value] = it.split("-");
+							out = `Monthly Ranking (${capitalize(value)})`;
 						}
 
 						if (!out) throw new Error(`no display format defined for ${it}`);
@@ -427,8 +446,8 @@ export default function bandoriLeaderboard() {
 							),
 						),
 						events: (() => {
-							const leaderboards: (typeof import("virtual:bandori-leaderboard"))["leaderboards"]["events"] =
-								{};
+							const leaderboards =
+								{} as (typeof import("virtual:bandori-leaderboard"))["leaderboards"]["events"];
 
 							for (const [
 								eventId,
@@ -485,7 +504,11 @@ export default function bandoriLeaderboard() {
 				})();
 
 				const module = {
-					categories,
+					categories: categories.filter(
+						(category) =>
+							category in leaderboards.global &&
+							leaderboards.global[category].length > 0,
+					),
 					titlesDisplay,
 					leaderboards,
 				} satisfies BandoriLeaderboard;
