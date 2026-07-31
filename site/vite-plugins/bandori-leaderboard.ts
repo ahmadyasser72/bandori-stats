@@ -33,6 +33,7 @@ const fetchEvents = async () => {
 		"https://hina-is.notsweet.workers.dev/data/events-all.json",
 	);
 
+	const referencesMap = new Map<number, unknown>();
 	const schema = z.object({
 		values: z.array(
 			z.object({
@@ -44,21 +45,31 @@ const fetchEvents = async () => {
 						id: z.enum(["powerful", "cool", "pure", "happy"]),
 					})
 					.transform(({ id }) => id),
-				band: z.union([
-					z
-						.array(z.unknown())
-						.nonempty()
-						.transform(() => ({ id: 0, name: "mixed" })),
-					z.object({
-						id: z.coerce.number().positive(),
-						name: z.string().nonempty(),
+				band: z
+					.union([
+						z
+							.array(z.unknown())
+							.nonempty()
+							.transform(() => ({ id: 0, name: "mixed" })),
+						z.object({
+							id: z.coerce.number().positive(),
+							name: z.string().nonempty(),
+						}),
+					])
+					.transform(({ id, name }) => {
+						if (!referencesMap.has(id)) referencesMap.set(id, { id, name });
+						return referencesMap.get(id) as { id: number; name: string };
 					}),
-				]),
 				characters: z.array(
-					z.object({
-						id: z.coerce.number().positive(),
-						name: z.string().nonempty(),
-					}),
+					z
+						.object({
+							id: z.coerce.number().positive(),
+							name: z.string().nonempty(),
+						})
+						.transform(({ id, name }) => {
+							if (!referencesMap.has(id)) referencesMap.set(id, { id, name });
+							return referencesMap.get(id) as { id: number; name: string };
+						}),
 				),
 				type: z
 					.enum([
@@ -364,8 +375,20 @@ export default function bandoriLeaderboard() {
 					>();
 
 					const accountById = new Map<number, Player>();
+					const profileArtById = new Map<string, Player["profileArt"]>();
 					for (const account of accounts) {
-						accountById.set(account.id, omit(account, ["snapshots"]));
+						{
+							const player = omit(account, ["snapshots"]);
+							if (player.profileArt) {
+								const profileArtId = `${player.profileArt.id}:${player.profileArt.trained}`;
+								if (!profileArtById.has(profileArtId))
+									profileArtById.set(profileArtId, player.profileArt);
+
+								player.profileArt = profileArtById.get(profileArtId)!;
+							}
+
+							accountById.set(account.id, player);
+						}
 
 						const owned = new Set(account.snapshots.at(0)?.stats.titles ?? []);
 
