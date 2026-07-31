@@ -169,7 +169,7 @@ const StatCell = ({
 			<div>
 				<p class={clsx(["text-base-content/67", ratio && "max-sm:text-xs"])}>
 					{startCase(name.replace(/Count$/, ""))}
-					{ratio && " (%)"}
+					{ratio && " %"}
 				</p>
 				<div class="inline-flex flex-wrap items-center gap-x-1 gap-y-0.5 font-bold">
 					<span
@@ -179,7 +179,11 @@ const StatCell = ({
 							STAT_TOOLTIPS[name],
 							name === "allPerfectCount" ? "tooltip-start" : "tooltip-end",
 						])}
-						data-tip={`${displayValue(previousValue)} to ${displayValue(value)} (${formatNumber(delta, { positiveSign: true })})`}
+						data-tip={
+							delta === 0
+								? displayValue(value)
+								: `${displayValue(previousValue)} to ${displayValue(value)} (${formatNumber(delta, { positiveSign: true })})`
+						}
 					>
 						{displayValue(ratio ?? value)}
 						{ratio && "%"}
