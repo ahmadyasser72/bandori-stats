@@ -8,7 +8,24 @@ concurrency:
   group: deploy-cloudflare-worker-${{ github.ref }}
 
 jobs:
-  deploy:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: ./.github/actions/setup-bun
+      - run: bun run --workspaces check
+
+  format:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: ./.github/actions/setup-bun
+      - run: bun prettier . --check
+
+  build:
+    needs: [check]
     runs-on: ubuntu-latest
 
     steps:
@@ -33,7 +50,7 @@ jobs:
           restore-keys: astro-font-
 
       - name: Build site
-        run: bun run --workspaces check && bun run --cwd=site build
+        run: bun run --cwd=site build
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DATABASE_AUTH_TOKEN: ${{ secrets.DATABASE_AUTH_TOKEN }}
@@ -49,6 +66,20 @@ jobs:
           path: |
             site/dist/
             site/.wrangler/
+
+  deploy:
+    needs: [build]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: ./.github/actions/setup-bun
+
+      - uses: actions/download-artifact@v8.0.1
+        with:
+          path: site
+
+      - run: ls -R site
 
       - name: Deploy to Cloudflare Workers
         id: deploy-cloudflare-worker
