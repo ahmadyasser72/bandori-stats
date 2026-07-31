@@ -31,7 +31,7 @@
 	@apply my-2 rounded-box border border-primary/20 bg-base-100 p-2 shadow-md;
 
 	&:has(.titles) {
-		@apply max-h-56 w-84 lg:w-96;
+		@apply max-h-64 w-max max-w-84 lg:max-w-96;
 	}
 }
 
