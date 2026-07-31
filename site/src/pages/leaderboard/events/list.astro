@@ -127,7 +127,7 @@ if (Astro.cache.enabled) {
 				{GROUP_LABELS[group]}
 
 				{matchCounts[group] > 0 && (
-					<span class="indicator-item pointer-events-none badge badge-xs badge-accent not-peer-checked:badge-soft">
+					<span class="pointer-events-none indicator-item badge badge-xs badge-accent not-peer-checked:badge-soft">
 						{matchCounts[group]}
 					</span>
 				)}
@@ -171,7 +171,7 @@ if (Astro.cache.enabled) {
 							{getCategoryLabel(category)}
 						</span>
 
-						<div class="list-col-grow flex min-w-0 items-center gap-2">
+						<div class="flex min-w-0 items-center gap-2 list-col-grow">
 							{player.profileArt && (
 								<div class="avatar">
 									<div class="size-10 rounded-box">

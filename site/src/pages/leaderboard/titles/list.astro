@@ -56,7 +56,7 @@ const page = await paginate<(typeof players)[number]>({
 {
 	players.length === 0 && (
 		<div class="list-row items-center">
-			<div class="list-col-grow flex items-center justify-center gap-2">
+			<div class="flex items-center justify-center gap-2 list-col-grow">
 				<Icon class="size-10" name="lucide--x" />
 				<span class="text-lg font-medium">No players found</span>
 			</div>
@@ -105,7 +105,7 @@ const page = await paginate<(typeof players)[number]>({
 	page.hasNextPage && (
 		<div class="list-row items-center" {...page.props}>
 			<div class="badge size-8 badge-ghost">~</div>
-			<div class="list-col-grow flex items-center gap-2">
+			<div class="flex items-center gap-2 list-col-grow">
 				<Icon class="size-10" name="svg-spinners--bars-scale-middle" />
 				<span class="text-lg font-medium">Loading players...</span>
 			</div>

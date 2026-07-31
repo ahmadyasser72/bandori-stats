@@ -79,8 +79,6 @@ jobs:
         with:
           path: site
 
-      - run: ls -R site
-
       - name: Deploy to Cloudflare Workers
         id: deploy-cloudflare-worker
         if: ${{ github.ref == 'refs/heads/main' }}
