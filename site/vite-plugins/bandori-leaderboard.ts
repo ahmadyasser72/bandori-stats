@@ -33,7 +33,7 @@ const fetchEvents = async () => {
 		"https://hina-is.notsweet.workers.dev/data/events-all.json",
 	);
 
-	const referencesMap = new Map<number, unknown>();
+	const referencesMap = new Map<string, unknown>();
 	const schema = z.object({
 		values: z.array(
 			z.object({
@@ -56,9 +56,10 @@ const fetchEvents = async () => {
 							name: z.string().nonempty(),
 						}),
 					])
-					.transform(({ id, name }) => {
-						if (!referencesMap.has(id)) referencesMap.set(id, { id, name });
-						return referencesMap.get(id) as { id: number; name: string };
+					.transform((value) => {
+						const key = `band:${value.id}`;
+						if (!referencesMap.has(key)) referencesMap.set(key, value);
+						return referencesMap.get(key) as typeof value;
 					}),
 				characters: z.array(
 					z
@@ -66,9 +67,10 @@ const fetchEvents = async () => {
 							id: z.coerce.number().positive(),
 							name: z.string().nonempty(),
 						})
-						.transform(({ id, name }) => {
-							if (!referencesMap.has(id)) referencesMap.set(id, { id, name });
-							return referencesMap.get(id) as { id: number; name: string };
+						.transform((value) => {
+							const key = `character:${value.id}`;
+							if (!referencesMap.has(key)) referencesMap.set(key, value);
+							return referencesMap.get(key) as typeof value;
 						}),
 				),
 				type: z
