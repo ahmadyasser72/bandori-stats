@@ -1,0 +1,52 @@
+---
+import BaseLayout from "~/layouts/base-layout.astro";
+import ThemeSelector from "~/layouts/components/theme-selector.astro";
+---
+
+<BaseLayout title="Delete My Data" containerClass="max-w-xl" page={null}>
+	<div class="mb-8 flex items-center justify-between">
+		<a
+			class="link text-2xl font-medium link-hover"
+			href="/"
+			style="view-transition-name: site-heading"
+		>
+			bandori-stats
+		</a>
+		<ThemeSelector compact />
+	</div>
+
+	<div class="card">
+		<div class="card-body">
+			<div class="prose">
+				<h1>Delete My Data</h1>
+				<p>
+					This site tracks public player data from the Bestdori API, including
+					usernames, UIDs, and stat history.
+				</p>
+				<p>
+					If you want your account removed, contact me and I'll remove it as
+					soon as I can.
+				</p>
+				<ul>
+					<li>
+						<a href={`${__GITHUB_URL__}/issues`} target="_blank">
+							Open a GitHub issue
+						</a>
+					</li>
+					<li>
+						<a
+							href="https://discord.com/users/397878331862810634"
+							target="_blank"
+						>
+							Message me on Discord (@lasciate)
+						</a>
+					</li>
+				</ul>
+				<p>
+					Please include your in-game username or UID so I can find your
+					account.
+				</p>
+			</div>
+		</div>
+	</div>
+</BaseLayout>

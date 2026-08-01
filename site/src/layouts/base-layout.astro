@@ -147,7 +147,7 @@ const { title, page, containerClass } = Astro.props;
 	<body>
 		<main
 			hx-boost:inherited="transition:true"
-			class:list={["container mx-auto p-4", containerClass]}
+			class:list={["container mx-auto min-h-screen p-4", containerClass]}
 		>
 			{
 				page && (

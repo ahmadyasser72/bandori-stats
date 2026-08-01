@@ -6,6 +6,8 @@ const AllCards = z
 	.record(
 		z.string(),
 		z.object({
+			characterId: z.coerce.number(),
+			rarity: z.number().min(1).max(5),
 			resourceSetName: z.string(),
 			type: z.string(),
 			stat: z.object({

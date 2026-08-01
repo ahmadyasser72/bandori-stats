@@ -3,37 +3,75 @@ import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import BaseLayout, { LINKS, PAGES } from "~/layouts/base-layout.astro";
 import ThemeSelector from "~/layouts/components/theme-selector.astro";
+
+const PAGE_DESCRIPTIONS = {
+	history: "Recent player snapshots",
+	leaderboard: "Global player rankings",
+	vs: "Compare two player stats",
+} satisfies Record<keyof typeof PAGES, string>;
 ---
 
-<BaseLayout title="Homepage" page={null}>
-	<div class="absolute inset-0 flex flex-col items-center justify-center">
-		<div class="flex items-center gap-2">
-			<h1 class="font-medium" style="view-transition-name: site-heading">
-				bandori-stats
-			</h1>
-			<ThemeSelector compact />
-		</div>
-
-		<div class="mt-4 flex flex-wrap justify-center gap-2">
-			{
-				Object.values(PAGES).map(({ icon, label, url }) => (
-					<a class="btn btn-primary btn-sm" href={url}>
-						<IconLoader name={icon} />
-						{label}
-					</a>
-				))
-			}
-		</div>
-
-		<div class="mt-2 flex flex-wrap justify-center gap-2">
-			{
-				LINKS.map(({ icon, label, url }) => (
-					<a class="btn btn-secondary" href={url} target="_blank">
-						<Icon class="size-5" name={icon} />
-						{label}
-					</a>
-				))
-			}
+<BaseLayout
+	title="Homepage"
+	containerClass="max-w-2xl flex flex-col items-center justify-center gap-2"
+	page={null}
+>
+	<div
+		class="hero min-h-48 sm:min-h-64"
+		style="background-image: url(/assets/daily-hina.webp);"
+	>
+		<div class="hero-overlay"></div>
+		<div class="hero-content flex-col gap-1 text-center">
+			<div class="mb-2 flex items-center gap-2 sm:mb-4">
+				<h1
+					class="text-2xl font-semibold sm:text-4xl"
+					style="view-transition-name: site-heading"
+				>
+					bandori-stats
+				</h1>
+				<ThemeSelector compact />
+			</div>
+			<p class="text-sm font-medium">
+				BanG Dream player stats, tracked over time
+			</p>
 		</div>
 	</div>
+
+	<div class="mt-2 grid w-full grid-cols-1 gap-2 sm:grid-cols-3">
+		{
+			Object.entries(PAGES).map(([key, { icon, label, url }]) => (
+				<a
+					class="card card-sm hover:bg-base-200 dark:hover:bg-base-300"
+					href={url}
+					hx-indicator="find .card-body"
+				>
+					<div class="card-body items-center text-center">
+						<IconLoader class="size-6" name={icon} />
+						<h2 class="card-title">{label}</h2>
+						<p class="text-xs text-base-content/67">{PAGE_DESCRIPTIONS[key]}</p>
+					</div>
+				</a>
+			))
+		}
+	</div>
+
+	<div class="divider"></div>
+
+	<div class="flex flex-wrap justify-center gap-2">
+		{
+			LINKS.map(({ icon, label, url }) => (
+				<a class="btn btn-sm" href={url} target="_blank">
+					<Icon class="size-4" name={icon} />
+					{label}
+				</a>
+			))
+		}
+	</div>
+
+	<a
+		class="mt-1 link text-xs text-base-content/67 link-hover"
+		href="/delete-my-data"
+	>
+		Delete My Data
+	</a>
 </BaseLayout>
