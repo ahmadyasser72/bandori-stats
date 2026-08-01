@@ -69,13 +69,6 @@ const page = await paginate({
 		"hx-vals": JSON.stringify({ stat }),
 	},
 });
-
-if (page.items.length > 0 && Astro.cache.enabled) {
-	Astro.cache.set({
-		etag: `"${__GIT_HASH__}-${page.items.map(({ player }) => player.id).join(".")}"`,
-		maxAge: 60 * 60,
-	});
-}
 ---
 
 <LeaderboardTopList players={page.items} />

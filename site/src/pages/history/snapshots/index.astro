@@ -108,13 +108,6 @@ const snapshots = currentSnapshots.map((snapshot) => ({
 	...snapshot,
 	previous: getPreviousSnapshot(snapshot),
 }));
-
-if (snapshots.length > 0 && Astro.cache.enabled) {
-	Astro.cache.set({
-		etag: `"${__GIT_HASH__}-${snapshots.map(({ id }) => id).join(".")}"`,
-		maxAge: 60 * 60,
-	});
-}
 ---
 
 {

@@ -82,10 +82,6 @@ const data = {
 } satisfies CalendarData;
 
 export type Data = typeof data;
-
-if (!isNotFound && Astro.cache.enabled) {
-	Astro.cache.set({ etag: `"${__GIT_HASH__}"`, maxAge: 60 * 60 * 24 * 365 });
-}
 ---
 
 <div class="snapshot-calendar vc skeleton" data-calendar={JSON.stringify(data)}>

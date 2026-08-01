@@ -104,10 +104,6 @@ const GROUP_LABELS = {
 	song: "Song Ranking",
 	goals: "Live Goals",
 };
-
-if (Astro.cache.enabled) {
-	Astro.cache.set({ etag: `"${__GIT_HASH__}"`, maxAge: 60 * 60 * 24 * 365 });
-}
 ---
 
 <fieldset class="tabs text-accent" role="tablist">

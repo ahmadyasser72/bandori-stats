@@ -116,10 +116,6 @@ const page = await paginate<(typeof events)[number]>({
 		"hx-vals": JSON.stringify(params),
 	},
 });
-
-if (Astro.cache.enabled) {
-	Astro.cache.set({ etag: `"${__GIT_HASH__}"`, maxAge: 60 * 60 });
-}
 ---
 
 <hx-partial hx-target="#event-search-suggestions">

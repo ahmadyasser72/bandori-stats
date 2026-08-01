@@ -41,10 +41,6 @@ const page = await paginate({
 	size: 96,
 	extraProps: { "hx-swap": "after" },
 });
-
-if (!isNotFound && Astro.cache.enabled) {
-	Astro.cache.set({ etag: `"${__GIT_HASH__}"`, maxAge: 60 * 60 * 24 * 365 });
-}
 ---
 
 {

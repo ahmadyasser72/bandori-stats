@@ -1,6 +1,5 @@
 ---
 import { STAT_NAMES, type StatName } from "@bandori-stats/bestdori/constants";
-import dayjs from "@bandori-stats/bestdori/date";
 import { db } from "@bandori-stats/database";
 
 import z from "zod";
@@ -49,16 +48,6 @@ const [player1, player2] = await Promise.all(
 		});
 	}),
 );
-
-if ((player1 || player2) && Astro.cache.enabled) {
-	Astro.cache.set({
-		etag: `"${__GIT_HASH__}"`,
-		maxAge:
-			date && dayjs.tz(date).isBefore(dayjs.tz(), "day")
-				? 60 * 60 * 24 * 365
-				: 60 * 60,
-	});
-}
 ---
 
 <BaseLayout title="VS Accounts" containerClass="max-w-3xl" page="vs">

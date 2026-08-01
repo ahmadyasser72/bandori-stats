@@ -37,7 +37,9 @@ const querySchema = z.preprocess(
 );
 
 export const onRequest = defineMiddleware(
-	async ({ locals, url, rewrite }, next) => {
+	async ({ request, cache, locals, url, rewrite, isPrerendered }, next) => {
+		if (isPrerendered) return next();
+
 		const { data, error, success } = querySchema.safeParse(url.searchParams);
 		if (import.meta.env.DEV && !success)
 			throw new Error(z.prettifyError(error));
@@ -58,6 +60,19 @@ export const onRequest = defineMiddleware(
 			return rewrite(`${url.pathname}?${search}`);
 		}
 
-		return next();
+		if (import.meta.env.DEV || !cache.enabled) return next();
+
+		const isHtmxPartial = request.headers.get("hx-request-type") === "partial";
+		const isTakumiRender = url.pathname.endsWith(".png");
+		if (isHtmxPartial || isTakumiRender) {
+			const tags = [] as string[];
+			if (isHtmxPartial) tags.push("htmx-partial");
+			if (isTakumiRender) tags.push("takumi-render");
+			cache.set({ maxAge: 60 * 5, swr: 60 * 60, tags });
+		}
+
+		const response = await next();
+		if (isHtmxPartial) response.headers.set("vary", "hx-request-type");
+		return response;
 	},
 );

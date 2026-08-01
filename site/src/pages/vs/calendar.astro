@@ -119,13 +119,6 @@ const data = {
 } satisfies CalendarData;
 
 export type Data = typeof data;
-
-if (Astro.cache.enabled) {
-	Astro.cache.set({
-		etag: `"${__GIT_HASH__}"`,
-		maxAge: date.isSame(dayjs.tz(), "month") ? 60 * 60 : 60 * 60 * 24 * 365,
-	});
-}
 ---
 
 <div class="vs-calendar vc skeleton" data-calendar={JSON.stringify(data)}></div>

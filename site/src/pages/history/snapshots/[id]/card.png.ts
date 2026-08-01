@@ -26,13 +26,6 @@ export const GET: APIRoute = async (context) => {
 
 	if (snapshots.length === 0) return new Response("not found", { status: 404 });
 
-	if (context.cache.enabled) {
-		context.cache.set({
-			etag: `"${__GIT_HASH__}"`,
-			maxAge: 60 * 60 * 24 * 365,
-		});
-	}
-
 	const [data, previous] = snapshots;
 	return render(context, { ...data, previous, ratio });
 };
