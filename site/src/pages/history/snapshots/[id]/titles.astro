@@ -39,7 +39,7 @@ const page = await paginate({
 	items: sortedTitles,
 	context: Astro,
 	size: 96,
-	extraProps: { "hx-swap": "append" },
+	extraProps: { "hx-swap": "after" },
 });
 
 if (!isNotFound && Astro.cache.enabled) {
