@@ -32,10 +32,16 @@ export const scheduleUpdateSnapshots = schedules.task({
 
 						const lastUpdated = dayjs(account.lastUpdated);
 						const isRecentlyUpdated = now.diff(lastUpdated, "weeks") < 2;
-						const daysSinceUpdate = now.diff(lastUpdated, "days");
-						const jitter = account.id % 7;
+						if (isRecentlyUpdated) return true;
 
-						return isRecentlyUpdated || daysSinceUpdate >= 7 + jitter;
+						let delayUpdateDays = 7;
+						const monthsSinceUpdate = now.diff(lastUpdated, "months");
+						if (monthsSinceUpdate >= 6) delayUpdateDays = 28;
+						else if (monthsSinceUpdate >= 3) delayUpdateDays = 14;
+
+						const jitter = account.id % delayUpdateDays;
+						const daysSinceUpdate = now.diff(lastUpdated, "days");
+						return daysSinceUpdate >= delayUpdateDays + jitter;
 					}),
 			);
 
