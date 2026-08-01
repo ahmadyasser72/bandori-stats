@@ -13,7 +13,7 @@ import { clsx } from "clsx";
 import type { ComponentChildren } from "preact";
 import type z from "zod";
 
-import { getProfileIcon } from "~/lib/image";
+import { getProfileIcon } from "~/lib/assets";
 import type { RatioSchema } from "~/lib/schema";
 import { STAT_BADGES, STAT_TOOLTIPS } from "./_stat-colors";
 

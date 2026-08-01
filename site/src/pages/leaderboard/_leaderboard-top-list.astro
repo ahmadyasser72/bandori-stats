@@ -7,8 +7,8 @@ import {
 import type { MatchInfo } from "minisearch";
 import type { Player } from "virtual:bandori-leaderboard";
 
+import { getProfileIcon } from "~/lib/assets";
 import { filterTerms, highlight } from "~/lib/highlight";
-import { getProfileIcon } from "~/lib/image";
 
 interface Props {
 	players: {

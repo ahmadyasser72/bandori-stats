@@ -139,7 +139,7 @@ const page = await paginate<(typeof events)[number]>({
 			<figure>
 				<img
 					class="aspect-3/1 w-full max-w-100 sm:mt-8"
-					src={`/static/events/${event.id}-banner.webp`}
+					src={`/assets/events/${event.id}-banner.webp`}
 					loading="lazy"
 				/>
 			</figure>
@@ -159,7 +159,7 @@ const page = await paginate<(typeof events)[number]>({
 						<div class="badge badge-soft badge-md uppercase badge-primary">
 							<img
 								class="size-4"
-								src={`/static/attributes/${event.attribute}.svg`}
+								src={`/assets/attributes/${event.attribute}.svg`}
 							/>
 							<span
 								set:html={highlightTerms(event, event.attribute, "attribute")}
@@ -173,7 +173,7 @@ const page = await paginate<(typeof events)[number]>({
 								<>
 									<img
 										class="size-4"
-										src={`/static/bands/${event.band.id}.svg`}
+										src={`/assets/bands/${event.band.id}.svg`}
 									/>
 									<span
 										set:html={highlightTerms(event, event.band.name, "band")}
@@ -186,7 +186,7 @@ const page = await paginate<(typeof events)[number]>({
 					<div class="flex max-w-96 flex-wrap items-start justify-center gap-x-2 gap-y-1.5">
 						{event.characters.map(({ id, name }) => (
 							<div class="badge badge-soft badge-accent sm:badge-lg">
-								<img class="size-5" src={`/static/characters/${id}.webp`} />
+								<img class="size-5" src={`/assets/characters/${id}.webp`} />
 								<span set:html={highlightTerms(event, name, "characters")} />
 							</div>
 						))}

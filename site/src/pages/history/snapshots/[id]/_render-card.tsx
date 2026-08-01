@@ -3,7 +3,7 @@ import { experimental_getFontFileURL, fontData } from "astro:assets";
 import { env } from "cloudflare:workers";
 import { ImageResponse } from "takumi-js/response";
 
-import { getProfileIcon } from "~/lib/image";
+import { getProfileIcon } from "~/lib/assets";
 import stylesheet from "~/styles/global.css?inline";
 import { SnapshotCard, type SnapshotCardProps } from "../_snapshot-card";
 
