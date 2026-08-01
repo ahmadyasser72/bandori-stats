@@ -105,26 +105,33 @@ if (!isNotFound && Astro.cache.enabled) {
 		selector: ".vc.snapshot-calendar",
 
 		renderDateCell: ({ it: deltas, button }) => {
-			button.innerHTML += [
-				'<div class="inline-flex gap-0.5">',
-				...new Set(
-					deltas.map(
-						([name]) =>
-							`<div aria-label="success" class="status status-sm ${STAT_STATUSES[name]}"></div>`,
-					),
-				),
-				"</div>",
-			].join("");
+			button.innerHTML +=
+				deltas.length === 0
+					? '<div class="status status-sm status-neutral"></div>'
+					: [
+							'<div class="inline-flex gap-0.5">',
+							...new Set(
+								deltas.map(
+									([name]) =>
+										`<div class="status status-sm ${STAT_STATUSES[name]}"></div>`,
+								),
+							),
+							"</div>",
+						].join("");
 		},
 
-		popups: ({ it: deltas }) =>
-			[
+		popups: ({ it: deltas }) => {
+			if (deltas.length === 0)
+				return '<span class="badge badge-xs badge-neutral">Initial data</span>';
+
+			return [
 				'<div class="flex w-max max-w-32 min-w-full flex-wrap justify-center gap-x-1 gap-y-0.5 py-2 font-medium">',
 				...deltas.map(
 					([name, delta]) =>
 						`<span class="badge badge-soft badge-xs ${STAT_BADGES[name]}">${simplifyStatName(name)} ${delta}</span>`,
 				),
 				"</div>",
-			].join(""),
+			].join("");
+		},
 	});
 </script>

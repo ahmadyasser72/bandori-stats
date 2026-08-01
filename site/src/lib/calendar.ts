@@ -104,7 +104,7 @@ export const initCalendar = <T extends CalendarData>(
 				? (_, dateElement) => {
 						const date = dateElement.dataset.vcDate as FormatDateString;
 						const it = data.items[date];
-						if (!it || (Array.isArray(it) && it.length === 0)) return;
+						if (!it) return;
 
 						const button = dateElement.querySelector(
 							"[data-vc-date-btn]",
