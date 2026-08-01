@@ -1,18 +1,34 @@
 import type { Stats } from "@bandori-stats/bestdori/constants";
 
 import { sql } from "drizzle-orm";
-import { integer, sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
+import {
+	index,
+	integer,
+	sqliteTable,
+	text,
+	unique,
+} from "drizzle-orm/sqlite-core";
 
-export const accounts = sqliteTable("accounts", {
-	id: integer().primaryKey({ autoIncrement: true }),
-	username: text().unique().notNull(),
-	nickname: text(),
-	uid: text(),
-	profileArt: text({ mode: "json" }).$type<{ id: number; trained: boolean }>(),
+export const accounts = sqliteTable(
+	"accounts",
+	{
+		id: integer().primaryKey({ autoIncrement: true }),
+		username: text().unique().notNull(),
+		nickname: text(),
+		uid: text(),
+		profileArt: text({ mode: "json" }).$type<{
+			id: number;
+			trained: boolean;
+		}>(),
 
-	lastUpdated: text().$default(() => sql`(CURRENT_DATE)`),
-	disabledAt: text(),
-});
+		lastUpdated: text().$default(() => sql`(CURRENT_DATE)`),
+		disabledAt: text(),
+	},
+	(t) => [
+		index("idx_account_nickname").on(t.nickname),
+		index("idx_account_last_updated").on(t.lastUpdated),
+	],
+);
 
 export const accountSnapshots = sqliteTable(
 	"account_snapshots",
@@ -30,8 +46,9 @@ export const accountSnapshots = sqliteTable(
 			.notNull(),
 	},
 	(t) => [
-		unique("idx_snapshots_date").on(t.accountId, t.snapshotDate),
-		unique("idx_snapshots_stat").on(t.accountId, t.stats),
+		index("idx_snapshots_date").on(t.snapshotDate),
+		unique("idx_snapshots_account_date").on(t.accountId, t.snapshotDate),
+		unique("idx_snapshots_account_stat").on(t.accountId, t.stats),
 	],
 );
 
