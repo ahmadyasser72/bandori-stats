@@ -2,7 +2,7 @@ import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
 import dayjs from "@bandori-stats/bestdori/date";
 import { db } from "@bandori-stats/database";
 
-import { schedules } from "@trigger.dev/sdk";
+import { schedules, type BatchItem } from "@trigger.dev/sdk";
 import { createShuffle } from "fast-shuffle";
 
 import { updateProfile } from "./update-profile";
@@ -47,21 +47,25 @@ export const scheduleUpdateSnapshots = schedules.task({
 
 		const TOTAL_MINUTES = 24 * 60 - 10;
 		const slot = TOTAL_MINUTES / accounts.length;
-		const payloads: Parameters<typeof updateStats.batchTrigger>[0] =
-			accounts.map(({ username, idx }) => ({
-				payload: { username, date },
-				options: {
-					delay: now
-						.add(Math.floor(idx * slot + Math.random() * slot), "minutes")
-						.toDate(),
-					tags: `@_${username}`,
-				},
-			}));
+		type Payload = BatchItem<{ username: string; date: string }>;
+		const payloads = accounts.map(
+			({ username, idx }) =>
+				Array.from({ length: 2 }, (): Payload => ({
+					payload: { username, date },
+					options: {
+						delay: now
+							.add(Math.floor(idx * slot + Math.random() * slot), "minutes")
+							.toDate(),
+						tags: `@_${username}`,
+					},
+				})) as [Payload, Payload],
+		);
 
 		const maxBatchSize = 1000;
 		for (let idx = 0; idx < payloads.length; idx += maxBatchSize) {
-			await updateStats.batchTrigger(payloads.slice(idx, idx + maxBatchSize));
-			await updateProfile.batchTrigger(payloads.slice(idx, idx + maxBatchSize));
+			const chunk = payloads.slice(idx, idx + maxBatchSize);
+			await updateStats.batchTrigger(chunk.map(([payload]) => payload));
+			await updateProfile.batchTrigger(chunk.map(([, payload]) => payload));
 		}
 	},
 });
