@@ -41,7 +41,10 @@ export const scheduleUpdateSnapshots = schedules.task({
 
 						const jitter = account.id % delayUpdateDays;
 						const daysSinceUpdate = now.diff(lastUpdated, "days");
-						return daysSinceUpdate >= delayUpdateDays + jitter;
+						return (
+							daysSinceUpdate > jitter &&
+							daysSinceUpdate % delayUpdateDays === jitter
+						);
 					}),
 			);
 
