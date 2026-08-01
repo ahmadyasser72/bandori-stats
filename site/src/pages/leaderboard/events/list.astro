@@ -87,12 +87,6 @@ const getCategoryLabel = (category: Category) => {
 	return `T${category.split("-t").at(-1)!}`;
 };
 
-const AURA_DURATION = {
-	t1: 15_000,
-	t2: 12_000,
-	t3: 9_000,
-};
-
 const GROUP_ICONS = {
 	event: "lucide--calendar",
 	song: "lucide--music",
@@ -143,11 +137,6 @@ const GROUP_LABELS = {
 						category.endsWith("-t2") && "aura-gold",
 						category.endsWith("-t3") && "aura-silver",
 					]}
-					style={
-						isPodium(category)
-							? `transition-duration: ${AURA_DURATION[category.split("-t")[1] as "t1" | "t2" | "t3"]}ms`
-							: undefined
-					}
 				>
 					<div
 						class:list={[

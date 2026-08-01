@@ -40,8 +40,6 @@ const highlightTerms = (
 	const terms = filterTerms(data.match, key);
 	return highlight(text, terms);
 };
-
-const AURA_DURATION = [15_000, 12_000, 9_000];
 ---
 
 {
@@ -54,10 +52,6 @@ const AURA_DURATION = [15_000, 12_000, 9_000];
 				trueRank === 1 && "aura-gold",
 				trueRank === 2 && "aura-silver",
 			]}
-			style={
-				trueRank < 3 &&
-				`transition-duration: ${AURA_DURATION[trueRank] + (player.id % 10) * 100}ms`
-			}
 		>
 			<div
 				class:list={[
