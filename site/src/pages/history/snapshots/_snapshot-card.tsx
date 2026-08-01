@@ -71,7 +71,7 @@ export const SnapshotCard = ({
 							context === "takumi" && "gap-0.5",
 						)}
 					>
-						<h2 class="card-title">{account.nickname}</h2>
+						<h2 class="card-title line-clamp-1">{account.nickname}</h2>
 						<p class="text-xs text-base-content/67">@{account.username}</p>
 					</div>
 				) : (
@@ -80,10 +80,11 @@ export const SnapshotCard = ({
 
 				<div
 					class={clsx([
-						"ml-auto self-start text-end text-base-content/67 underline",
+						"ml-auto self-start text-end text-base-content/67",
+						previous && "underline",
 						context === "site"
-							? "tooltip tooltip-start tooltip-left decoration-dotted decoration-2"
-							: "border-b",
+							? "tooltip tooltip-bottom tooltip-end decoration-dotted decoration-2"
+							: previous && "border-b",
 					])}
 				>
 					{context === "site" && previous && (
