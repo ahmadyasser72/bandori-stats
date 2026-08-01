@@ -3,7 +3,7 @@ import dayjs from "@bandori-stats/bestdori/date";
 import { db } from "@bandori-stats/database";
 
 import { schedules, type BatchItem } from "@trigger.dev/sdk";
-import { createShuffle } from "fast-shuffle";
+import { Random } from "random";
 
 import { updateProfile } from "./update-profile";
 import { updateStats } from "./update-stats";
@@ -18,14 +18,15 @@ export const scheduleUpdateSnapshots = schedules.task({
 		const now = dayjs.tz(context.timestamp, GBP_TIMEZONE);
 		const date = now.startOf("day").format("YYYY-MM-DD");
 
-		const shuffle = createShuffle(now.unix());
+		const rng = new Random(now.unix());
 		const accounts = await db()
 			.query.accounts.findMany({
 				columns: { id: true, username: true, lastUpdated: true },
 				where: { disabledAt: { isNull: true } },
 			})
 			.then((accounts) =>
-				shuffle(accounts)
+				rng
+					.shuffle(accounts)
 					.map((account, idx) => ({ ...account, idx }))
 					.filter((account) => {
 						if (account.lastUpdated === null) return true;
@@ -57,7 +58,7 @@ export const scheduleUpdateSnapshots = schedules.task({
 					payload: { username, date },
 					options: {
 						delay: now
-							.add(Math.floor(idx * slot + Math.random() * slot), "minutes")
+							.add(rng.float(idx * slot, (idx + 1) * slot), "minutes")
 							.toDate(),
 						tags: `@_${username}`,
 					},
