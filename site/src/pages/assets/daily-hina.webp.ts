@@ -8,6 +8,7 @@ import {
 } from "@bandori-stats/bestdori/fetch";
 import { imageConfig, vips } from "@bandori-stats/bestdori/image";
 import { fetchCards } from "@bandori-stats/bestdori/schema/cards";
+import { GAME_SERVER, SERVER_PATHS } from "@bandori-stats/bestdori/server";
 
 import type { APIRoute } from "astro";
 import { Random } from "random";
@@ -33,7 +34,7 @@ export const GET: APIRoute = async () => {
 	}
 
 	const type = trained ? "after_training" : "normal";
-	const imagePath = `/assets/en/characters/resourceset/${card.resourceSetName}_rip/card_${type}.png`;
+	const imagePath = `/assets/${SERVER_PATHS[GAME_SERVER]}/characters/resourceset/${card.resourceSetName}_rip/card_${type}.png`;
 
 	const bytes = await fetchBestdori(imagePath, true)
 		.then((response) => response.arrayBuffer())
@@ -41,7 +42,7 @@ export const GET: APIRoute = async () => {
 
 	const IMAGE_WIDTH = 640;
 	const cachePath = getCachePath(
-		`_card_full_${id}_${type}.w${IMAGE_WIDTH}.webp`,
+		`_card_full_${SERVER_PATHS[GAME_SERVER]}_${id}_${type}.w${IMAGE_WIDTH}.webp`,
 	);
 	const cacheExists = await exists(cachePath);
 	if (cacheExists) {

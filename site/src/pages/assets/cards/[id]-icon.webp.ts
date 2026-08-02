@@ -8,6 +8,7 @@ import {
 import { uniqBy } from "@bandori-stats/bestdori/helpers";
 import { imageConfig, vips } from "@bandori-stats/bestdori/image";
 import { fetchCards } from "@bandori-stats/bestdori/schema/cards";
+import { GAME_SERVER, SERVER_PATHS } from "@bandori-stats/bestdori/server";
 import { db } from "@bandori-stats/database";
 
 import type {
@@ -24,7 +25,7 @@ export const GET: APIRoute<Props, Params> = async ({ props }) => {
 		.toString()
 		.padStart(5, "0");
 	const type = props.card.trained ? "after_training" : "normal";
-	const imagePath = `/assets/en/thumb/chara/card${chunkId}_rip/${props.card.resourceSetName}_${type}.png`;
+	const imagePath = `/assets/${SERVER_PATHS[GAME_SERVER]}/thumb/chara/card${chunkId}_rip/${props.card.resourceSetName}_${type}.png`;
 
 	const bytes = await fetchBestdori(imagePath, true)
 		.then((response) => response.arrayBuffer())
@@ -32,7 +33,7 @@ export const GET: APIRoute<Props, Params> = async ({ props }) => {
 
 	const IMAGE_WIDTH = 64;
 	const cachePath = getCachePath(
-		`_card_${props.card.id}_${type}.w${IMAGE_WIDTH}.webp`,
+		`_card_${SERVER_PATHS[GAME_SERVER]}_${props.card.id}_${type}.w${IMAGE_WIDTH}.webp`,
 	);
 	const cacheExists = await exists(cachePath);
 	if (cacheExists) {

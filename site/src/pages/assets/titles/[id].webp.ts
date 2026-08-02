@@ -11,6 +11,7 @@ import {
 	BestdoriDegree,
 	fetchDegrees,
 } from "@bandori-stats/bestdori/schema/degree";
+import { GAME_SERVER, SERVER_PATHS } from "@bandori-stats/bestdori/server";
 import { PLAYER_TITLES_SET, redis } from "@bandori-stats/database/redis";
 
 import type {
@@ -37,7 +38,7 @@ export const GET: APIRoute<Props, Params> = async ({ props }) => {
 	const basenames = props.images
 		.map((it) => path.basename(it).replace(".png", ""))
 		.join("+");
-	const cachePath = getCachePath(`_title_${basenames}.w${IMAGE_WIDTH}.webp`);
+	const cachePath = getCachePath(`_title_${SERVER_PATHS[GAME_SERVER]}_${basenames}.w${IMAGE_WIDTH}.webp`);
 	const cacheExists = await exists(cachePath);
 	if (cacheExists) {
 		const blob = await openAsBlob(cachePath);
@@ -60,7 +61,7 @@ export const GET: APIRoute<Props, Params> = async ({ props }) => {
 const pickRegion = <T>(tuple: T[]) => tuple.at(1) ?? tuple.at(0)!;
 
 const buildDegreeImages = (degree: BestdoriDegree) => {
-	const basePath = "/assets/en/thumb/degree_rip";
+	const basePath = `/assets/${SERVER_PATHS[GAME_SERVER]}/thumb/degree_rip`;
 
 	const baseImageName = pickRegion(degree.baseImageName);
 	const rank = pickRegion(degree.rank);
