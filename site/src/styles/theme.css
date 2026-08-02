@@ -68,6 +68,14 @@
 	--menu-active-bg: var(--color-primary);
 }
 
+@utility stats {
+	@apply stats-vertical shadow sm:stats-horizontal dark:bg-base-200;
+}
+
+@utility stat {
+	@apply max-sm:place-items-center;
+}
+
 @utility tabs {
 	@apply tabs-border justify-center;
 }

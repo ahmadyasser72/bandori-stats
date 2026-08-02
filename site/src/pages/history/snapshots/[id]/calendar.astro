@@ -91,10 +91,7 @@ export type Data = typeof data;
 	import { simplifyStatName } from "@bandori-stats/bestdori/helpers";
 
 	import { initCalendar } from "~/lib/calendar";
-	import {
-		STAT_BADGES,
-		STAT_STATUSES,
-	} from "~/pages/history/snapshots/_stat-colors";
+	import { STAT_BADGES, STAT_STATUSES } from "~/lib/stats";
 	import type { Data } from "./calendar.astro";
 
 	initCalendar<Data>({

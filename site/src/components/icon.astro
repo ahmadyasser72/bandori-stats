@@ -1,14 +1,14 @@
 ---
+import type { JSX } from "astro/jsx-runtime";
+
 export type IconSets = "lucide" | "svg-spinners" | "line-md";
 export type IconName = `${IconSets}--${string}`;
 
-interface Props {
+interface Props extends JSX.HTMLAttributes {
 	name: IconName;
-	class?: string;
-	style?: string;
 }
 
-const { name, class: className, style } = Astro.props;
+const { name, class: className, ...props } = Astro.props;
 ---
 
-<span class:list={["iconify", name, className]} {style}></span>
+<span class:list={["iconify", name, className]} {...props}></span>
