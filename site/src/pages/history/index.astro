@@ -136,6 +136,7 @@ const { query, ratio, date } = Astro.locals.parseQuery(
 		hx-trigger="intersect once"
 		class="mx-auto mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3"
 		id="history-grid"
+		hx-browser-indicator="true"
 		hx-include="#history-filter input"
 	>
 		{
