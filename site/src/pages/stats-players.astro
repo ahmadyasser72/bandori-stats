@@ -1,0 +1,134 @@
+---
+import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
+import {
+	formatNumber,
+	simplifyStatName,
+	startCase,
+} from "@bandori-stats/bestdori/helpers";
+import {
+	PLAYER_STATS_SORTED_SET_PREFIX,
+	PLAYER_TITLES_SET,
+	redis,
+} from "@bandori-stats/database/redis";
+
+import Icon from "~/components/icon.astro";
+import {
+	STAT_BADGES,
+	STAT_ICONS,
+	STAT_STATUSES,
+	STAT_TEXT_COLORS,
+	STAT_TOOLTIPS,
+} from "~/lib/stats";
+
+export const partial = true;
+
+const sumScript = redis().createScript<[number, number, number]>(`
+  local elements = redis.call('ZRANGE', KEYS[1], 0, -1, 'WITHSCORES')
+
+  local total_sum = 0
+  for i = 2, #elements, 2 do
+      total_sum = total_sum + tonumber(elements[i])
+  end
+
+  local count = #elements / 2
+  local average = count > 0 and (total_sum / count) or 0
+
+  return { total_sum, average, count }
+`);
+const totalStats = await Promise.all(
+	STAT_NAMES.map((name) =>
+		sumScript.exec([`${PLAYER_STATS_SORTED_SET_PREFIX}:${name}`], []),
+	),
+).then((values) =>
+	values.map(([sum, average, count], idx) => ({
+		name: STAT_NAMES[idx],
+		sum,
+		average,
+		count,
+	})),
+);
+
+const uniqueTitles = await redis().scard(PLAYER_TITLES_SET);
+---
+
+{
+	totalStats.map(({ name, sum, average, count }) => (
+		<div class="stat">
+			<div class="stat-figure">
+				<Icon
+					name={STAT_ICONS[name]}
+					class:list={["size-10", STAT_TEXT_COLORS[name]]}
+				/>
+			</div>
+			<div class:list={["stat-title", STAT_TEXT_COLORS[name]]}>
+				{startCase(name)}
+			</div>
+			<div class="stat-value">
+				<div
+					data-tip={
+						sum > 100_000
+							? `Sum of ${startCase(name).replace(/Count$/, "")} / ${formatNumber(sum)}`
+							: `Sum of ${startCase(name).replace(/Count$/, "")}`
+					}
+					class:list={[
+						"tooltip flex items-center before:translate-y-2 before:font-medium after:translate-y-2 sm:tooltip-start",
+						STAT_TOOLTIPS[name],
+					]}
+				>
+					<Icon class="size-8" name="lucide--sigma" />
+					{formatNumber(sum, { autoCompact: true })}
+				</div>
+			</div>
+			<div class="stat-desc">
+				<div
+					data-tip={
+						average > 100_000
+							? `${simplifyStatName(name)} Average / ${formatNumber(average)}`
+							: `${simplifyStatName(name)} Average`
+					}
+					class:list={[
+						"tooltip badge badge-sm sm:tooltip-start",
+						STAT_BADGES[name],
+						STAT_TOOLTIPS[name],
+					]}
+				>
+					<Icon class="size-3" name="lucide--circle-slash-2" />
+					{formatNumber(average, { autoCompact: true })}
+				</div>
+				<span class:list={["mx-2 status status-sm", STAT_STATUSES[name]]} />
+				<div
+					data-tip="Players tracked"
+					class:list={[
+						"tooltip badge badge-soft badge-sm",
+						STAT_BADGES[name],
+						STAT_TOOLTIPS[name],
+					]}
+				>
+					<Icon class="size-3" name="lucide--users" />
+					{formatNumber(count)}
+				</div>
+			</div>
+		</div>
+	))
+}
+
+<div class="stat">
+	<div class="stat-figure">
+		<Icon
+			name={STAT_ICONS.titles}
+			class:list={["size-10", STAT_TEXT_COLORS.titles]}
+		/>
+	</div>
+	<div class:list={["stat-title", STAT_TEXT_COLORS.titles]}>Titles</div>
+	<div class="stat-value">
+		<div class="flex items-center">
+			<Icon class="size-8" name="lucide--hash" />
+			{formatNumber(uniqueTitles)}
+		</div>
+	</div>
+	<div class="stat-desc">
+		<div class:list={["badge badge-sm", STAT_BADGES.titles]}>
+			Unique titles obtained
+		</div>
+	</div>
+</div>

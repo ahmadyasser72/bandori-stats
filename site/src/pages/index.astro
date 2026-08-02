@@ -56,63 +56,34 @@ const PAGE_DESCRIPTIONS = {
 	</div>
 
 	<div class="relative mt-4 flex w-full flex-col items-center gap-2">
-		<div
-			class="stats w-full"
-			id="stats-data"
-			style="view-transition-name: stats-data;"
-		>
-			{
-				Array.from({ length: 3 }, () => (
-					<div class="stat">
-						<div class="stat-figure">
-							<div class="size-10 skeleton" />
+		{
+			["/stats-data", "/stats-players"].map((path) => (
+				<div hx-get={path} hx-trigger="intersect once" class="stats w-full">
+					{Array.from({ length: 3 }, () => (
+						<div class="stat">
+							<div class="stat-figure">
+								<div class="size-10 skeleton" />
+							</div>
+							<div class="stat-title">
+								<div class="h-4 w-20 skeleton sm:w-12" />
+							</div>
+							<div class="stat-value py-2.5">
+								<div class="h-8 w-32 skeleton sm:w-24" />
+							</div>
+							<div class="stat-desc">
+								<div class="h-4 w-16 skeleton" />
+							</div>
 						</div>
-						<div class="stat-title">
-							<div class="h-4 w-20 skeleton sm:w-12" />
-						</div>
-						<div class="stat-value py-2.5">
-							<div class="h-8 w-32 skeleton sm:w-24" />
-						</div>
-						<div class="stat-desc">
-							<div class="h-4 w-16 skeleton" />
-						</div>
-					</div>
-				))
-			}
-		</div>
+					))}
+				</div>
+			))
+		}
 
 		<div
-			class="stats w-full"
-			id="stats-players"
-			style="view-transition-name: stats-players;"
+			class="htmx-indicator absolute center badge badge-xl badge-neutral"
+			id="stats-loader"
 		>
-			{
-				Array.from({ length: 3 }, () => (
-					<div class="stat">
-						<div class="stat-figure">
-							<div class="size-10 skeleton" />
-						</div>
-						<div class="stat-title">
-							<div class="h-4 w-20 skeleton sm:w-12" />
-						</div>
-						<div class="stat-value py-2.5">
-							<div class="h-8 w-32 skeleton sm:w-24" />
-						</div>
-						<div class="stat-desc">
-							<div class="h-4 w-16 skeleton" />
-						</div>
-					</div>
-				))
-			}
-		</div>
-
-		<div
-			hx-get="/stats"
-			hx-swap="delete"
-			hx-trigger="intersect once"
-			class="absolute center badge badge-xl badge-neutral"
-		>
-			<span class="skeleton skeleton-text"> Loading statistics </span>
+			<span class="skeleton skeleton-text"> Loading statistics... </span>
 		</div>
 	</div>
 

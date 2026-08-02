@@ -1,0 +1,116 @@
+---
+import dayjs from "@bandori-stats/bestdori/date";
+import { count, db, eq, max, min } from "@bandori-stats/database";
+import { accounts, accountSnapshots } from "@bandori-stats/database/schema";
+
+import Icon from "~/components/icon.astro";
+
+export const partial = true;
+
+const today = dayjs.tz().format("YYYY-MM-DD");
+const yesterday = dayjs.tz().subtract(1, "day").format("YYYY-MM-DD");
+const [
+	[{ totalAccounts }],
+	[{ totalSnapshots }],
+	[{ firstUpdate }],
+	[{ lastUpdate }],
+	[{ snapshotsToday }],
+	[{ snapshotsYesterday }],
+] = await db().batch([
+	db().select({ totalAccounts: count() }).from(accounts).limit(1),
+	db().select({ totalSnapshots: count() }).from(accountSnapshots).limit(1),
+	db()
+		.select({ firstUpdate: min(accountSnapshots.snapshotDate) })
+		.from(accountSnapshots)
+		.limit(1),
+	db()
+		.select({ lastUpdate: max(accountSnapshots.snapshotDate) })
+		.from(accountSnapshots)
+		.limit(1),
+	db()
+		.select({ snapshotsToday: count() })
+		.from(accountSnapshots)
+		.where(eq(accountSnapshots.snapshotDate, today))
+		.limit(1),
+	db()
+		.select({ snapshotsYesterday: count() })
+		.from(accountSnapshots)
+		.where(eq(accountSnapshots.snapshotDate, yesterday))
+		.limit(1),
+]);
+---
+
+<div class="stat">
+	<div class="stat-figure">
+		<Icon class="size-10 text-info" name="lucide--users" />
+	</div>
+	<div class="stat-title text-info">Players tracked</div>
+	<div class="stat-value">
+		{totalAccounts}
+	</div>
+	{
+		firstUpdate && (
+			<div class="stat-desc">
+				<div class="badge badge-soft badge-sm font-medium badge-info">
+					Since
+					<span
+						class="tooltip -ml-1 tooltip-info underline decoration-dotted"
+						data-tip={dayjs(firstUpdate).fromNow()}
+					>
+						{firstUpdate}
+					</span>
+				</div>
+			</div>
+		)
+	}
+</div>
+
+<div class="stat">
+	<div class="stat-figure">
+		<Icon class="size-10 text-info" name="lucide--camera" />
+	</div>
+	<div class="stat-title text-info">Snapshots taken</div>
+	<div class="stat-value">
+		{totalSnapshots}
+	</div>
+	{
+		snapshotsToday > 0 ? (
+			<div class="stat-desc">
+				<div class="badge badge-soft badge-sm font-medium badge-info">
+					↗︎ +{snapshotsToday} today
+				</div>
+			</div>
+		) : (
+			snapshotsYesterday > 0 && (
+				<div class="stat-desc">
+					<div class="badge badge-soft badge-sm font-medium badge-info">
+						↗︎ +{snapshotsYesterday} yesterday
+					</div>
+				</div>
+			)
+		)
+	}
+</div>
+
+{
+	lastUpdate && (
+		<div class="stat">
+			<div class="stat-figure">
+				<Icon class="size-10 text-info" name="lucide--clock-3" />
+			</div>
+			<div class="stat-title text-info">Last update</div>
+			<div class="stat-value">
+				{lastUpdate === today
+					? "Today"
+					: lastUpdate === yesterday
+						? "Yesterday"
+						: dayjs.tz(lastUpdate).fromNow()}
+			</div>
+			<div class="stat-desc">
+				<div class="badge badge-soft badge-sm font-medium badge-info">
+					{lastUpdate}
+				</div>
+			</div>
+		</div>
+	)
+}
