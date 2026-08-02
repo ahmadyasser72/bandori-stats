@@ -38,7 +38,7 @@ export const GET: APIRoute<Props, Params> = async ({ props }) => {
 	const basenames = props.images
 		.map((it) => path.basename(it).replace(".png", ""))
 		.join("+");
-	const cachePath = getCachePath(`_title_${basenames}.w${IMAGE_WIDTH}.webp`);
+	const cachePath = getCachePath(`_title_${SERVER_PATHS[GAME_SERVER]}_${basenames}.w${IMAGE_WIDTH}.webp`);
 	const cacheExists = await exists(cachePath);
 	if (cacheExists) {
 		const blob = await openAsBlob(cachePath);

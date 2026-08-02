@@ -18,38 +18,47 @@ const GIT_ROOT_PATH = await new Promise<string>((resolve, reject) => {
 
 const BESTDORI_CACHE_DIR = path.join(GIT_ROOT_PATH, ".bestdori-cache");
 
+const fetchBestdoriImpl = async (
+	pathname: string,
+	cache: boolean,
+	originalCachePath?: string,
+): Promise<Response> => {
+	const url = new URL(pathname, "https://bestdori.com");
+
+	const cachePath = originalCachePath ?? getCachePath(url.pathname);
+	const cacheExists = cache && (await exists(cachePath));
+	if (cacheExists) {
+		const blob = await openAsBlob(cachePath);
+		return new Response(blob);
+	}
+
+	const response = await retry(() => fetch(url), { retries: 5 });
+	if (!isResponseOk(response)) {
+		// Fallback to JP assets if not JP server
+		if (GAME_SERVER !== SERVERS.JP) {
+			const serverPath = SERVER_PATHS[GAME_SERVER];
+			if (pathname.startsWith(`/assets/${serverPath}`))
+				return fetchBestdoriImpl(
+					pathname.replace(`/assets/${serverPath}`, `/assets/${SERVER_PATHS[SERVERS.JP]}`),
+					cache,
+					cachePath,
+				);
+		}
+
+		throw new Error(`request to ${url.href} failed`);
+	}
+
+	if (cache) {
+		const buffer = await response.clone().arrayBuffer().then(Buffer.from);
+		await writeFile(cachePath, buffer);
+	}
+
+	return response;
+};
+
 export const fetchBestdori = limitAsync(
 	async (pathname: string, cache: boolean): Promise<Response> => {
-		const url = new URL(pathname, "https://bestdori.com");
-
-		const cachePath = getCachePath(url.pathname);
-		const cacheExists = cache && (await exists(cachePath));
-		if (cacheExists) {
-			const blob = await openAsBlob(cachePath);
-			return new Response(blob);
-		}
-
-		const response = await retry(() => fetch(url), { retries: 5 });
-		if (!isResponseOk(response)) {
-			// Fallback to JP assets if not JP server
-			if (GAME_SERVER !== SERVERS.JP) {
-				const serverPath = SERVER_PATHS[GAME_SERVER];
-				if (pathname.startsWith(`/assets/${serverPath}`))
-					return fetchBestdori(
-						pathname.replace(`/assets/${serverPath}`, `/assets/${SERVER_PATHS[SERVERS.JP]}`),
-						cache,
-					);
-			}
-
-			throw new Error(`request to ${url.href} failed`);
-		}
-
-		if (cache) {
-			const buffer = await response.clone().arrayBuffer().then(Buffer.from);
-			await writeFile(cachePath, buffer);
-		}
-
-		return response;
+		return fetchBestdoriImpl(pathname, cache);
 	},
 	4,
 );

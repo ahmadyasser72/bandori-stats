@@ -33,7 +33,7 @@ export const GET: APIRoute<Props, Params> = async ({ props }) => {
 
 	const IMAGE_WIDTH = 64;
 	const cachePath = getCachePath(
-		`_card_${props.card.id}_${type}.w${IMAGE_WIDTH}.webp`,
+		`_card_${SERVER_PATHS[GAME_SERVER]}_${props.card.id}_${type}.w${IMAGE_WIDTH}.webp`,
 	);
 	const cacheExists = await exists(cachePath);
 	if (cacheExists) {

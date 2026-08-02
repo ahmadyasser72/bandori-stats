@@ -26,7 +26,7 @@ export const GET: APIRoute<Props, Params> = async ({ params, props }) => {
 
 	const IMAGE_WIDTH = 400;
 	const cachePath = getCachePath(
-		`_event_${params.id}_banner.w${IMAGE_WIDTH}.webp`,
+		`_event_${SERVER_PATHS[GAME_SERVER]}_${params.id}_banner.w${IMAGE_WIDTH}.webp`,
 	);
 	const cacheExists = await exists(cachePath);
 	if (cacheExists) {
