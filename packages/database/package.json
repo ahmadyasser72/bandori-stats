@@ -14,7 +14,7 @@
 	"dependencies": {
 		"@bandori-stats/bestdori": "workspace:*",
 		"@libsql/client": "0.17.4",
-		"@upstash/redis": "1.38.0",
+		"@upstash/redis": "1.38.1",
 		"drizzle-orm": "1.0.0-rc.4-de6c356"
 	},
 	"devDependencies": {

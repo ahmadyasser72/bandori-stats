@@ -17,7 +17,7 @@
 		"@bandori-stats/discord-bot": "workspace:*",
 		"@catppuccin/daisyui": "2.1.1",
 		"@iconify-json/line-md": "1.2.16",
-		"@iconify-json/lucide": "1.2.120",
+		"@iconify-json/lucide": "1.2.121",
 		"@iconify-json/svg-spinners": "1.2.4",
 		"@iconify/tailwind4": "1.2.3",
 		"@tailwindcss/typography": "0.5.20",
@@ -25,14 +25,14 @@
 		"@zumer/snapdom": "2.23.1",
 		"astro": "7.1.6",
 		"clsx": "2.1.1",
-		"daisyui": "5.7.7",
-		"devalue": "5.8.2",
+		"daisyui": "5.7.11",
+		"devalue": "5.9.0",
 		"htmx.org": "4.0.0-beta6",
 		"minisearch": "7.2.0",
-		"preact": "10.29.7",
+		"preact": "10.29.8",
 		"random": "5.4.1",
 		"tailwindcss": "4.3.3",
-		"takumi-js": "2.5.3",
+		"takumi-js": "2.5.4",
 		"vanilla-calendar-pro": "3.1.0",
 		"zod": "4.4.3"
 	},
@@ -43,6 +43,6 @@
 		"@vitejs/devtools": "0.4.10",
 		"typescript": "5.9.3",
 		"vite-plugin-inspect": "11.4.1",
-		"wrangler": "4.115.0"
+		"wrangler": "4.118.0"
 	}
 }
