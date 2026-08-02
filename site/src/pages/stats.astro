@@ -28,23 +28,32 @@ export const partial = true;
 const today = dayjs.tz().format("YYYY-MM-DD");
 const [
 	[{ totalAccounts }],
-	[{ totalSnapshots, firstUpdate, lastUpdate }],
+	[{ totalSnapshots }],
+	[{ firstUpdate }],
+	[{ lastUpdate }],
 	[{ snapshotsToday }],
 ] = await db().batch([
 	db()
-		.select({ totalAccounts: count(accounts.id) })
-		.from(accounts),
+		.select({ totalAccounts: count() })
+		.from(accounts)
+		.limit(1),
 	db()
-		.select({
-			totalSnapshots: count(accountSnapshots.id),
-			firstUpdate: min(accountSnapshots.snapshotDate),
-			lastUpdate: max(accountSnapshots.snapshotDate),
-		})
-		.from(accountSnapshots),
-	db()
-		.select({ snapshotsToday: count(accountSnapshots.id) })
+		.select({ totalSnapshots: count() })
 		.from(accountSnapshots)
-		.where(eq(accountSnapshots.snapshotDate, today)),
+		.limit(1),
+	db()
+		.select({ firstUpdate: min(accountSnapshots.snapshotDate) })
+		.from(accountSnapshots)
+		.limit(1),
+	db()
+		.select({ lastUpdate: max(accountSnapshots.snapshotDate) })
+		.from(accountSnapshots)
+		.limit(1),
+	db()
+		.select({ snapshotsToday: count() })
+		.from(accountSnapshots)
+		.where(eq(accountSnapshots.snapshotDate, today))
+		.limit(1),
 ]);
 
 const sumScript = redis().createScript<[number, number, number]>(`
