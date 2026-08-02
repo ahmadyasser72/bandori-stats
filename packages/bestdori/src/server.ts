@@ -7,7 +7,7 @@ export const SERVERS = {
 
 export type GameServer = (typeof SERVERS)[keyof typeof SERVERS];
 
-export const GAME_SERVER = SERVERS.EN;
+export const GAME_SERVER: GameServer = SERVERS.EN;
 
 export const SERVER_PATHS: Record<GameServer, string> = {
 	[SERVERS.JP]: "jp",
