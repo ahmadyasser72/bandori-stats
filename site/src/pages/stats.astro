@@ -33,14 +33,8 @@ const [
 	[{ lastUpdate }],
 	[{ snapshotsToday }],
 ] = await db().batch([
-	db()
-		.select({ totalAccounts: count() })
-		.from(accounts)
-		.limit(1),
-	db()
-		.select({ totalSnapshots: count() })
-		.from(accountSnapshots)
-		.limit(1),
+	db().select({ totalAccounts: count() }).from(accounts).limit(1),
+	db().select({ totalSnapshots: count() }).from(accountSnapshots).limit(1),
 	db()
 		.select({ firstUpdate: min(accountSnapshots.snapshotDate) })
 		.from(accountSnapshots)
