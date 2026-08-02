@@ -11,7 +11,7 @@
 @import "./theme.css";
 
 :root {
-	@apply scrollbar-thin scrollbar-thumb-primary scrollbar-track-primary-content scrollbar-gutter-stable;
+	@apply scrollbar-thin scrollbar-thumb-secondary-content/67 scrollbar-track-secondary/34 scrollbar-gutter-stable;
 }
 
 .htmx-indicator-replace:is(

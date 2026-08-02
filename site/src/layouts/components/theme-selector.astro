@@ -55,8 +55,9 @@ const { compact = false } = Astro.props;
 			if (!(themeColorMeta instanceof HTMLMetaElement)) return;
 
 			const styles = getComputedStyle(document.documentElement);
-			const accentColor = styles.getPropertyValue("--color-accent");
-			if (accentColor) themeColorMeta.setAttribute("content", accentColor);
+			const secondaryColor = styles.getPropertyValue("--color-secondary");
+			if (secondaryColor)
+				themeColorMeta.setAttribute("content", secondaryColor);
 		};
 
 		const systemIsDark = window.matchMedia("(prefers-color-scheme: dark)");
