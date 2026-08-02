@@ -23,7 +23,7 @@ export const updateProfile = schemaTask({
 			.triggerAndWait(
 				{ username },
 				{
-					idempotencyKeyTTL: "28d",
+					idempotencyKeyTTL: "7d",
 					idempotencyKey: await idempotencyKeys.create(`profile_${username}`, {
 						scope: "global",
 					}),
