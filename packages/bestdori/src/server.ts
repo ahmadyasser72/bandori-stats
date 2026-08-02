@@ -3,11 +3,11 @@ export const SERVERS = {
 	EN: 1,
 	TW: 2,
 	CN: 3,
-} as const;
+} as const satisfies Record<string, number>;
 
 export type GameServer = (typeof SERVERS)[keyof typeof SERVERS];
 
-export const GAME_SERVER: GameServer = SERVERS.EN;
+export const GAME_SERVER = SERVERS.EN satisfies GameServer;
 
 export const SERVER_PATHS: Record<GameServer, string> = {
 	[SERVERS.JP]: "jp",
