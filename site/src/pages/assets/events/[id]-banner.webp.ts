@@ -6,6 +6,7 @@ import {
 	getCachePath,
 } from "@bandori-stats/bestdori/fetch";
 import { imageConfig, vips } from "@bandori-stats/bestdori/image";
+import { GAME_SERVER, SERVER_PATHS } from "@bandori-stats/bestdori/server";
 
 import type {
 	APIRoute,
@@ -18,7 +19,7 @@ import { leaderboards } from "virtual:bandori-leaderboard";
 export const prerender = true;
 
 export const GET: APIRoute<Props, Params> = async ({ params, props }) => {
-	const imagePath = `/assets/en/homebanner_rip/${props.event.bannerAssetBundleName}.png`;
+	const imagePath = `/assets/${SERVER_PATHS[GAME_SERVER]}/homebanner_rip/${props.event.bannerAssetBundleName}.png`;
 	const bytes = await fetchBestdori(imagePath, true)
 		.then((response) => response.arrayBuffer())
 		.then((buffer) => new Uint8Array(buffer));

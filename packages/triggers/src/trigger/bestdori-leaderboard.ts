@@ -3,6 +3,7 @@ import {
 	type RawStatName,
 	type StatName,
 } from "@bandori-stats/bestdori/constants";
+import { GAME_SERVER } from "@bandori-stats/bestdori/server";
 import { PlayerLeaderboard } from "@bandori-stats/bestdori/schema/player/leaderboard";
 
 import { AbortTaskRunError, schemaTask, tags } from "@trigger.dev/sdk";
@@ -30,7 +31,7 @@ export const bestdoriLeaderboard = schemaTask({
 	run: async ({ type, limit, offset }) => {
 		const { success, data, error } = PlayerLeaderboard.safeParse(
 			await bestdori("api/sync/list/player", {
-				server: "1",
+				server: GAME_SERVER.toString(),
 				stats: leaderboardTypeMap[type],
 				limit: limit.toString(),
 				offset: offset.toString(),

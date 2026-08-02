@@ -3,6 +3,7 @@ import {
 	abbreviateStatName,
 	displayValue,
 } from "@bandori-stats/bestdori/helpers";
+import { GAME_SERVER } from "@bandori-stats/bestdori/server";
 import { PlayerStats } from "@bandori-stats/bestdori/schema/player/stats";
 
 import { AbortTaskRunError, schemaTask, tags } from "@trigger.dev/sdk/v3";
@@ -26,7 +27,7 @@ export const bestdoriStats = schemaTask({
 		}
 
 		const { uid, stats } = data.accounts
-			.filter(({ server }) => server === 1)
+			.filter(({ server }) => server === GAME_SERVER)
 			.map((stats) => ({
 				uid: stats.uid?.toString() ?? null,
 				stats: {

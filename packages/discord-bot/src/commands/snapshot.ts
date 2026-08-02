@@ -1,5 +1,6 @@
 import dayjs from "@bandori-stats/bestdori/date";
 import { accountHasNickname } from "@bandori-stats/bestdori/helpers";
+import { GAME_SERVER, SERVER_PATHS } from "@bandori-stats/bestdori/server";
 import { accountSnapshots } from "@bandori-stats/database/schema";
 
 import {
@@ -278,7 +279,7 @@ export const handle: CommandHandler = async (request, { type, data }) => {
 								type: MessageComponentTypes.BUTTON,
 								style: ButtonStyleTypes.LINK,
 								label: "Bestdori! Player Search",
-								url: `https://bestdori.com/tool/playersearch/en/${account.uid}`,
+								url: `https://bestdori.com/tool/playersearch/${SERVER_PATHS[GAME_SERVER]}/${account.uid}`,
 							});
 						}
 

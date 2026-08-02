@@ -5,6 +5,8 @@ import path from "node:path";
 
 import { limitAsync, retry } from "es-toolkit";
 
+import { GAME_SERVER, SERVERS, SERVER_PATHS } from "./server";
+
 const GIT_ROOT_PATH = await new Promise<string>((resolve, reject) => {
 	exec("git rev-parse --show-toplevel", (error, stdout) =>
 		error ? reject(error) : resolve(stdout.trim()),
@@ -29,11 +31,15 @@ export const fetchBestdori = limitAsync(
 
 		const response = await retry(() => fetch(url), { retries: 5 });
 		if (!isResponseOk(response)) {
-			if (pathname.startsWith("/assets/en"))
-				return fetchBestdori(
-					pathname.replace("/assets/en", "/assets/jp"),
-					cache,
-				);
+			// Fallback to JP assets if not JP server
+			if (GAME_SERVER !== SERVERS.JP) {
+				const serverPath = SERVER_PATHS[GAME_SERVER];
+				if (pathname.startsWith(`/assets/${serverPath}`))
+					return fetchBestdori(
+						pathname.replace(`/assets/${serverPath}`, `/assets/${SERVER_PATHS[SERVERS.JP]}`),
+						cache,
+					);
+			}
 
 			throw new Error(`request to ${url.href} failed`);
 		}
