@@ -89,7 +89,7 @@
         "@zumer/snapdom": "2.23.1",
         "astro": "7.1.6",
         "clsx": "2.1.1",
-        "daisyui": "5.7.11",
+        "daisyui": "5.7.13",
         "devalue": "5.9.0",
         "htmx.org": "4.0.0-beta6",
         "minisearch": "7.2.0",
@@ -998,7 +998,7 @@
 
     "csstype": ["csstype@3.2.3", "", {}, "sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ=="],
 
-    "daisyui": ["daisyui@5.7.11", "", {}, "sha512-hEwAKvtMso+fGAwB0DP1nL4cthxHtJ7Omd1v3k39Zn9IBNyzMWrdDCzaai23z0Z3sddeZDq3VtUVPaNtk2+FMQ=="],
+    "daisyui": ["daisyui@5.7.13", "", {}, "sha512-FR2hWEZqfy8sW9j9z07Yv8hT+WMGc1AEBaeFrHY/3HPRCF3JL7gqLoIhb7E/2f1fecczBE/mEhpez7lQgU4HVQ=="],
 
     "dayjs": ["dayjs@1.11.21", "", {}, "sha512-98IT+HOahAisibz/yjKbzuOBwYcjJ7BCLPzARyHiyEBmRz4fatF+KPJszEHXsGYjUG234aH/cOjW1wwTbKUZlA=="],
 
