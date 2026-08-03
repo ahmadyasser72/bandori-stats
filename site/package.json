@@ -26,7 +26,7 @@
 		"@zumer/snapdom": "2.23.1",
 		"astro": "7.1.6",
 		"clsx": "2.1.1",
-		"daisyui": "5.7.13",
+		"daisyui": "5.7.14",
 		"devalue": "5.9.0",
 		"htmx.org": "4.0.0-beta6",
 		"minisearch": "7.2.0",
