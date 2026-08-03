@@ -9,17 +9,16 @@ interface Props extends JSX.HTMLAttributes {
 const { url, size, ...props } = Astro.props;
 ---
 
-<div class="titles" hx-indicator:inherited="closest .titles" {...props}>
-	<div
-		hx-get={url}
-		hx-swap="outerHTML"
-		hx-trigger="intersect once"
-		class="aspect-23/5 skeleton"
-	>
-	</div>
-
+<div
+	hx-get={url}
+	hx-swap="prepend"
+	hx-trigger="intersect once"
+	class="titles"
+	hx-indicator:inherited="closest .titles"
+	{...props}
+>
 	{
-		Array.from({ length: Math.min(size - 1, 5) }, () => (
+		Array.from({ length: Math.min(size, 5) }, () => (
 			<div class="htmx-indicator aspect-23/5 skeleton" />
 		))
 	}

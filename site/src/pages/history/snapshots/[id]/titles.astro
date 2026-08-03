@@ -1,5 +1,8 @@
 ---
+import { groupBy } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
+
+import { titles, titlesDisplay } from "virtual:bandori-leaderboard";
 
 import { getTitleImage } from "~/lib/assets";
 import { paginate } from "~/lib/paginate";
@@ -14,8 +17,8 @@ const snapshot = await db().query.accountSnapshots.findFirst({
 	orderBy: { id: "desc" },
 });
 
-const titles = snapshot?.stats.titles ?? [];
-const isNotFound = !snapshot || titles.length === 0;
+const snapshotTitles = snapshot?.stats.titles ?? [];
+const isNotFound = !snapshot || snapshotTitles.length === 0;
 if (isNotFound) Astro.response.status = 404;
 
 const previous = isNotFound
@@ -27,32 +30,69 @@ const previous = isNotFound
 		});
 
 const previousTitles = new Set(previous?.stats.titles ?? []);
-const sortedTitles = titles
-	.map((id) => ({
-		id,
-		isNew: previousTitles.size === 0 || !previousTitles.has(id),
-	}))
-	.sort((a, b) => Number(b.isNew) - Number(a.isNew));
-const hasNewTitle = sortedTitles.some(({ isNew }) => isNew);
+const grouped = groupBy(snapshotTitles, (id) => {
+	if (!previousTitles.has(id)) return "new";
+
+	return Object.entries(titles).find(([, items]) => items.includes(id))![0];
+});
+
+const { new: newTitles = [], ...byCategory } = grouped;
+const titlesWithCategory = Object.keys(titles)
+	.filter((category) => category in byCategory)
+	.flatMap((category) => byCategory[category].map((id) => ({ category, id })));
 
 const page = await paginate({
-	items: sortedTitles,
+	items: titlesWithCategory,
 	context: Astro,
-	size: 96,
+	size: 120,
 	extraProps: { "hx-swap": "after" },
 });
 ---
 
 {
-	page.items.map(({ id, isNew }, idx) => (
-		<img
-			{...(page.isLastElement(idx) && page.props)}
-			src={getTitleImage(id)}
-			class:list={[
-				"aspect-23/5 rounded-2xl",
-				hasNewTitle && !isNew && "opacity-34",
-			]}
-			loading="lazy"
-		/>
+	page.current === 1 && newTitles.length > 0 && (
+		<>
+			<div class="divider my-1 basis-full">
+				<div class="badge badge-sm font-medium badge-primary">
+					{newTitles.length} &mdash; New Titles
+				</div>
+			</div>
+
+			{newTitles.map((id) => (
+				<img
+					class="aspect-23/5 rounded-2xl"
+					src={getTitleImage(id)}
+					loading="lazy"
+				/>
+			))}
+		</>
+	)
+}
+
+{
+	page.items.map(({ id, category }, idx, items) => (
+		<>
+			{((idx === 0 &&
+				(page.current === 1 ||
+					titlesWithCategory[page.size * (page.current - 1) - 1].category !==
+						category)) ||
+				(idx > 0 && items[idx - 1].category !== category)) && (
+				<div class="divider my-1 basis-full">
+					<div class="badge badge-sm font-medium badge-accent">
+						{grouped[category].length} &mdash;{" "}
+						{category === "uncategorized"
+							? "Uncategorized"
+							: titlesDisplay[category]}
+					</div>
+				</div>
+			)}
+
+			<img
+				{...(page.isLastElement(idx) && page.props)}
+				class="aspect-23/5 rounded-2xl"
+				src={getTitleImage(id)}
+				loading="lazy"
+			/>
+		</>
 	))
 }
