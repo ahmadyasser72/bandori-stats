@@ -86,6 +86,7 @@
         "@iconify/tailwind4": "1.2.3",
         "@tailwindcss/typography": "0.5.20",
         "@tailwindcss/vite": "4.3.3",
+        "@trigger.dev/sdk": "4.5.9",
         "@zumer/snapdom": "2.23.1",
         "astro": "7.1.6",
         "clsx": "2.1.1",

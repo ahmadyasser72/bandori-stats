@@ -86,6 +86,11 @@ export default defineConfig({
 				context: "server",
 			}),
 
+			TRIGGER_SECRET_KEY: envField.string({
+				access: "secret",
+				context: "server",
+			}),
+
 			UMAMI_SITE_ID: envField.string({
 				access: "public",
 				context: "server",

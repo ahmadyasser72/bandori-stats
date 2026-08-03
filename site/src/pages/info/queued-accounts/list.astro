@@ -1,0 +1,105 @@
+---
+import dayjs from "@bandori-stats/bestdori/date";
+import { accountHasNickname } from "@bandori-stats/bestdori/helpers";
+import { db } from "@bandori-stats/database";
+
+import { runs } from "@trigger.dev/sdk";
+
+import Icon from "~/components/icon.astro";
+import InfiniteListLoader from "~/components/infinite-list-loader.astro";
+import { getProfileIcon } from "~/lib/assets";
+import { paginate } from "~/lib/paginate";
+
+const queued = await (async () => {
+	const tasks = [] as Awaited<ReturnType<typeof runs.list>>["data"];
+	for await (const run of await runs.list({
+		taskIdentifier: "update-stats",
+		status: "DELAYED",
+		limit: 100,
+	})) {
+		tasks.push(run);
+	}
+
+	const usernames = tasks.map(({ tags }) => tags[0].slice(2));
+	const accounts = await db().query.accounts.findMany({
+		columns: { username: true, nickname: true, profileArt: true },
+		where: { username: { in: usernames } },
+	});
+
+	return tasks
+		.map(({ id, delayedUntil }, idx) => ({
+			id,
+			delayedUntil: delayedUntil!,
+			account: accounts.find(({ username }) => username === usernames[idx])!,
+		}))
+		.sort((a, b) => a.delayedUntil.valueOf() - b.delayedUntil.valueOf())
+		.map((data, idx) => ({
+			idx,
+			...data,
+		}));
+})();
+
+const page = await paginate({
+	context: Astro,
+	items: queued,
+	size: 50,
+	extraProps: { "hx-swap": "outerHTML" },
+});
+---
+
+{
+	page.items.length === 0 && (
+		<div class="list-row items-center">
+			<div class="flex items-center justify-center gap-2 list-col-grow">
+				<Icon class="size-10" name="lucide--x" />
+				<span class="text-lg font-medium">No accounts in queue</span>
+			</div>
+		</div>
+	)
+}
+
+{
+	page.items.map(({ idx, account, delayedUntil }) => (
+		<div class="list-row items-center">
+			<div class="badge min-h-8 min-w-8 badge-ghost">{idx + 1}</div>
+
+			<div class="flex min-w-0 items-center gap-2 list-col-grow">
+				{account.profileArt && (
+					<div class="avatar">
+						<div class="size-10 rounded-box">
+							<img
+								src={getProfileIcon(account)}
+								alt={account.username}
+								loading="lazy"
+							/>
+						</div>
+					</div>
+				)}
+
+				{accountHasNickname(account) ? (
+					<div class="flex min-w-0 flex-col">
+						<span class="truncate font-medium text-ellipsis">
+							{account.nickname}
+						</span>
+						<span class="truncate text-xs text-ellipsis text-base-content/67">
+							@{account.username}
+						</span>
+					</div>
+				) : (
+					<span class="truncate text-lg font-medium text-ellipsis">
+						@{account.username}
+					</span>
+				)}
+			</div>
+
+			<span
+				class="tooltip tooltip-start badge badge-sm tooltip-info underline decoration-dotted badge-info max-sm:list-col-wrap sm:tooltip-end"
+				data-tip={dayjs.tz(delayedUntil).fromNow()}
+			>
+				{dayjs.tz(delayedUntil).format("DD MMMM, HH:mm")}
+			</span>
+		</div>
+	))
+}
+
+{page.hasNextPage && <InfiniteListLoader {...page.props} />}

@@ -57,7 +57,7 @@ const PAGE_DESCRIPTIONS = {
 
 	<div class="relative mt-4 flex w-full flex-col items-center gap-2">
 		{
-			["/stats-data", "/stats-players"].map((path) => (
+			["/statistics/data", "/statistics/players"].map((path) => (
 				<div hx-get={path} hx-trigger="intersect once" class="stats w-full">
 					{Array.from({ length: 3 }, () => (
 						<div class="stat">
@@ -100,8 +100,15 @@ const PAGE_DESCRIPTIONS = {
 		}
 	</div>
 
-	<a class="btn mt-1 btn-soft btn-error btn-xs" href="/delete-my-data">
-		<IconLoader class="size-3" name="lucide--trash-2" />
-		Delete My Data
-	</a>
+	<div class="mt-1 flex flex-wrap justify-center gap-2">
+		<a class="btn btn-soft btn-error btn-xs" href="/info/delete-my-data">
+			<IconLoader class="size-3" name="lucide--trash-2" />
+			Delete My Data
+		</a>
+
+		<a class="btn btn-soft btn-info btn-xs" href="/info/queued-accounts">
+			<IconLoader class="size-3" name="lucide--list-ordered" />
+			Queued Accounts
+		</a>
+	</div>
 </BaseLayout>
