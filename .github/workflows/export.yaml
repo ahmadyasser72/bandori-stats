@@ -5,6 +5,9 @@ on:
     - cron: "0 0 * * *"
       timezone: "America/Los_Angeles"
   workflow_dispatch:
+    inputs:
+      release:
+        type: boolean
 
 env:
   DATABASE_NAME: "bestdori-leaderboard"
@@ -12,6 +15,9 @@ env:
 jobs:
   export:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
 
     steps:
       - name: Setup Turso CLI
@@ -44,3 +50,29 @@ jobs:
             ${{ env.DATABASE_NAME }}.db
             ${{ env.DATABASE_NAME }}.db-wal
           compression-level: 9
+
+      - name: Determine release
+        id: release
+        env:
+          FORCE_RELEASE: ${{ github.event.inputs.release || 'false' }}
+        run: |
+          if [ "$FORCE_RELEASE" = "true" ] || [ "$(date -u +%d)" = "01" ]; then
+            echo "release=true" >> "$GITHUB_OUTPUT"
+            echo "tag=$(date -u +'%Y%m')" >> "$GITHUB_OUTPUT"
+            echo "name=$(date -u +'%B %Y')" >> "$GITHUB_OUTPUT"
+          else
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create monthly release
+        if: steps.release.outputs.release == 'true'
+        uses: softprops/action-gh-release@v3.0.2
+        with:
+          tag_name: ${{ steps.release.outputs.tag }}
+          name: Database Snapshot - ${{ steps.release.outputs.name }}
+          make_latest: true
+          overwrite_files: true
+          files: |
+            ${{ env.DATABASE_NAME }}.sql
+            ${{ env.DATABASE_NAME }}.db
+            ${{ env.DATABASE_NAME }}.db-wal
