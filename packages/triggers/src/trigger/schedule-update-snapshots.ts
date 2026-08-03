@@ -25,35 +25,32 @@ export const scheduleUpdateSnapshots = schedules.task({
 				where: { disabledAt: { isNull: true } },
 			})
 			.then((accounts) =>
-				rng
-					.shuffle(accounts)
-					.map((account, idx) => ({ ...account, idx }))
-					.filter((account) => {
-						if (account.lastUpdated === null) return true;
+				rng.shuffle(accounts).filter((account) => {
+					if (account.lastUpdated === null) return true;
 
-						const lastUpdated = dayjs(account.lastUpdated);
-						const isRecentlyUpdated = now.diff(lastUpdated, "weeks") < 2;
-						if (isRecentlyUpdated) return true;
+					const lastUpdated = dayjs(account.lastUpdated);
+					const isRecentlyUpdated = now.diff(lastUpdated, "weeks") < 2;
+					if (isRecentlyUpdated) return true;
 
-						let delayUpdateDays = 7;
-						const monthsSinceUpdate = now.diff(lastUpdated, "months");
-						if (monthsSinceUpdate >= 6) delayUpdateDays = 28;
-						else if (monthsSinceUpdate >= 3) delayUpdateDays = 14;
+					let delayUpdateDays = 7;
+					const monthsSinceUpdate = now.diff(lastUpdated, "months");
+					if (monthsSinceUpdate >= 6) delayUpdateDays = 28;
+					else if (monthsSinceUpdate >= 3) delayUpdateDays = 14;
 
-						const jitter = account.id % delayUpdateDays;
-						const daysSinceUpdate = now.diff(lastUpdated, "days");
-						return (
-							daysSinceUpdate > jitter &&
-							daysSinceUpdate % delayUpdateDays === jitter
-						);
-					}),
+					const jitter = account.id % delayUpdateDays;
+					const daysSinceUpdate = now.diff(lastUpdated, "days");
+					return (
+						daysSinceUpdate > jitter &&
+						daysSinceUpdate % delayUpdateDays === jitter
+					);
+				}),
 			);
 
 		const TOTAL_MINUTES = 24 * 60 - 10;
 		const slot = TOTAL_MINUTES / accounts.length;
 		type Payload = BatchItem<{ username: string; date: string }>;
 		const payloads = accounts.map(
-			({ username, idx }) =>
+			({ username }, idx) =>
 				Array.from({ length: 2 }, (): Payload => ({
 					payload: { username, date },
 					options: {
