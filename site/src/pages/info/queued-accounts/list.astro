@@ -10,39 +10,43 @@ import InfiniteListLoader from "~/components/infinite-list-loader.astro";
 import { getProfileIcon } from "~/lib/assets";
 import { paginate } from "~/lib/paginate";
 
-const queued = await (async () => {
-	const tasks = [] as Awaited<ReturnType<typeof runs.list>>["data"];
-	for await (const run of await runs.list({
-		taskIdentifier: "update-stats",
-		status: "DELAYED",
-		limit: 100,
-	})) {
-		tasks.push(run);
-	}
-
-	const usernames = tasks.map(({ tags }) => tags[0].slice(2));
-	const accounts = await db().query.accounts.findMany({
-		columns: { username: true, nickname: true, profileArt: true },
-		where: { username: { in: usernames } },
-	});
-
-	return tasks
-		.map(({ id, delayedUntil }, idx) => ({
-			id,
-			delayedUntil: delayedUntil!,
-			account: accounts.find(({ username }) => username === usernames[idx])!,
-		}))
-		.sort((a, b) => a.delayedUntil.valueOf() - b.delayedUntil.valueOf())
-		.map((data, idx) => ({
-			idx,
-			...data,
-		}));
-})();
-
 const page = await paginate({
 	context: Astro,
-	items: queued,
-	size: 50,
+	items: {
+		get: async (limit, offset) => {
+			const tasks = [] as Awaited<ReturnType<typeof runs.list>>["data"];
+			for await (const run of await runs.list({
+				taskIdentifier: "update-stats",
+				status: "DELAYED",
+				limit: 100,
+			})) {
+				tasks.push(run);
+			}
+
+			const paged = tasks
+				.sort((a, b) => a.delayedUntil!.valueOf() - b.delayedUntil!.valueOf())
+				.slice(offset, offset + limit);
+
+			const usernames = paged.map(({ tags }) => tags[0].slice(2));
+			const accounts = await db().query.accounts.findMany({
+				columns: { username: true, nickname: true, profileArt: true },
+				where: { username: { in: usernames } },
+			});
+
+			return {
+				items: paged.map(({ id, delayedUntil }, idx) => ({
+					id,
+					idx: offset + idx,
+					delayedUntil: delayedUntil!,
+					account: accounts.find(
+						({ username }) => username === usernames[idx],
+					)!,
+				})),
+				hasNextPage: offset + limit < tasks.length,
+			};
+		},
+	},
+	size: 25,
 	extraProps: { "hx-swap": "outerHTML" },
 });
 

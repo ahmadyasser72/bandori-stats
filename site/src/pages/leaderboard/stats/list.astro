@@ -56,10 +56,13 @@ const page = await paginate({
 				where: { id: { in: paged.map(({ id }) => id) } },
 			});
 
-			return paged.map(({ id, ...data }) => ({
-				player: players.find((player) => player.id === id)!,
-				...data,
-			}));
+			return {
+				items: paged.map(({ id, ...data }) => ({
+					player: players.find((player) => player.id === id)!,
+					...data,
+				})),
+				hasNextPage: offset + limit < topPlayers.length,
+			};
 		},
 	},
 	context: Astro,

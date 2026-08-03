@@ -7,7 +7,10 @@ interface PaginateProps<T> {
 	items:
 		| T[]
 		| {
-				get: (limit: number, offset: number) => Promise<T[]>;
+				get: (
+					limit: number,
+					offset: number,
+				) => Promise<T[] | { items: T[]; hasNextPage: boolean }>;
 		  };
 	context: APIContext;
 	size: number;
@@ -23,15 +26,22 @@ export const paginate = async <T>({
 	const current = pageSchema.parse(context.url.searchParams.get("page"));
 	const offset = (current - 1) * size;
 
-	const pageItems = Array.isArray(items)
+	const page = Array.isArray(items)
 		? items.slice(offset, offset + size)
 		: await items.get(size, offset);
 	const isLastElement = (idx: number) => idx === size - 1;
-	const out = { current, size, isLastElement, items: pageItems };
+	const out = {
+		current,
+		size,
+		isLastElement,
+		items: Array.isArray(page) ? page : page.items,
+	};
 
 	const hasNextPage = Array.isArray(items)
 		? offset + size < items.length
-		: pageItems.length === size;
+		: Array.isArray(page)
+			? page.length === size
+			: page.hasNextPage;
 	if (!hasNextPage) return { ...out, hasNextPage, props: {} };
 
 	const url = new URL(context.url);
