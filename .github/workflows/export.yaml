@@ -1,0 +1,46 @@
+name: export-database
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+      timezone: "America/Los_Angeles"
+  workflow_dispatch:
+
+env:
+  DATABASE_NAME: "bestdori-leaderboard"
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup Turso CLI
+        run: |
+          curl -sSfL https://get.tur.so/install.sh | bash
+          echo "$HOME/.turso" >> $GITHUB_PATH
+
+      - name: Dump SQL
+        run: turso db shell ${{ env.DATABASE_NAME }} ".dump" > ${{ env.DATABASE_NAME }}.sql
+        env:
+          TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
+
+      - name: Upload SQLite dump
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: ${{ env.DATABASE_NAME }}-sqlite-dump
+          path: ${{ env.DATABASE_NAME }}.sql
+          compression-level: 9
+
+      - name: Export DB
+        run: turso db export ${{ env.DATABASE_NAME }} --output-file ${{ env.DATABASE_NAME }}.db
+        env:
+          TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
+
+      - name: Upload SQLite DB
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: ${{ env.DATABASE_NAME }}-sqlite-database
+          path: |
+            ${{ env.DATABASE_NAME }}.db
+            ${{ env.DATABASE_NAME }}.db-wal
+          compression-level: 9
