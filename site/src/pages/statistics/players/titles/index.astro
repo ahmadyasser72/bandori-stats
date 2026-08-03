@@ -23,10 +23,7 @@ export const partial = true;
 					{
 						Object.entries(titles).map(([category, items], idx) => (
 							<option value={category} selected={idx === 0}>
-								{items.length} &mdash;{" "}
-								{category === "uncategorized"
-									? "Uncategorized"
-									: titlesDisplay[category]}
+								{items.size} &mdash; {titlesDisplay[category]}
 							</option>
 						))
 					}

@@ -63,7 +63,7 @@ const totalStats = await Promise.all(
 	<div class="stat-value">
 		<div class="flex items-center">
 			<Icon class="size-8" name="lucide--hash" />
-			{formatNumber(sumBy(Object.values(titles), (items) => items.length))}
+			{formatNumber(sumBy(Object.values(titles), (items) => items.size))}
 		</div>
 	</div>
 	<div class="stat-actions">

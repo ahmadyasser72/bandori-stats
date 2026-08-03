@@ -26,7 +26,7 @@ const idx = IdSchema.refine(
 
 const grouped = groupBy(
 	leaderboard[idx].titles,
-	(id) => Object.entries(titles).find(([, items]) => items.includes(id))![0],
+	(id) => Object.entries(titles).find(([, items]) => items.has(id))![0],
 );
 const titlesWithCategory = Object.keys(titles)
 	.reverse()
@@ -51,10 +51,7 @@ const page = await paginate({
 				(idx > 0 && items[idx - 1].category !== category)) && (
 				<div class="divider my-1 basis-full">
 					<div class="badge badge-sm font-medium badge-accent">
-						{grouped[category].length} &mdash;{" "}
-						{category === "uncategorized"
-							? "Uncategorized"
-							: titlesDisplay[category]}
+						{grouped[category].length} &mdash; {titlesDisplay[category]}
 					</div>
 				</div>
 			)}

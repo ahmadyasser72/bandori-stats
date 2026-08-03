@@ -13,7 +13,7 @@ const { category } = Astro.locals.parseQuery(
 
 const page = await paginate({
 	context: Astro,
-	items: titles[category],
+	items: [...titles[category]],
 	size: 192,
 	extraProps: { "hx-swap": "after", "hx-vals": JSON.stringify({ category }) },
 });
@@ -24,10 +24,7 @@ const page = await paginate({
 		<div class="card">
 			<div class="card-body max-h-[60vh] items-center">
 				<div class="card-title">
-					{category === "uncategorized"
-						? "Uncategorized"
-						: titlesDisplay[category]}{" "}
-					&mdash; {titles[category].length}
+					{titlesDisplay[category]} &mdash; {titles[category].size}
 				</div>
 
 				<div class="titles overflow-y-auto">

@@ -359,9 +359,12 @@ export default function bandoriLeaderboard() {
 								.sort(
 									([a], [b]) => categories.indexOf(a) - categories.indexOf(b),
 								)
-								.map(([k, set]) => [k, sortDegrees([...set], degrees)]),
+								.map(([k, set]) => [
+									k,
+									new Set(sortDegrees([...set], degrees)),
+								]),
 						),
-						uncategorized: sortDegrees([...uncategorized], degrees),
+						uncategorized: new Set(sortDegrees([...uncategorized], degrees)),
 					};
 				})();
 
@@ -566,7 +569,7 @@ export default function bandoriLeaderboard() {
 							leaderboards.global[category].length > 0,
 					),
 					titles,
-					titlesDisplay,
+					titlesDisplay: { ...titlesDisplay, uncategorized: "Uncategorized" },
 					leaderboards,
 				} satisfies BandoriLeaderboard;
 				const exports = Object.keys(module);
