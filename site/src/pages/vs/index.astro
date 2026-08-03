@@ -92,6 +92,9 @@ const [player1, player2] = await Promise.all(
 	>
 		<div class="join" style="anchor-name: --anchor-vs-player-action">
 			<button
+				data-umami-event="vs-calendar"
+				data-umami-event-player-1={player1?.username}
+				data-umami-event-player-2={player2?.username}
 				class="btn join-item flex-1 btn-primary"
 				disabled={!player1 || !player2}
 				popovertarget="vs-date"
@@ -118,6 +121,7 @@ const [player1, player2] = await Promise.all(
 			</div>
 
 			<button
+				data-umami-event="vs-settings"
 				class="btn join-item flex-1 btn-secondary"
 				popovertarget="vs-settings"
 				style="anchor-name: --anchor-vs-player-actions"
@@ -193,6 +197,9 @@ const [player1, player2] = await Promise.all(
 					"player-2": player1?.id,
 					ratio,
 				})}
+				data-umami-event="vs-swap"
+				data-umami-event-player-1={player1?.username}
+				data-umami-event-player-2={player2?.username}
 				class="btn join-item flex-1 btn-primary"
 				disabled={!player1 && !player2}
 			>
@@ -203,6 +210,9 @@ const [player1, player2] = await Promise.all(
 
 		<div class="join">
 			<button
+				data-umami-event="vs-download"
+				data-umami-event-player-1={player1?.username}
+				data-umami-event-player-2={player2?.username}
 				class="btn join-item flex-1 btn-soft btn-accent"
 				id="download-vs"
 				data-player-1={player1?.username}
@@ -213,6 +223,9 @@ const [player1, player2] = await Promise.all(
 				Download
 			</button>
 			<button
+				data-umami-event="vs-share"
+				data-umami-event-player-1={player1?.username}
+				data-umami-event-player-2={player2?.username}
 				class="btn join-item flex-1 tooltip-open btn-accent"
 				id="share-vs"
 				data-player-1={player1?.username}

@@ -36,6 +36,7 @@ const config = {
 	attributeGroups: [
 		"^hx-(get|post|boost(:inherited)?)$",
 		"^hx-",
+		"^data-umami-event",
 		"^(class|className|class:list)$",
 		"$CODE_GUIDE",
 	],

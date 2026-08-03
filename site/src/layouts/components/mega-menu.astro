@@ -13,6 +13,7 @@ const { page } = Astro.props;
 
 <button
 	class="btn btn-secondary sm:hidden"
+	data-umami-event="megamenu-mobile"
 	popovertarget="site-megamenu"
 	style="view-transition-name: site-heading"
 >
@@ -28,7 +29,7 @@ const { page } = Astro.props;
 >
 	<span class="megamenu-active"></span>
 
-	<button popovertarget="site-menu">
+	<button data-umami-event="megamenu-desktop" popovertarget="site-menu">
 		<span class="max-sm:hidden">Menu</span>
 		<span class="sm:hidden">Pages</span>
 	</button>
@@ -49,13 +50,20 @@ const { page } = Astro.props;
 		</ul>
 	</div>
 
-	<button popovertarget="site-links">Links</button>
+	<button data-umami-event="megamenu-desktop-links" popovertarget="site-links"
+		>Links</button
+	>
 	<div id="site-links" popover>
 		<ul class="menu">
 			{
 				LINKS.map(({ icon, label, url }) => (
 					<li>
-						<a href={url} target="_blank">
+						<a
+							data-umami-event="megamenu-external"
+							data-umami-event-name={label}
+							href={url}
+							target="_blank"
+						>
 							<Icon name={icon} />
 							{label}
 						</a>

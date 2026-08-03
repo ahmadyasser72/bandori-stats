@@ -45,7 +45,7 @@ const accounts = await db().query.accounts.findMany({
 					[otherSide]: otherId,
 				})}
 				{...(otherId && {
-					"data-umami-event": "compare-account",
+					"data-umami-event": "vs-account",
 					[`data-umami-event-${side}`]: account.id,
 					[`data-umami-event-${otherSide}`]: otherId,
 				})}

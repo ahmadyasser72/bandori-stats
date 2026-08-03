@@ -24,6 +24,7 @@ const { query, ratio, date } = Astro.locals.parseQuery(
 	>
 		<div class="flex gap-2">
 			<button
+				data-umami-event="history-search"
 				class="btn btn-square btn-accent"
 				popovertarget="history-search"
 				style="anchor-name: --anchor-history-search"
@@ -53,6 +54,7 @@ const { query, ratio, date } = Astro.locals.parseQuery(
 			</div>
 
 			<button
+				data-umami-event="history-calendar"
 				class="btn w-48 btn-primary"
 				popovertarget="history-date"
 				style="anchor-name: --anchor-history-date"
@@ -75,6 +77,7 @@ const { query, ratio, date } = Astro.locals.parseQuery(
 			</div>
 
 			<button
+				data-umami-event="history-settings"
 				class="btn btn-square btn-accent"
 				popovertarget="history-settings"
 				style="anchor-name: --anchor-history-settings"

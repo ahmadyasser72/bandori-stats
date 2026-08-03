@@ -72,6 +72,10 @@ const page = await paginate<(typeof players)[number]>({
 				<>
 					<div class="flex items-center gap-2 lg:flex-row-reverse">
 						<button
+							data-umami-event="view-player-titles"
+							data-umami-event-category={params.category}
+							data-umami-event-id={player.id}
+							data-umami-event-username={player.username}
 							class="btn btn-square btn-soft btn-primary btn-xs"
 							popovertarget={`titles-${player.id}-${params.category}`}
 						>

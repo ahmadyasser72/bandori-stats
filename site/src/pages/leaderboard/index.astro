@@ -49,6 +49,8 @@ const TAB_ICON = {
 						hx-disable="closest .tabs"
 						hx-replace-url={`/leaderboard?tab=${tab === "titles" ? "titles-event" : tab}`}
 						hx-target="#leaderboard-cards"
+						data-umami-event="leaderboard-tab"
+						data-umami-event-name={tab}
 						name="tab"
 						type="radio"
 						value={tab}

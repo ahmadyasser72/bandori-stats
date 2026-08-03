@@ -119,11 +119,10 @@ const snapshots = currentSnapshots.map((snapshot) => ({
 					style={`anchor-name: --anchor-${id}-actions`}
 				>
 					<button
-						class="btn btn-soft btn-primary btn-sm"
-						data-umami-event="view-calendar"
-						data-umami-event-date={snapshotDate}
+						data-umami-event="view-snapshot-calendar"
 						data-umami-event-id={accountId}
 						data-umami-event-username={account.username}
+						class="btn btn-soft btn-primary btn-sm"
 						popovertarget={`calendar-${id}`}
 					>
 						<Icon name="lucide--calendar" />
@@ -132,11 +131,10 @@ const snapshots = currentSnapshots.map((snapshot) => ({
 
 					{stats.titles && (
 						<button
-							class="btn btn-soft btn-accent btn-sm"
-							data-umami-event="view-titles"
-							data-umami-event-date={snapshotDate}
+							data-umami-event="view-snapshot-titles"
 							data-umami-event-id={accountId}
 							data-umami-event-username={account.username}
+							class="btn btn-soft btn-accent btn-sm"
 							popovertarget={`titles-${id}`}
 						>
 							<Icon name="lucide--crown" />

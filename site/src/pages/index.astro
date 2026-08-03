@@ -92,7 +92,13 @@ const PAGE_DESCRIPTIONS = {
 	<div class="flex flex-wrap justify-center gap-2">
 		{
 			LINKS.map(({ icon, label, url }) => (
-				<a class="btn btn-sm" href={url} target="_blank">
+				<a
+					class="btn btn-sm"
+					data-umami-event="homepage-external"
+					data-umami-event-name={label}
+					href={url}
+					target="_blank"
+				>
 					<Icon class="size-4" name={icon} />
 					{label}
 				</a>

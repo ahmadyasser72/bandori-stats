@@ -204,6 +204,9 @@ const page = await paginate<(typeof events)[number]>({
 							</div>
 						)}
 						<button
+							data-umami-event="view-event-titles"
+							data-umami-event-id={event.id}
+							data-umami-event-name={event.name}
 							class="btn w-full btn-primary btn-sm"
 							popovertarget={`event-${event.id}-detail`}
 						>
@@ -241,6 +244,9 @@ const page = await paginate<(typeof events)[number]>({
 					</div>
 
 					<button
+						data-umami-event="view-event-titles-preview"
+						data-umami-event-id={event.id}
+						data-umami-event-name={event.name}
 						class="btn btn-secondary btn-sm"
 						popovertarget={`event-${event.id}-preview`}
 					>

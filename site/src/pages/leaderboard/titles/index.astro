@@ -73,6 +73,7 @@ if (params.query) {
 				hx-sync="this:replace"
 				hx-target="#leaderboard-cards"
 				hx-trigger="input changed delay:300ms, intersect once"
+				data-umami-event="leaderboard-titles-search"
 				id="titles-search"
 				name="query"
 				type="search"
@@ -94,6 +95,8 @@ if (params.query) {
 							hx-include="#titles-search"
 							hx-replace-url={`/leaderboard?tab=titles-${name}`}
 							hx-target="#leaderboard-cards"
+							data-umami-event="leaderboard-titles-tab"
+							data-umami-event-name={name}
 							name="group"
 							type="radio"
 							value={name}

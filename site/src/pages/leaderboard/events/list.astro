@@ -106,6 +106,8 @@ const GROUP_LABELS = {
 				<input
 					hx-get="/leaderboard/events/list"
 					hx-disable="closest .tabs"
+					data-umami-event="events-leaderboard-tab"
+					data-umami-event-name={group}
 					class="peer"
 					name="group"
 					type="radio"
