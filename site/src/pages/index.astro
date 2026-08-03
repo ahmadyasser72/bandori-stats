@@ -107,12 +107,26 @@ const PAGE_DESCRIPTIONS = {
 	</div>
 
 	<div class="mt-1 flex flex-wrap justify-center gap-2">
-		<a class="btn btn-soft btn-error btn-xs" href="/info/delete-my-data">
+		<a
+			hx-get="/info/delete-my-data"
+			hx-swap="append"
+			hx-target="main"
+			class="btn btn-soft btn-error btn-xs"
+			data-umami-event="homepage-info"
+			data-umami-event-name="delete-my-data"
+		>
 			<IconLoader class="size-3" name="lucide--trash-2" />
 			Delete My Data
 		</a>
 
-		<a class="btn btn-soft btn-info btn-xs" href="/info/queued-accounts">
+		<a
+			hx-get="/info/queued-accounts"
+			hx-swap="append"
+			hx-target="main"
+			class="btn btn-soft btn-info btn-xs"
+			data-umami-event="homepage-info"
+			data-umami-event-name="queued-accounts"
+		>
 			<IconLoader class="size-3" name="lucide--list-ordered" />
 			Queued Accounts
 		</a>

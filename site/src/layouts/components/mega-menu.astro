@@ -73,15 +73,23 @@ const { page } = Astro.props;
 
 			<li>
 				<a
+					hx-get="/info/delete-my-data"
+					hx-swap="after"
+					hx-target="main"
 					class="btn justify-start btn-soft btn-error btn-sm"
-					href="/info/delete-my-data"
+					data-umami-event="megamenu-info"
+					data-umami-event-name="delete-my-data"
 				>
 					<IconLoader name="lucide--trash-2" />
 					Delete My Data
 				</a>
 				<a
+					hx-get="/info/queued-accounts"
+					hx-swap="after"
+					hx-target="main"
 					class="btn justify-start btn-soft btn-info btn-sm"
-					href="/info/queued-accounts"
+					data-umami-event="megamenu-info"
+					data-umami-event-name="queued-accounts"
 				>
 					<IconLoader name="lucide--list-ordered" />
 					Queued Accounts

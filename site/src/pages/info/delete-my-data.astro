@@ -1,23 +1,11 @@
 ---
-import BaseLayout from "~/layouts/base-layout.astro";
-import ThemeSelector from "~/layouts/components/theme-selector.astro";
+export const partial = true;
 ---
 
-<BaseLayout title="Delete My Data" containerClass="max-w-xl" page={null}>
-	<div class="mb-8 flex items-center justify-between">
-		<a
-			class="link text-2xl font-medium link-hover"
-			href="/"
-			style="view-transition-name: site-heading"
-		>
-			bandori-stats
-		</a>
-		<ThemeSelector />
-	</div>
-
-	<div class="card">
-		<div class="card-body">
-			<div class="prose">
+<bottom-sheet-dialog-manager>
+	<dialog>
+		<bottom-sheet content-height swipe-to-dismiss tabindex="0">
+			<div class="mx-auto prose py-8">
 				<h1>Delete My Data</h1>
 				<p>
 					This site tracks public player data from the Bestdori API, including
@@ -47,6 +35,6 @@ import ThemeSelector from "~/layouts/components/theme-selector.astro";
 					account.
 				</p>
 			</div>
-		</div>
-	</div>
-</BaseLayout>
+		</bottom-sheet>
+	</dialog></bottom-sheet-dialog-manager
+>
