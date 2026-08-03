@@ -4,13 +4,16 @@ import {
 	formatNumber,
 	simplifyStatName,
 	startCase,
+	sumBy,
 } from "@bandori-stats/bestdori/helpers";
 import {
 	PLAYER_STATS_SORTED_SET_PREFIX,
-	PLAYER_TITLES_SET,
 	redis,
 } from "@bandori-stats/database/redis";
 
+import { titles } from "virtual:bandori-leaderboard";
+
+import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import {
 	STAT_BADGES,
@@ -22,22 +25,22 @@ import {
 
 export const partial = true;
 
-const sumScript = redis().createScript<[number, number, number]>(`
+const aggregateScript = redis().createScript<[number, number, number]>(`
   local elements = redis.call('ZRANGE', KEYS[1], 0, -1, 'WITHSCORES')
 
-  local total_sum = 0
+  local sum = 0
   for i = 2, #elements, 2 do
-      total_sum = total_sum + tonumber(elements[i])
+      sum = sum + tonumber(elements[i])
   end
 
   local count = #elements / 2
-  local average = count > 0 and (total_sum / count) or 0
+  local average = count > 0 and (sum / count) or 0
 
-  return { total_sum, average, count }
+  return { sum, average, count }
 `);
 const totalStats = await Promise.all(
 	STAT_NAMES.map((name) =>
-		sumScript.exec([`${PLAYER_STATS_SORTED_SET_PREFIX}:${name}`], []),
+		aggregateScript.exec([`${PLAYER_STATS_SORTED_SET_PREFIX}:${name}`], []),
 	),
 ).then((values) =>
 	values.map(([sum, average, count], idx) => ({
@@ -47,8 +50,6 @@ const totalStats = await Promise.all(
 		count,
 	})),
 );
-
-const uniqueTitles = await redis().scard(PLAYER_TITLES_SET);
 ---
 
 {
@@ -123,12 +124,18 @@ const uniqueTitles = await redis().scard(PLAYER_TITLES_SET);
 	<div class="stat-value">
 		<div class="flex items-center">
 			<Icon class="size-8" name="lucide--hash" />
-			{formatNumber(uniqueTitles)}
+			{formatNumber(sumBy(Object.values(titles), (items) => items.length))}
 		</div>
 	</div>
-	<div class="stat-desc">
-		<div class:list={["badge badge-sm", STAT_BADGES.titles]}>
-			Unique titles obtained
-		</div>
+	<div class="stat-actions">
+		<button
+			hx-get="/statistics/players/titles"
+			hx-swap="append"
+			hx-target="main"
+			class="btn btn-soft btn-accent btn-xs"
+		>
+			<IconLoader class="size-3" name="lucide--eye" />
+			View all
+		</button>
 	</div>
 </div>

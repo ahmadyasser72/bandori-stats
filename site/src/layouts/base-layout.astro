@@ -185,4 +185,27 @@ const { title, page, containerClass } = Astro.props;
 		openPopover.style.removeProperty("view-transition-name");
 		openPopover.removeAttribute("hx-morph-skip");
 	});
+
+	htmx.onLoad(async (node) => {
+		if (
+			!(node instanceof HTMLElement) ||
+			node.tagName !== "BOTTOM-SHEET-DIALOG-MANAGER"
+		)
+			return;
+
+		const dialog = node.children[0];
+		if (!(dialog instanceof HTMLDialogElement)) return;
+
+		if (!customElements.get("bottom-sheet")) {
+			const { registerSheetElements } = await import("pure-web-bottom-sheet");
+			registerSheetElements();
+		}
+
+		dialog.showModal();
+		dialog.addEventListener(
+			"close",
+			() => setTimeout(() => node.remove(), 300),
+			{ once: true },
+		);
+	});
 </script>

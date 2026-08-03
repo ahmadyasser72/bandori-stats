@@ -138,172 +138,180 @@ export default function bandoriLeaderboard() {
 					})
 					.sort((a, b) => compareDegreeRank(a.rank, b.rank));
 
-				const { tops, substitutes, titleIdToExactCategory } = (() => {
-					const tops = new Map<Category, Set<number>>();
-					const substitutes = new Map<number, number>();
-					const titleIdToExactCategory = new Map<number, Category>();
+				const { tops, substitutes, titleIdToExactCategory, uncategorized } =
+					(() => {
+						const tops = new Map<Category, Set<number>>();
+						const uncategorized = new Set<number>();
+						const substitutes = new Map<number, number>();
+						const titleIdToExactCategory = new Map<number, Category>();
 
-					const getTitles = (category: Category) => {
-						let titles = tops.get(category);
-						if (!titles) {
-							titles = new Set();
-							tops.set(category, titles);
-						}
-						return titles;
-					};
+						const getTitles = (category: Category) => {
+							let titles = tops.get(category);
+							if (!titles) {
+								titles = new Set();
+								tops.set(category, titles);
+							}
+							return titles;
+						};
 
-					const goals = new Map<string, Partial<Record<LiveGoals, number>>>();
-					const monthly = new Map<
-						string,
-						Partial<Record<MonthlyGrade, number>>
-					>();
+						const goals = new Map<string, Partial<Record<LiveGoals, number>>>();
+						const monthly = new Map<
+							string,
+							Partial<Record<MonthlyGrade, number>>
+						>();
 
-					const byName = new Map<
-						`${Ranking}:${string}`,
-						Map<number, Set<number>>
-					>();
+						const byName = new Map<
+							`${Ranking}:${string}`,
+							Map<number, Set<number>>
+						>();
 
-					for (const { id, type, name, rank } of playerTitles) {
-						if (typeof name !== "string") continue;
-
-						// live goals
-						if (
-							type === "try_clear" &&
-							(rank === "normal" || rank === "extra")
-						) {
-							const exactCategory =
-								rank === "normal" ? "live-goals" : "ex-live-goals";
-							titleIdToExactCategory.set(id, exactCategory);
-
-							let goal = goals.get(name);
-							if (!goal) {
-								goal = {};
-								goals.set(name, goal);
+						for (const { id, type, name, rank } of playerTitles) {
+							if (typeof name !== "string") {
+								uncategorized.add(id);
+								continue;
 							}
 
-							goal[exactCategory] = id;
-							continue;
-						}
+							// live goals
+							if (
+								type === "try_clear" &&
+								(rank === "normal" || rank === "extra")
+							) {
+								const exactCategory =
+									rank === "normal" ? "live-goals" : "ex-live-goals";
+								titleIdToExactCategory.set(id, exactCategory);
 
-						// monthly ranking
-						if (typeof rank === "string" && rank.startsWith("grade_")) {
-							const grade = rank.split("_")[1] as MonthlyGrade;
-							titleIdToExactCategory.set(id, `monthly-${grade}`);
-
-							let grades = monthly.get(name);
-							if (!grades) {
-								grades = {};
-								monthly.set(name, grades);
-							}
-
-							grades[grade] = id;
-							continue;
-						}
-
-						// general event point and song ranking (exclude t10k+)
-						if (
-							typeof rank !== "number" ||
-							rank > 10_000 ||
-							(type !== "event_point" && type !== "score_ranking")
-						)
-							continue;
-
-						let prefix: Ranking = "event";
-						if (name.startsWith("degree_monthly_ranking")) prefix = "monthly";
-						else if (type === "score_ranking") prefix = "song";
-
-						let normalized = rank as Rank;
-						if (rank > 10 && rank < 100) normalized = 100;
-						else if (rank > 100 && rank < 1000) normalized = 1000;
-						else if (rank > 1000 && rank < 10_000) normalized = 10_000;
-
-						const exactCategory = `${prefix}-t${normalized}` satisfies Category;
-						titleIdToExactCategory.set(id, exactCategory);
-
-						let ranks = byName.get(`${prefix}:${name}`);
-						if (!ranks) {
-							ranks = new Map();
-							byName.set(`${prefix}:${name}`, ranks);
-						}
-
-						let ids = ranks.get(normalized);
-						if (!ids) {
-							ids = new Set();
-							ranks.set(normalized, ids);
-						}
-						ids.add(id);
-
-						getTitles(exactCategory).add(id);
-					}
-
-					{
-						const normal = getTitles("live-goals");
-						const extra = getTitles("ex-live-goals");
-
-						for (const {
-							"live-goals": liveGoals,
-							"ex-live-goals": exLiveGoals,
-						} of goals.values()) {
-							if (liveGoals) {
-								normal.add(liveGoals);
-
-								if (exLiveGoals) substitutes.set(liveGoals, exLiveGoals);
-							} else if (exLiveGoals) {
-								normal.add(exLiveGoals);
-							}
-
-							if (exLiveGoals) extra.add(exLiveGoals);
-						}
-					}
-
-					{
-						const silver = getTitles("monthly-silver");
-						const gold = getTitles("monthly-gold");
-						const platinum = getTitles("monthly-platinum");
-
-						for (const grades of monthly.values()) {
-							if (grades.silver) {
-								silver.add(grades.silver);
-
-								if (grades.gold) substitutes.set(grades.silver, grades.gold);
-							}
-
-							if (grades.gold) {
-								gold.add(grades.gold);
-
-								if (grades.platinum)
-									substitutes.set(grades.gold, grades.platinum);
-							}
-
-							if (grades.platinum) platinum.add(grades.platinum);
-						}
-					}
-
-					{
-						const thresholds = [
-							1, 2, 3, 10, 100, 1000, 10_000,
-						] satisfies Rank[];
-
-						for (const [key, ranks] of byName.entries()) {
-							const prefix = key.split(":")[0] as Ranking;
-
-							const inherited = new Set<number>();
-							for (const threshold of thresholds) {
-								if (prefix === "monthly" && threshold > 1000) continue;
-
-								const ids = ranks.get(threshold);
-								if (ids) {
-									for (const id of ids) inherited.add(id);
+								let goal = goals.get(name);
+								if (!goal) {
+									goal = {};
+									goals.set(name, goal);
 								}
 
-								const titles = getTitles(`${prefix}-t${threshold}`);
-								for (const id of inherited) titles.add(id);
+								goal[exactCategory] = id;
+								continue;
+							}
+
+							// monthly ranking
+							if (typeof rank === "string" && rank.startsWith("grade_")) {
+								const grade = rank.split("_")[1] as MonthlyGrade;
+								titleIdToExactCategory.set(id, `monthly-${grade}`);
+
+								let grades = monthly.get(name);
+								if (!grades) {
+									grades = {};
+									monthly.set(name, grades);
+								}
+
+								grades[grade] = id;
+								continue;
+							}
+
+							if (
+								typeof rank !== "number" ||
+								(type !== "event_point" && type !== "score_ranking")
+							) {
+								uncategorized.add(id);
+								continue;
+							}
+
+							if (rank > 10_000) continue;
+
+							let prefix: Ranking = "event";
+							if (name.startsWith("degree_monthly_ranking")) prefix = "monthly";
+							else if (type === "score_ranking") prefix = "song";
+
+							let normalized = rank as Rank;
+							if (rank > 10 && rank < 100) normalized = 100;
+							else if (rank > 100 && rank < 1000) normalized = 1000;
+							else if (rank > 1000 && rank < 10_000) normalized = 10_000;
+
+							const exactCategory =
+								`${prefix}-t${normalized}` satisfies Category;
+							titleIdToExactCategory.set(id, exactCategory);
+
+							let ranks = byName.get(`${prefix}:${name}`);
+							if (!ranks) {
+								ranks = new Map();
+								byName.set(`${prefix}:${name}`, ranks);
+							}
+
+							let ids = ranks.get(normalized);
+							if (!ids) {
+								ids = new Set();
+								ranks.set(normalized, ids);
+							}
+							ids.add(id);
+
+							getTitles(exactCategory).add(id);
+						}
+
+						{
+							const normal = getTitles("live-goals");
+							const extra = getTitles("ex-live-goals");
+
+							for (const {
+								"live-goals": liveGoals,
+								"ex-live-goals": exLiveGoals,
+							} of goals.values()) {
+								if (liveGoals) {
+									normal.add(liveGoals);
+
+									if (exLiveGoals) substitutes.set(liveGoals, exLiveGoals);
+								} else if (exLiveGoals) {
+									normal.add(exLiveGoals);
+								}
+
+								if (exLiveGoals) extra.add(exLiveGoals);
 							}
 						}
-					}
 
-					return { tops, substitutes, titleIdToExactCategory };
-				})();
+						{
+							const silver = getTitles("monthly-silver");
+							const gold = getTitles("monthly-gold");
+							const platinum = getTitles("monthly-platinum");
+
+							for (const grades of monthly.values()) {
+								if (grades.silver) {
+									silver.add(grades.silver);
+
+									if (grades.gold) substitutes.set(grades.silver, grades.gold);
+								}
+
+								if (grades.gold) {
+									gold.add(grades.gold);
+
+									if (grades.platinum)
+										substitutes.set(grades.gold, grades.platinum);
+								}
+
+								if (grades.platinum) platinum.add(grades.platinum);
+							}
+						}
+
+						{
+							const thresholds = [
+								1, 2, 3, 10, 100, 1000, 10_000,
+							] satisfies Rank[];
+
+							for (const [key, ranks] of byName.entries()) {
+								const prefix = key.split(":")[0] as Ranking;
+
+								const inherited = new Set<number>();
+								for (const threshold of thresholds) {
+									if (prefix === "monthly" && threshold > 1000) continue;
+
+									const ids = ranks.get(threshold);
+									if (ids) {
+										for (const id of ids) inherited.add(id);
+									}
+
+									const titles = getTitles(`${prefix}-t${threshold}`);
+									for (const id of inherited) titles.add(id);
+								}
+							}
+						}
+
+						return { tops, substitutes, titleIdToExactCategory, uncategorized };
+					})();
 
 				const categories = [
 					"event-t1",
@@ -333,6 +341,29 @@ export default function bandoriLeaderboard() {
 					"monthly-gold",
 					"monthly-silver",
 				] satisfies Category[];
+
+				const titles = (() => {
+					const exactByCategory = new Map<Category, Set<number>>();
+					for (const [titleId, category] of titleIdToExactCategory.entries()) {
+						let set = exactByCategory.get(category);
+						if (!set) {
+							set = new Set();
+							exactByCategory.set(category, set);
+						}
+						set.add(titleId);
+					}
+
+					return {
+						...Object.fromEntries(
+							[...exactByCategory.entries()]
+								.sort(
+									([a], [b]) => categories.indexOf(a) - categories.indexOf(b),
+								)
+								.map(([k, set]) => [k, sortDegrees([...set], degrees)]),
+						),
+						uncategorized: sortDegrees([...uncategorized], degrees),
+					};
+				})();
 
 				const titlesDisplay = Object.fromEntries(
 					categories.map((it): [Category, string] => {
@@ -534,6 +565,7 @@ export default function bandoriLeaderboard() {
 							category in leaderboards.global &&
 							leaderboards.global[category].length > 0,
 					),
+					titles,
 					titlesDisplay,
 					leaderboards,
 				} satisfies BandoriLeaderboard;

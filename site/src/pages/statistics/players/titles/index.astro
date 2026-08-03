@@ -1,0 +1,52 @@
+---
+import { titles, titlesDisplay } from "virtual:bandori-leaderboard";
+
+import InfiniteGridLoader from "~/components/infinite-grid-loader.astro";
+
+export const partial = true;
+---
+
+<bottom-sheet-dialog-manager>
+	<dialog>
+		<bottom-sheet swipe-to-dismiss tabindex="0">
+			<div class="initial" slot="snap" style="--snap: 90%"></div>
+			<div slot="snap" style="--snap: 75%"></div>
+			<div slot="snap" style="--snap: 50%"></div>
+			<div slot="snap" style="--snap: 25%"></div>
+
+			<div class="flex flex-col items-center py-8">
+				<h2 class="text-center text-2xl font-medium">Player Titles</h2>
+
+				<select
+					hx-get="/statistics/players/titles/items"
+					hx-target="#player-titles"
+					hx-trigger="input, intersect once"
+					class="select mt-2 w-64"
+					name="category"
+					hx-browser-indicator="true"
+				>
+					{
+						Object.entries(titles).map(([category, items], idx) => (
+							<option value={category} selected={idx === 0}>
+								{items.length} &mdash;{" "}
+								{category === "uncategorized"
+									? "Uncategorized"
+									: titlesDisplay[category]}
+							</option>
+						))
+					}
+				</select>
+
+				<div
+					class="htmx-indicator-replace container mx-auto mt-4"
+					id="player-titles"
+				>
+				</div>
+				<InfiniteGridLoader
+					class="htmx-indicator container mx-auto mt-4 min-h-96"
+					item="category"
+				/>
+			</div>
+		</bottom-sheet>
+	</dialog>
+</bottom-sheet-dialog-manager>

@@ -1,0 +1,59 @@
+---
+import { titles, titlesDisplay } from "virtual:bandori-leaderboard";
+import z from "zod";
+
+import { getTitleImage } from "~/lib/assets";
+import { paginate } from "~/lib/paginate";
+
+export const partial = true;
+
+const { category } = Astro.locals.parseQuery(
+	z.object({ category: z.enum(Object.keys(titles)) }),
+);
+
+const page = await paginate({
+	context: Astro,
+	items: titles[category],
+	size: 192,
+	extraProps: { "hx-swap": "after", "hx-vals": JSON.stringify({ category }) },
+});
+---
+
+{
+	page.current === 1 ? (
+		<div class="card">
+			<div class="card-body items-center">
+				<div class="card-title">
+					{category === "uncategorized"
+						? "Uncategorized"
+						: titlesDisplay[category]}{" "}
+					&mdash; {titles[category].length}
+				</div>
+
+				<div class="titles max-h-80 overflow-y-auto sm:max-h-96">
+					{page.items.map((id, idx) => (
+						<img
+							{...(page.isLastElement(idx) && page.props)}
+							class="aspect-23/5 rounded-2xl"
+							src={getTitleImage(id)}
+							loading="lazy"
+						/>
+					))}
+
+					<div class="htmx-indicator absolute center badge badge-xl badge-neutral">
+						<span class="skeleton skeleton-text"> Loading titles... </span>
+					</div>
+				</div>
+			</div>
+		</div>
+	) : (
+		page.items.map((id, idx) => (
+			<img
+				{...(page.isLastElement(idx) && page.props)}
+				class="aspect-23/5 rounded-2xl"
+				src={getTitleImage(id)}
+				loading="lazy"
+			/>
+		))
+	)
+}

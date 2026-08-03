@@ -31,6 +31,7 @@
 		"htmx.org": "4.0.0-beta6",
 		"minisearch": "7.2.0",
 		"preact": "10.29.8",
+		"pure-web-bottom-sheet": "1.0.0",
 		"random": "5.4.1",
 		"tailwindcss": "4.3.3",
 		"takumi-js": "2.5.4",
