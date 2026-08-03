@@ -71,6 +71,7 @@ const { page } = Astro.props;
 				))
 			}
 
+			<li><h2 class="menu-title">Info</h2></li>
 			<li>
 				<a
 					hx-get="/info/delete-my-data"
@@ -81,6 +82,8 @@ const { page } = Astro.props;
 					<IconLoader name="lucide--trash-2" />
 					Delete My Data
 				</a>
+			</li>
+			<li>
 				<a
 					hx-get="/info/queued-accounts"
 					class="btn justify-start btn-soft btn-info btn-sm"
