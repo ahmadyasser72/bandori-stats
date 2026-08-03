@@ -2,7 +2,7 @@
 import { groupBy } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
 
-import { titles, titlesDisplay } from "virtual:bandori-leaderboard";
+import { displayCategory, titles } from "virtual:bandori-leaderboard";
 
 import { getTitleImage } from "~/lib/assets";
 import { paginate } from "~/lib/paginate";
@@ -79,7 +79,7 @@ const page = await paginate({
 				(idx > 0 && items[idx - 1].category !== category)) && (
 				<div class="divider my-1 basis-full">
 					<div class="badge badge-sm font-medium badge-accent">
-						{grouped[category].length} &mdash; {titlesDisplay[category]}
+						{grouped[category].length} &mdash; {displayCategory[category]}
 					</div>
 				</div>
 			)}

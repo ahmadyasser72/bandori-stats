@@ -2,8 +2,8 @@
 import * as devalue from "devalue";
 import MiniSearch from "minisearch";
 import {
+	displayCategory,
 	leaderboards,
-	titlesDisplay,
 	type Category,
 } from "virtual:bandori-leaderboard";
 import z from "zod";
@@ -264,7 +264,7 @@ const page = await paginate<(typeof events)[number]>({
 											"badge-accent",
 									]}
 								>
-									{titlesDisplay[category]}{" "}
+									{displayCategory[category]}{" "}
 									{!category.match(/t[123]$/) && `(${items.length})`}
 								</div>
 							))}

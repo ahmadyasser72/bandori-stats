@@ -1,5 +1,5 @@
 ---
-import { titles, titlesDisplay } from "virtual:bandori-leaderboard";
+import { displayCategory, titles } from "virtual:bandori-leaderboard";
 
 import InfiniteGridLoader from "~/components/infinite-grid-loader.astro";
 
@@ -23,7 +23,7 @@ export const partial = true;
 					{
 						Object.entries(titles).map(([category, items], idx) => (
 							<option value={category} selected={idx === 0}>
-								{items.size} &mdash; {titlesDisplay[category]}
+								{items.size} &mdash; {displayCategory[category]}
 							</option>
 						))
 					}

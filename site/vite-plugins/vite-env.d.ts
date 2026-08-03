@@ -17,7 +17,7 @@ declare module "virtual:bandori-leaderboard" {
 	interface BandoriLeaderboard {
 		categories: Category[];
 		titles: Record<Category | "uncategorized", Set<number>>;
-		titlesDisplay: Record<Category | "uncategorized", string>;
+		displayCategory: Record<Category | "uncategorized", string>;
 		leaderboards: {
 			global: Record<Category, PlayerData[]>;
 			events: Record<
@@ -39,5 +39,10 @@ declare module "virtual:bandori-leaderboard" {
 		};
 	}
 
-	const { categories, titles, leaderboards, titlesDisplay }: BandoriLeaderboard;
+	const {
+		categories,
+		titles,
+		leaderboards,
+		displayCategory,
+	}: BandoriLeaderboard;
 }

@@ -368,7 +368,7 @@ export default function bandoriLeaderboard() {
 					};
 				})();
 
-				const titlesDisplay = Object.fromEntries(
+				const displayCategory = Object.fromEntries(
 					categories.map((it): [Category, string] => {
 						let out = "";
 						if (it.startsWith("event-t") || it.startsWith("song-t")) {
@@ -569,7 +569,10 @@ export default function bandoriLeaderboard() {
 							leaderboards.global[category].length > 0,
 					),
 					titles,
-					titlesDisplay: { ...titlesDisplay, uncategorized: "Uncategorized" },
+					displayCategory: {
+						...displayCategory,
+						uncategorized: "Uncategorized",
+					},
 					leaderboards,
 				} satisfies BandoriLeaderboard;
 				const exports = Object.keys(module);

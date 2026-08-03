@@ -3,8 +3,8 @@ import { uniqBy } from "@bandori-stats/bestdori/helpers";
 
 import {
 	categories,
+	displayCategory,
 	leaderboards,
-	titlesDisplay,
 } from "virtual:bandori-leaderboard";
 import z from "zod";
 
@@ -112,7 +112,7 @@ if (params.query) {
 
 {
 	groups[params.group].items.map((category) => (
-		<LeaderboardCard name="titles" title={titlesDisplay[category]}>
+		<LeaderboardCard name="titles" title={displayCategory[category]}>
 			<div
 				hx-get="/leaderboard/titles/list"
 				hx-trigger="intersect once"

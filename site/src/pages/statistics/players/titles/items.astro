@@ -1,5 +1,5 @@
 ---
-import { titles, titlesDisplay } from "virtual:bandori-leaderboard";
+import { displayCategory, titles } from "virtual:bandori-leaderboard";
 import z from "zod";
 
 import { getTitleImage } from "~/lib/assets";
@@ -24,7 +24,7 @@ const page = await paginate({
 		<div class="card">
 			<div class="card-body max-h-[60vh] items-center">
 				<div class="card-title">
-					{titlesDisplay[category]} &mdash; {titles[category].size}
+					{displayCategory[category]} &mdash; {titles[category].size}
 				</div>
 
 				<div class="titles overflow-y-auto">
