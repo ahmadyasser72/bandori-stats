@@ -45,6 +45,14 @@ const page = await paginate({
 	size: 50,
 	extraProps: { "hx-swap": "outerHTML" },
 });
+
+if (Astro.cache.enabled) {
+	const untilNextMinute = dayjs()
+		.add(1, "minute")
+		.startOf("minute")
+		.diff(dayjs(), "seconds");
+	Astro.cache.set({ maxAge: untilNextMinute });
+}
 ---
 
 {
