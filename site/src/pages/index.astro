@@ -93,9 +93,9 @@ const PAGE_DESCRIPTIONS = {
 		{
 			LINKS.map(({ icon, label, url }) => (
 				<a
-					class="btn btn-sm"
 					data-umami-event="homepage-external"
 					data-umami-event-name={label}
+					class="btn btn-sm"
 					href={url}
 					target="_blank"
 				>
@@ -109,9 +109,9 @@ const PAGE_DESCRIPTIONS = {
 	<div class="mt-1 flex flex-wrap justify-center gap-2">
 		<a
 			hx-get="/info/delete-my-data"
-			class="btn btn-soft btn-error btn-xs"
 			data-umami-event="homepage-info"
 			data-umami-event-name="delete-my-data"
+			class="btn btn-soft btn-error btn-xs"
 		>
 			<IconLoader class="size-3" name="lucide--trash-2" />
 			Delete My Data
@@ -119,9 +119,9 @@ const PAGE_DESCRIPTIONS = {
 
 		<a
 			hx-get="/info/queued-accounts"
-			class="btn btn-soft btn-info btn-xs"
 			data-umami-event="homepage-info"
 			data-umami-event-name="queued-accounts"
+			class="btn btn-soft btn-info btn-xs"
 		>
 			<IconLoader class="size-3" name="lucide--list-ordered" />
 			Queued Accounts

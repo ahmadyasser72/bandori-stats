@@ -12,8 +12,8 @@ const { page } = Astro.props;
 ---
 
 <button
-	class="btn btn-secondary sm:hidden"
 	data-umami-event="megamenu-mobile"
+	class="btn btn-secondary sm:hidden"
 	popovertarget="site-megamenu"
 	style="view-transition-name: site-heading"
 >
@@ -75,9 +75,9 @@ const { page } = Astro.props;
 			<li>
 				<a
 					hx-get="/info/delete-my-data"
-					class="btn justify-start btn-soft btn-error btn-sm"
 					data-umami-event="megamenu-info"
 					data-umami-event-name="delete-my-data"
+					class="btn justify-start btn-soft btn-error btn-sm"
 				>
 					<IconLoader name="lucide--trash-2" />
 					Delete My Data
@@ -86,9 +86,9 @@ const { page } = Astro.props;
 			<li>
 				<a
 					hx-get="/info/queued-accounts"
-					class="btn justify-start btn-soft btn-info btn-sm"
 					data-umami-event="megamenu-info"
 					data-umami-event-name="queued-accounts"
+					class="btn justify-start btn-soft btn-info btn-sm"
 				>
 					<IconLoader name="lucide--list-ordered" />
 					Queued Accounts
