@@ -11,10 +11,10 @@ const { url, size, ...props } = Astro.props;
 
 <div
 	hx-get={url}
+	hx-indicator:inherited="closest .titles"
 	hx-swap="prepend"
 	hx-trigger="intersect once"
 	class="titles"
-	hx-indicator:inherited="closest .titles"
 	{...props}
 >
 	{

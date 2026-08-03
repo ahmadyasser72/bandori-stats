@@ -15,12 +15,12 @@ const id = `calendar-${name}`;
 
 <div
 	hx-get={url}
+	hx-indicator:inherited={`#${id}-loader`}
 	hx-target={`#${id}`}
 	hx-trigger={hxTrigger
 		? ["intersect once", hxTrigger].join(", ")
 		: "intersect once"}
 	class="relative flex min-h-70 min-w-75 justify-center"
-	hx-indicator:inherited={`#${id}-loader`}
 	{...props}
 >
 	<div class="contents" {id}></div>

@@ -9,8 +9,8 @@ const { id, name, class: className } = Astro.props;
 ---
 
 <div
-	id={`${name}-${id}`}
 	class:list={["dropdown dropdown-end dropdown-top", className]}
+	id={`${name}-${id}`}
 	popover
 	style={`position-anchor: --anchor-${id}-actions`}
 >

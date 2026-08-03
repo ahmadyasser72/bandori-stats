@@ -1,4 +1,6 @@
 ---
+import { categoryByTitle } from "virtual:bandori-leaderboard";
+
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import {
 	formatNumber,
@@ -9,9 +11,6 @@ import {
 	PLAYER_STATS_SORTED_SET_PREFIX,
 	redis,
 } from "@bandori-stats/database/redis";
-
-import { categoryByTitle } from "virtual:bandori-leaderboard";
-
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import {
@@ -54,8 +53,8 @@ const totalStats = await Promise.all(
 <div class="stat">
 	<div class="stat-figure">
 		<Icon
-			name={STAT_ICONS.titles}
 			class:list={["size-10", STAT_TEXT_COLORS.titles]}
+			name={STAT_ICONS.titles}
 		/>
 	</div>
 	<div class:list={["stat-title", STAT_TEXT_COLORS.titles]}>Titles</div>
@@ -83,8 +82,8 @@ const totalStats = await Promise.all(
 		<div class="stat">
 			<div class="stat-figure">
 				<Icon
-					name={STAT_ICONS[name]}
 					class:list={["size-10", STAT_TEXT_COLORS[name]]}
+					name={STAT_ICONS[name]}
 				/>
 			</div>
 			<div class:list={["stat-title", STAT_TEXT_COLORS[name]]}>
@@ -92,15 +91,15 @@ const totalStats = await Promise.all(
 			</div>
 			<div class="stat-value">
 				<div
+					class:list={[
+						"tooltip flex items-center before:translate-y-2 before:font-medium after:translate-y-2 sm:tooltip-start",
+						STAT_TOOLTIPS[name],
+					]}
 					data-tip={
 						sum > 100_000
 							? `Sum of ${startCase(name).replace(/Count$/, "")} / ${formatNumber(sum)}`
 							: `Sum of ${startCase(name).replace(/Count$/, "")}`
 					}
-					class:list={[
-						"tooltip flex items-center before:translate-y-2 before:font-medium after:translate-y-2 sm:tooltip-start",
-						STAT_TOOLTIPS[name],
-					]}
 				>
 					<Icon class="size-8" name="lucide--sigma" />
 					{formatNumber(sum, { autoCompact: true })}
@@ -108,28 +107,28 @@ const totalStats = await Promise.all(
 			</div>
 			<div class="stat-desc">
 				<div
-					data-tip={
-						average > 100_000
-							? `${simplifyStatName(name)} Average / ${formatNumber(average)}`
-							: `${simplifyStatName(name)} Average`
-					}
 					class:list={[
 						"tooltip badge badge-sm sm:tooltip-start",
 						STAT_BADGES[name],
 						STAT_TOOLTIPS[name],
 					]}
+					data-tip={
+						average > 100_000
+							? `${simplifyStatName(name)} Average / ${formatNumber(average)}`
+							: `${simplifyStatName(name)} Average`
+					}
 				>
 					<Icon class="size-3" name="lucide--circle-slash-2" />
 					{formatNumber(average, { autoCompact: true })}
 				</div>
 				<span class:list={["mx-2 status status-sm", STAT_STATUSES[name]]} />
 				<div
-					data-tip="Players tracked"
 					class:list={[
 						"tooltip badge badge-soft badge-sm",
 						STAT_BADGES[name],
 						STAT_TOOLTIPS[name],
 					]}
+					data-tip="Players tracked"
 				>
 					<Icon class="size-3" name="lucide--users" />
 					{formatNumber(count)}

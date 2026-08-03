@@ -1,3 +1,17 @@
+import { exactRegex } from "@rolldown/pluginutils";
+import * as devalue from "devalue";
+import type {
+	BandoriLeaderboard,
+	Category,
+	LiveGoals,
+	MonthlyGrade,
+	Player,
+	PlayerData,
+	Rank,
+	Ranking,
+} from "virtual:bandori-leaderboard";
+import z from "zod";
+
 import {
 	capitalize,
 	omit,
@@ -13,20 +27,6 @@ import {
 } from "@bandori-stats/bestdori/schema/degree";
 import { db } from "@bandori-stats/database";
 import { PLAYER_TITLES_SET, redis } from "@bandori-stats/database/redis";
-
-import { exactRegex } from "@rolldown/pluginutils";
-import * as devalue from "devalue";
-import type {
-	BandoriLeaderboard,
-	Category,
-	LiveGoals,
-	MonthlyGrade,
-	Player,
-	PlayerData,
-	Rank,
-	Ranking,
-} from "virtual:bandori-leaderboard";
-import z from "zod";
 
 const fetchEvents = async () => {
 	const response = await fetch(

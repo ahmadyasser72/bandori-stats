@@ -1,5 +1,3 @@
-import type { Stats } from "@bandori-stats/bestdori/constants";
-
 import { sql } from "drizzle-orm";
 import {
 	index,
@@ -8,6 +6,8 @@ import {
 	text,
 	unique,
 } from "drizzle-orm/sqlite-core";
+
+import type { Stats } from "@bandori-stats/bestdori/constants";
 
 export const accounts = sqliteTable(
 	"accounts",

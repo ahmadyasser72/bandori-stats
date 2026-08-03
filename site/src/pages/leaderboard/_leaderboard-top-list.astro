@@ -1,12 +1,11 @@
 ---
+import type { MatchInfo } from "minisearch";
+import type { Player } from "virtual:bandori-leaderboard";
+
 import {
 	accountHasNickname,
 	displayValue,
 } from "@bandori-stats/bestdori/helpers";
-
-import type { MatchInfo } from "minisearch";
-import type { Player } from "virtual:bandori-leaderboard";
-
 import { getProfileIcon } from "~/lib/assets";
 import { filterTerms, highlight } from "~/lib/highlight";
 

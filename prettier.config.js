@@ -19,21 +19,25 @@ const config = {
 	overrides: [{ files: "*.astro", options: { parser: "astro" } }],
 
 	importOrder: [
-		"^@bandori-stats/(.*)$",
+		"<BUILTIN_MODULES>",
+		"",
+		"^astro.*",
+		"^cloudflare:workers$",
 		"",
 		"<THIRD_PARTY_MODULES>",
 		"",
-		"^~/(.*)$",
-		"^[./]",
+		"^@bandori-stats/.+",
+		"^~/.+",
+		"^[.]",
 	],
 
 	tailwindStylesheet: "./site/src/styles/global.css",
 
 	attributeGroups: [
-		"^hx-(get|post)$",
-		"^hx-(trigger|target|select|swap)(:inherited)?$",
-		"$CODE_GUIDE",
+		"^hx-(get|post|boost(:inherited)?)$",
 		"^hx-",
+		"^(class|className|class:list)$",
+		"$CODE_GUIDE",
 	],
 	attributeSort: "ASC",
 };

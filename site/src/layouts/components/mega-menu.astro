@@ -35,7 +35,7 @@ const { page } = Astro.props;
 	<div id="site-menu" popover>
 		<ul class="menu menu-paged min-w-40">
 			<li>
-				<a href="/" class:list={[page === null && "menu-active"]}>
+				<a class:list={[page === null && "menu-active"]} href="/">
 					<IconLoader class="size-4" name="lucide--home" />
 					Home
 				</a>

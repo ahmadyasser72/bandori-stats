@@ -11,8 +11,8 @@ const { compact = false } = Astro.props;
 ---
 
 <button
-	id="theme-selector-button"
 	class:list={["btn btn-accent", compact && "btn-circle btn-sm"]}
+	id="theme-selector-button"
 	popovertarget="theme-selector"
 	style="view-transition-name: theme-selector-button"
 >
@@ -20,9 +20,9 @@ const { compact = false } = Astro.props;
 	<Icon class={compact ? "size-4" : "size-5"} name="lucide--palette" />
 </button>
 <ul
+	hx-preserve="true"
 	class="dropdown dropdown-end mt-1 w-32"
 	id="theme-selector"
-	hx-preserve="true"
 	popover
 	style="view-transition-name: theme-selector"
 >

@@ -14,11 +14,11 @@ export const partial = true;
 
 				<select
 					hx-get="/statistics/players/titles/items"
+					hx-browser-indicator="true"
 					hx-target="#player-titles"
 					hx-trigger="input, intersect once"
 					class="select mt-2 w-64"
 					name="category"
-					hx-browser-indicator="true"
 				>
 					{
 						Object.entries(titles).map(([category, items], idx) => (

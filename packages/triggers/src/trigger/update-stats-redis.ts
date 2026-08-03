@@ -1,3 +1,6 @@
+import { schemaTask, tags } from "@trigger.dev/sdk";
+import z from "zod";
+
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import { abbreviateStatName } from "@bandori-stats/bestdori/helpers";
 import {
@@ -5,10 +8,6 @@ import {
 	PLAYER_TITLES_SET,
 	redis,
 } from "@bandori-stats/database/redis";
-
-import { schemaTask, tags } from "@trigger.dev/sdk";
-import z from "zod";
-
 import { AccountSchema } from "../schema";
 
 const SnapshotSchema = z.strictObject({

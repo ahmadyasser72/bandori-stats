@@ -14,5 +14,5 @@ const {
 } = Astro.props;
 ---
 
-<Icon name={loaderIcon} class:list={["htmx-indicator", className]} />
-<Icon {name} class:list={["htmx-indicator-replace", className]} />
+<Icon class:list={["htmx-indicator", className]} name={loaderIcon} />
+<Icon class:list={["htmx-indicator-replace", className]} {name} />

@@ -1,5 +1,13 @@
 import { openAsBlob } from "node:fs";
 import { writeFile } from "node:fs/promises";
+
+import type {
+	APIRoute,
+	GetStaticPaths,
+	InferGetStaticParamsType,
+	InferGetStaticPropsType,
+} from "astro";
+
 import {
 	exists,
 	fetchBestdori,
@@ -9,13 +17,6 @@ import { uniqBy } from "@bandori-stats/bestdori/helpers";
 import { imageConfig, vips } from "@bandori-stats/bestdori/image";
 import { fetchCards } from "@bandori-stats/bestdori/schema/cards";
 import { db } from "@bandori-stats/database";
-
-import type {
-	APIRoute,
-	GetStaticPaths,
-	InferGetStaticParamsType,
-	InferGetStaticPropsType,
-} from "astro";
 
 export const prerender = true;
 

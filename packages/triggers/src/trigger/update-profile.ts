@@ -1,6 +1,3 @@
-import { db, eq } from "@bandori-stats/database";
-import { accounts } from "@bandori-stats/database/schema";
-
 import {
 	AbortTaskRunError,
 	idempotencyKeys,
@@ -9,6 +6,8 @@ import {
 } from "@trigger.dev/sdk";
 import z from "zod";
 
+import { db, eq } from "@bandori-stats/database";
+import { accounts } from "@bandori-stats/database/schema";
 import { bestdoriProfile } from "./bestdori-profile";
 import { githubRedeploy } from "./github-redeploy";
 

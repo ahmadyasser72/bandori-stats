@@ -1,6 +1,14 @@
 import { openAsBlob } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
+
+import type {
+	APIRoute,
+	GetStaticPaths,
+	InferGetStaticParamsType,
+	InferGetStaticPropsType,
+} from "astro";
+
 import {
 	exists,
 	fetchBestdori,
@@ -13,13 +21,6 @@ import {
 	fetchDegrees,
 } from "@bandori-stats/bestdori/schema/degree";
 import { PLAYER_TITLES_SET, redis } from "@bandori-stats/database/redis";
-
-import type {
-	APIRoute,
-	GetStaticPaths,
-	InferGetStaticParamsType,
-	InferGetStaticPropsType,
-} from "astro";
 
 export const prerender = true;
 

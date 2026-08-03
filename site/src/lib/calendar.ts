@@ -1,11 +1,11 @@
-import { mapValues } from "@bandori-stats/bestdori/helpers";
-
 import {
 	Calendar,
 	type DateAny,
 	type FormatDateString,
 	type Options,
 } from "vanilla-calendar-pro";
+
+import { mapValues } from "@bandori-stats/bestdori/helpers";
 
 export interface CalendarData<T = unknown, P = {}> {
 	date: string;

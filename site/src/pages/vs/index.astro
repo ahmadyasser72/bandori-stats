@@ -1,9 +1,8 @@
 ---
-import { STAT_NAMES, type StatName } from "@bandori-stats/bestdori/constants";
-import { db } from "@bandori-stats/database";
-
 import z from "zod";
 
+import { STAT_NAMES, type StatName } from "@bandori-stats/bestdori/constants";
+import { db } from "@bandori-stats/database";
 import CalendarLoader from "~/components/calendar-loader.astro";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
@@ -52,9 +51,9 @@ const [player1, player2] = await Promise.all(
 
 <BaseLayout title="VS Accounts" containerClass="max-w-3xl" page="vs">
 	<div
+		hx-include:inherited="#vs-settings input"
 		class="flex w-full flex-col border-b border-base-content/67 pb-6 sm:flex-row sm:pb-4"
 		id="players"
-		hx-include:inherited="#vs-settings input"
 	>
 		<PlayerCard other={player2?.id} player={player1} side="player-1" />
 
@@ -107,13 +106,13 @@ const [player1, player2] = await Promise.all(
 				style="position-anchor: --anchor-vs-player-action"
 			>
 				<CalendarLoader
-					name="vs"
 					hx-vals={JSON.stringify({
 						date,
 						"player-1": player1?.id,
 						"player-2": player2?.id,
 						ratio,
 					})}
+					name="vs"
 					url="/vs/calendar"
 				/>
 			</div>
@@ -133,20 +132,20 @@ const [player1, player2] = await Promise.all(
 				style="position-anchor: --anchor-vs-player-actions"
 			>
 				<fieldset
-					hx-select:inherited="main"
-					hx-swap:inherited="outerMorph transition:true"
-					hx-target:inherited="main"
-					class="fieldset w-64"
-					id="vs-settings-ratio"
 					hx-disable:inherited="#vs-settings fieldset"
 					hx-include:inherited="#vs-settings input"
 					hx-indicator:inherited="#vs-settings-ratio .fieldset-legend"
 					hx-replace-url:inherited="true"
+					hx-select:inherited="main"
+					hx-swap:inherited="outerMorph transition:true"
+					hx-target:inherited="main"
 					hx-vals:inherited={JSON.stringify({
 						"player-1": player1?.id,
 						"player-2": player2?.id,
 						date,
 					})}
+					class="fieldset w-64"
+					id="vs-settings-ratio"
 				>
 					<legend class="fieldset-legend py-0">
 						<IconLoader name="lucide--percent" />
@@ -184,17 +183,17 @@ const [player1, player2] = await Promise.all(
 
 			<button
 				hx-get="/vs"
+				hx-disable="#actions button"
+				hx-replace-url="true"
 				hx-select="main"
 				hx-swap="outerMorph transition:true"
 				hx-target="main"
-				class="btn join-item flex-1 btn-primary"
-				hx-disable="#actions button"
-				hx-replace-url="true"
 				hx-vals={JSON.stringify({
 					"player-1": player2?.id,
 					"player-2": player1?.id,
 					ratio,
 				})}
+				class="btn join-item flex-1 btn-primary"
 				disabled={!player1 && !player2}
 			>
 				<IconLoader name="lucide--arrow-left-right" />

@@ -1,4 +1,5 @@
 import type { APIContext } from "astro";
+
 import z from "zod";
 
 const pageSchema = z.coerce.number().positive().catch(1);

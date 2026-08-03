@@ -1,11 +1,10 @@
 ---
-import dayjs from "@bandori-stats/bestdori/date";
-import { db } from "@bandori-stats/database";
-import type { Snapshot } from "@bandori-stats/database/schema";
-
 import type { FormatDateString } from "vanilla-calendar-pro";
 import z from "zod";
 
+import dayjs from "@bandori-stats/bestdori/date";
+import { db } from "@bandori-stats/database";
+import type { Snapshot } from "@bandori-stats/database/schema";
 import type { CalendarData } from "~/lib/calendar";
 import { IdSchema, IsoDateWithDefault } from "~/lib/schema";
 import { computeStatDeltas } from "~/lib/stats";
@@ -125,7 +124,6 @@ export type Data = typeof data;
 
 <script>
 	import { simplifyStatName } from "@bandori-stats/bestdori/helpers";
-
 	import { dismissCalendarPopover, initCalendar } from "~/lib/calendar";
 	import type { Data } from "./calendar.astro";
 

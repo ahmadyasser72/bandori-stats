@@ -1,13 +1,12 @@
 ---
-import { groupBy } from "@bandori-stats/bestdori/helpers";
-import { db } from "@bandori-stats/database";
-
 import {
 	categories,
 	categoryByTitle,
 	displayCategory,
 } from "virtual:bandori-leaderboard";
 
+import { groupBy } from "@bandori-stats/bestdori/helpers";
+import { db } from "@bandori-stats/database";
 import { getTitleImage } from "~/lib/assets";
 import { paginate } from "~/lib/paginate";
 import { IdSchema } from "~/lib/schema";

@@ -1,13 +1,12 @@
 ---
+import z from "zod";
+
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import { db } from "@bandori-stats/database";
 import {
 	PLAYER_STATS_SORTED_SET_PREFIX,
 	redis,
 } from "@bandori-stats/database/redis";
-
-import z from "zod";
-
 import InfiniteListLoader from "~/components/infinite-list-loader.astro";
 import { paginate } from "~/lib/paginate";
 import LeaderboardTopList from "../_leaderboard-top-list.astro";

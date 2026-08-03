@@ -1,6 +1,6 @@
-import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
-
 import z from "zod";
+
+import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 
 export const AccountSchema = z.strictObject({
 	uid: z.string().nullable(),

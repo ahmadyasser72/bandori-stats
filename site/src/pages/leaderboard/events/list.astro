@@ -1,11 +1,4 @@
 ---
-import {
-	accountHasNickname,
-	countBy,
-	groupBy,
-	sortKeys,
-} from "@bandori-stats/bestdori/helpers";
-
 import * as devalue from "devalue";
 import {
 	leaderboards,
@@ -14,6 +7,12 @@ import {
 } from "virtual:bandori-leaderboard";
 import z from "zod";
 
+import {
+	accountHasNickname,
+	countBy,
+	groupBy,
+	sortKeys,
+} from "@bandori-stats/bestdori/helpers";
 import IconLoader from "~/components/icon-loader.astro";
 import { getProfileIcon, getTitleImage } from "~/lib/assets";
 import { highlight } from "~/lib/highlight";
@@ -106,11 +105,11 @@ const GROUP_LABELS = {
 			<label class="tab indicator flex-1 indicator-center indicator-bottom hover:text-accent">
 				<input
 					hx-get="/leaderboard/events/list"
+					hx-disable="closest .tabs"
 					class="peer"
 					name="group"
 					type="radio"
 					value={group}
-					hx-disable="closest .tabs"
 					checked={params.group === group}
 				/>
 				<IconLoader class="mr-2 size-5" name={GROUP_ICONS[group]} />

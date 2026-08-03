@@ -18,9 +18,9 @@ const { query, ratio, date } = Astro.locals.parseQuery(
 
 <BaseLayout title="History" page="history">
 	<div
+		hx-include:inherited="#history-filter input"
 		class="flex justify-center"
 		id="history-filter"
-		hx-include:inherited="#history-filter input"
 	>
 		<div class="flex gap-2">
 			<button
@@ -41,13 +41,13 @@ const { query, ratio, date } = Astro.locals.parseQuery(
 					<IconLoader name="lucide--search" />
 					<input
 						hx-get="/history/snapshots"
+						hx-sync="this:replace"
 						hx-target="#history-grid"
 						hx-trigger="keyup changed delay:300ms"
 						id="history-search-query"
 						name="query"
 						type="search"
 						value={query}
-						hx-sync="this:replace"
 					/>
 				</label>
 			</div>
@@ -88,11 +88,11 @@ const { query, ratio, date } = Astro.locals.parseQuery(
 				style="position-anchor: --anchor-history-settings"
 			>
 				<fieldset
+					hx-disable:inherited="#history-settings fieldset"
+					hx-indicator:inherited="#history-settings-ratio .fieldset-legend"
 					hx-target:inherited="#history-grid"
 					class="fieldset w-64"
 					id="history-settings-ratio"
-					hx-disable:inherited="#history-settings fieldset"
-					hx-indicator:inherited="#history-settings-ratio .fieldset-legend"
 				>
 					<legend class="fieldset-legend py-0">
 						<IconLoader name="lucide--percent" />
@@ -133,11 +133,11 @@ const { query, ratio, date } = Astro.locals.parseQuery(
 	<!-- TODO: use css-grid-lanes (masonry layout) when it arrives https://caniuse.com/css-grid-lanes -->
 	<ul
 		hx-get="/history/snapshots"
+		hx-browser-indicator="true"
+		hx-include="#history-filter input"
 		hx-trigger="intersect once"
 		class="mx-auto mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3"
 		id="history-grid"
-		hx-browser-indicator="true"
-		hx-include="#history-filter input"
 	>
 		{
 			Array.from({ length: 6 }).map(() => (

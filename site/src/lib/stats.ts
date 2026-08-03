@@ -1,6 +1,5 @@
 import { compareValue, formatNumber } from "@bandori-stats/bestdori/helpers";
 import type { Snapshot } from "@bandori-stats/database/schema";
-
 import type { IconName } from "~/components/icon.astro";
 
 export const computeStatDeltas = (

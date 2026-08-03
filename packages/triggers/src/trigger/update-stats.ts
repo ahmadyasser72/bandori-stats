@@ -1,3 +1,6 @@
+import { idempotencyKeys, schemaTask, tags } from "@trigger.dev/sdk";
+import z from "zod";
+
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import {
 	abbreviateStatName,
@@ -10,10 +13,6 @@ import {
 } from "@bandori-stats/bestdori/schema/degree";
 import { db, eq } from "@bandori-stats/database";
 import { accounts, accountSnapshots } from "@bandori-stats/database/schema";
-
-import { idempotencyKeys, schemaTask, tags } from "@trigger.dev/sdk";
-import z from "zod";
-
 import { bestdoriStats } from "./bestdori-stats";
 import { githubRedeploy } from "./github-redeploy";
 import { updateStatsRedis } from "./update-stats-redis";

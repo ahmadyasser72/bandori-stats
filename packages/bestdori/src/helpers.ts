@@ -1,7 +1,6 @@
-import type { Account } from "@bandori-stats/database/schema";
-
 import { startCase, words } from "es-toolkit";
 
+import type { Account } from "@bandori-stats/database/schema";
 import type { Stats } from "./constants";
 
 export const accountHasNickname = (

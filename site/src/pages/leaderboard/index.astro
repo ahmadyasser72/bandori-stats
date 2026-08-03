@@ -1,8 +1,7 @@
 ---
-import { startCase } from "@bandori-stats/bestdori/helpers";
-
 import z from "zod";
 
+import { startCase } from "@bandori-stats/bestdori/helpers";
 import IconLoader from "~/components/icon-loader.astro";
 import BaseLayout from "~/layouts/base-layout.astro";
 
@@ -46,13 +45,13 @@ const TAB_ICON = {
 				<label class="tab hover:text-primary max-sm:flex-1 sm:px-16">
 					<input
 						hx-get={`/leaderboard/${tab}`}
+						hx-browser-indicator="true"
+						hx-disable="closest .tabs"
+						hx-replace-url={`/leaderboard?tab=${tab === "titles" ? "titles-event" : tab}`}
 						hx-target="#leaderboard-cards"
 						name="tab"
 						type="radio"
 						value={tab}
-						hx-browser-indicator="true"
-						hx-disable="closest .tabs"
-						hx-replace-url={`/leaderboard?tab=${tab === "titles" ? "titles-event" : tab}`}
 						checked={params.tab.name === tab}
 					/>
 					<IconLoader class="mr-2 size-5" name={TAB_ICON[tab]} />
@@ -65,11 +64,11 @@ const TAB_ICON = {
 
 	<div
 		hx-get={`/leaderboard/${params.tab.name}`}
+		hx-browser-indicator="true"
 		hx-trigger="load"
+		hx-vals={JSON.stringify({ ...params.tab.values })}
 		class="mt-4 grid gap-8 lg:grid-cols-2"
 		id="leaderboard-cards"
-		hx-browser-indicator="true"
-		hx-vals={JSON.stringify({ ...params.tab.values })}
 	>
 		{
 			Array.from({ length: 4 }).map(() => (

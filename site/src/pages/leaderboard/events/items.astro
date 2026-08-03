@@ -221,7 +221,6 @@ const page = await paginate<(typeof events)[number]>({
 							hx-get="/leaderboard/events/list"
 							hx-target:inherited="this"
 							hx-trigger="intersect once"
-							class="max-h-64 overflow-y-auto px-2 py-1"
 							hx-vals:inherited={JSON.stringify({
 								event: event.id,
 								...("matchedPositions" in event && {
@@ -231,6 +230,7 @@ const page = await paginate<(typeof events)[number]>({
 											: undefined,
 								}),
 							})}
+							class="max-h-64 overflow-y-auto px-2 py-1"
 						>
 							<div class="list">
 								{Array.from({ length: 5 }).map(() => (

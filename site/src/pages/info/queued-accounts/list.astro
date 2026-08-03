@@ -1,10 +1,9 @@
 ---
+import { runs } from "@trigger.dev/sdk";
+
 import dayjs from "@bandori-stats/bestdori/date";
 import { accountHasNickname } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
-
-import { runs } from "@trigger.dev/sdk";
-
 import Icon from "~/components/icon.astro";
 import InfiniteListLoader from "~/components/infinite-list-loader.astro";
 import { getProfileIcon } from "~/lib/assets";

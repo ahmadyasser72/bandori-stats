@@ -1,11 +1,12 @@
 // @ts-check
 import { exec } from "node:child_process";
 
+import { defineConfig, envField, fontProviders } from "astro/config";
+
 import cloudflare from "@astrojs/cloudflare";
 import { cacheCloudflare } from "@astrojs/cloudflare/cache";
 import preact from "@astrojs/preact";
 import tailwindcss from "@tailwindcss/vite";
-import { defineConfig, envField, fontProviders } from "astro/config";
 import Inspect from "vite-plugin-inspect";
 
 import bandoriLeaderboard from "./vite-plugins/bandori-leaderboard";

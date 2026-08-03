@@ -1,3 +1,7 @@
+import { clsx } from "clsx";
+import type { ComponentChildren } from "preact";
+import type z from "zod";
+
 import dayjs from "@bandori-stats/bestdori/date";
 import {
 	accountHasNickname,
@@ -8,11 +12,6 @@ import {
 	type StatValue,
 } from "@bandori-stats/bestdori/helpers";
 import type { Account, Snapshot } from "@bandori-stats/database/schema";
-
-import { clsx } from "clsx";
-import type { ComponentChildren } from "preact";
-import type z from "zod";
-
 import { getProfileIcon } from "~/lib/assets";
 import type { RatioSchema } from "~/lib/schema";
 import { STAT_BADGES, STAT_TOOLTIPS } from "~/lib/stats";

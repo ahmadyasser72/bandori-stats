@@ -1,6 +1,4 @@
 ---
-import { groupBy } from "@bandori-stats/bestdori/helpers";
-
 import {
 	categories,
 	categoryByTitle,
@@ -9,6 +7,7 @@ import {
 } from "virtual:bandori-leaderboard";
 import z from "zod";
 
+import { groupBy } from "@bandori-stats/bestdori/helpers";
 import { getTitleImage } from "~/lib/assets";
 import { paginate } from "~/lib/paginate";
 import { IdSchema } from "~/lib/schema";

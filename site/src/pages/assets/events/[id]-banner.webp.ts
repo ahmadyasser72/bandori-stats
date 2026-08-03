@@ -1,11 +1,5 @@
 import { openAsBlob } from "node:fs";
 import { writeFile } from "node:fs/promises";
-import {
-	exists,
-	fetchBestdori,
-	getCachePath,
-} from "@bandori-stats/bestdori/fetch";
-import { imageConfig, vips } from "@bandori-stats/bestdori/image";
 
 import type {
 	APIRoute,
@@ -13,7 +7,15 @@ import type {
 	InferGetStaticParamsType,
 	InferGetStaticPropsType,
 } from "astro";
+
 import { leaderboards } from "virtual:bandori-leaderboard";
+
+import {
+	exists,
+	fetchBestdori,
+	getCachePath,
+} from "@bandori-stats/bestdori/fetch";
+import { imageConfig, vips } from "@bandori-stats/bestdori/image";
 
 export const prerender = true;
 

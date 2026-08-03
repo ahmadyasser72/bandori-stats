@@ -1,8 +1,8 @@
-import dayjs from "@bandori-stats/bestdori/date";
-
 import { defineMiddleware } from "astro:middleware";
+
 import z from "zod";
 
+import dayjs from "@bandori-stats/bestdori/date";
 import { maybeArray } from "./lib/schema";
 
 const querySchema = z.preprocess(

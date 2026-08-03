@@ -1,6 +1,4 @@
 ---
-import { uniqBy } from "@bandori-stats/bestdori/helpers";
-
 import {
 	categories,
 	displayCategory,
@@ -8,6 +6,7 @@ import {
 } from "virtual:bandori-leaderboard";
 import z from "zod";
 
+import { uniqBy } from "@bandori-stats/bestdori/helpers";
 import IconLoader from "~/components/icon-loader.astro";
 import { QuerySchema } from "~/lib/schema";
 import LeaderboardCard from "~/pages/leaderboard/_leaderboard-card.astro";
@@ -68,15 +67,15 @@ if (params.query) {
 			<IconLoader name="lucide--search" />
 			<input
 				hx-get="/leaderboard/titles"
+				hx-include=".tabs input"
+				hx-preserve="true"
+				hx-select-oob="#titles-search-suggestions"
+				hx-sync="this:replace"
 				hx-target="#leaderboard-cards"
 				hx-trigger="input changed delay:300ms, intersect once"
 				id="titles-search"
 				name="query"
 				type="search"
-				hx-include=".tabs input"
-				hx-preserve="true"
-				hx-select-oob="#titles-search-suggestions"
-				hx-sync="this:replace"
 				list="titles-search-suggestions"
 				placeholder="search players in top 100..."
 			/>
@@ -90,14 +89,14 @@ if (params.query) {
 					<label class="tab h-16 flex-col hover:text-accent max-md:flex-1 md:px-12">
 						<input
 							hx-get="/leaderboard/titles"
-							hx-target="#leaderboard-cards"
-							name="group"
-							type="radio"
-							value={name}
 							hx-browser-indicator="true"
 							hx-disable="closest .tabs"
 							hx-include="#titles-search"
 							hx-replace-url={`/leaderboard?tab=titles-${name}`}
+							hx-target="#leaderboard-cards"
+							name="group"
+							type="radio"
+							value={name}
 							checked={name === params.group}
 						/>
 						<IconLoader class="size-5" name={icon} />
@@ -116,8 +115,8 @@ if (params.query) {
 			<div
 				hx-get="/leaderboard/titles/list"
 				hx-trigger="intersect once"
-				class="list mt-1 max-h-100 overflow-y-auto px-8 py-1"
 				hx-vals={JSON.stringify({ category, query: params.query })}
+				class="list mt-1 max-h-100 overflow-y-auto px-8 py-1"
 			>
 				{Array.from({ length: 5 }).map(() => (
 					<div class="list-row skeleton" />

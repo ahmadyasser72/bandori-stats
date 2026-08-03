@@ -1,7 +1,6 @@
 ---
 import { accountHasNickname, startCase } from "@bandori-stats/bestdori/helpers";
 import type { Account, Snapshot } from "@bandori-stats/database/schema";
-
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import { getProfileIcon } from "~/lib/assets";
@@ -87,12 +86,12 @@ const otherSide = isPlayer1 ? "player-2" : "player-1";
 
 				<button
 					hx-get="/vs"
+					hx-replace-url="true"
 					hx-select="main"
 					hx-swap="outerMorph"
 					hx-target="main"
-					class="btn btn-circle btn-ghost btn-sm hover:btn-error"
-					hx-replace-url="true"
 					hx-vals={JSON.stringify({ [otherSide]: other })}
+					class="btn btn-circle btn-ghost btn-sm hover:btn-error"
 				>
 					<IconLoader class="size-5" name="lucide--x" />
 				</button>
@@ -109,11 +108,11 @@ const otherSide = isPlayer1 ? "player-2" : "player-1";
 				</button>
 
 				<div
-					id={popoverId}
 					class:list={[
 						"dropdown dropdown-bottom mt-1 w-84",
 						!isPlayer1 && "sm:dropdown-end",
 					]}
+					id={popoverId}
 					ontoggle={`event.newState === "open" && ${inputId}.focus()`}
 					popover
 					style={`position-anchor: ${anchorName}`}
@@ -122,24 +121,24 @@ const otherSide = isPlayer1 ? "player-2" : "player-1";
 						<IconLoader name="lucide--search" />
 						<input
 							hx-get="/vs/search"
+							hx-sync="this:replace"
 							hx-target="next .menu"
 							hx-trigger="keyup changed delay:300ms, intersect once"
+							hx-vals={JSON.stringify({ side, other })}
 							id={inputId}
 							name="query"
 							type="search"
-							hx-sync="this:replace"
-							hx-vals={JSON.stringify({ side, other })}
 						/>
 					</label>
 
 					<ul
+						hx-disable:inherited={`#${popoverId} button, #${popoverId} input`}
+						hx-indicator:inherited="previous .input"
+						hx-replace-url:inherited="true"
 						hx-select:inherited="main"
 						hx-swap:inherited="outerMorph transition:true"
 						hx-target:inherited="main"
 						class="menu mt-4 max-h-64 w-full flex-nowrap overflow-y-auto p-0"
-						hx-disable:inherited={`#${popoverId} button, #${popoverId} input`}
-						hx-indicator:inherited="previous .input"
-						hx-replace-url:inherited="true"
 					>
 						<li>
 							<button class="btn btn-ghost" disabled>

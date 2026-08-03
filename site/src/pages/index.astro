@@ -41,9 +41,9 @@ const PAGE_DESCRIPTIONS = {
 		{
 			Object.entries(PAGES).map(([key, { icon, label, url }]) => (
 				<a
+					hx-indicator="find .card-body"
 					class="card card-sm hover:bg-base-200 dark:hover:bg-base-300"
 					href={url}
-					hx-indicator="find .card-body"
 				>
 					<div class="card-body items-center text-center">
 						<IconLoader class="size-6" name={icon} />

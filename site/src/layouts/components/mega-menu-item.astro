@@ -28,7 +28,7 @@ const { item, active } = Astro.props;
 		</li>
 	) : (
 		<li>
-			<a href={item.url} class:list={[active && "menu-active"]}>
+			<a class:list={[active && "menu-active"]} href={item.url}>
 				<IconLoader name={item.icon} />
 				{item.label}
 			</a>

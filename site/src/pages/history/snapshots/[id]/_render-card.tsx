@@ -1,6 +1,7 @@
 import type { APIContext } from "astro";
 import { experimental_getFontFileURL, fontData } from "astro:assets";
 import { env } from "cloudflare:workers";
+
 import { ImageResponse } from "takumi-js/response";
 
 import { getProfileIcon } from "~/lib/assets";

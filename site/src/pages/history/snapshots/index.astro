@@ -1,9 +1,8 @@
 ---
-import dayjs from "@bandori-stats/bestdori/date";
-import { db } from "@bandori-stats/database";
-
 import z from "zod";
 
+import dayjs from "@bandori-stats/bestdori/date";
+import { db } from "@bandori-stats/database";
 import CalendarLoader from "~/components/calendar-loader.astro";
 import Icon from "~/components/icon.astro";
 import InfiniteGridLoader from "~/components/infinite-grid-loader.astro";
@@ -115,8 +114,8 @@ const snapshots = currentSnapshots.map((snapshot) => ({
 		<li class="contents" id={`snapshot-${id}`}>
 			<SnapshotCard {account} {previous} {ratio} {snapshotDate} {stats}>
 				<div
-					class="card-actions justify-end"
 					hx-disable:inherited={`#snapshot-${id} .card-actions button`}
+					class="card-actions justify-end"
 					style={`anchor-name: --anchor-${id}-actions`}
 				>
 					<button
@@ -147,10 +146,10 @@ const snapshots = currentSnapshots.map((snapshot) => ({
 
 					<PopoverDropdown class="overflow-visible" {id} name="calendar">
 						<CalendarLoader
-							name={`${id}-snapshot`}
 							hx-vals={JSON.stringify({
 								date: dayjs(snapshotDate).startOf("month").format("YYYY-MM-DD"),
 							})}
+							name={`${id}-snapshot`}
 							url={`/history/snapshots/${id}/calendar`}
 						/>
 					</PopoverDropdown>
