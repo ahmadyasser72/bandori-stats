@@ -1,40 +1,34 @@
 ---
+import SheetModal from "~/layouts/sheet-modal.astro";
+
 export const partial = true;
 ---
 
-<bottom-sheet-dialog-manager>
-	<dialog>
-		<bottom-sheet content-height swipe-to-dismiss tabindex="0">
-			<div class="mx-auto prose py-8">
-				<h1>Delete My Data</h1>
-				<p>
-					This site tracks public player data from the Bestdori API, including
-					usernames, UIDs, and stat history.
-				</p>
-				<p>
-					If you want your account removed, contact me and I'll remove it as
-					soon as I can.
-				</p>
-				<ul>
-					<li>
-						<a href={`${__GITHUB_URL__}/issues`} target="_blank">
-							Open a GitHub issue
-						</a>
-					</li>
-					<li>
-						<a
-							href="https://discord.com/users/397878331862810634"
-							target="_blank"
-						>
-							Message me on Discord (@lasciate)
-						</a>
-					</li>
-				</ul>
-				<p>
-					Please include your in-game username or UID so I can find your
-					account.
-				</p>
-			</div>
-		</bottom-sheet>
-	</dialog></bottom-sheet-dialog-manager
->
+<SheetModal>
+	<div class="prose">
+		<h1>Delete My Data</h1>
+		<p>
+			This site tracks public player data from the Bestdori API, including
+			usernames, UIDs, and stat history.
+		</p>
+		<p>
+			If you want your account removed, contact me and I'll remove it as soon as
+			I can.
+		</p>
+		<ul>
+			<li>
+				<a href={`${__GITHUB_URL__}/issues`} target="_blank">
+					Open a GitHub issue
+				</a>
+			</li>
+			<li>
+				<a href="https://discord.com/users/397878331862810634" target="_blank">
+					Message me on Discord (@lasciate)
+				</a>
+			</li>
+		</ul>
+		<p>
+			Please include your in-game username or UID so I can find your account.
+		</p>
+	</div>
+</SheetModal>

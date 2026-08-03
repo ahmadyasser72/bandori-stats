@@ -1,27 +1,18 @@
 ---
 import dayjs from "@bandori-stats/bestdori/date";
+import SheetModal from "~/layouts/sheet-modal.astro";
 ---
 
-<bottom-sheet-dialog-manager>
-	<dialog>
-		<bottom-sheet content-height swipe-to-dismiss tabindex="0">
-			<div class="flex flex-col items-center py-8">
-				<h2 class="text-center text-2xl font-medium">
-					Current time: {dayjs.tz().format("DD MMMM, HH:mm")}
-				</h2>
+<SheetModal>
+	<h2 class="text-center text-2xl font-medium">
+		Current time: {dayjs.tz().format("DD MMMM, HH:mm")}
+	</h2>
 
-				<div
-					hx-get="/info/queued-accounts/list"
-					hx-trigger="intersect once"
-					class="list mt-4 w-full max-w-120 px-8 py-1"
-				>
-					{
-						Array.from({ length: 5 }).map(() => (
-							<div class="list-row skeleton" />
-						))
-					}
-				</div>
-			</div>
-		</bottom-sheet>
-	</dialog></bottom-sheet-dialog-manager
->
+	<div
+		hx-get="/info/queued-accounts/list"
+		hx-trigger="intersect once"
+		class="list mt-4 max-h-[60vh] w-full max-w-120 overflow-y-auto px-8"
+	>
+		{Array.from({ length: 5 }).map(() => <div class="list-row skeleton" />)}
+	</div>
+</SheetModal>

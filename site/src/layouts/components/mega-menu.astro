@@ -74,8 +74,6 @@ const { page } = Astro.props;
 			<li>
 				<a
 					hx-get="/info/delete-my-data"
-					hx-swap="after"
-					hx-target="main"
 					class="btn justify-start btn-soft btn-error btn-sm"
 					data-umami-event="megamenu-info"
 					data-umami-event-name="delete-my-data"
@@ -85,8 +83,6 @@ const { page } = Astro.props;
 				</a>
 				<a
 					hx-get="/info/queued-accounts"
-					hx-swap="after"
-					hx-target="main"
 					class="btn justify-start btn-soft btn-info btn-sm"
 					data-umami-event="megamenu-info"
 					data-umami-event-name="queued-accounts"

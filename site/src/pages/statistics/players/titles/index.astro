@@ -2,43 +2,38 @@
 import { displayCategory, titles } from "virtual:bandori-leaderboard";
 
 import InfiniteGridLoader from "~/components/infinite-grid-loader.astro";
+import SheetModal from "~/layouts/sheet-modal.astro";
 
 export const partial = true;
 ---
 
-<bottom-sheet-dialog-manager>
-	<dialog>
-		<bottom-sheet content-height swipe-to-dismiss tabindex="0">
-			<div class="flex flex-col items-center py-8">
-				<h2 class="text-center text-2xl font-medium">Player Titles</h2>
+<SheetModal>
+	<h2 class="text-center text-2xl font-medium">Player Titles</h2>
 
-				<select
-					hx-get="/statistics/players/titles/items"
-					hx-browser-indicator="true"
-					hx-target="#player-titles"
-					hx-trigger="input, intersect once"
-					class="select mt-2 w-64"
-					name="category"
-				>
-					{
-						Object.entries(titles).map(([category, items], idx) => (
-							<option value={category} selected={idx === 0}>
-								{items.length} &mdash; {displayCategory[category]}
-							</option>
-						))
-					}
-				</select>
+	<select
+		hx-get="/statistics/players/titles/items"
+		hx-browser-indicator="true"
+		hx-target="#player-titles"
+		hx-trigger="input, intersect once"
+		class="select mt-2 w-64"
+		name="category"
+	>
+		{
+			Object.entries(titles).map(([category, items], idx) => (
+				<option value={category} selected={idx === 0}>
+					{items.length} &mdash; {displayCategory[category]}
+				</option>
+			))
+		}
+	</select>
 
-				<div
-					class="htmx-indicator-replace container mx-auto mt-4 h-[60vh] max-sm:max-w-max sm:w-max"
-					id="player-titles"
-				>
-				</div>
-				<InfiniteGridLoader
-					class="htmx-indicator container mx-auto mt-4 min-h-[60vh]"
-					item="category"
-				/>
-			</div>
-		</bottom-sheet>
-	</dialog>
-</bottom-sheet-dialog-manager>
+	<div
+		class="htmx-indicator-replace container mx-auto mt-4 h-[60vh] max-sm:max-w-max sm:w-max"
+		id="player-titles"
+	>
+	</div>
+	<InfiniteGridLoader
+		class="htmx-indicator container mx-auto mt-4 min-h-[60vh]"
+		item="category"
+	/>
+</SheetModal>

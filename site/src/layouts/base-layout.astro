@@ -187,11 +187,7 @@ const { title, page, containerClass } = Astro.props;
 	});
 
 	htmx.onLoad(async (node) => {
-		if (
-			!(node instanceof HTMLElement) ||
-			node.tagName !== "BOTTOM-SHEET-DIALOG-MANAGER"
-		)
-			return;
+		if (node.tagName !== "BOTTOM-SHEET-DIALOG-MANAGER") return;
 
 		const dialog = node.children[0];
 		if (!(dialog instanceof HTMLDialogElement)) return;
