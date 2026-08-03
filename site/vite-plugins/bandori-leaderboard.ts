@@ -4,6 +4,7 @@ import {
 	pick,
 	startCase,
 	sumBy,
+	unwrapRegionTuple,
 } from "@bandori-stats/bestdori/helpers";
 import {
 	compareDegreeRank,
@@ -131,9 +132,9 @@ export default function bandoriLeaderboard() {
 						const degree = degrees.get(id);
 						return {
 							id,
-							type: degree?.degreeType.at(1) ?? null,
-							name: degree?.baseImageName.at(1) ?? null,
-							rank: degree?.rank.at(1) ?? null,
+							type: unwrapRegionTuple(degree?.degreeType),
+							name: unwrapRegionTuple(degree?.baseImageName),
+							rank: unwrapRegionTuple(degree?.rank),
 						};
 					})
 					.sort((a, b) => compareDegreeRank(a.rank, b.rank));

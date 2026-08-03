@@ -16,6 +16,7 @@
     "packages/bestdori": {
       "name": "@bandori-stats/bestdori",
       "dependencies": {
+        "@bandori-stats/database": "workspace:*",
         "dayjs": "1.11.21",
         "es-toolkit": "1.50.0",
         "wasm-vips": "0.0.18",

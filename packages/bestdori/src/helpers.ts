@@ -1,11 +1,12 @@
-import type { Stats } from "@bandori-stats/bestdori/constants";
+import type { Account } from "@bandori-stats/database/schema";
 
 import { startCase, words } from "es-toolkit";
 
-export const accountHasNickname = (account: {
-	username: string;
-	nickname: string | null;
-}) => account.nickname?.trim() && account.username !== account.nickname;
+import type { Stats } from "./constants";
+
+export const accountHasNickname = (
+	account: Pick<Account, "username" | "nickname">,
+) => account.nickname?.trim() && account.username !== account.nickname;
 
 export const abbreviateStatName = (name: keyof Stats) => {
 	switch (name) {
@@ -83,6 +84,21 @@ export const formatNumber = (
 
 	const formatted = format(n);
 	return positiveSign && n > 0 ? `+${formatted}` : formatted;
+};
+
+export const unwrapRegionTuple = <T>(
+	tuple?: [T, T, T, T, T],
+	config: { primary: number; fallback: number | false } = {
+		primary: 1,
+		fallback: 0,
+	},
+) => {
+	const { primary, fallback } = config;
+
+	const main = tuple?.at(primary) ?? null;
+	if (fallback === false) return main;
+
+	return main ?? tuple?.at(fallback) ?? null;
 };
 
 export * from "es-toolkit";

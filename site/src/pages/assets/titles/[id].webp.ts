@@ -6,6 +6,7 @@ import {
 	fetchBestdori,
 	getCachePath,
 } from "@bandori-stats/bestdori/fetch";
+import { unwrapRegionTuple } from "@bandori-stats/bestdori/helpers";
 import { imageConfig, vips } from "@bandori-stats/bestdori/image";
 import {
 	BestdoriDegree,
@@ -57,15 +58,13 @@ export const GET: APIRoute<Props, Params> = async ({ props }) => {
 	return new Response(out as Uint8Array<ArrayBuffer>);
 };
 
-const pickRegion = <T>(tuple: T[]) => tuple.at(1) ?? tuple.at(0)!;
-
 const buildDegreeImages = (degree: BestdoriDegree) => {
 	const basePath = "/assets/en/thumb/degree_rip";
 
-	const baseImageName = pickRegion(degree.baseImageName);
-	const rank = pickRegion(degree.rank);
-	const degreeType = pickRegion(degree.degreeType);
-	const iconImageName = pickRegion(degree.iconImageName);
+	const baseImageName = unwrapRegionTuple(degree.baseImageName);
+	const rank = unwrapRegionTuple(degree.rank);
+	const degreeType = unwrapRegionTuple(degree.degreeType);
+	const iconImageName = unwrapRegionTuple(degree.iconImageName);
 
 	const images = [`${basePath}/${baseImageName}.png`];
 	if (rank !== null && rank !== "none") {
