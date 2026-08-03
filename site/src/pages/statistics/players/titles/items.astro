@@ -15,7 +15,8 @@ const page = await paginate({
 	context: Astro,
 	items: [...titles[category]],
 	size: 192,
-	extraProps: { "hx-swap": "after", "hx-vals": JSON.stringify({ category }) },
+	swap: "after",
+	params: { category },
 });
 ---
 

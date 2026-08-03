@@ -36,7 +36,7 @@ const page = await paginate({
 	items: titlesWithCategory,
 	context: Astro,
 	size: 120,
-	extraProps: { "hx-swap": "after" },
+	swap: "after",
 });
 ---
 

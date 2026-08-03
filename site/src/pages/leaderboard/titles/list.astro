@@ -47,10 +47,7 @@ const page = await paginate<(typeof players)[number]>({
 	items: players,
 	context: Astro,
 	size: 10,
-	extraProps: {
-		"hx-swap": "outerHTML",
-		"hx-vals": JSON.stringify(params),
-	},
+	params,
 });
 ---
 

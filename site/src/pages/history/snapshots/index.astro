@@ -74,10 +74,7 @@ const page = await paginate({
 	},
 	context: Astro,
 	size: 12,
-	extraProps: {
-		"hx-swap": "outerHTML",
-		"hx-include": "#history-filter input",
-	},
+	extraProps: { "hx-include": "#history-filter input" },
 });
 
 const currentSnapshots = page.items;

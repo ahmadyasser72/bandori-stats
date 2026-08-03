@@ -15,14 +15,18 @@ interface PaginateProps<T> {
 		  };
 	context: APIContext;
 	size: number;
-	extraProps: Record<string, string>;
+	swap?: "outerHTML" | "after";
+	params?: Record<string, string | number | boolean>;
+	extraProps?: Record<string, string>;
 }
 
 export const paginate = async <T>({
 	items,
 	context,
 	size,
+	params,
 	extraProps,
+	swap = "outerHTML",
 }: PaginateProps<T>) => {
 	const current = pageSchema.parse(context.url.searchParams.get("page"));
 	const offset = (current - 1) * size;
@@ -54,6 +58,8 @@ export const paginate = async <T>({
 		props: {
 			"hx-get": `${url.pathname}${url.search}`,
 			"hx-trigger": "intersect once",
+			"hx-swap": swap,
+			...(params && { "hx-vals": JSON.stringify(params) }),
 			...extraProps,
 		},
 	};

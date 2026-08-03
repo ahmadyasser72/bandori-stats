@@ -46,7 +46,6 @@ const page = await paginate({
 		},
 	},
 	size: 50,
-	extraProps: { "hx-swap": "outerHTML" },
 });
 
 if (Astro.cache.enabled) {

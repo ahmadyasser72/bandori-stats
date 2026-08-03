@@ -111,10 +111,7 @@ const page = await paginate<(typeof events)[number]>({
 	items: events,
 	context: Astro,
 	size: 12,
-	extraProps: {
-		"hx-swap": "outerHTML",
-		"hx-vals": JSON.stringify(params),
-	},
+	params,
 });
 ---
 
