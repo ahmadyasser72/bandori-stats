@@ -2,9 +2,10 @@
 import { groupBy } from "@bandori-stats/bestdori/helpers";
 
 import {
+	categories,
+	categoryByTitle,
 	displayCategory,
 	leaderboards,
-	titles,
 } from "virtual:bandori-leaderboard";
 import z from "zod";
 
@@ -24,11 +25,10 @@ const idx = IdSchema.refine(
 	"player idx out of bound",
 ).parse(Astro.params.idx);
 
-const grouped = groupBy(
-	leaderboard[idx].titles,
-	(id) => Object.entries(titles).find(([, items]) => items.has(id))![0],
+const grouped = groupBy(leaderboard[idx].titles, (id) =>
+	categoryByTitle.get(id)!,
 );
-const titlesWithCategory = Object.keys(titles)
+const titlesWithCategory = categories
 	.reverse()
 	.filter((category) => category in grouped)
 	.flatMap((category) => grouped[category].map((id) => ({ category, id })));

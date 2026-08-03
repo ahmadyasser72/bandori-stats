@@ -2,7 +2,11 @@
 import { groupBy } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
 
-import { displayCategory, titles } from "virtual:bandori-leaderboard";
+import {
+	categories,
+	categoryByTitle,
+	displayCategory,
+} from "virtual:bandori-leaderboard";
 
 import { getTitleImage } from "~/lib/assets";
 import { paginate } from "~/lib/paginate";
@@ -30,14 +34,12 @@ const previous = isNotFound
 		});
 
 const previousTitles = new Set(previous?.stats.titles ?? []);
-const grouped = groupBy(snapshotTitles, (id) => {
-	if (!previousTitles.has(id)) return "new";
-
-	return Object.entries(titles).find(([, items]) => items.has(id))![0];
-});
+const grouped = groupBy(snapshotTitles, (id) =>
+	!previousTitles.has(id) ? "new" : categoryByTitle.get(id)!,
+);
 
 const { new: newTitles = [], ...byCategory } = grouped;
-const titlesWithCategory = Object.keys(titles)
+const titlesWithCategory = categories
 	.filter((category) => category in byCategory)
 	.flatMap((category) => byCategory[category].map((id) => ({ category, id })));
 

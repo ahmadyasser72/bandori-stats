@@ -359,14 +359,17 @@ export default function bandoriLeaderboard() {
 								.sort(
 									([a], [b]) => categories.indexOf(a) - categories.indexOf(b),
 								)
-								.map(([k, set]) => [
-									k,
-									new Set(sortDegrees([...set], degrees)),
-								]),
+								.map(([k, set]) => [k, sortDegrees([...set], degrees)]),
 						),
-						uncategorized: new Set(sortDegrees([...uncategorized], degrees)),
+						uncategorized: sortDegrees([...uncategorized], degrees),
 					};
 				})();
+
+				const categoryByTitle = new Map(
+					Object.entries(titles).flatMap(([category, items]) =>
+						items.map((id) => [id, category]),
+					),
+				);
 
 				const displayCategory = Object.fromEntries(
 					categories.map((it): [Category, string] => {
@@ -569,6 +572,7 @@ export default function bandoriLeaderboard() {
 							leaderboards.global[category].length > 0,
 					),
 					titles,
+					categoryByTitle,
 					displayCategory: {
 						...displayCategory,
 						uncategorized: "Uncategorized",
