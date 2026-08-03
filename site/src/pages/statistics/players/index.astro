@@ -52,6 +52,33 @@ const totalStats = await Promise.all(
 );
 ---
 
+<div class="stat">
+	<div class="stat-figure">
+		<Icon
+			name={STAT_ICONS.titles}
+			class:list={["size-10", STAT_TEXT_COLORS.titles]}
+		/>
+	</div>
+	<div class:list={["stat-title", STAT_TEXT_COLORS.titles]}>Titles</div>
+	<div class="stat-value">
+		<div class="flex items-center">
+			<Icon class="size-8" name="lucide--hash" />
+			{formatNumber(sumBy(Object.values(titles), (items) => items.length))}
+		</div>
+	</div>
+	<div class="stat-actions">
+		<button
+			hx-get="/statistics/players/titles"
+			hx-swap="append"
+			hx-target="main"
+			class="btn btn-soft btn-accent btn-xs"
+		>
+			<IconLoader class="size-3" name="lucide--eye" />
+			View all
+		</button>
+	</div>
+</div>
+
 {
 	totalStats.map(({ name, sum, average, count }) => (
 		<div class="stat">
@@ -112,30 +139,3 @@ const totalStats = await Promise.all(
 		</div>
 	))
 }
-
-<div class="stat">
-	<div class="stat-figure">
-		<Icon
-			name={STAT_ICONS.titles}
-			class:list={["size-10", STAT_TEXT_COLORS.titles]}
-		/>
-	</div>
-	<div class:list={["stat-title", STAT_TEXT_COLORS.titles]}>Titles</div>
-	<div class="stat-value">
-		<div class="flex items-center">
-			<Icon class="size-8" name="lucide--hash" />
-			{formatNumber(sumBy(Object.values(titles), (items) => items.length))}
-		</div>
-	</div>
-	<div class="stat-actions">
-		<button
-			hx-get="/statistics/players/titles"
-			hx-swap="append"
-			hx-target="main"
-			class="btn btn-soft btn-accent btn-xs"
-		>
-			<IconLoader class="size-3" name="lucide--eye" />
-			View all
-		</button>
-	</div>
-</div>
