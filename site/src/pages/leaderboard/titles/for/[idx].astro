@@ -27,7 +27,7 @@ const idx = IdSchema.refine(
 const grouped = groupBy(leaderboard[idx].titles, (id) =>
 	categoryByTitle.get(id)!,
 );
-const titlesWithCategory = categories
+const titlesWithCategory = [...categories]
 	.reverse()
 	.filter((category) => category in grouped)
 	.flatMap((category) => grouped[category].map((id) => ({ category, id })));
