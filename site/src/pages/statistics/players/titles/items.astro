@@ -22,7 +22,7 @@ const page = await paginate({
 {
 	page.current === 1 ? (
 		<div class="card">
-			<div class="card-body items-center">
+			<div class="card-body max-h-[60vh] items-center">
 				<div class="card-title">
 					{category === "uncategorized"
 						? "Uncategorized"
@@ -30,7 +30,7 @@ const page = await paginate({
 					&mdash; {titles[category].length}
 				</div>
 
-				<div class="titles max-h-80 overflow-y-auto sm:max-h-96">
+				<div class="titles overflow-y-auto">
 					{page.items.map((id, idx) => (
 						<img
 							{...(page.isLastElement(idx) && page.props)}
