@@ -35,7 +35,7 @@ export const GET: APIRoute<Props, Params> = async ({ props }) => {
 
 	if (imageBytes.length === 1) return new Response(imageBytes[0]);
 
-	const IMAGE_WIDTH = 150;
+	const IMAGE_WIDTH = 180;
 	const basenames = props.images
 		.map((it) => path.basename(it).replace(".png", ""))
 		.join("+");

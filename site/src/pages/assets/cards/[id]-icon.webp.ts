@@ -31,7 +31,7 @@ export const GET: APIRoute<Props, Params> = async ({ props }) => {
 		.then((response) => response.arrayBuffer())
 		.then((buffer) => new Uint8Array(buffer));
 
-	const IMAGE_WIDTH = 64;
+	const IMAGE_WIDTH = 96;
 	const cachePath = getCachePath(
 		`_card_${props.card.id}_${type}.w${IMAGE_WIDTH}.webp`,
 	);
