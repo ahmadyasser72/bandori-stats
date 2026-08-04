@@ -1,8 +1,8 @@
 ---
 import {
 	categories,
-	categoryByTitle,
 	displayCategory,
+	titlesLookup,
 } from "virtual:bandori-leaderboard";
 
 import { groupBy } from "@bandori-stats/bestdori/helpers";
@@ -34,7 +34,7 @@ const previous = isNotFound
 
 const previousTitles = new Set(previous?.stats.titles ?? []);
 const grouped = groupBy(snapshotTitles, (id) =>
-	!previousTitles.has(id) ? "new" : categoryByTitle.get(id)!,
+	!previousTitles.has(id) ? "new" : titlesLookup.get(id)!.category,
 );
 
 const { new: newTitles = [], ...byCategory } = grouped;

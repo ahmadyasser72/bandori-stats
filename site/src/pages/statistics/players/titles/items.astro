@@ -2,8 +2,8 @@
 import { displayCategory, titles } from "virtual:bandori-leaderboard";
 import z from "zod";
 
-import { getTitleImage } from "~/lib/assets";
 import { paginate } from "~/lib/paginate";
+import TitleWithPlayers from "./_title-with-players.astro";
 
 export const partial = true;
 
@@ -17,6 +17,10 @@ const page = await paginate({
 	size: 192,
 	swap: "after",
 	params: { category },
+	extraProps: {
+		"hx-target": "closest .contents",
+		"hx-indicator": "closest .contents",
+	},
 });
 ---
 
@@ -29,12 +33,10 @@ const page = await paginate({
 				</div>
 
 				<div class="titles overflow-y-auto">
-					{page.items.map((id, idx) => (
-						<img
+					{page.items.map((titleId, idx) => (
+						<TitleWithPlayers
+							{titleId}
 							{...(page.isLastElement(idx) && page.props)}
-							class="aspect-23/5 rounded-2xl"
-							src={getTitleImage(id)}
-							loading="lazy"
 						/>
 					))}
 
@@ -45,12 +47,10 @@ const page = await paginate({
 			</div>
 		</div>
 	) : (
-		page.items.map((id, idx) => (
-			<img
+		page.items.map((titleId, idx) => (
+			<TitleWithPlayers
+				{titleId}
 				{...(page.isLastElement(idx) && page.props)}
-				class="aspect-23/5 rounded-2xl"
-				src={getTitleImage(id)}
-				loading="lazy"
 			/>
 		))
 	)

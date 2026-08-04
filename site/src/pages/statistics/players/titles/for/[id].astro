@@ -1,0 +1,51 @@
+---
+import { titlesLookup } from "virtual:bandori-leaderboard";
+
+import { accountHasNickname } from "@bandori-stats/bestdori/helpers";
+import { getProfileIcon } from "~/lib/assets";
+import { IdSchema } from "~/lib/schema";
+
+const id = IdSchema.refine(
+	(id) => titlesLookup.has(id),
+	"title not found",
+).parse(Astro.params.id);
+
+const { players } = titlesLookup.get(id)!;
+---
+
+{
+	players.map((player, idx) => (
+		<div class="list-row items-center">
+			<div class="badge min-h-8 min-w-8 badge-ghost">{idx + 1}</div>
+
+			<div class="flex min-w-0 items-center gap-2 list-col-grow">
+				{player.profileArt && (
+					<div class="avatar">
+						<div class="size-10 rounded-box">
+							<img
+								src={getProfileIcon(player)}
+								alt={player.username}
+								loading="lazy"
+							/>
+						</div>
+					</div>
+				)}
+
+				{accountHasNickname(player) ? (
+					<div class="flex min-w-0 flex-col">
+						<span class="truncate font-medium text-ellipsis">
+							{player.nickname}
+						</span>
+						<span class="truncate text-xs text-ellipsis text-base-content/67">
+							@{player.username}
+						</span>
+					</div>
+				) : (
+					<span class="truncate text-lg font-medium text-ellipsis">
+						@{player.username}
+					</span>
+				)}
+			</div>
+		</div>
+	))
+}

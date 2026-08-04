@@ -1,0 +1,41 @@
+---
+import type { JSX } from "astro/jsx-runtime";
+
+import { titlesLookup } from "virtual:bandori-leaderboard";
+
+import { getTitleImage } from "~/lib/assets";
+
+interface Props extends JSX.HTMLAttributes {
+	titleId: number;
+}
+
+const { titleId, ...props } = Astro.props;
+const { players } = titlesLookup.get(titleId)!;
+---
+
+<button class="contents" popovertarget={`title-${titleId}-players`}>
+	<img
+		class="aspect-23/5 rounded-2xl"
+		src={getTitleImage(titleId)}
+		loading="lazy"
+		style={`anchor-name: --title-${titleId}`}
+		{...props}
+	/>
+</button>
+<div
+	class="dropdown dropdown-center dropdown-top sm:dropdown-start"
+	id={`title-${titleId}-players`}
+	popover
+	style={`position-anchor: --title-${titleId}`}
+>
+	<h3 class="justify-self-center text-xl font-medium">
+		{players.length} player{players.length > 1 && "s"}
+	</h3>
+	<div
+		hx-get={`/statistics/players/titles/for/${titleId}`}
+		hx-trigger="intersect once"
+		class="list mt-1 max-h-64 w-64 overflow-y-auto"
+	>
+		{Array.from({ length: 1 }).map(() => <div class="list-row skeleton" />)}
+	</div>
+</div>

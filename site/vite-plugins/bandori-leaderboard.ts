@@ -366,9 +366,9 @@ export default function bandoriLeaderboard() {
 					};
 				})();
 
-				const categoryByTitle = new Map(
+				const titlesLookup: BandoriLeaderboard["titlesLookup"] = new Map(
 					Object.entries(titles).flatMap(([category, items]) =>
-						items.map((id) => [id, category]),
+						items.map((id) => [id, { category, players: [] }]),
 					),
 				);
 
@@ -433,6 +433,12 @@ export default function bandoriLeaderboard() {
 						const owned = new Set(account.snapshots.at(0)?.stats.titles ?? []);
 
 						for (const titleId of owned) {
+							if (titlesLookup.has(titleId)) {
+								titlesLookup
+									.get(titleId)!
+									.players.push(accountById.get(account.id)!);
+							}
+
 							const eventId = titleIdToEventId.get(titleId);
 
 							if (eventId !== undefined) {
@@ -573,7 +579,7 @@ export default function bandoriLeaderboard() {
 							leaderboards.global[category].length > 0,
 					),
 					titles,
-					categoryByTitle,
+					titlesLookup,
 					displayCategory: {
 						...displayCategory,
 						uncategorized: "Uncategorized",

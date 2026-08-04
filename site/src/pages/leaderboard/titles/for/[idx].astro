@@ -1,9 +1,9 @@
 ---
 import {
 	categories,
-	categoryByTitle,
 	displayCategory,
 	leaderboards,
+	titlesLookup,
 } from "virtual:bandori-leaderboard";
 import z from "zod";
 
@@ -24,8 +24,9 @@ const idx = IdSchema.refine(
 	"player idx out of bound",
 ).parse(Astro.params.idx);
 
-const grouped = groupBy(leaderboard[idx].titles, (id) =>
-	categoryByTitle.get(id)!,
+const grouped = groupBy(
+	leaderboard[idx].titles,
+	(id) => titlesLookup.get(id)!.category,
 );
 const titlesWithCategory = [...categories]
 	.reverse()
