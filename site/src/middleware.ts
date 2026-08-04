@@ -37,7 +37,7 @@ const querySchema = z.preprocess(
 );
 
 export const onRequest = defineMiddleware(
-	async ({ request, cache, locals, url, rewrite, isPrerendered }, next) => {
+	async ({ request, cache, locals, url, redirect, isPrerendered }, next) => {
 		if (isPrerendered) return next();
 
 		const { data, error, success } = querySchema.safeParse(url.searchParams);
@@ -46,7 +46,7 @@ export const onRequest = defineMiddleware(
 		locals.parseQuery = (schema) => schema.parse(success ? data.object : {});
 
 		if (success && data.normalized.toString() !== url.search.slice(1))
-			return rewrite(
+			return redirect(
 				data.normalized.size > 0
 					? `${url.pathname}?${data.normalized}`
 					: url.pathname,
@@ -57,7 +57,7 @@ export const onRequest = defineMiddleware(
 			const thisMonth = dayjs.tz().startOf("month").format("YYYY-MM-DD");
 			search.set("date", thisMonth);
 			search.sort();
-			return rewrite(`${url.pathname}?${search}`);
+			return redirect(`${url.pathname}?${search}`);
 		}
 
 		if (import.meta.env.DEV || !cache.enabled) return next();
