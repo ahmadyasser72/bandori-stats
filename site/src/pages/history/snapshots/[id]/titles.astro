@@ -38,7 +38,7 @@ const { grouped, categorized } = categorize(snapshotTitles, {
 		!previousTitles.has(id) ? "new" : titlesLookup.get(id)!.category,
 	categories: [...categories, "uncategorized", "new"] as const,
 });
-const newTitles = grouped.new;
+const { new: newTitles = [] } = grouped;
 
 const page = await paginate({
 	items: categorized.filter(
