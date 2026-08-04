@@ -59,7 +59,7 @@ const page = await paginate({
 					snapshotDate: true,
 					stats: true,
 				},
-				orderBy: { id: "desc" },
+				orderBy: { snapshotDate: "desc" },
 				with: {
 					account: {
 						columns: {
@@ -85,7 +85,7 @@ const previousSnapshots = (
 		with: {
 			snapshots: {
 				columns: { accountId: true, stats: true, snapshotDate: true },
-				orderBy: { snapshotDate: "desc" },
+				orderBy: { id: "desc" },
 				where: { id: { lt: currentSnapshots.at(-1)!.id } },
 				limit: 1,
 			},

@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { desc, sql } from "drizzle-orm";
 import {
 	index,
 	integer,
@@ -24,10 +24,7 @@ export const accounts = sqliteTable(
 		lastUpdated: text().$default(() => sql`(CURRENT_DATE)`),
 		disabledAt: text(),
 	},
-	(t) => [
-		index("idx_account_nickname").on(t.nickname),
-		index("idx_account_last_updated").on(t.lastUpdated),
-	],
+	(t) => [index("idx_account_last_updated").on(t.lastUpdated)],
 );
 
 export const accountSnapshots = sqliteTable(
@@ -47,6 +44,7 @@ export const accountSnapshots = sqliteTable(
 	},
 	(t) => [
 		index("idx_snapshots_date").on(t.snapshotDate),
+		index("idx_snapshots_account_id").on(t.accountId, desc(t.id)),
 		unique("idx_snapshots_account_date").on(t.accountId, t.snapshotDate),
 		unique("idx_snapshots_account_stat").on(t.accountId, t.stats),
 	],
