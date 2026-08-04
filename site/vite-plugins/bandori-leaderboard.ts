@@ -275,6 +275,8 @@ export default function bandoriLeaderboard() {
 									silver.add(grades.silver);
 
 									if (grades.gold) substitutes.set(grades.silver, grades.gold);
+									else if (grades.platinum)
+										substitutes.set(grades.silver, grades.platinum);
 								}
 
 								if (grades.gold) {
@@ -282,6 +284,8 @@ export default function bandoriLeaderboard() {
 
 									if (grades.platinum)
 										substitutes.set(grades.gold, grades.platinum);
+								} else if (grades.platinum) {
+									gold.add(grades.platinum);
 								}
 
 								if (grades.platinum) platinum.add(grades.platinum);
@@ -477,7 +481,7 @@ export default function bandoriLeaderboard() {
 
 								while (currentTitle !== undefined) {
 									if (owned.has(currentTitle)) {
-										matchedTitles.push(primaryTitle);
+										matchedTitles.push(currentTitle);
 										break;
 									}
 									currentTitle = substitutes.get(currentTitle);
