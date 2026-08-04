@@ -69,6 +69,7 @@ jobs:
             site/.wrangler/
 
   deploy:
+    if: ${{ github.ref == 'refs/heads/main' }}
     needs: [build]
     runs-on: ubuntu-latest
 
@@ -82,7 +83,6 @@ jobs:
 
       - name: Deploy to Cloudflare Workers
         id: deploy-cloudflare-worker
-        if: ${{ github.ref == 'refs/heads/main' }}
         uses: cloudflare/wrangler-action@v4.0.0
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -107,7 +107,6 @@ jobs:
           TRIGGER_SECRET_KEY: ${{ secrets.TRIGGER_SECRET_KEY }}
 
       - name: Register Discord commands
-        if: ${{ github.ref == 'refs/heads/main' }}
         run: bun run packages/discord-bot/src/register.ts
         env:
           DISCORD_APPLICATION_ID: ${{ secrets.DISCORD_APPLICATION_ID }}
