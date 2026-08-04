@@ -92,6 +92,23 @@ const [player1, player2] = await Promise.all(
 	>
 		<div class="join" style="anchor-name: --anchor-vs-player-action">
 			<button
+				hx-get="/vs/titles"
+				hx-vals={JSON.stringify({
+					date,
+					"player-1": player1?.id,
+					"player-2": player2?.id,
+				})}
+				data-umami-event="vs-titles"
+				data-umami-event-player-1={player1?.username}
+				data-umami-event-player-2={player2?.username}
+				class="btn join-item flex-1 btn-secondary"
+				disabled={!player1 || !player2}
+			>
+				<IconLoader name="lucide--podium" />
+				Titles
+			</button>
+
+			<button
 				data-umami-event="vs-calendar"
 				data-umami-event-player-1={player1?.username}
 				data-umami-event-player-2={player2?.username}
@@ -99,7 +116,7 @@ const [player1, player2] = await Promise.all(
 				disabled={!player1 || !player2}
 				popovertarget="vs-date"
 			>
-				<IconLoader name="lucide--calendar" />
+				<Icon name="lucide--calendar" />
 				<span>{date ?? "Date"}</span>
 			</button>
 			<div
@@ -123,6 +140,7 @@ const [player1, player2] = await Promise.all(
 			<button
 				data-umami-event="vs-settings"
 				class="btn join-item flex-1 btn-secondary"
+				disabled={!player1 && !player2}
 				popovertarget="vs-settings"
 				style="anchor-name: --anchor-vs-player-actions"
 			>

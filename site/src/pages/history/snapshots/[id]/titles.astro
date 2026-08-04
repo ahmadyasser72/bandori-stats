@@ -3,13 +3,14 @@ import {
 	categories,
 	displayCategory,
 	titlesLookup,
+	type Category,
 } from "virtual:bandori-leaderboard";
 
-import { groupBy } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
 import { getTitleImage } from "~/lib/assets";
 import { paginate } from "~/lib/paginate";
 import { IdSchema } from "~/lib/schema";
+import { categorize } from "~/lib/titles";
 
 export const partial = true;
 
@@ -33,17 +34,17 @@ const previous = isNotFound
 		});
 
 const previousTitles = new Set(previous?.stats.titles ?? []);
-const grouped = groupBy(snapshotTitles, (id) =>
-	!previousTitles.has(id) ? "new" : titlesLookup.get(id)!.category,
-);
-
-const { new: newTitles = [], ...byCategory } = grouped;
-const titlesWithCategory = categories
-	.filter((category) => category in byCategory)
-	.flatMap((category) => byCategory[category].map((id) => ({ category, id })));
+const { grouped, categorized } = categorize(snapshotTitles, {
+	lookup: (id) =>
+		!previousTitles.has(id) ? "new" : titlesLookup.get(id)!.category,
+	categories: [...categories, "uncategorized", "new"] as const,
+});
+const newTitles = grouped.new;
 
 const page = await paginate({
-	items: titlesWithCategory,
+	items: categorized.filter(
+		(it): it is { category: Category; id: number } => it.category !== "new",
+	),
 	context: Astro,
 	size: 120,
 	swap: "after",
@@ -54,7 +55,7 @@ const page = await paginate({
 	page.current === 1 && newTitles.length > 0 && (
 		<>
 			<div class="divider my-1 basis-full">
-				<div class="badge badge-sm font-medium badge-primary">
+				<div class="badge badge-sm font-medium badge-accent">
 					{newTitles.length} &mdash; New Titles
 				</div>
 			</div>
@@ -75,7 +76,7 @@ const page = await paginate({
 		<>
 			{((idx === 0 &&
 				(page.current === 1 ||
-					titlesWithCategory[page.size * (page.current - 1) - 1].category !==
+					categorized[page.size * (page.current - 1) - 1].category !==
 						category)) ||
 				(idx > 0 && items[idx - 1].category !== category)) && (
 				<div class="divider my-1 basis-full">

@@ -3,14 +3,13 @@ import {
 	categories,
 	displayCategory,
 	leaderboards,
-	titlesLookup,
 } from "virtual:bandori-leaderboard";
 import z from "zod";
 
-import { groupBy } from "@bandori-stats/bestdori/helpers";
 import { getTitleImage } from "~/lib/assets";
 import { paginate } from "~/lib/paginate";
 import { IdSchema } from "~/lib/schema";
+import { categorize } from "~/lib/titles";
 
 export const partial = true;
 
@@ -24,17 +23,12 @@ const idx = IdSchema.refine(
 	"player idx out of bound",
 ).parse(Astro.params.idx);
 
-const grouped = groupBy(
-	leaderboard[idx].titles,
-	(id) => titlesLookup.get(id)!.category,
-);
-const titlesWithCategory = [...categories]
-	.reverse()
-	.filter((category) => category in grouped)
-	.flatMap((category) => grouped[category].map((id) => ({ category, id })));
+const { grouped, categorized } = categorize(leaderboard[idx].titles, {
+	categories: [...categories].reverse(),
+});
 
 const page = await paginate({
-	items: titlesWithCategory,
+	items: categorized,
 	context: Astro,
 	size: 120,
 	swap: "after",
@@ -46,7 +40,7 @@ const page = await paginate({
 		<>
 			{((idx === 0 &&
 				(page.current === 1 ||
-					titlesWithCategory[page.size * (page.current - 1) - 1].category !==
+					categorized[page.size * (page.current - 1) - 1].category !==
 						category)) ||
 				(idx > 0 && items[idx - 1].category !== category)) && (
 				<div class="divider my-1 basis-full">

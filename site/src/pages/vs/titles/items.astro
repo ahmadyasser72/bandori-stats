@@ -1,0 +1,102 @@
+---
+import { displayCategory, titles } from "virtual:bandori-leaderboard";
+import z from "zod";
+
+import { db } from "@bandori-stats/database";
+import { getTitleImage } from "~/lib/assets";
+import { paginate } from "~/lib/paginate";
+import { IdSchema, IsoDateWithDefault } from "~/lib/schema";
+import { categorize } from "~/lib/titles";
+
+export const partial = true;
+
+const {
+	"player-1": player1_id,
+	"player-2": player2_id,
+	date: queryDate,
+	display,
+} = Astro.locals.parseQuery(
+	z.object({
+		"player-1": IdSchema,
+		"player-2": IdSchema,
+		date: IsoDateWithDefault,
+		display: z.enum(["both", "only-player-1", "only-player-2"]),
+	}),
+);
+
+const [player1, player2] = await Promise.all(
+	[player1_id, player2_id].map((id) =>
+		db().query.accounts.findFirst({
+			columns: { id: true, username: true, nickname: true, profileArt: true },
+			where: { id },
+			with: {
+				snapshots: {
+					limit: 1,
+					columns: { snapshotDate: true, stats: true },
+					where: { snapshotDate: { lte: queryDate } },
+					orderBy: { snapshotDate: "desc" },
+				},
+			},
+		}),
+	),
+);
+
+const sets = {
+	player1: new Set(player1?.snapshots[0].stats.titles ?? []),
+	player2: new Set(player2?.snapshots[0].stats.titles ?? []),
+};
+
+const categories = Object.keys(titles);
+let data: ReturnType<typeof categorize<(typeof categories)[number]>>;
+if (display === "only-player-1")
+	data = categorize([...sets.player1.difference(sets.player2)], { categories });
+else if (display === "only-player-2")
+	data = categorize([...sets.player2.difference(sets.player1)], { categories });
+else
+	data = categorize([...sets.player1.intersection(sets.player2)], {
+		categories,
+	});
+
+const page = await paginate({
+	context: Astro,
+	items: data.categorized,
+	size: 120,
+	extraProps: { "hx-vals:append": JSON.stringify({ display }) },
+});
+
+const BADGE_BY_DISPLAY = {
+	"only-player-1": "badge-primary",
+	"only-player-2": "badge-accent",
+	both: "badge-neutral",
+} satisfies Record<typeof display, string>;
+---
+
+{
+	page.items.map(({ id, category }, idx, items) => (
+		<>
+			{((idx === 0 &&
+				(page.current === 1 ||
+					data.categorized[page.size * (page.current - 1) - 1].category !==
+						category)) ||
+				(idx > 0 && items[idx - 1].category !== category)) && (
+				<div class="divider my-1 basis-full">
+					<div
+						class:list={[
+							"badge badge-sm font-medium",
+							BADGE_BY_DISPLAY[display],
+						]}
+					>
+						{data.grouped[category].length} &mdash; {displayCategory[category]}
+					</div>
+				</div>
+			)}
+
+			<img
+				{...(page.isLastElement(idx) && page.props)}
+				class="aspect-23/5 rounded-2xl"
+				src={getTitleImage(id)}
+				loading="lazy"
+			/>
+		</>
+	))
+}
