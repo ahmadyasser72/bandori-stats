@@ -3,6 +3,7 @@ import * as devalue from "devalue";
 import MiniSearch from "minisearch";
 import z from "zod";
 
+import { uniq } from "@bandori-stats/bestdori/helpers";
 import {
 	displayCategory,
 	leaderboards,
@@ -30,72 +31,91 @@ const { events, suggestions = [] } = await (async () => {
 	const values = Object.values(leaderboards.events).reverse();
 	if (!params.query) return { events: values };
 
-	const index = new MiniSearch<(typeof values)[number]>({
-		searchOptions: {
-			combineWith: "OR",
-			fuzzy: true,
-			prefix: true,
-			boost: { name: 2, characters: 1.5, username: 0.5, nickname: 0.5 },
-		},
-		fields: [...searchFields],
-		extractField: (document, fieldName) => {
-			if (fieldName === "band") return document.band.name;
-			if (fieldName === "characters")
-				return document.characters.map(({ name }) => name);
-			if (fieldName === "username")
-				return Object.values(document.items).flatMap((players) =>
-					players.map(({ player }) => player.username),
-				);
-			if (fieldName === "nickname")
-				return Object.values(document.items).flatMap((players) =>
-					players.map(({ player }) => player.nickname),
-				);
+	const index = Astro.locals.tracing.enterSpan("create-index", () => {
+		const index = new MiniSearch<(typeof values)[number]>({
+			searchOptions: {
+				combineWith: "OR",
+				fuzzy: true,
+				prefix: true,
+				boost: { name: 2, characters: 1.5, username: 0.5, nickname: 0.5 },
+			},
+			fields: [...searchFields],
+			extractField: (document, fieldName) => {
+				if (fieldName === "band") return document.band.name;
+				if (fieldName === "characters")
+					return document.characters.map(({ name }) => name);
+				if (fieldName === "username")
+					return uniq(
+						Object.values(document.items).flatMap((players) =>
+							players.map(({ player }) => player.username),
+						),
+					);
+				if (fieldName === "nickname")
+					return uniq(
+						Object.values(document.items).flatMap((players) =>
+							players.map(({ player }) => player.nickname),
+						),
+					);
 
-			return document[fieldName as never];
-		},
+				return document[fieldName as never];
+			},
+		});
+		index.addAll(values);
+		return index;
 	});
-	index.addAll(values);
 
 	return {
-		events: index
-			.search(params.query)
-			.sort((a, b) => b.score - a.score || b.id - a.id)
-			.map(({ id, match }) => {
-				const event = leaderboards.events[id];
-				const usernameTerms = filterTerms(match, "username");
-				const nicknameTerms = filterTerms(match, "nickname");
+		events: Astro.locals.tracing.enterSpan("search", (span) => {
+			span.setAttribute("query", params.query);
 
-				if (usernameTerms.length === 0 && nicknameTerms.length === 0)
-					return { match, ...event };
+			const matches = index.search(params.query);
+			const sorted = Astro.locals.tracing.enterSpan("sort", () =>
+				matches.sort((a, b) => b.score - a.score || b.id - a.id),
+			);
 
-				const matchedPositions = new Map<
-					`${Category}:${number}`,
-					{ username: string[]; nickname: string[] }
-				>();
-				for (const [category, players] of Object.entries(event.items)) {
-					for (const [idx, { player }] of players.entries()) {
-						const terms = {
-							username: usernameTerms.filter((term) =>
-								player.username.toLowerCase().includes(term),
-							),
-							nickname: nicknameTerms.filter((term) =>
-								player.nickname?.toLowerCase().includes(term),
-							),
-						};
+			return Astro.locals.tracing.enterSpan("highlight-players", () =>
+				sorted.map(({ id, match }) => {
+					const event = leaderboards.events[id];
+					const usernameTerms = filterTerms(match, "username");
+					const nicknameTerms = filterTerms(match, "nickname");
 
-						if (terms.username.length || terms.nickname.length)
-							matchedPositions.set(`${category}:${idx}`, terms);
+					if (usernameTerms.length === 0 && nicknameTerms.length === 0)
+						return { match, ...event };
+
+					const matchedPositions = new Map<
+						`${Category}:${number}`,
+						{ username: string[]; nickname: string[] }
+					>();
+					for (const [category, players] of Object.entries(event.items)) {
+						for (const [idx, { player }] of players.entries()) {
+							const terms = {
+								username: usernameTerms.filter((term) =>
+									player.username.toLowerCase().includes(term),
+								),
+								nickname: nicknameTerms.filter((term) =>
+									player.nickname?.toLowerCase().includes(term),
+								),
+							};
+
+							if (terms.username.length || terms.nickname.length)
+								matchedPositions.set(`${category}:${idx}`, terms);
+						}
 					}
-				}
 
-				return { match, matchedPositions, ...event };
-			}),
+					return { match, matchedPositions, ...event };
+				}),
+			);
+		}),
 		suggestions:
 			params.query.length >= 4
-				? index
-						.autoSuggest(params.query)
-						.slice(0, 10)
-						.map(({ suggestion }) => suggestion)
+				? Astro.locals.tracing.enterSpan("search-suggestions", (span) => {
+						span.setAttribute("query", params.query);
+
+						return index
+							.autoSuggest(params.query)
+							.slice(0, 10)
+							.map(({ suggestion }) => suggestion);
+					})
 				: undefined,
 	};
 })();

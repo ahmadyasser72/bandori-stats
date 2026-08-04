@@ -53,10 +53,12 @@ if (params.query.length >= 4) {
 	);
 	const index = playerSearchIndex(players);
 	suggestions.push(
-		...index
-			.autoSuggest(params.query)
-			.slice(0, 10)
-			.map(({ suggestion }) => suggestion),
+		...Astro.locals.tracing.enterSpan("search-suggestions", () =>
+			index
+				.autoSuggest(params.query)
+				.slice(0, 10)
+				.map(({ suggestion }) => suggestion),
+		),
 	);
 }
 ---

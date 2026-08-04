@@ -40,10 +40,19 @@ export const onRequest = defineMiddleware(
 	async ({ request, cache, locals, url, redirect, isPrerendered }, next) => {
 		if (isPrerendered) return next();
 
+		const { tracing } = await import("cloudflare:workers");
+		locals.tracing = tracing;
+
 		const { data, error, success } = querySchema.safeParse(url.searchParams);
 		if (import.meta.env.DEV && !success)
 			throw new Error(z.prettifyError(error));
-		locals.parseQuery = (schema) => schema.parse(success ? data.object : {});
+		locals.parseQuery = (schema) =>
+			tracing.enterSpan("parse-query", (span) => {
+				span.setAttribute("query", url.search);
+				span.setAttribute("query-object", JSON.stringify(data));
+
+				return schema.parse(success ? data.object : {});
+			});
 
 		if (success && data.normalized.toString() !== url.search.slice(1))
 			return redirect(

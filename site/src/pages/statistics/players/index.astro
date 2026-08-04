@@ -37,7 +37,9 @@ const aggregateScript = redis().createScript<[number, number, number]>(`
 `);
 const totalStats = await Promise.all(
 	STAT_NAMES.map((name) =>
-		aggregateScript.exec([`${PLAYER_STATS_SORTED_SET_PREFIX}:${name}`], []),
+		Astro.locals.tracing.enterSpan(`aggregate-${name}`, () =>
+			aggregateScript.exec([`${PLAYER_STATS_SORTED_SET_PREFIX}:${name}`], []),
+		),
 	),
 ).then((values) =>
 	values.map(([sum, average, count], idx) => ({

@@ -34,13 +34,17 @@ const players = (() => {
 	if (!params.query) return withRank;
 
 	const index = playerSearchIndex(withRank);
-	const matches = Object.fromEntries(
-		index.search(params.query).map(({ id, match }) => [id, match]),
-	);
+	return Astro.locals.tracing.enterSpan("search", (span) => {
+		span.setAttribute("query", params.query);
 
-	return withRank
-		.filter(({ player }) => player.id in matches)
-		.map((data) => ({ ...data, match: matches[data.player.id] }));
+		const matches = Object.fromEntries(
+			index.search(params.query).map(({ id, match }) => [id, match]),
+		);
+
+		return withRank
+			.filter(({ player }) => player.id in matches)
+			.map((data) => ({ ...data, match: matches[data.player.id] }));
+	});
 })();
 
 const page = await paginate<(typeof players)[number]>({

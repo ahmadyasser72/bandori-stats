@@ -3,5 +3,6 @@ declare namespace App {
 		parseQuery: <S extends import("zod").ZodObject>(
 			schema: S,
 		) => import("zod").output<S>;
+		tracing: Tracing;
 	}
 }

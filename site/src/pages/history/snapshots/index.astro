@@ -39,37 +39,43 @@ if (!Astro.url.searchParams.has("page")) {
 const page = await paginate({
 	items: {
 		get: (limit, offset) =>
-			db().query.accountSnapshots.findMany({
-				limit,
-				offset,
-				where: {
-					snapshotDate: date ?? {},
-					...(query && {
+			Astro.locals.tracing.enterSpan("fetch-recent", async (span) => {
+				span.setAttribute("offset", offset);
+				if (query) span.setAttribute("query", query);
+				if (date) span.setAttribute("date", date);
+
+				return db().query.accountSnapshots.findMany({
+					limit,
+					offset,
+					where: {
+						snapshotDate: date ?? {},
+						...(query && {
+							account: {
+								OR: [
+									{ username: { like: `%${query}%` } },
+									{ nickname: { like: `%${query}%` } },
+								],
+							},
+						}),
+					},
+					columns: {
+						accountId: true,
+						id: true,
+						snapshotDate: true,
+						stats: true,
+					},
+					orderBy: { snapshotDate: "desc" },
+					with: {
 						account: {
-							OR: [
-								{ username: { like: `%${query}%` } },
-								{ nickname: { like: `%${query}%` } },
-							],
-						},
-					}),
-				},
-				columns: {
-					accountId: true,
-					id: true,
-					snapshotDate: true,
-					stats: true,
-				},
-				orderBy: { snapshotDate: "desc" },
-				with: {
-					account: {
-						columns: {
-							id: true,
-							username: true,
-							nickname: true,
-							profileArt: true,
+							columns: {
+								id: true,
+								username: true,
+								nickname: true,
+								profileArt: true,
+							},
 						},
 					},
-				},
+				});
 			}),
 	},
 	context: Astro,
@@ -78,20 +84,30 @@ const page = await paginate({
 });
 
 const currentSnapshots = page.items;
-const previousSnapshots = (
-	await db().query.accounts.findMany({
-		columns: {},
-		where: { id: { in: currentSnapshots.map(({ accountId }) => accountId) } },
-		with: {
-			snapshots: {
-				columns: { accountId: true, stats: true, snapshotDate: true },
-				orderBy: { id: "desc" },
-				where: { id: { lt: currentSnapshots.at(-1)!.id } },
-				limit: 1,
-			},
-		},
-	})
-).flatMap(({ snapshots }) => snapshots);
+const previousSnapshots = await Astro.locals.tracing.enterSpan(
+	"fetch-previous",
+	async (span) => {
+		span.setAttribute("before", currentSnapshots.at(-1)!.id);
+
+		const ids = currentSnapshots.map(({ accountId }) => accountId);
+		span.setAttribute("accounts", ids.join(", "));
+
+		return db()
+			.query.accounts.findMany({
+				columns: {},
+				where: { id: { in: ids } },
+				with: {
+					snapshots: {
+						columns: { accountId: true, stats: true, snapshotDate: true },
+						orderBy: { id: "desc" },
+						where: { id: { lt: currentSnapshots.at(-1)!.id } },
+						limit: 1,
+					},
+				},
+			})
+			.then((items) => items.flatMap(({ snapshots }) => snapshots));
+	},
+);
 
 const getPreviousSnapshot = ({
 	accountId,

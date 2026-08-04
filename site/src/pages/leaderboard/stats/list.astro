@@ -20,34 +20,44 @@ const { stat } = Astro.locals.parseQuery(
 const page = await paginate({
 	items: {
 		get: async (limit, offset) => {
-			const topPlayers = await (async () => {
-				const TOP_SIZE = 100;
-				const key = `${PLAYER_STATS_SORTED_SET_PREFIX}:${stat}`;
-				const results = await redis().zrange<number[]>(key, 0, TOP_SIZE - 1, {
-					rev: true,
-					withScores: true,
-				});
+			const topPlayers = await Astro.locals.tracing.enterSpan(
+				"fetch-top-players",
+				async (span) => {
+					const TOP_SIZE = 100;
+					const key = `${PLAYER_STATS_SORTED_SET_PREFIX}:${stat}`;
+					span.setAttribute("size", TOP_SIZE);
+					span.setAttribute("key", key);
 
-				let trueRank = 0;
-				const topData = Array.from({ length: results.length / 2 }, (_, idx) => {
-					const id = results[idx * 2];
-					const value = results[idx * 2 + 1];
-					if (idx === 0 || value !== results[(idx - 1) * 2 + 1]) trueRank = idx;
-					return { id, value, trueRank };
-				});
+					const results = await redis().zrange<number[]>(key, 0, TOP_SIZE - 1, {
+						rev: true,
+						withScores: true,
+					});
 
-				const last = topData.at(-1)!;
-				const ids = await redis().zrange<number[]>(key, "+inf", last.value, {
-					rev: true,
-					byScore: true,
-				});
+					let trueRank = 0;
+					const topData = Array.from(
+						{ length: results.length / 2 },
+						(_, idx) => {
+							const id = results[idx * 2];
+							const value = results[idx * 2 + 1];
+							if (idx === 0 || value !== results[(idx - 1) * 2 + 1])
+								trueRank = idx;
+							return { id, value, trueRank };
+						},
+					);
 
-				if (ids.length > topData.length) {
-					topData.push(...ids.slice(TOP_SIZE).map((id) => ({ ...last, id })));
-				}
+					const last = topData.at(-1)!;
+					const ids = await redis().zrange<number[]>(key, "+inf", last.value, {
+						rev: true,
+						byScore: true,
+					});
 
-				return topData;
-			})();
+					if (ids.length > topData.length) {
+						topData.push(...ids.slice(TOP_SIZE).map((id) => ({ ...last, id })));
+					}
+
+					return topData;
+				},
+			);
 
 			const paged = topPlayers.slice(offset, offset + limit);
 			const players = await db().query.accounts.findMany({
