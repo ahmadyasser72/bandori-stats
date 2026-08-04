@@ -9,7 +9,8 @@ import preact from "@astrojs/preact";
 import tailwindcss from "@tailwindcss/vite";
 import Inspect from "vite-plugin-inspect";
 
-import bandoriLeaderboard from "./vite-plugins/bandori-leaderboard";
+import BandoriLeaderboard from "./vite-plugins/bandori-leaderboard";
+import DailyHina from "./vite-plugins/daily-hina";
 
 const GIT_HASH = await new Promise((resolve, reject) => {
 	exec("git rev-parse --short HEAD", (error, stdout) =>
@@ -102,7 +103,7 @@ export default defineConfig({
 
 	vite: {
 		devtools: true,
-		plugins: [Inspect(), bandoriLeaderboard(), tailwindcss()],
+		plugins: [Inspect(), BandoriLeaderboard(), DailyHina(), tailwindcss()],
 		server: { allowedHosts: [".lhr.life", ".opah-barley.ts.net"] },
 
 		define: {

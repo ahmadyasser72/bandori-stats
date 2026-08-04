@@ -3,39 +3,21 @@ import { writeFile } from "node:fs/promises";
 
 import type { APIRoute } from "astro";
 
-import { Random } from "random";
+import { dailyHina } from "virtual:daily-hina";
 
-import dayjs from "@bandori-stats/bestdori/date";
 import {
 	exists,
 	fetchBestdori,
 	getCachePath,
 } from "@bandori-stats/bestdori/fetch";
 import { imageConfig, vips } from "@bandori-stats/bestdori/image";
-import { fetchCards } from "@bandori-stats/bestdori/schema/cards";
 
 export const prerender = true;
 
 export const GET: APIRoute = async () => {
-	const cards = await fetchCards(import.meta.env.DEV);
-	const hinaCards = [...cards.entries()].filter(
-		([, { characterId, rarity, type }]) =>
-			characterId === 17 && (rarity === 5 || type === "limited"),
-	);
-
-	const rng = new Random(dayjs.tz().startOf("days").unix());
-	const [id, card] = rng.choice(hinaCards)!;
-	let trained = rng.boolean();
-	if (card.stat.training === undefined) {
-		// no trained art
-		trained = false;
-	} else if (card.stat.training.levelLimit === 0 || card.type === "others") {
-		// only trained art available
-		trained = true;
-	}
-
+	const { id, resourceSetName, trained } = dailyHina;
 	const type = trained ? "after_training" : "normal";
-	const imagePath = `/assets/en/characters/resourceset/${card.resourceSetName}_rip/card_${type}.png`;
+	const imagePath = `/assets/en/characters/resourceset/${resourceSetName}_rip/card_${type}.png`;
 
 	const bytes = await fetchBestdori(imagePath, true)
 		.then((response) => response.arrayBuffer())

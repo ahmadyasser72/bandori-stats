@@ -51,3 +51,13 @@ declare module "virtual:bandori-leaderboard" {
 		displayCategory,
 	}: BandoriLeaderboard;
 }
+
+declare module "virtual:daily-hina" {
+	interface DailyHina {
+		id: number;
+		trained: boolean;
+		resourceSetName: string;
+	}
+
+	const dailyHina: DailyHina;
+}
