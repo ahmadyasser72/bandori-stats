@@ -90,10 +90,13 @@ const { events, suggestions = [] } = await (async () => {
 
 				return { match, matchedPositions, ...event };
 			}),
-		suggestions: index
-			.autoSuggest(params.query)
-			.slice(0, 10)
-			.map(({ suggestion }) => suggestion),
+		suggestions:
+			params.query.length >= 4
+				? index
+						.autoSuggest(params.query)
+						.slice(0, 10)
+						.map(({ suggestion }) => suggestion)
+				: undefined,
 	};
 })();
 

@@ -45,7 +45,7 @@ const params = Astro.locals.parseQuery(
 );
 
 const suggestions = [] as string[];
-if (params.query) {
+if (params.query.length >= 4) {
 	const categories = groups[params.group].items;
 	const players = uniqBy(
 		categories.flatMap((category) => leaderboards.global[category]),
