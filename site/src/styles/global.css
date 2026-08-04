@@ -14,6 +14,10 @@
 	@apply scrollbar-thin scrollbar-thumb-secondary-content/67 scrollbar-track-secondary/34 scrollbar-gutter-stable;
 }
 
+bottom-sheet::part(sheet) {
+	@apply bg-base-100 text-base-content;
+}
+
 .htmx-indicator-replace:is(
 	.htmx-request,
 	.htmx-request > *,
