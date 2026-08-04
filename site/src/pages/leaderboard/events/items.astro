@@ -270,8 +270,7 @@ const page = await paginate<(typeof events)[number]>({
 											"badge-accent",
 									]}
 								>
-									{displayCategory[category]}{" "}
-									{!category.match(/t[123]$/) && `(${items.length})`}
+									{items.length} &mdash; {displayCategory[category]}
 								</div>
 							))}
 						</div>
