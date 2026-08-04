@@ -1,6 +1,5 @@
-import { titlesLookup, type Category } from "virtual:bandori-leaderboard";
-
 import { groupBy } from "@bandori-stats/bestdori/helpers";
+import { titlesLookup, type Category } from "virtual:bandori-leaderboard";
 
 interface CategorizeOptions<C extends string> {
 	lookup?: (id: number) => C;

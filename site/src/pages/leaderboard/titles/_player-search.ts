@@ -1,4 +1,5 @@
 import MiniSearch from "minisearch";
+
 import type { Player, PlayerData } from "virtual:bandori-leaderboard";
 
 export const playerSearchIndex = (players: Pick<PlayerData, "player">[]) => {

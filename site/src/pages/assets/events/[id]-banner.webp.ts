@@ -8,14 +8,13 @@ import type {
 	InferGetStaticPropsType,
 } from "astro";
 
-import { leaderboards } from "virtual:bandori-leaderboard";
-
 import {
 	exists,
 	fetchBestdori,
 	getCachePath,
 } from "@bandori-stats/bestdori/fetch";
 import { imageConfig, vips } from "@bandori-stats/bestdori/image";
+import { leaderboards } from "virtual:bandori-leaderboard";
 
 export const prerender = true;
 

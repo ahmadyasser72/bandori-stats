@@ -1,12 +1,12 @@
 ---
+import z from "zod";
+
+import { uniqBy } from "@bandori-stats/bestdori/helpers";
 import {
 	categories,
 	displayCategory,
 	leaderboards,
 } from "virtual:bandori-leaderboard";
-import z from "zod";
-
-import { uniqBy } from "@bandori-stats/bestdori/helpers";
 import IconLoader from "~/components/icon-loader.astro";
 import { QuerySchema } from "~/lib/schema";
 import LeaderboardCard from "~/pages/leaderboard/_leaderboard-card.astro";

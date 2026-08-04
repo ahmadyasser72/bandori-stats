@@ -1,10 +1,5 @@
 ---
 import * as devalue from "devalue";
-import {
-	leaderboards,
-	type Category,
-	type PlayerData,
-} from "virtual:bandori-leaderboard";
 import z from "zod";
 
 import {
@@ -13,6 +8,11 @@ import {
 	groupBy,
 	sortKeys,
 } from "@bandori-stats/bestdori/helpers";
+import {
+	leaderboards,
+	type Category,
+	type PlayerData,
+} from "virtual:bandori-leaderboard";
 import IconLoader from "~/components/icon-loader.astro";
 import { getProfileIcon, getTitleImage } from "~/lib/assets";
 import { highlight } from "~/lib/highlight";

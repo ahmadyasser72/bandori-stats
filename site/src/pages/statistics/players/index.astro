@@ -1,6 +1,4 @@
 ---
-import { titlesLookup } from "virtual:bandori-leaderboard";
-
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import {
 	formatNumber,
@@ -11,6 +9,7 @@ import {
 	PLAYER_STATS_SORTED_SET_PREFIX,
 	redis,
 } from "@bandori-stats/database/redis";
+import { titlesLookup } from "virtual:bandori-leaderboard";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import {

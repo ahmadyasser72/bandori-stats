@@ -1,15 +1,5 @@
 import { exactRegex } from "@rolldown/pluginutils";
 import * as devalue from "devalue";
-import type {
-	BandoriLeaderboard,
-	Category,
-	LiveGoals,
-	MonthlyGrade,
-	Player,
-	PlayerData,
-	Rank,
-	Ranking,
-} from "virtual:bandori-leaderboard";
 import z from "zod";
 
 import {
@@ -27,6 +17,16 @@ import {
 } from "@bandori-stats/bestdori/schema/degree";
 import { db } from "@bandori-stats/database";
 import { PLAYER_TITLES_SET, redis } from "@bandori-stats/database/redis";
+import type {
+	BandoriLeaderboard,
+	Category,
+	LiveGoals,
+	MonthlyGrade,
+	Player,
+	PlayerData,
+	Rank,
+	Ranking,
+} from "virtual:bandori-leaderboard";
 
 const fetchEvents = async () => {
 	const response = await fetch(

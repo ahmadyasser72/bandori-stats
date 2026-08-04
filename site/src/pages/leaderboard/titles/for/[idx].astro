@@ -1,11 +1,11 @@
 ---
+import z from "zod";
+
 import {
 	categories,
 	displayCategory,
 	leaderboards,
 } from "virtual:bandori-leaderboard";
-import z from "zod";
-
 import { getTitleImage } from "~/lib/assets";
 import { paginate } from "~/lib/paginate";
 import { IdSchema } from "~/lib/schema";

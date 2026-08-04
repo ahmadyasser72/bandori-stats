@@ -27,6 +27,7 @@ const config = {
 		"<THIRD_PARTY_MODULES>",
 		"",
 		"^@bandori-stats/.+",
+		"^virtual:bandori-leaderboard$",
 		"^~/.+",
 		"^[.]",
 	],

@@ -1,13 +1,13 @@
 ---
 import * as devalue from "devalue";
 import MiniSearch from "minisearch";
+import z from "zod";
+
 import {
 	displayCategory,
 	leaderboards,
 	type Category,
 } from "virtual:bandori-leaderboard";
-import z from "zod";
-
 import Icon from "~/components/icon.astro";
 import InfiniteGridLoader from "~/components/infinite-grid-loader.astro";
 import { filterTerms, highlight } from "~/lib/highlight";
