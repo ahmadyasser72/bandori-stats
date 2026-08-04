@@ -104,7 +104,7 @@ export default defineConfig({
 	vite: {
 		devtools: true,
 		plugins: [Inspect(), BandoriLeaderboard(), DailyHina(), tailwindcss()],
-		server: { allowedHosts: [".lhr.life", ".opah-barley.ts.net"] },
+		server: { allowedHosts: ["cat"] },
 
 		define: {
 			__GIT_HASH__: JSON.stringify(GIT_HASH),

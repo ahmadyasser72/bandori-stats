@@ -72,7 +72,7 @@ const BADGE_BY_DISPLAY = {
 ---
 
 <SheetModal
-	hx-indicator:inherited="closest .titles"
+	hx-indicator:inherited="closest .titles-container"
 	hx-vals:inherited={JSON.stringify(params)}
 >
 	<h2 class="text-center text-2xl font-medium">Owned titles comparison</h2>
@@ -83,17 +83,24 @@ const BADGE_BY_DISPLAY = {
 		{
 			DISPLAYS.map((display) => (
 				<div class:list={["relative", COLOR_BY_DISPLAY[display]]}>
-					<h2 class="mt-2 text-center text-xl font-medium">
+					<h2
+						class:list={[
+							"py-2 text-center text-xl font-medium",
+							COLOR_BY_DISPLAY[display],
+						]}
+					>
 						{displayCount[display]} &mdash;{" "}
 						{display === "both" ? startCase(display) : `@${usernames[display]}`}
 					</h2>
 
-					<div
-						hx-get="/vs/titles/items"
-						hx-trigger="intersect once"
-						hx-vals:append={JSON.stringify({ display })}
-						class="absolute inset-0 titles max-h-max overflow-y-auto p-4 pt-12"
-					/>
+					<div class="titles-container absolute inset-0 top-12 overflow-y-auto p-4">
+						<div
+							hx-get="/vs/titles/items"
+							hx-trigger="intersect once"
+							hx-vals:append={JSON.stringify({ display })}
+							class="titles"
+						/>
+					</div>
 
 					<div class="htmx-indicator absolute center badge w-max badge-xl badge-neutral">
 						<span class="skeleton skeleton-text"> Loading titles... </span>
@@ -104,12 +111,12 @@ const BADGE_BY_DISPLAY = {
 	</div>
 
 	<div class="contents lg:hidden">
-		<fieldset class="tabs mt-4 w-full" role="tablist">
+		<fieldset class="tabs mt-4 w-full tabs-sm" role="tablist">
 			{
 				DISPLAYS.map((display, idx) => (
 					<label
 						class:list={[
-							"tab indicator flex-1 indicator-center indicator-bottom",
+							"tab indicator h-16 flex-1 flex-col indicator-center indicator-bottom",
 							TAB_COLOR_BY_DISPLAY[display],
 						]}
 					>
@@ -126,8 +133,10 @@ const BADGE_BY_DISPLAY = {
 							checked={idx === 0}
 						/>
 						<IconLoader
-							class="mr-2 size-5"
-							name={display === "both" ? "lucide--equal" : "lucide--user"}
+							class="size-5"
+							name={
+								display === "both" ? "lucide--square-equal" : "lucide--user"
+							}
 						/>
 						{display === "both" ? startCase(display) : `@${usernames[display]}`}
 
@@ -145,13 +154,15 @@ const BADGE_BY_DISPLAY = {
 		</fieldset>
 
 		<div class="relative h-[60vh] w-full">
-			<div
-				hx-get="/vs/titles/items"
-				hx-trigger="intersect once"
-				hx-vals:append={JSON.stringify({ display: DISPLAYS[0] })}
-				class="absolute inset-0 titles max-h-max overflow-y-auto p-4"
-				id="tab-titles"
-			>
+			<div class="titles-container absolute inset-0 overflow-y-auto p-4">
+				<div
+					hx-get="/vs/titles/items"
+					hx-trigger="intersect once"
+					hx-vals:append={JSON.stringify({ display: DISPLAYS[0] })}
+					class="titles"
+					id="tab-titles"
+				>
+				</div>
 			</div>
 
 			<div class="htmx-indicator absolute center badge badge-xl badge-neutral">
