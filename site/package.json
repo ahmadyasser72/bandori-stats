@@ -10,23 +10,23 @@
 		"dev": "astro dev"
 	},
 	"dependencies": {
-		"@astrojs/cloudflare": "14.1.7",
+		"@astrojs/cloudflare": "14.2.0",
 		"@astrojs/preact": "6.0.2",
 		"@bandori-stats/bestdori": "workspace:*",
 		"@bandori-stats/database": "workspace:*",
 		"@bandori-stats/discord-bot": "workspace:*",
 		"@catppuccin/daisyui": "2.1.1",
 		"@iconify-json/line-md": "1.2.16",
-		"@iconify-json/lucide": "1.2.121",
+		"@iconify-json/lucide": "1.2.122",
 		"@iconify-json/svg-spinners": "1.2.4",
 		"@iconify/tailwind4": "1.2.3",
 		"@tailwindcss/typography": "0.5.20",
 		"@tailwindcss/vite": "4.3.3",
-		"@trigger.dev/sdk": "4.5.9",
-		"@zumer/snapdom": "2.23.1",
-		"astro": "7.1.6",
+		"@trigger.dev/sdk": "4.5.10",
+		"@zumer/snapdom": "2.23.2",
+		"astro": "7.2.0",
 		"clsx": "2.1.1",
-		"daisyui": "5.7.14",
+		"daisyui": "5.7.16",
 		"devalue": "5.9.0",
 		"htmx.org": "4.0.0-beta6",
 		"minisearch": "7.2.0",
@@ -34,18 +34,18 @@
 		"pure-web-bottom-sheet": "1.0.0",
 		"random": "5.4.1",
 		"tailwindcss": "4.3.3",
-		"takumi-js": "2.5.4",
+		"takumi-js": "2.5.11",
 		"vanilla-calendar-pro": "3.1.0",
 		"zod": "4.4.3"
 	},
 	"devDependencies": {
 		"@astrojs/check": "0.9.10",
 		"@oxvg/napi": "0.0.6",
-		"@types/node": "26.1.2",
-		"@vitejs/devtools": "0.4.10",
+		"@types/node": "26.2.0",
+		"@vitejs/devtools": "0.4.12",
 		"favicons": "7.3.1",
 		"typescript": "5.9.3",
 		"vite-plugin-inspect": "11.4.1",
-		"wrangler": "4.118.0"
+		"wrangler": "4.120.0"
 	}
 }
