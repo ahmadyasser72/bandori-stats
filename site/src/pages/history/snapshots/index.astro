@@ -87,7 +87,8 @@ const currentSnapshots = page.items;
 const previousSnapshots = await Astro.locals.tracing.enterSpan(
 	"fetch-previous",
 	async (span) => {
-		span.setAttribute("before", currentSnapshots.at(-1)!.id);
+		const lastSnapshot = currentSnapshots.at(-1)!;
+		span.setAttribute("before", lastSnapshot.id);
 
 		const ids = currentSnapshots.map(({ accountId }) => accountId);
 		span.setAttribute("accounts", ids.join(", "));
@@ -99,8 +100,11 @@ const previousSnapshots = await Astro.locals.tracing.enterSpan(
 				with: {
 					snapshots: {
 						columns: { accountId: true, stats: true, snapshotDate: true },
-						orderBy: { id: "desc" },
-						where: { id: { lt: currentSnapshots.at(-1)!.id } },
+						orderBy: { snapshotDate: "desc" },
+						where: {
+							id: { lt: lastSnapshot.id },
+							snapshotDate: { lte: lastSnapshot.snapshotDate },
+						},
 						limit: 1,
 					},
 				},
