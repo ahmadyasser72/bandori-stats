@@ -1,11 +1,6 @@
 ---
 import { db } from "@bandori-stats/database";
-import {
-	categories,
-	displayCategory,
-	titlesLookup,
-	type Category,
-} from "virtual:bandori-leaderboard";
+import { displayCategory, titles } from "virtual:bandori-leaderboard";
 import { getTitleImage } from "~/lib/assets";
 import { paginate } from "~/lib/paginate";
 import { IdSchema } from "~/lib/schema";
@@ -32,43 +27,26 @@ const previous = isNotFound
 			orderBy: { id: "desc" },
 		});
 
-const previousTitles = new Set(previous?.stats.titles ?? []);
 const { grouped, categorized } = categorize(snapshotTitles, {
-	lookup: (id) =>
-		!previousTitles.has(id) ? "new" : titlesLookup.get(id)!.category,
-	categories: [...categories, "uncategorized", "new"] as const,
+	categories: ["new", ...Object.keys(titles)],
 });
-const { new: newTitles = [] } = grouped;
+
+{
+	const previousTitles = new Set(previous?.stats.titles ?? []);
+	const newTitles = categorized
+		.filter(({ id }) => !previousTitles.has(id))
+		.map(({ id }) => ({ id, category: "new" as const }));
+	grouped.new = newTitles.map(({ id }) => id);
+	categorized.unshift(...newTitles);
+}
 
 const page = await paginate({
-	items: categorized.filter(
-		(it): it is { category: Category; id: number } => it.category !== "new",
-	),
+	items: categorized,
 	context: Astro,
 	size: 120,
 	swap: "after",
 });
 ---
-
-{
-	page.current === 1 && newTitles.length > 0 && (
-		<>
-			<div class="divider my-1 basis-full">
-				<div class="badge badge-sm font-medium badge-accent">
-					{newTitles.length} &mdash; New Titles
-				</div>
-			</div>
-
-			{newTitles.map((id) => (
-				<img
-					class="aspect-23/5 rounded-2xl"
-					src={getTitleImage(id)}
-					loading="lazy"
-				/>
-			))}
-		</>
-	)
-}
 
 {
 	page.items.map(({ id, category }, idx, items) => (
@@ -80,7 +58,8 @@ const page = await paginate({
 				(idx > 0 && items[idx - 1].category !== category)) && (
 				<div class="divider my-1 basis-full">
 					<div class="badge badge-sm font-medium badge-accent">
-						{grouped[category].length} &mdash; {displayCategory[category]}
+						{grouped[category].length} &mdash;{" "}
+						{category === "new" ? "New Titles" : displayCategory[category]}
 					</div>
 				</div>
 			)}
