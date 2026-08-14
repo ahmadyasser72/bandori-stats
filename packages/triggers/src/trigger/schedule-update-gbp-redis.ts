@@ -3,12 +3,14 @@ import { AbortTaskRunError, schedules, tags } from "@trigger.dev/sdk";
 import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
 import dayjs from "@bandori-stats/bestdori/date";
 import { MasterDB, Versions } from "@bandori-stats/bestdori/schema/misc";
+import { db } from "@bandori-stats/database";
 import {
 	GAME_EVENT,
 	GAME_MONTHLY,
 	GAME_VERSION,
 	redis,
 } from "@bandori-stats/database/redis";
+import { gbpEvents, gbpMonthlyRankings } from "@bandori-stats/database/schema";
 import { bestdori } from "~/bestdori";
 
 export const scheduleUpdateGbpRedis = schedules.task({
@@ -55,7 +57,16 @@ export const scheduleUpdateGbpRedis = schedules.task({
 			if (!currentEvent && events.length > 0) {
 				for (const event of events) {
 					if (dayjs().isAfter(event.endAt)) continue;
+
 					pipe.set(GAME_EVENT, event, { pxat: event.endAt });
+					await db()
+						.insert(gbpEvents)
+						.values({
+							...event,
+							startAt: new Date(event.startAt),
+							endAt: new Date(event.endAt),
+						});
+
 					await tags.add(`event_${event.assetBundleName}`);
 				}
 			}
@@ -66,6 +77,14 @@ export const scheduleUpdateGbpRedis = schedules.task({
 				);
 				if (active) {
 					pipe.set(GAME_MONTHLY, active, { pxat: active.endAt });
+					await db()
+						.insert(gbpMonthlyRankings)
+						.values({
+							...active,
+							startAt: new Date(active.startAt),
+							endAt: new Date(active.endAt),
+						});
+
 					await tags.add(`monthly_${active.assetBundleName}`);
 				}
 			}
