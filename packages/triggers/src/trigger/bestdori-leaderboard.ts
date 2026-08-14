@@ -7,7 +7,7 @@ import {
 	type StatName,
 } from "@bandori-stats/bestdori/constants";
 import { PlayerLeaderboard } from "@bandori-stats/bestdori/schema/player/leaderboard";
-import { bestdori, bestdoriQueue } from "../bestdori";
+import { bestdori, bestdoriQueue } from "~/bestdori";
 
 const leaderboardTypeMap: Record<StatName, RawStatName> = {
 	highScoreRating: "hsr",

@@ -1,0 +1,51 @@
+import z from "zod";
+
+export const GameEventType = z.enum([
+	"story",
+	"versus",
+	"mission_live",
+	"challenge",
+	"live_try",
+	"medley",
+	"festival",
+]);
+
+export const GameEvent = z.object({
+	eventId: z.number(),
+	eventType: GameEventType,
+	eventName: z.string(),
+	assetBundleName: z.string(),
+	bgmAssetBundleName: z.string(),
+	bgmFileName: z.string(),
+	startAt: z.coerce.number(),
+	endAt: z.coerce.number(),
+});
+
+export const GameMonthlyRanking = z.object({
+	monthlyRankingId: z.number(),
+	monthlyRankingName: z.string(),
+	assetBundleName: z.string(),
+	bgmAssetBundleName: z.string(),
+	bgmFileName: z.string(),
+	startAt: z.coerce.number(),
+	endAt: z.coerce.number(),
+});
+
+// /api/MasterDB_en.json
+export const MasterDB = z.object({
+	masterEventMap: z.object({
+		entries: z.record(z.string(), GameEvent),
+	}),
+	masterMonthlyRankingList: z.object({
+		entries: z.array(GameMonthlyRanking),
+	}),
+
+	system: z.object({ serverDate: z.coerce.number() }),
+});
+
+// /api/Versions_en.json
+export const Versions = z.object({
+	app: z.string(),
+	res: z.string(),
+	master: z.string(),
+});

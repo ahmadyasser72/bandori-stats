@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import isBetween from "dayjs/plugin/isBetween";
 import quarterOfYear from "dayjs/plugin/quarterOfYear";
 import relativeTime from "dayjs/plugin/relativeTime";
 import timezone from "dayjs/plugin/timezone";
@@ -10,6 +11,7 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.extend(relativeTime);
 dayjs.extend(quarterOfYear);
+dayjs.extend(isBetween);
 
 dayjs.tz.setDefault(GBP_TIMEZONE);
 

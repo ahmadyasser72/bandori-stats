@@ -1,2 +1,3 @@
 drizzle/
 /site/worker-configuration.d.ts
+*.proto.*

@@ -8,7 +8,7 @@ import {
 	PLAYER_TITLES_SET,
 	redis,
 } from "@bandori-stats/database/redis";
-import { AccountSchema } from "../schema";
+import { AccountSchema } from "~/schema";
 
 const SnapshotSchema = z.strictObject({
 	accountId: z.number().nonnegative(),

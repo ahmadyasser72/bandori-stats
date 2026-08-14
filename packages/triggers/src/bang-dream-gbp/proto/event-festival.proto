@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+message UserTeamLiveFestivalEventRankingResponse {
+    RankingUserList nearUsers = 1;
+    RankingUserList topUsers = 2;
+    RankingUserList eventPointBorderUsers = 3;
+}
+
+message RankingUser {
+    string name = 1;
+    bool ownFlg = 2;
+    uint32 rankLevel = 3;
+    string introduction = 4;
+    uint32 rank = 5;
+    uint64 point = 6;
+    uint64 userId = 7;
+    uint32 degreeId = 8;
+    UserDeck userDeck = 9;
+    UserSituationList userSituationList = 10;
+    UserProfileSituation userProfileSituation = 11;
+    UserProfileDegreeMap userProfileDegreeMap = 12;
+}
+
+message RankingUserList {
+    repeated RankingUser entries = 1;
+}
+
+message UserAppendParameter {
+    uint64 userId = 1;
+    uint32 situationId = 2;
+    uint32 performance = 3;
+    uint32 technique = 4;
+    uint32 visual = 5;
+    uint32 characterPotentialPerformance = 6;
+    uint32 characterPotentialTechnique = 7;
+    uint32 characterPotentialVisual = 8;
+    uint32 characterBonusPerformance = 9;
+    uint32 characterBonusTechnique = 10;
+    uint32 characterBonusVisual = 11;
+}
+
+message UserDeck {
+    uint32 deckId = 1;
+    string deckName = 2;
+    uint32 leader = 3;
+    uint32 member1 = 4;
+    uint32 member2 = 5;
+    uint32 member3 = 6;
+    uint32 member4 = 7;
+    repeated uint32 bondsEffectIds = 8;
+    string deckType = 10;
+}
+
+message UserProfileDegree {
+    uint64 userId = 1;
+    string profileDegreeType = 2;
+    uint32 degreeId = 3;
+}
+
+message UserProfileDegreeMap {
+    map<string, UserProfileDegree> entries = 1;
+}
+
+message UserProfileSituation {
+    uint64 userId = 1;
+    uint32 situationId = 2;
+    string illust = 3;
+    string viewProfileSituationStatus = 4;
+}
+
+message UserSituation {
+    uint64 userId = 1;
+    uint32 situationId = 2;
+    uint32 level = 3;
+    uint32 exp = 4;
+    uint64 createdAt = 5;
+    uint32 addExp = 6;
+    string trainingStatus = 7;
+    uint32 duplicateCount = 8;
+    string illust = 9;
+    uint32 skillExp = 10;
+    uint32 skillLevel = 11;
+    UserAppendParameter userAppendParameter = 12;
+    uint32 limitBreakRank = 13;
+}
+
+message UserSituationList {
+    repeated UserSituation entries = 1;
+}

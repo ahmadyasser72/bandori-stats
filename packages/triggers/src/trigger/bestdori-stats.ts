@@ -7,8 +7,8 @@ import {
 	displayValue,
 } from "@bandori-stats/bestdori/helpers";
 import { PlayerStats } from "@bandori-stats/bestdori/schema/player/stats";
-import { bestdori, bestdoriQueue } from "../bestdori";
-import { AccountSchema } from "../schema";
+import { bestdori, bestdoriQueue } from "~/bestdori";
+import { AccountSchema } from "~/schema";
 
 export const bestdoriStats = schemaTask({
 	id: "bestdori-stats",

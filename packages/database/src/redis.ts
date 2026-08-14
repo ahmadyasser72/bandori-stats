@@ -13,3 +13,7 @@ export const redis = () => {
 
 export const PLAYER_TITLES_SET = "stats:player-titles";
 export const PLAYER_STATS_SORTED_SET_PREFIX = "stats:player-stats";
+
+export const GAME_VERSION = "gbp:version";
+export const GAME_EVENT = "gbp:event:current";
+export const GAME_MONTHLY = "gbp:monthly:current";

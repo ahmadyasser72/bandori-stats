@@ -6,8 +6,10 @@ import {
 	text,
 	unique,
 } from "drizzle-orm/sqlite-core";
+import type z from "zod";
 
 import type { Stats } from "@bandori-stats/bestdori/constants";
+import type { GameEventType } from "@bandori-stats/bestdori/schema/misc";
 
 export const accounts = sqliteTable(
 	"accounts",
@@ -52,3 +54,50 @@ export const accountSnapshots = sqliteTable(
 
 export type Account = typeof accounts.$inferSelect;
 export type Snapshot = typeof accountSnapshots.$inferSelect;
+
+export const gbpEvents = sqliteTable("gbp_events", {
+	eventId: integer().primaryKey({ autoIncrement: false }),
+	eventType: text().notNull().$type<z.infer<typeof GameEventType>>(),
+	eventName: text().notNull().unique(),
+	assetBundleName: text().notNull(),
+	bgmAssetBundleName: text().notNull(),
+	bgmFileName: text().notNull(),
+
+	startAt: integer({ mode: "timestamp_ms" }).notNull(),
+	endAt: integer({ mode: "timestamp_ms" }).notNull(),
+});
+
+export const gbpMonthlyRankings = sqliteTable("gbp_monthly_rankings", {
+	monthlyRankingId: integer().primaryKey({ autoIncrement: false }),
+	monthlyRankingName: text().notNull().unique(),
+	assetBundleName: text().notNull(),
+	bgmAssetBundleName: text().notNull(),
+	bgmFileName: text().notNull(),
+
+	startAt: integer({ mode: "timestamp_ms" }).notNull(),
+	endAt: integer({ mode: "timestamp_ms" }).notNull(),
+});
+
+export const trackerSnapshots = sqliteTable(
+	"tracker_snapshots",
+	{
+		id: integer().primaryKey({ autoIncrement: true }),
+		trackingFor: text({ enum: ["event", "monthly"] }).notNull(),
+		trackingId: integer().notNull(),
+
+		uid: text().notNull(),
+		name: text().notNull(),
+		rank: integer().notNull(),
+		point: integer().notNull(),
+
+		timestamp: integer({ mode: "timestamp_ms" }).notNull(),
+	},
+	(t) => [
+		index("idx_tracker_reference").on(t.trackingFor, t.trackingId),
+		unique("idx_tracker_data").on(t.uid, t.trackingFor, t.trackingId, t.point),
+	],
+);
+
+export type GbpEvent = typeof gbpEvents.$inferSelect;
+export type GbpMonthlyRanking = typeof gbpMonthlyRankings.$inferSelect;
+export type TrackerSnapshot = typeof trackerSnapshots.$inferSelect;

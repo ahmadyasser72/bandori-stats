@@ -18,4 +18,21 @@ export const relations = defineRelations(schema, (r) => ({
 			optional: false,
 		}),
 	},
+
+	gbpEvents: {
+		snapshots: r.many.trackerSnapshots({
+			from: r.gbpEvents.eventId,
+			to: r.trackerSnapshots.trackingId,
+			alias: "event_tracker",
+			where: { trackingFor: "event" },
+		}),
+	},
+	gbpMonthlyRankings: {
+		snapshots: r.many.trackerSnapshots({
+			from: r.gbpMonthlyRankings.monthlyRankingId,
+			to: r.trackerSnapshots.trackingId,
+			alias: "monthly_tracker",
+			where: { trackingFor: "monthly" },
+		}),
+	},
 }));

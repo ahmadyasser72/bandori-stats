@@ -10,6 +10,7 @@
 		"@bandori-stats/bestdori": "workspace:*",
 		"@bandori-stats/database": "workspace:*",
 		"@trigger.dev/sdk": "4.5.9",
+		"protobufjs": "8.7.2",
 		"random": "5.4.1",
 		"zod": "4.4.3"
 	},
