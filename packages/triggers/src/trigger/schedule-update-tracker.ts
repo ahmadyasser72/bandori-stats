@@ -8,8 +8,8 @@ import type {
 } from "@bandori-stats/bestdori/schema/misc";
 import { db } from "@bandori-stats/database";
 import {
-	GAME_EVENT,
-	GAME_MONTHLY,
+	GAME_EVENT_CURRENT,
+	GAME_MONTHLY_CURRENT,
 	GAME_VERSION,
 	redis,
 } from "@bandori-stats/database/redis";
@@ -30,7 +30,7 @@ export const scheduleUpdateTracker = schedules.task({
 				z.infer<typeof GameEvent> | null,
 				z.infer<typeof GameMonthlyRanking> | null,
 			]
-		>(GAME_VERSION, GAME_EVENT, GAME_MONTHLY);
+		>(GAME_VERSION, GAME_EVENT_CURRENT, GAME_MONTHLY_CURRENT);
 
 		if (!version)
 			throw new AbortTaskRunError(`${GAME_VERSION} is not defined.`);
@@ -84,6 +84,14 @@ export const scheduleUpdateTracker = schedules.task({
 					.returning({ id: trackerSnapshots.id });
 
 				if (inserted.length > 0) {
+					await redis().mset(
+						Object.fromEntries(
+							top.map(({ userId, rank }) => [
+								`${GAME_EVENT_CURRENT.replace("current", event.eventId.toString())}:${rank}`,
+								userId?.toString(),
+							]),
+						),
+					);
 					await tags.add([
 						`event_${assetBundleName}`,
 						`event_+${inserted.length}`,
@@ -118,6 +126,14 @@ export const scheduleUpdateTracker = schedules.task({
 					.returning({ id: trackerSnapshots.id });
 
 				if (inserted.length > 0) {
+					await redis().mset(
+						Object.fromEntries(
+							top.map(({ userId, rank }) => [
+								`${GAME_MONTHLY_CURRENT.replace("current", monthly.monthlyRankingId.toString())}:${rank}`,
+								userId?.toString(),
+							]),
+						),
+					);
 					await tags.add([
 						`monthly_${assetBundleName}`,
 						`monthly_+${inserted.length}`,

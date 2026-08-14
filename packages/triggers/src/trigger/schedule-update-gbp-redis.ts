@@ -5,8 +5,8 @@ import dayjs from "@bandori-stats/bestdori/date";
 import { MasterDB, Versions } from "@bandori-stats/bestdori/schema/misc";
 import { db } from "@bandori-stats/database";
 import {
-	GAME_EVENT,
-	GAME_MONTHLY,
+	GAME_EVENT_CURRENT,
+	GAME_MONTHLY_CURRENT,
 	GAME_VERSION,
 	redis,
 } from "@bandori-stats/database/redis";
@@ -23,7 +23,7 @@ export const scheduleUpdateGbpRedis = schedules.task({
 	run: async () => {
 		const [currentVersion, currentEvent, currentMonthly] = await redis().mget<
 			string[]
-		>(GAME_VERSION, GAME_EVENT, GAME_MONTHLY);
+		>(GAME_VERSION, GAME_EVENT_CURRENT, GAME_MONTHLY_CURRENT);
 
 		const pipe = redis().pipeline();
 
@@ -58,7 +58,7 @@ export const scheduleUpdateGbpRedis = schedules.task({
 				for (const event of events) {
 					if (dayjs().isAfter(event.endAt)) continue;
 
-					pipe.set(GAME_EVENT, event, { pxat: event.endAt });
+					pipe.set(GAME_EVENT_CURRENT, event, { pxat: event.endAt });
 					await db()
 						.insert(gbpEvents)
 						.values({
@@ -76,7 +76,7 @@ export const scheduleUpdateGbpRedis = schedules.task({
 					({ startAt, endAt }) => dayjs().isBetween(startAt, endAt),
 				);
 				if (active) {
-					pipe.set(GAME_MONTHLY, active, { pxat: active.endAt });
+					pipe.set(GAME_MONTHLY_CURRENT, active, { pxat: active.endAt });
 					await db()
 						.insert(gbpMonthlyRankings)
 						.values({

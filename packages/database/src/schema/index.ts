@@ -93,7 +93,12 @@ export const trackerSnapshots = sqliteTable(
 		timestamp: integer({ mode: "timestamp_ms" }).notNull(),
 	},
 	(t) => [
-		index("idx_tracker_reference").on(t.trackingFor, t.trackingId),
+		index("idx_tracker_reference").on(
+			t.trackingFor,
+			t.trackingId,
+			t.uid,
+			desc(t.id),
+		),
 		unique("idx_tracker_data").on(
 			t.uid,
 			t.trackingFor,
