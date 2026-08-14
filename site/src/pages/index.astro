@@ -7,6 +7,7 @@ import ThemeSelector from "~/layouts/components/theme-selector.astro";
 const PAGE_DESCRIPTIONS = {
 	history: "Recent player snapshots",
 	leaderboard: "Global player rankings",
+	tracker: "Track event ranking leaderboard",
 	vs: "Compare two player stats",
 } satisfies Record<keyof typeof PAGES, string>;
 ---
@@ -37,7 +38,7 @@ const PAGE_DESCRIPTIONS = {
 		</div>
 	</div>
 
-	<div class="mt-2 grid w-full grid-cols-1 gap-2 sm:grid-cols-3">
+	<div class="mt-2 grid w-full grid-cols-1 gap-2 sm:grid-cols-4">
 		{
 			Object.entries(PAGES).map(([key, { icon, label, url }]) => (
 				<a
