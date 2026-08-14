@@ -26,6 +26,7 @@ export const scheduleUpdateGbpRedis = schedules.task({
 		>(GAME_VERSION, GAME_EVENT_CURRENT, GAME_MONTHLY_CURRENT);
 
 		const pipe = redis().pipeline();
+		pipe.get(GAME_VERSION);
 
 		{
 			const { success, data, error } = Versions.safeParse(
