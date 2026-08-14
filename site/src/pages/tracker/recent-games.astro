@@ -1,0 +1,102 @@
+---
+import z from "zod";
+
+import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
+import { formatNumber, mean, median } from "@bandori-stats/bestdori/helpers";
+import { db } from "@bandori-stats/database";
+import SheetModal from "~/layouts/sheet-modal.astro";
+
+export const partial = true;
+
+const params = Astro.locals.parseQuery(
+	z.object({
+		uid: z.string(),
+		kind: z.enum(["event", "monthly"]),
+		id: z.coerce.number(),
+	}),
+);
+
+const snapshots = await Astro.locals.tracing.enterSpan(
+	"fetch-snapshots",
+	async (span) => {
+		span.setAttribute("uid", params.uid);
+		span.setAttribute("kind", params.kind);
+		span.setAttribute("id", params.id);
+
+		const after = dayjs().subtract(1, "hour");
+		span.setAttribute("after", after.toISOString());
+
+		const rows = await db().query.trackerSnapshots.findMany({
+			columns: { name: true, point: true, timestamp: true },
+			where: {
+				trackingFor: params.kind,
+				trackingId: params.id,
+				uid: params.uid,
+				timestamp: { gt: after.toDate() },
+			},
+			limit: 32,
+			orderBy: { id: "desc" },
+		});
+
+		return rows.filter(
+			({ point }, idx, snapshots) => point !== snapshots.at(idx + 1)?.point,
+		);
+	},
+);
+
+const points = snapshots
+	.slice(0, -1)
+	.map(({ point }, idx) => point - snapshots[idx + 1].point);
+
+if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
+---
+
+<SheetModal>
+	<h2 class="text-center text-2xl font-medium">
+		{snapshots[0].name}: Recent Games (1h)
+	</h2>
+
+	<div class="mt-4 flex max-w-4/5 flex-wrap justify-center gap-x-1 gap-y-0.5">
+		<div class="badge badge-md badge-accent">
+			{snapshots.length} Games
+		</div>
+		<div class="badge badge-md badge-info">
+			Average: {formatNumber(Math.round(mean(points)), { positiveSign: true })}
+		</div>
+		<div class="badge badge-md badge-info">
+			Median: {formatNumber(median(points), { positiveSign: true })}
+		</div>
+		<div class="badge badge-md badge-info">
+			Min: {formatNumber(Math.min(...points), { positiveSign: true })}
+		</div>
+		<div class="badge badge-md badge-info">
+			Max: {formatNumber(Math.max(...points), { positiveSign: true })}
+		</div>
+	</div>
+
+	<ul
+		class="timeline timeline-vertical mt-2 max-h-[60vh] w-full max-w-120 overflow-y-auto"
+	>
+		{
+			snapshots.slice(0, -1).map(({ point, timestamp }, idx) => (
+				<li>
+					{idx > 0 && <hr class="bg-neutral" />}
+					<div class="timeline-start font-mono">
+						{formatDuration(dayjs(timestamp), dayjs())} ago
+					</div>
+					<div class="timeline-end">
+						<div class="inline-flex items-center font-semibold">
+							{formatNumber(point)}
+							<span class="ml-1 badge px-1.5 badge-xs badge-success">
+								{formatNumber(point - snapshots[idx + 1].point, {
+									positiveSign: true,
+								})}
+							</span>
+						</div>
+					</div>
+					{idx < snapshots.length - 1 && <hr class="bg-neutral" />}
+				</li>
+			))
+		}
+	</ul>
+</SheetModal>

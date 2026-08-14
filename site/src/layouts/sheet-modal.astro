@@ -1,8 +1,19 @@
+---
+import type { JSX } from "astro/jsx-runtime";
+
+type Props = JSX.HTMLAttributes;
+
+const { class: className, ...props } = Astro.props;
+---
+
 <hx-partial hx-swap="after" hx-target="main">
 	<bottom-sheet-dialog-manager>
 		<dialog>
 			<bottom-sheet content-height swipe-to-dismiss tabindex="0">
-				<div class="flex flex-col items-center py-8" {...Astro.props}>
+				<div
+					class:list={["flex flex-col items-center py-8", className]}
+					{...props}
+				>
 					<slot />
 				</div>
 			</bottom-sheet>

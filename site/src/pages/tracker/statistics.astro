@@ -1,0 +1,188 @@
+---
+import z from "zod";
+
+import dayjs from "@bandori-stats/bestdori/date";
+import {
+	countBy,
+	formatNumber,
+	mean,
+	median,
+} from "@bandori-stats/bestdori/helpers";
+import { db } from "@bandori-stats/database";
+import SheetModal from "~/layouts/sheet-modal.astro";
+
+export const partial = true;
+
+const params = Astro.locals.parseQuery(
+	z.object({
+		uid: z.string(),
+		kind: z.enum(["event", "monthly"]),
+		id: z.coerce.number(),
+	}),
+);
+
+const snapshots = await Astro.locals.tracing.enterSpan(
+	"fetch-snapshots",
+	async (span) => {
+		span.setAttribute("uid", params.uid);
+		span.setAttribute("kind", params.kind);
+		span.setAttribute("id", params.id);
+
+		const rows = await db().query.trackerSnapshots.findMany({
+			columns: { name: true, point: true, timestamp: true },
+			where: {
+				trackingFor: params.kind,
+				trackingId: params.id,
+				uid: params.uid,
+			},
+			orderBy: { id: "desc" },
+		});
+
+		return rows.filter(
+			({ point }, idx, snapshots) => point !== snapshots.at(idx + 1)?.point,
+		);
+	},
+);
+
+const gameByHours = countBy(snapshots, ({ timestamp }) =>
+	dayjs.tz(timestamp).get("hours"),
+);
+const gameByDayOfWeek = countBy(snapshots, ({ timestamp }) =>
+	dayjs.tz(timestamp).get("day"),
+);
+
+const points = snapshots
+	.slice(0, -1)
+	.map(({ point }, idx) => point - snapshots[idx + 1].point);
+
+const min = Math.min(...points);
+const gameByPoints = countBy(points, (point) =>
+	min <= 50 ? point : Math.round(point / 100) * 100,
+);
+
+const pointsPerHour = (() => {
+	const [first, last] = [snapshots[0], snapshots.at(-1)!];
+	const pointsGained = first.point - last.point;
+	const duration = dayjs(first.timestamp).diff(last.timestamp, "hour", true);
+	return pointsGained / duration;
+})();
+
+const averageMinutesPerGame = (() => {
+	const gaps = snapshots
+		.slice(0, -1)
+		.map(({ timestamp }, idx) =>
+			dayjs(timestamp).diff(snapshots[idx + 1].timestamp, "minute"),
+		)
+		.filter((gap) => gap <= 30);
+	return mean(gaps);
+})();
+
+if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
+---
+
+<SheetModal class="mx-auto max-w-2xl">
+	<h2 class="text-center text-2xl font-medium">
+		{snapshots[0].name}: Statistics
+	</h2>
+
+	<div class="mt-4 flex flex-wrap justify-center gap-x-1 gap-y-0.5">
+		<div class="badge badge-soft badge-lg badge-accent">
+			{snapshots.length} Games
+		</div>
+		<div class="badge badge-soft badge-lg badge-info">
+			Average: {formatNumber(Math.round(mean(points)), { positiveSign: true })}
+		</div>
+		<div class="badge badge-soft badge-lg badge-info">
+			Median: {formatNumber(median(points), { positiveSign: true })}
+		</div>
+		<div class="badge badge-soft badge-lg badge-info">
+			Min: {formatNumber(min, { positiveSign: true })}
+		</div>
+		<div class="badge badge-soft badge-lg badge-info">
+			Max: {formatNumber(Math.max(...points), { positiveSign: true })}
+		</div>
+		<div class="badge badge-soft badge-lg badge-info">
+			{formatNumber(pointsPerHour, { positiveSign: true })} pts/hour (estimated)
+		</div>
+		<div class="badge badge-soft badge-lg badge-info">
+			{formatNumber(averageMinutesPerGame)} minutes/live (average)
+		</div>
+	</div>
+
+	<h3 class="mt-4 text-xl font-medium">Most obtained points</h3>
+	<div class="mt-1 flex flex-wrap justify-center gap-x-1 gap-y-0.5">
+		{
+			Object.keys(gameByPoints)
+				.sort((a, b) => Number(b) - Number(a))
+				.slice(0, 10)
+				.map((point) => (
+					<div class="badge badge-md badge-primary">
+						{min > 50 && "~"}
+						{formatNumber(Number(point))} {gameByPoints[Number(point)]}&times;
+					</div>
+				))
+		}
+	</div>
+
+	<h3 class="mt-4 text-xl font-medium">Most active hours (UTC-8)</h3>
+	<div class="mt-1 flex flex-wrap justify-center gap-x-1 gap-y-0.5">
+		{
+			Object.entries(gameByHours)
+				.sort(([, a], [, b]) => b - a)
+				.slice(0, 10)
+				.map(([hour, count]) => (
+					<div class="badge badge-md badge-accent">
+						<span
+							class="tooltip tooltip-accent underline decoration-dotted"
+							data-tip={
+								dayjs.tz().get("hour") === Number(hour)
+									? "Now"
+									: dayjs()
+											.tz()
+											.set("hour", Number(hour))
+											.startOf("hour")
+											.fromNow()
+							}
+							set:html={dayjs()
+								.tz()
+								.set("hour", Number(hour))
+								.startOf("hour")
+								.format("HH:mm A")}
+						/>
+						{count}&times;
+					</div>
+				))
+		}
+	</div>
+
+	<h3 class="mt-4 text-xl font-medium">Most active day of week (UTC-8)</h3>
+	<div class="mt-1 flex flex-wrap justify-center gap-x-1 gap-y-0.5">
+		{
+			Object.entries(gameByDayOfWeek)
+				.sort(([, a], [, b]) => b - a)
+				.slice(0, 10)
+				.map(([day, count]) => (
+					<div class="badge badge-md badge-accent">
+						<span
+							class="tooltip tooltip-accent underline decoration-dotted"
+							data-tip={
+								dayjs.tz().get("day") === Number(day)
+									? "Today"
+									: dayjs()
+											.tz()
+											.set("day", Number(day))
+											.startOf("day")
+											.fromNow()
+							}
+							set:html={dayjs()
+								.tz()
+								.set("day", Number(day))
+								.startOf("day")
+								.format("dddd")}
+						/>
+						{count}&times;
+					</div>
+				))
+		}
+	</div>
+</SheetModal>

@@ -1,0 +1,57 @@
+---
+import z from "zod";
+
+import { startCase } from "@bandori-stats/bestdori/helpers";
+import IconLoader from "~/components/icon-loader.astro";
+import BaseLayout from "~/layouts/base-layout.astro";
+
+const TABS = ["event", "monthly"] as const;
+
+const params = Astro.locals.parseQuery(
+	z.object({ tab: z.enum(TABS).catch("event") }),
+);
+
+const TAB_ICON = {
+	event: "lucide--calendar",
+	monthly: "lucide--crown",
+} as const;
+---
+
+<BaseLayout title="Tracker" containerClass="max-w-2xl" page="tracker">
+	<fieldset class="tabs tabs-lg text-primary" id="tracker-tabs" role="tablist">
+		{
+			TABS.map((tab) => (
+				<label class="tab hover:text-primary max-sm:flex-1 sm:px-16">
+					<input
+						hx-get="/tracker/list"
+						hx-browser-indicator="true"
+						hx-disable="closest .tabs"
+						hx-replace-url={`/tracker?tab=${tab}`}
+						hx-swap="outerHTML"
+						hx-target="#tracker-list"
+						data-umami-event="tracker-tab"
+						data-umami-event-name={tab}
+						name="kind"
+						type="radio"
+						value={tab}
+						checked={params.tab === tab}
+					/>
+					<IconLoader class="mr-2 size-5" name={TAB_ICON[tab]} />
+					{startCase(tab)}
+				</label>
+			))
+		}
+	</fieldset>
+
+	<div
+		hx-get="/tracker/list"
+		hx-browser-indicator="true"
+		hx-swap="outerHTML"
+		hx-trigger="load"
+		hx-vals={JSON.stringify({ kind: params.tab })}
+		class="list mt-4 py-1"
+		id="tracker-list"
+	>
+		{Array.from({ length: 5 }).map(() => <div class="list-row skeleton" />)}
+	</div>
+</BaseLayout>

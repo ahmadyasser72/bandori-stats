@@ -16,6 +16,7 @@
 
 bottom-sheet::part(sheet) {
 	@apply bg-base-100 text-base-content;
+	view-transition-name: sheet-modal;
 }
 
 .htmx-indicator-replace:is(

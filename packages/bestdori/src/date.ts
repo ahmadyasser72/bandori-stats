@@ -16,3 +16,19 @@ dayjs.extend(isBetween);
 dayjs.tz.setDefault(GBP_TIMEZONE);
 
 export default dayjs;
+
+export const formatDuration = (from: dayjs.Dayjs, to: dayjs.Dayjs) => {
+	const totalMinutes = to.diff(from, "minutes");
+	if (totalMinutes < 1) return "less than a minute";
+
+	const days = Math.floor(totalMinutes / (60 * 24));
+	const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+	const minutes = totalMinutes % 60;
+
+	const parts: string[] = [];
+	if (days) parts.push(`${days}d`);
+	if (hours) parts.push(`${hours}h`);
+	if (minutes) parts.push(`${minutes}m`);
+
+	return parts.join(" ");
+};

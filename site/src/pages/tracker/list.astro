@@ -1,0 +1,279 @@
+---
+import z from "zod";
+
+import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
+import { formatNumber, randomInt } from "@bandori-stats/bestdori/helpers";
+import { db } from "@bandori-stats/database";
+import {
+	GAME_EVENT_CURRENT,
+	GAME_MONTHLY_CURRENT,
+	redis,
+} from "@bandori-stats/database/redis";
+import IconLoader from "~/components/icon-loader.astro";
+
+export const partials = true;
+
+const params = Astro.locals.parseQuery(
+	z.object({ kind: z.enum(["event", "monthly"]) }),
+);
+
+const { data, players } = await Astro.locals.tracing.enterSpan(
+	"fetch-data",
+	async () => {
+		const data = await Astro.locals.tracing.enterSpan(
+			"fetch-latest-data",
+			async (span) => {
+				span.setAttribute("kind", params.kind);
+
+				if (params.kind === "event") {
+					const event = await db().query.gbpEvents.findFirst({
+						orderBy: { eventId: "desc" },
+					});
+					return { ...event!, name: event?.eventName!, id: event?.eventId! };
+				} else {
+					const monthly = await db().query.gbpMonthlyRankings.findFirst({
+						orderBy: { monthlyRankingId: "desc" },
+					});
+					return {
+						...monthly!,
+						name: monthly?.monthlyRankingName!,
+						id: monthly?.monthlyRankingId!,
+					};
+				}
+			},
+		);
+
+		const key = (
+			params.kind === "event" ? GAME_EVENT_CURRENT : GAME_MONTHLY_CURRENT
+		).replace("current", data.id.toString());
+		const top10 = await Astro.locals.tracing.enterSpan(
+			"fetch-top-10",
+			(span) => {
+				span.setAttribute("key", key);
+
+				return redis().mget<number[]>(
+					...Array.from({ length: 10 }, (_, idx) => `${key}:${idx + 1}`),
+				);
+			},
+		);
+
+		const players = await Astro.locals.tracing.enterSpan(
+			"fetch-snapshots",
+			(span) => {
+				for (const [idx, uid] of top10.entries())
+					span.setAttribute(`t${idx + 1}`, uid);
+
+				return Promise.all(
+					top10.map((uid) =>
+						db().query.trackerSnapshots.findMany({
+							columns: { trackingFor: false, trackingId: false },
+							where: {
+								trackingFor: params.kind,
+								trackingId: data.id,
+								uid: uid.toString(),
+							},
+							limit: 2,
+							orderBy: { id: "desc" },
+						}),
+					),
+				);
+			},
+		);
+
+		for (const [idx, [current, previous]] of players.entries()) {
+			if (!previous) continue;
+
+			if (current.point === previous.point) {
+				players[idx] = await Astro.locals.tracing.enterSpan(
+					"fetch-same-points",
+					async (span) => {
+						span.setAttribute("uid", current.uid);
+						span.setAttribute("point", current.point);
+
+						return db().query.trackerSnapshots.findMany({
+							columns: { trackingFor: false, trackingId: false },
+							where: {
+								trackingFor: params.kind,
+								trackingId: data.id,
+								uid: current.uid,
+								point: current.point,
+							},
+							orderBy: { id: "desc" },
+						});
+					},
+				);
+			}
+		}
+
+		return {
+			data,
+			players: players.map((snapshots) => {
+				const [latest, previous] = snapshots;
+				const lastPlayed =
+					latest.point === previous?.point ? snapshots.at(-1)! : latest;
+
+				return {
+					latest,
+					previous:
+						dayjs().diff(latest.timestamp, "minutes") <= 30
+							? previous
+							: undefined,
+					lastPlayed,
+					boatHistory:
+						latest.point === previous?.point ? snapshots.reverse() : undefined,
+				};
+			}),
+		};
+	},
+);
+
+const nextPoll = (() => {
+	const next = dayjs().endOf("minute").add(randomInt(5000), "milliseconds");
+	const untilNextPoll = next.diff(dayjs(), "milliseconds");
+	return untilNextPoll < 15_000 ? untilNextPoll + 30_000 : untilNextPoll;
+})();
+
+if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
+---
+
+<div
+	hx-get={`${Astro.url.pathname}${Astro.url.search}`}
+	hx-browser-indicator="true"
+	hx-swap="outerHTML transition:true"
+	hx-trigger={`load delay:${nextPoll}ms`}
+	class="list mt-4 py-1"
+	id="tracker-list"
+>
+	{
+		players.map(({ latest, previous, lastPlayed, boatHistory }) => (
+			<div
+				class:list={[
+					latest.rank <= 3 && "aura not-last:mb-1.5",
+					latest.rank === 1 && "aura-holo",
+					latest.rank === 2 && "aura-gold",
+					latest.rank === 3 && "aura-silver",
+
+					dayjs().diff(lastPlayed.timestamp, "minutes") >= 30 &&
+						"opacity-50 transition-opacity hover:opacity-100 focus:opacity-100",
+				]}
+				style={`view-transition-name: uid-${latest.uid}`}
+				tabindex="-1"
+			>
+				<div
+					class:list={[
+						"list-row items-center",
+						latest.rank <= 3 && "bg-base-100 dark:bg-base-300",
+					]}
+				>
+					<div class="flex flex-col items-center gap-0.5 font-mono">
+						<span
+							class:list={[
+								"badge size-10 px-0",
+								latest.rank === 1 && "badge-primary",
+								latest.rank === 2 && "badge-accent",
+								latest.rank === 3 && "badge-secondary",
+								latest.rank > 3 && "badge-ghost",
+							]}
+						>
+							{latest.rank}
+						</span>
+
+						{lastPlayed.rank !== latest.rank && (
+							<span
+								class:list={[
+									"badge w-8 px-0 badge-xs font-semibold",
+									latest.rank < lastPlayed.rank && "badge-success",
+									latest.rank > lastPlayed.rank && "badge-error",
+								]}
+							>
+								{latest.rank < lastPlayed.rank ? "▲" : "▼"}{" "}
+								{Math.abs(lastPlayed.rank - latest.rank)}
+							</span>
+						)}
+					</div>
+
+					<div class="flex min-w-0 items-center gap-2 list-col-grow">
+						<span class="truncate text-lg font-medium text-ellipsis">
+							{latest.name}
+						</span>
+					</div>
+
+					<span class="flex flex-col text-sm max-sm:list-col-wrap sm:items-end">
+						<span class="inline-flex items-center font-semibold">
+							{formatNumber(latest.point)}
+							{previous && latest.point !== previous.point && (
+								<span class="ml-1 badge px-1.5 badge-xs badge-success">
+									{formatNumber(latest.point - previous.point, {
+										positiveSign: true,
+									})}
+								</span>
+							)}
+						</span>
+
+						<span>played {dayjs(lastPlayed.timestamp).fromNow()}</span>
+
+						{boatHistory && (
+							<span>
+								boated{" "}
+								{boatHistory.length === 1 ? (
+									<span class="text-error">
+										{dayjs(latest.timestamp).fromNow()}
+									</span>
+								) : (
+									<span class="tooltip tooltip-error text-error underline decoration-dotted sm:tooltip-end">
+										<div class="tooltip-content">
+											<div class="flex flex-col">
+												{boatHistory
+													.slice(1)
+													.map(({ timestamp, rank }, idx) => (
+														<div class="flex justify-between gap-2">
+															<span>
+																{boatHistory[idx].rank} -> {rank}
+															</span>
+															<span>
+																{formatDuration(dayjs(timestamp), dayjs())} ago
+															</span>
+														</div>
+													))}
+											</div>
+										</div>
+										{dayjs(latest.timestamp).fromNow()}
+									</span>
+								)}
+							</span>
+						)}
+					</span>
+
+					<div class="flex h-full justify-center gap-1 max-sm:row-end-3 max-sm:flex-col sm:list-col-wrap sm:justify-end">
+						<button
+							hx-get="/tracker/recent-games"
+							hx-vals={JSON.stringify({
+								uid: latest.uid,
+								kind: params.kind,
+								id: data.id,
+							})}
+							class="btn btn-primary btn-sm"
+							disabled={dayjs().diff(lastPlayed.timestamp, "minutes") >= 60}
+						>
+							<IconLoader name="lucide--gamepad-2" />
+							Recent
+						</button>
+
+						<button
+							hx-get="/tracker/statistics"
+							hx-vals={JSON.stringify({
+								uid: latest.uid,
+								kind: params.kind,
+								id: data.id,
+							})}
+							class="btn btn-accent btn-sm"
+						>
+							<IconLoader name="lucide--bar-chart-3" />
+							Statistics
+						</button>
+					</div>
+				</div>
+			</div>
+		))
+	}
+</div>
