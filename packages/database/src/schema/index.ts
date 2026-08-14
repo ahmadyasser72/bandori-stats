@@ -94,7 +94,14 @@ export const trackerSnapshots = sqliteTable(
 	},
 	(t) => [
 		index("idx_tracker_reference").on(t.trackingFor, t.trackingId),
-		unique("idx_tracker_data").on(t.uid, t.trackingFor, t.trackingId, t.point),
+		unique("idx_tracker_data").on(
+			t.uid,
+			t.trackingFor,
+			t.trackingId,
+			t.name,
+			t.rank,
+			t.point,
+		),
 	],
 );
 
