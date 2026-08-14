@@ -83,10 +83,12 @@ export const scheduleUpdateTracker = schedules.task({
 					.onConflictDoNothing()
 					.returning({ id: trackerSnapshots.id });
 
-				await tags.add([
-					`event_${assetBundleName}`,
-					`event_+${inserted.length}`,
-				]);
+				if (inserted.length > 0) {
+					await tags.add([
+						`event_${assetBundleName}`,
+						`event_+${inserted.length}`,
+					]);
+				}
 			})(),
 			(async () => {
 				if (!monthly) {
@@ -115,10 +117,12 @@ export const scheduleUpdateTracker = schedules.task({
 					.onConflictDoNothing()
 					.returning({ id: trackerSnapshots.id });
 
-				await tags.add([
-					`monthly_${assetBundleName}`,
-					`monthly_+${inserted.length}`,
-				]);
+				if (inserted.length > 0) {
+					await tags.add([
+						`monthly_${assetBundleName}`,
+						`monthly_+${inserted.length}`,
+					]);
+				}
 			})(),
 		]);
 	},
