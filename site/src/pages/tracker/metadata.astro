@@ -4,6 +4,7 @@ import z from "zod";
 import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
 import { db } from "@bandori-stats/database";
+import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import {
 	getTrackerBackground,
@@ -48,6 +49,8 @@ Astro.response.headers.append("vary", "client-timezone");
 const now = dayjs().tz(clientTimezone);
 const progress =
 	(now.diff(data.startAt) / dayjs(data.endAt).diff(data.startAt)) * 100;
+
+if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 ---
 
 <div
@@ -55,6 +58,35 @@ const progress =
 	style="anchor-name: --anchor-tracker-info"
 >
 	<div class="flex gap-1">
+		<div class="flex flex-col justify-evenly">
+			<button
+				hx-get="/tracker/charts/points"
+				hx-swap="after"
+				hx-target="main"
+				hx-vals={JSON.stringify(params)}
+				data-umami-event="tracker-chart-points"
+				data-umami-event-kind={params.kind}
+				data-umami-event-name={data.name}
+				class="tooltip btn tooltip-start btn-square size-10 tooltip-secondary btn-secondary"
+				data-tip="Points Chart"
+			>
+				<IconLoader class="size-5" name="lucide--chart-no-axes-combined" />
+			</button>
+			<button
+				hx-get="/tracker/charts/ranking"
+				hx-swap="after"
+				hx-target="main"
+				hx-vals={JSON.stringify(params)}
+				data-umami-event="tracker-chart-ranking"
+				data-umami-event-kind={params.kind}
+				data-umami-event-name={data.name}
+				class="tooltip btn tooltip-bottom tooltip-start btn-square size-10 tooltip-secondary btn-secondary"
+				data-tip="Ranking Chart"
+			>
+				<IconLoader class="size-5" name="lucide--activity" />
+			</button>
+		</div>
+
 		<img
 			class="aspect-9/4 w-64"
 			src={getTrackerLogo(data.id, params.kind)}
@@ -66,10 +98,11 @@ const progress =
 				data-umami-event="tracker-info-audio"
 				data-umami-event-kind={params.kind}
 				data-umami-event-name={data.name}
-				class="btn btn-square size-12 btn-soft"
+				class="tooltip btn tooltip-end btn-square size-10 tooltip-secondary btn-secondary"
+				data-tip="BGM Player"
 				popovertarget="tracker-info-audio"
 			>
-				<Icon class="size-8" name="lucide--music" />
+				<Icon class="size-5" name="lucide--music" />
 			</button>
 			<div
 				hx-preserve
@@ -89,10 +122,11 @@ const progress =
 				data-umami-event="tracker-info-images"
 				data-umami-event-kind={params.kind}
 				data-umami-event-name={data.name}
-				class="btn btn-square size-12 btn-soft"
+				class="tooltip btn tooltip-bottom tooltip-end btn-square size-10 tooltip-secondary btn-secondary"
+				data-tip="Images"
 				popovertarget="tracker-info-images"
 			>
-				<Icon class="size-8" name="lucide--wallpaper" />
+				<Icon class="size-5" name="lucide--wallpaper" />
 			</button>
 			<div
 				class="dropdown dropdown-center h-64 px-2 py-0 sm:h-96"

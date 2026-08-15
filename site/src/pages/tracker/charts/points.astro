@@ -1,0 +1,41 @@
+---
+import z from "zod";
+
+import SheetModal from "~/layouts/sheet-modal.astro";
+import { fetchTrackerData, processTrackerData } from "./_data";
+import { PointsChart } from "./_points-chart";
+
+export const partial = true;
+
+const params = Astro.locals.parseQuery(
+	z.object({
+		kind: z.enum(["event", "monthly"]),
+		id: z.coerce.number(),
+	}),
+);
+
+const [snapshots, metadata] = await Astro.locals.tracing.enterSpan(
+	"fetch-tracker-data",
+	(span) => {
+		span.setAttribute("kind", params.kind);
+		span.setAttribute("id", params.id);
+
+		return fetchTrackerData(params);
+	},
+);
+
+const data = processTrackerData(snapshots, {
+	pick: ["point", "rank"],
+	key: "point",
+});
+
+if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30 * 60, swr: 30 * 60 });
+---
+
+<SheetModal>
+	<h2 class="text-center text-2xl font-medium">Points over time</h2>
+
+	<PointsChart client:only="preact" {data} metadata={metadata!}>
+		<div class="h-60vh"></div>
+	</PointsChart>
+</SheetModal>

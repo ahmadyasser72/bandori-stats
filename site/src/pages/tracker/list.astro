@@ -142,11 +142,16 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 		class="mt-4 flex flex-col items-center gap-1"
 	>
 		<div class="flex gap-1">
+			<div class="flex flex-col justify-evenly">
+				<div class="size-10 skeleton"></div>
+				<div class="size-10 skeleton"></div>
+			</div>
+
 			<div class="aspect-9/4 w-64 skeleton"></div>
 
 			<div class="flex flex-col justify-evenly">
-				<div class="size-12 skeleton"></div>
-				<div class="size-12 skeleton"></div>
+				<div class="size-10 skeleton"></div>
+				<div class="size-10 skeleton"></div>
 			</div>
 		</div>
 
