@@ -111,6 +111,8 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 					<input
 						hx-get="/tracker/recent-games"
 						hx-disable="closest .tabs"
+						data-umami-event="tracker-recent-games-duration"
+						data-umami-event-duration={duration}
 						name="duration"
 						type="radio"
 						value={duration}

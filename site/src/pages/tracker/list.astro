@@ -1,4 +1,6 @@
 ---
+import { UMAMI_SITE_ID } from "astro:env/server";
+
 import z from "zod";
 
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
@@ -133,6 +135,9 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 <div
 	hx-get={`${Astro.url.pathname}${Astro.url.search}`}
 	hx-browser-indicator="true"
+	hx-on={import.meta.env.PROD && UMAMI_SITE_ID
+		? `htmx:before:request -> umami.track("tracker-poll", { name: "${data.name}", kind: "${params.kind}" })`
+		: undefined}
 	hx-swap="outerHTML transition:true"
 	hx-trigger="load delay:60s"
 	class="list mt-4 py-1"
@@ -255,6 +260,10 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 										? "1h"
 										: "12h",
 							})}
+							data-umami-event="tracker-recent-games"
+							data-umami-event-kind={params.kind}
+							data-umami-event-name={data.name}
+							data-umami-event-player={latest.name}
 							class="btn btn-primary btn-sm"
 						>
 							<IconLoader name="lucide--gamepad-2" />
@@ -269,6 +278,10 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 								kind: params.kind,
 								id: data.id,
 							})}
+							data-umami-event="tracker-statistics"
+							data-umami-event-kind={params.kind}
+							data-umami-event-name={data.name}
+							data-umami-event-player={latest.name}
 							class="btn btn-accent btn-sm"
 						>
 							<IconLoader name="lucide--bar-chart-3" />
