@@ -1,4 +1,6 @@
 ---
+import { UMAMI_SITE_ID } from "astro:env/server";
+
 import z from "zod";
 
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
@@ -91,8 +93,23 @@ const pointsPerHour = (() => {
 if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 ---
 
-<SheetModal>
+<SheetModal
+	{...params.duration === "1h" && {
+		"hx-get": `${Astro.url.pathname}${Astro.url.search}`,
+		"hx-indicator": "find .recent-games-loader",
+		"hx-on":
+			import.meta.env.PROD && UMAMI_SITE_ID && snapshots.length > 0
+				? `htmx:before:request from:self -> umami.track("recent-games-poll", { player: "${snapshots[0].name}", kind: "${params.kind}" })`
+				: undefined,
+		"hx-trigger": "load delay:60s",
+	}}
+>
 	<h2 class="text-center text-2xl font-medium">
+		<Icon
+			class="recent-games-loader htmx-indicator mr-1 size-5 align-[center]"
+			name="svg-spinners--90-ring-with-bg"
+		/>
+
 		{
 			snapshots.length > 0
 				? `${snapshots[0].name}: Recent Games (${params.duration})`
