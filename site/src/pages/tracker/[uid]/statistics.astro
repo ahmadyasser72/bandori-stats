@@ -15,9 +15,9 @@ import SheetModal from "~/layouts/sheet-modal.astro";
 
 export const partial = true;
 
+const uid = Astro.params.uid!;
 const params = Astro.locals.parseQuery(
 	z.object({
-		uid: z.string(),
 		kind: z.enum(["event", "monthly"]),
 		id: z.coerce.number(),
 	}),
@@ -31,16 +31,16 @@ const now = dayjs().tz(clientTimezone);
 const snapshots = await Astro.locals.tracing.enterSpan(
 	"fetch-snapshots",
 	async (span) => {
-		span.setAttribute("uid", params.uid);
+		span.setAttribute("uid", uid);
 		span.setAttribute("kind", params.kind);
 		span.setAttribute("id", params.id);
 
 		const rows = await db().query.trackerSnapshots.findMany({
 			columns: { name: true, point: true, timestamp: true },
 			where: {
+				uid,
 				trackingFor: params.kind,
 				trackingId: params.id,
-				uid: params.uid,
 			},
 			orderBy: { id: "desc" },
 		});

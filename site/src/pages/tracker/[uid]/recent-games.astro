@@ -20,9 +20,9 @@ export const partial = true;
 
 const DURATIONS = ["1h", "3h", "6h", "12h", "1d"] as const;
 
+const uid = Astro.params.uid!;
 const params = Astro.locals.parseQuery(
 	z.object({
-		uid: z.string(),
 		kind: z.enum(["event", "monthly"]),
 		id: z.coerce.number(),
 		duration: z.enum(DURATIONS),
@@ -39,7 +39,7 @@ else after = dayjs().subtract(1, "day");
 const snapshots = await Astro.locals.tracing.enterSpan(
 	"fetch-snapshots",
 	async (span) => {
-		span.setAttribute("uid", params.uid);
+		span.setAttribute("uid", uid);
 		span.setAttribute("kind", params.kind);
 		span.setAttribute("id", params.id);
 		span.setAttribute("duration", params.duration);
@@ -48,9 +48,9 @@ const snapshots = await Astro.locals.tracing.enterSpan(
 		const rows = await db().query.trackerSnapshots.findMany({
 			columns: { name: true, point: true, timestamp: true },
 			where: {
+				uid,
 				trackingFor: params.kind,
 				trackingId: params.id,
-				uid: params.uid,
 				timestamp: { gt: after.toDate() },
 			},
 			orderBy: { id: "desc" },
@@ -60,9 +60,9 @@ const snapshots = await Astro.locals.tracing.enterSpan(
 			const previous = await db().query.trackerSnapshots.findFirst({
 				columns: { name: true, point: true, timestamp: true },
 				where: {
+					uid,
 					trackingFor: params.kind,
 					trackingId: params.id,
-					uid: params.uid,
 					timestamp: { lte: after.toDate() },
 					point: { ne: rows.at(-1)!.point },
 				},
@@ -140,7 +140,7 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 			DURATIONS.map((duration) => (
 				<label class="tab h-16 flex-col hover:text-accent max-md:flex-1 md:px-12">
 					<input
-						hx-get="/tracker/recent-games"
+						hx-get={Astro.url.pathname}
 						hx-disable="closest .tabs"
 						data-umami-event="tracker-recent-games-duration"
 						data-umami-event-duration={duration}

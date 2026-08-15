@@ -292,9 +292,8 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 
 					<div class="flex h-full justify-center gap-1 max-sm:row-end-3 max-sm:flex-col sm:list-col-wrap sm:justify-end">
 						<button
-							hx-get="/tracker/recent-games"
+							hx-get={`/tracker/${latest.uid}/recent-games`}
 							hx-vals={JSON.stringify({
-								uid: latest.uid,
 								kind: params.kind,
 								id: data.id,
 								duration:
@@ -313,13 +312,9 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 						</button>
 
 						<button
-							hx-get="/tracker/statistics"
+							hx-get={`/tracker/${latest.uid}/statistics`}
 							hx-headers="js:{ 'client-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone }"
-							hx-vals={JSON.stringify({
-								uid: latest.uid,
-								kind: params.kind,
-								id: data.id,
-							})}
+							hx-vals={JSON.stringify({ kind: params.kind, id: data.id })}
 							data-umami-event="tracker-statistics"
 							data-umami-event-kind={params.kind}
 							data-umami-event-name={data.name}
