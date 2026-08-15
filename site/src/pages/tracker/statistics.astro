@@ -112,13 +112,13 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 	<h3 class="mt-4 text-xl font-medium">Most obtained points</h3>
 	<div class="mt-1 flex flex-wrap justify-center gap-x-1 gap-y-0.5">
 		{
-			Object.keys(gameByPoints)
-				.sort((a, b) => Number(b) - Number(a))
+			Object.entries(gameByPoints)
+				.sort(([, a], [, b]) => b - a)
 				.slice(0, 10)
-				.map((point) => (
+				.map(([point, count]) => (
 					<div class="badge badge-md badge-primary">
 						{min > 50 && "~"}
-						{formatNumber(Number(point))} {gameByPoints[Number(point)]}&times;
+						{formatNumber(Number(point))} {count}&times;
 					</div>
 				))
 		}
