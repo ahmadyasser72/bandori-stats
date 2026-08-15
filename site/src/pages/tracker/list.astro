@@ -266,6 +266,7 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 
 						<button
 							hx-get="/tracker/statistics"
+							hx-headers="js:{ 'client-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone }"
 							hx-vals={JSON.stringify({
 								uid: latest.uid,
 								kind: params.kind,
