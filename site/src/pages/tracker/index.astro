@@ -26,7 +26,6 @@ const TAB_ICON = {
 						hx-get="/tracker/list"
 						hx-browser-indicator="true"
 						hx-disable="closest .tabs"
-						hx-headers="js:{ 'client-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone }"
 						hx-replace-url={`/tracker?tab=${tab}`}
 						hx-swap="outerHTML"
 						hx-target="#tracker-list"
@@ -48,7 +47,6 @@ const TAB_ICON = {
 	<div
 		hx-get="/tracker/list"
 		hx-browser-indicator="true"
-		hx-headers="js:{ 'client-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone }"
 		hx-swap="outerHTML"
 		hx-trigger="load"
 		hx-vals={JSON.stringify({ kind: params.tab })}

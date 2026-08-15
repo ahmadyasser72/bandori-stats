@@ -1,0 +1,150 @@
+---
+import z from "zod";
+
+import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
+import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
+import { db } from "@bandori-stats/database";
+import Icon from "~/components/icon.astro";
+import {
+	getTrackerBackground,
+	getTrackerBgm,
+	getTrackerLogo,
+} from "~/lib/assets";
+
+const params = Astro.locals.parseQuery(
+	z.object({
+		kind: z.enum(["event", "monthly"]),
+		id: z.coerce.number(),
+	}),
+);
+
+const data = await Astro.locals.tracing.enterSpan(
+	"fetch-data",
+	async (span) => {
+		span.setAttribute("kind", params.kind);
+		span.setAttribute("id", params.id);
+
+		if (params.kind === "event") {
+			const event = await db().query.gbpEvents.findFirst({
+				where: { eventId: params.id },
+			});
+			return { ...event!, name: event?.eventName!, id: event?.eventId! };
+		} else {
+			const monthly = await db().query.gbpMonthlyRankings.findFirst({
+				where: { monthlyRankingId: params.id },
+			});
+			return {
+				...monthly!,
+				name: monthly?.monthlyRankingName!,
+				id: monthly?.monthlyRankingId!,
+			};
+		}
+	},
+);
+
+const clientTimezone =
+	Astro.request.headers.get("client-timezone") ?? GBP_TIMEZONE;
+Astro.response.headers.append("vary", "client-timezone");
+const now = dayjs().tz(clientTimezone);
+const progress =
+	(now.diff(data.startAt) / dayjs(data.endAt).diff(data.startAt)) * 100;
+---
+
+<div
+	class="mt-4 flex flex-col items-center gap-1"
+	style="anchor-name: --anchor-tracker-info"
+>
+	<div class="flex gap-1">
+		<img
+			class="aspect-9/4 w-64"
+			src={getTrackerLogo(data.id, params.kind)}
+			alt={`${data.assetBundleName} logo`}
+		/>
+
+		<div class="flex flex-col justify-evenly">
+			<button
+				data-umami-event="tracker-info-audio"
+				data-umami-event-kind={params.kind}
+				data-umami-event-name={data.name}
+				class="btn btn-square size-12 btn-soft"
+				popovertarget="tracker-info-audio"
+			>
+				<Icon class="size-8" name="lucide--music" />
+			</button>
+			<div
+				hx-preserve
+				class="dropdown dropdown-center"
+				id="tracker-info-audio"
+				popover
+				style="position-anchor: --anchor-tracker-info"
+			>
+				<audio
+					src={getTrackerBgm(data.id, params.kind)}
+					controls
+					loop
+					preload="metadata"></audio>
+			</div>
+
+			<button
+				data-umami-event="tracker-info-images"
+				data-umami-event-kind={params.kind}
+				data-umami-event-name={data.name}
+				class="btn btn-square size-12 btn-soft"
+				popovertarget="tracker-info-images"
+			>
+				<Icon class="size-8" name="lucide--wallpaper" />
+			</button>
+			<div
+				class="dropdown dropdown-center h-64 px-2 py-0 sm:h-96"
+				id="tracker-info-images"
+				popover
+				style="position-anchor: --anchor-tracker-info"
+			>
+				{
+					([1, 2] as const).map((variant) => (
+						<img
+							class="aspect-2/1 h-64 rounded-box object-cover py-2 sm:h-96"
+							src={getTrackerBackground(data.id, params.kind, variant)}
+							alt={`${data.assetBundleName} background`}
+							loading="lazy"
+						/>
+					))
+				}
+			</div>
+		</div>
+	</div>
+
+	<h2 class="text-center text-lg font-semibold">{data.name}</h2>
+
+	<div class="flex w-full flex-col">
+		<div
+			class="flex translate-y-1.5 justify-between px-0.5 text-sm font-medium"
+		>
+			<span
+				class="tooltip tooltip-start tooltip-primary underline decoration-dotted"
+				data-tip={formatDuration(dayjs(data.startAt), now)}
+				>{
+					dayjs.tz(data.startAt, clientTimezone).format("YYYY-MM-DD, HH:mm")
+				}</span
+			>
+			<span
+				class="tooltip tooltip-end tooltip-primary underline decoration-dotted"
+				data-tip={`in ${formatDuration(now, dayjs(data.endAt), false)}`}
+				>{
+					dayjs.tz(data.endAt, clientTimezone).format("YYYY-MM-DD, HH:mm")
+				}</span
+			>
+		</div>
+
+		<div class="relative w-full">
+			<progress
+				class="progress w-full progress-primary"
+				value={progress}
+				max="100"></progress>
+
+			<div class="absolute center badge badge-sm badge-primary">
+				{progress.toFixed(1)}%
+			</div>
+		</div>
+	</div>
+</div>
