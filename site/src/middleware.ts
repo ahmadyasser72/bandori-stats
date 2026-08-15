@@ -81,7 +81,7 @@ export const onRequest = defineMiddleware(
 		}
 
 		const response = await next();
-		if (isHtmxPartial) response.headers.set("vary", "hx-request-type");
+		if (!isTakumiRender) response.headers.append("vary", "hx-request-type");
 		return response;
 	},
 );

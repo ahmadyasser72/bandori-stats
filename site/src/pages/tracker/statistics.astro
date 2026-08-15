@@ -24,6 +24,7 @@ const params = Astro.locals.parseQuery(
 
 const clientTimezone =
 	Astro.request.headers.get("client-timezone") ?? GBP_TIMEZONE;
+Astro.response.headers.append("vary", "client-timezone");
 const now = dayjs().tz(clientTimezone);
 
 const snapshots = await Astro.locals.tracing.enterSpan(

@@ -138,6 +138,7 @@ const { data, players } = await Astro.locals.tracing.enterSpan(
 
 const clientTimezone =
 	Astro.request.headers.get("client-timezone") ?? GBP_TIMEZONE;
+Astro.response.headers.append("vary", "client-timezone");
 const now = dayjs().tz(clientTimezone);
 const progress =
 	(now.diff(data.startAt) / dayjs(data.endAt).diff(data.startAt)) * 100;
