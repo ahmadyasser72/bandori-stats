@@ -201,6 +201,7 @@ const { title, page, containerClass } = Astro.props;
 		openPopover.removeAttribute("hx-morph-skip");
 	});
 
+	let modal: HTMLDialogElement | null = null;
 	htmx.onLoad(async (node) => {
 		if (node.tagName !== "BOTTOM-SHEET-DIALOG-MANAGER") return;
 
@@ -212,10 +213,27 @@ const { title, page, containerClass } = Astro.props;
 			registerSheetElements();
 		}
 
+		if (modal) {
+			await htmx.swap({
+				text: node.querySelector("bottom-sheet")!.outerHTML,
+				target: modal.querySelector("bottom-sheet")!,
+				swap: "outerHTML",
+			});
+
+			node.remove();
+			return;
+		}
+
+		modal = dialog;
 		dialog.showModal();
 		dialog.addEventListener(
 			"close",
-			() => setTimeout(() => node.remove(), 300),
+			() => {
+				setTimeout(() => {
+					node.remove();
+					modal = null;
+				}, 300);
+			},
 			{ once: true },
 		);
 	});

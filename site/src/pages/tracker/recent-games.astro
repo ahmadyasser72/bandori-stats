@@ -2,17 +2,26 @@
 import z from "zod";
 
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
-import { formatNumber, mean, median } from "@bandori-stats/bestdori/helpers";
+import {
+	formatNumber,
+	mean,
+	median,
+	omit,
+} from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
+import IconLoader from "~/components/icon-loader.astro";
 import SheetModal from "~/layouts/sheet-modal.astro";
 
 export const partial = true;
+
+const DURATIONS = ["1h", "3h", "6h", "12h", "1d"] as const;
 
 const params = Astro.locals.parseQuery(
 	z.object({
 		uid: z.string(),
 		kind: z.enum(["event", "monthly"]),
 		id: z.coerce.number(),
+		duration: z.enum(DURATIONS).catch("1h"),
 	}),
 );
 
@@ -23,7 +32,12 @@ const snapshots = await Astro.locals.tracing.enterSpan(
 		span.setAttribute("kind", params.kind);
 		span.setAttribute("id", params.id);
 
-		const after = dayjs().subtract(1, "hour");
+		let after: dayjs.Dayjs;
+		if (params.duration === "1h") after = dayjs().subtract(1, "hour");
+		else if (params.duration === "3h") after = dayjs().subtract(3, "hour");
+		else if (params.duration === "6h") after = dayjs().subtract(6, "hour");
+		else if (params.duration === "12h") after = dayjs().subtract(12, "hour");
+		else after = dayjs().subtract(1, "day");
 		span.setAttribute("after", after.toISOString());
 
 		const rows = await db().query.trackerSnapshots.findMany({
@@ -34,7 +48,6 @@ const snapshots = await Astro.locals.tracing.enterSpan(
 				uid: params.uid,
 				timestamp: { gt: after.toDate() },
 			},
-			limit: 32,
 			orderBy: { id: "desc" },
 		});
 
@@ -69,8 +82,31 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 
 <SheetModal>
 	<h2 class="text-center text-2xl font-medium">
-		{snapshots[0].name}: Recent Games (1h)
+		{snapshots[0].name}: Recent Games ({params.duration})
 	</h2>
+
+	<fieldset
+		hx-vals:inherited={JSON.stringify(omit(params, ["duration"]))}
+		class="tabs mt-4 w-full tabs-sm text-accent"
+		role="tablist"
+	>
+		{
+			DURATIONS.map((duration) => (
+				<label class="tab h-16 flex-col hover:text-accent max-md:flex-1 md:px-12">
+					<input
+						hx-get="/tracker/recent-games"
+						hx-disable="closest .tabs"
+						name="duration"
+						type="radio"
+						value={duration}
+						checked={duration === params.duration}
+					/>
+					<IconLoader class="size-5" name="lucide--clock" />
+					{duration}
+				</label>
+			))
+		}
+	</fieldset>
 
 	<div class="mt-4 flex max-w-4/5 flex-wrap justify-center gap-x-1 gap-y-0.5">
 		<div class="badge badge-md badge-accent">
