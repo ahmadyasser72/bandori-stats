@@ -9,7 +9,6 @@ import {
 	mean,
 	median,
 	omit,
-	percentile,
 } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
 import IconLoader from "~/components/icon-loader.astro";
@@ -81,12 +80,7 @@ const snapshots = await Astro.locals.tracing.enterSpan(
 const rawPoints = snapshots
 	.slice(0, -1)
 	.map(({ point }, idx) => point - snapshots[idx + 1].point);
-
-const outlierThreshold = (() => {
-	const q1 = percentile(rawPoints, 25);
-	const q3 = percentile(rawPoints, 75);
-	return q3 + (q3 - q1) * 1.5;
-})();
+const outlierThreshold = mean(rawPoints) * 3;
 
 const points = rawPoints.filter((point) => point <= outlierThreshold);
 const games = snapshots.slice(0, -1).map(({ point, timestamp }, idx) => ({
