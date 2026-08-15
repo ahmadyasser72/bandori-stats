@@ -9,6 +9,7 @@ import {
 	mean,
 	median,
 	omit,
+	percentile,
 } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
 import IconLoader from "~/components/icon-loader.astro";
@@ -77,9 +78,22 @@ const snapshots = await Astro.locals.tracing.enterSpan(
 	},
 );
 
-const points = snapshots
+const rawPoints = snapshots
 	.slice(0, -1)
 	.map(({ point }, idx) => point - snapshots[idx + 1].point);
+
+const outlierThreshold = (() => {
+	const q1 = percentile(rawPoints, 25);
+	const q3 = percentile(rawPoints, 75);
+	return q3 + (q3 - q1) * 1.5;
+})();
+
+const points = rawPoints.filter((point) => point <= outlierThreshold);
+const games = snapshots.slice(0, -1).map(({ point, timestamp }, idx) => ({
+	point,
+	timestamp,
+	delta: point - snapshots[idx + 1].point,
+}));
 
 const pointsPerHour = (() => {
 	if (snapshots.length < 2) return 0;
@@ -177,7 +191,7 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 				</div>
 
 				<ul class="timeline timeline-vertical mt-2 max-h-[60vh] w-full max-w-120 overflow-y-auto">
-					{snapshots.slice(0, -1).map(({ point, timestamp }, idx) => (
+					{games.map(({ point, timestamp, delta }, idx) => (
 						<li>
 							{idx > 0 && <hr class="bg-neutral" />}
 							<div class="timeline-start font-mono">
@@ -186,14 +200,28 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 							<div class="timeline-end">
 								<div class="inline-flex items-center font-semibold">
 									{formatNumber(point)}
-									<span class="ml-1 badge px-1.5 badge-xs badge-success">
-										{formatNumber(point - snapshots[idx + 1].point, {
-											positiveSign: true,
-										})}
+									<span
+										class:list={[
+											"ml-1 badge px-1.5 badge-xs",
+											delta > outlierThreshold
+												? "badge-warning"
+												: "badge-success",
+										]}
+									>
+										{formatNumber(delta, { positiveSign: true })}
 									</span>
+
+									{delta > outlierThreshold && (
+										<span
+											class="tooltip tooltip-end ml-1 badge badge-xs tooltip-warning badge-warning before:max-w-32"
+											data-tip="Likely accumulated while untracked"
+										>
+											gap
+										</span>
+									)}
 								</div>
 							</div>
-							{idx < snapshots.length - 1 && <hr class="bg-neutral" />}
+							{idx < games.length - 1 && <hr class="bg-neutral" />}
 						</li>
 					))}
 				</ul>

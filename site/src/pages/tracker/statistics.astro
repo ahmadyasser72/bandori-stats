@@ -8,6 +8,7 @@ import {
 	formatNumber,
 	mean,
 	median,
+	percentile,
 } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
 import SheetModal from "~/layouts/sheet-modal.astro";
@@ -57,9 +58,18 @@ const gameByDayOfWeek = countBy(snapshots, ({ timestamp }) =>
 	dayjs.tz(timestamp, clientTimezone).get("day"),
 );
 
-const points = snapshots
+const rawPoints = snapshots
 	.slice(0, -1)
 	.map(({ point }, idx) => point - snapshots[idx + 1].point);
+
+const outlierThreshold = (() => {
+	const q1 = percentile(rawPoints, 25);
+	const q3 = percentile(rawPoints, 75);
+	return q3 + (q3 - q1) * 1.5;
+})();
+
+const points = rawPoints.filter((point) => point <= outlierThreshold);
+const outlierCount = rawPoints.length - points.length;
 
 const min = Math.min(...points);
 const gameByPoints = countBy(points, (point) =>
@@ -113,6 +123,16 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 		<div class="badge badge-soft badge-lg badge-info">
 			{formatNumber(averageMinutesPerGame)} Minutes/game (average)
 		</div>
+		{
+			outlierCount > 0 && (
+				<div
+					class="tooltip badge badge-soft badge-lg tooltip-warning badge-warning before:max-w-32"
+					data-tip="Point jumps during untracked gaps are excluded from stats"
+				>
+					{outlierCount} gap{outlierCount > 1 && "s"} excluded
+				</div>
+			)
+		}
 	</div>
 
 	<h3 class="mt-4 text-xl font-medium">Most obtained points</h3>
