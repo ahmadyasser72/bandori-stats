@@ -29,6 +29,7 @@ export const formatDuration = (from: dayjs.Dayjs, to: dayjs.Dayjs) => {
 	if (days) parts.push(`${days}d`);
 	if (hours) parts.push(`${hours}h`);
 	if (minutes) parts.push(`${minutes}m`);
+	parts.push("ago");
 
 	return parts.join(" ");
 };
