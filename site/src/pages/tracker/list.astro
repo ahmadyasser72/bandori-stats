@@ -2,7 +2,7 @@
 import z from "zod";
 
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
-import { formatNumber, randomInt } from "@bandori-stats/bestdori/helpers";
+import { formatNumber } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
 import {
 	GAME_EVENT_CURRENT,
@@ -127,12 +127,6 @@ const { data, players } = await Astro.locals.tracing.enterSpan(
 	},
 );
 
-const nextPoll = (() => {
-	const next = dayjs().endOf("minute").add(randomInt(5000), "milliseconds");
-	const untilNextPoll = next.diff(dayjs(), "milliseconds");
-	return untilNextPoll < 15_000 ? untilNextPoll + 30_000 : untilNextPoll;
-})();
-
 if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 ---
 
@@ -140,7 +134,7 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 	hx-get={`${Astro.url.pathname}${Astro.url.search}`}
 	hx-browser-indicator="true"
 	hx-swap="outerHTML transition:true"
-	hx-trigger={`load delay:${nextPoll}ms`}
+	hx-trigger="load delay:60s"
 	class="list mt-4 py-1"
 	id="tracker-list"
 >
