@@ -250,7 +250,7 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 	hx-browser-indicator="true"
 	hx-headers="js:{ 'client-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone }"
 	hx-on={import.meta.env.PROD && UMAMI_SITE_ID
-		? `htmx:before:request -> umami.track("tracker-poll", { name: "${data.name}", kind: "${params.kind}" })`
+		? `htmx:before:request from:self -> umami.track("tracker-poll", { name: "${data.name}", kind: "${params.kind}" })`
 		: undefined}
 	hx-swap="outerHTML transition:true"
 	hx-trigger="load delay:60s"
