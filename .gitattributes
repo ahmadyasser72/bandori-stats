@@ -1,0 +1,6 @@
+# bunx protobufjs-cli -t static-module -w esm --force-number --no-typeurl --no-service --no-create --no-encode --no-verify --no-delimited --no-convert --no-beautify -o $it.js --dts $it
+packages/triggers/src/bang-dream-gbp/proto/*.js linguist-generated
+packages/triggers/src/bang-dream-gbp/proto/*.d.ts linguist-generated
+
+# bunx wrangler types
+site/worker-configuration.d.ts linguist-generated
