@@ -250,9 +250,12 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 								uid: latest.uid,
 								kind: params.kind,
 								id: data.id,
+								duration:
+									dayjs().diff(lastPlayed.timestamp, "minutes") < 60
+										? "1h"
+										: "12h",
 							})}
 							class="btn btn-primary btn-sm"
-							disabled={dayjs().diff(lastPlayed.timestamp, "minutes") >= 58}
 						>
 							<IconLoader name="lucide--gamepad-2" />
 							Recent

@@ -10,6 +10,7 @@ import {
 } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
 import IconLoader from "~/components/icon-loader.astro";
+import Icon from "~/components/icon.astro";
 import SheetModal from "~/layouts/sheet-modal.astro";
 
 export const partial = true;
@@ -21,7 +22,7 @@ const params = Astro.locals.parseQuery(
 		uid: z.string(),
 		kind: z.enum(["event", "monthly"]),
 		id: z.coerce.number(),
-		duration: z.enum(DURATIONS).catch("1h"),
+		duration: z.enum(DURATIONS),
 	}),
 );
 
@@ -79,6 +80,8 @@ const points = snapshots
 	.map(({ point }, idx) => point - snapshots[idx + 1].point);
 
 const pointsPerHour = (() => {
+	if (snapshots.length < 2) return 0;
+
 	const [first, last] = [snapshots[0], snapshots.at(-1)!];
 	const pointsGained = first.point - last.point;
 	const duration = dayjs().diff(after, "hour");
@@ -90,7 +93,11 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 
 <SheetModal>
 	<h2 class="text-center text-2xl font-medium">
-		{snapshots[0].name}: Recent Games ({params.duration})
+		{
+			snapshots.length > 0
+				? `${snapshots[0].name}: Recent Games (${params.duration})`
+				: `Recent Games (${params.duration})`
+		}
 	</h2>
 
 	<fieldset
@@ -116,59 +123,71 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 		}
 	</fieldset>
 
-	<div class="mt-4 flex max-w-4/5 flex-wrap justify-center gap-x-1 gap-y-0.5">
-		{
-			params.duration !== "1h" && (
-				<div class="badge badge-md badge-primary">
-					{formatNumber((snapshots.length - 1) / dayjs().diff(after, "hours"))}{" "}
-					Games/hour
-				</div>
-			)
-		}
-
-		<div class="badge badge-md badge-accent">
-			{snapshots.length - 1} Games
-		</div>
-		<div class="badge badge-md badge-info">
-			Average: {formatNumber(Math.round(mean(points)), { positiveSign: true })}
-		</div>
-		<div class="badge badge-md badge-info">
-			Median: {formatNumber(median(points), { positiveSign: true })}
-		</div>
-		<div class="badge badge-md badge-info">
-			Min: {formatNumber(Math.min(...points), { positiveSign: true })}
-		</div>
-		<div class="badge badge-md badge-info">
-			Max: {formatNumber(Math.max(...points), { positiveSign: true })}
-		</div>
-		<div class="badge badge-md badge-info">
-			{formatNumber(pointsPerHour, { positiveSign: true })} Pts/hour
-		</div>
-	</div>
-
-	<ul
-		class="timeline timeline-vertical mt-2 max-h-[60vh] w-full max-w-120 overflow-y-auto"
-	>
-		{
-			snapshots.slice(0, -1).map(({ point, timestamp }, idx) => (
-				<li>
-					{idx > 0 && <hr class="bg-neutral" />}
-					<div class="timeline-start font-mono">
-						{formatDuration(dayjs(timestamp), dayjs())} ago
-					</div>
-					<div class="timeline-end">
-						<div class="inline-flex items-center font-semibold">
-							{formatNumber(point)}
-							<span class="ml-1 badge px-1.5 badge-xs badge-success">
-								{formatNumber(point - snapshots[idx + 1].point, {
-									positiveSign: true,
-								})}
-							</span>
+	{
+		snapshots.length > 0 && (
+			<>
+				<div class="mt-4 flex max-w-4/5 flex-wrap justify-center gap-x-1 gap-y-0.5">
+					{params.duration !== "1h" && (
+						<div class="badge badge-md badge-primary">
+							{formatNumber(
+								(snapshots.length - 1) / dayjs().diff(after, "hours"),
+							)}{" "}
+							Games/hour
 						</div>
+					)}
+
+					<div class="badge badge-md badge-accent">
+						{snapshots.length - 1} Games
 					</div>
-					{idx < snapshots.length - 1 && <hr class="bg-neutral" />}
-				</li>
-			))
-		}
-	</ul>
+					<div class="badge badge-md badge-info">
+						Average:{" "}
+						{formatNumber(Math.round(mean(points)), { positiveSign: true })}
+					</div>
+					<div class="badge badge-md badge-info">
+						Median: {formatNumber(median(points), { positiveSign: true })}
+					</div>
+					<div class="badge badge-md badge-info">
+						Min: {formatNumber(Math.min(...points), { positiveSign: true })}
+					</div>
+					<div class="badge badge-md badge-info">
+						Max: {formatNumber(Math.max(...points), { positiveSign: true })}
+					</div>
+					<div class="badge badge-md badge-info">
+						{formatNumber(pointsPerHour, { positiveSign: true })} Pts/hour
+					</div>
+				</div>
+
+				<ul class="timeline timeline-vertical mt-2 max-h-[60vh] w-full max-w-120 overflow-y-auto">
+					{snapshots.slice(0, -1).map(({ point, timestamp }, idx) => (
+						<li>
+							{idx > 0 && <hr class="bg-neutral" />}
+							<div class="timeline-start font-mono">
+								{formatDuration(dayjs(timestamp), dayjs())} ago
+							</div>
+							<div class="timeline-end">
+								<div class="inline-flex items-center font-semibold">
+									{formatNumber(point)}
+									<span class="ml-1 badge px-1.5 badge-xs badge-success">
+										{formatNumber(point - snapshots[idx + 1].point, {
+											positiveSign: true,
+										})}
+									</span>
+								</div>
+							</div>
+							{idx < snapshots.length - 1 && <hr class="bg-neutral" />}
+						</li>
+					))}
+				</ul>
+			</>
+		)
+	}
+
+	{
+		snapshots.length === 0 && (
+			<div class="flex items-center justify-center gap-2 py-16">
+				<Icon class="size-10" name="lucide--x" />
+				<span class="text-lg font-medium">No recent games found</span>
+			</div>
+		)
+	}
 </SheetModal>
