@@ -38,6 +38,22 @@ const snapshots = await Astro.locals.tracing.enterSpan(
 			orderBy: { id: "desc" },
 		});
 
+		if (rows.length > 0) {
+			const previous = await db().query.trackerSnapshots.findFirst({
+				columns: { name: true, point: true, timestamp: true },
+				where: {
+					trackingFor: params.kind,
+					trackingId: params.id,
+					uid: params.uid,
+					timestamp: { lte: after.toDate() },
+					point: { ne: rows.at(-1)!.point },
+				},
+				orderBy: { id: "desc" },
+			});
+
+			if (previous) rows.push(previous);
+		}
+
 		return rows.filter(
 			({ point }, idx, snapshots) => point !== snapshots.at(idx + 1)?.point,
 		);
@@ -58,7 +74,7 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 
 	<div class="mt-4 flex max-w-4/5 flex-wrap justify-center gap-x-1 gap-y-0.5">
 		<div class="badge badge-md badge-accent">
-			{snapshots.length} Games
+			{snapshots.length - 1} Games
 		</div>
 		<div class="badge badge-md badge-info">
 			Average: {formatNumber(Math.round(mean(points)), { positiveSign: true })}

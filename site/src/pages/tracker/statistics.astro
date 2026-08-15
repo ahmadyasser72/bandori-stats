@@ -87,7 +87,7 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 
 	<div class="mt-4 flex flex-wrap justify-center gap-x-1 gap-y-0.5">
 		<div class="badge badge-soft badge-lg badge-accent">
-			{snapshots.length} Games
+			{snapshots.length - 1} Games
 		</div>
 		<div class="badge badge-soft badge-lg badge-info">
 			Average: {formatNumber(Math.round(mean(points)), { positiveSign: true })}
