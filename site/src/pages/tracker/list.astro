@@ -210,7 +210,12 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 							)}
 						</span>
 
-						<span>played {dayjs(lastPlayed.timestamp).fromNow()}</span>
+						<span>
+							played{" "}
+							{dayjs().diff(lastPlayed.timestamp, "minutes") < 1
+								? "just now"
+								: dayjs(lastPlayed.timestamp).fromNow()}
+						</span>
 
 						{boatHistory && (
 							<span>

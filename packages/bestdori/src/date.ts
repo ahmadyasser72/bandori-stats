@@ -19,7 +19,7 @@ export default dayjs;
 
 export const formatDuration = (from: dayjs.Dayjs, to: dayjs.Dayjs) => {
 	const totalMinutes = to.diff(from, "minutes");
-	if (totalMinutes < 1) return "less than a minute";
+	if (totalMinutes < 1) return "just now";
 
 	const days = Math.floor(totalMinutes / (60 * 24));
 	const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
