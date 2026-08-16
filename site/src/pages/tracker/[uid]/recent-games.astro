@@ -144,6 +144,8 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 						hx-disable="closest .tabs"
 						data-umami-event="tracker-recent-games-duration"
 						data-umami-event-duration={duration}
+						data-umami-event-kind={params.kind}
+						data-umami-event-player={snapshots.at(0)?.name}
 						name="duration"
 						type="radio"
 						value={duration}
