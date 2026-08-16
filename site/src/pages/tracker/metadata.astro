@@ -57,8 +57,9 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 	hx-get="/tracker/metadata"
 	hx-headers={JSON.stringify({ "client-timezone": clientTimezone })}
 	hx-indicator="#metadata-loader"
+	hx-on="htmx:before:request from:self -> if (document.hidden) event.preventDefault()"
 	hx-swap="outerMorph"
-	hx-trigger="load delay:60s"
+	hx-trigger="load delay:60s, visibilitychange from:document"
 	hx-vals={JSON.stringify({ kind: params.kind, id: data.id })}
 	class="mt-4 flex flex-col items-center gap-1"
 	style="anchor-name: --anchor-tracker-info"

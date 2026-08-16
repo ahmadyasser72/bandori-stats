@@ -105,11 +105,16 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 	{...params.duration === "1h" && {
 		"hx-get": `${Astro.url.pathname}${Astro.url.search}`,
 		"hx-indicator": "#recent-games-loader",
-		"hx-on":
-			import.meta.env.PROD && UMAMI_SITE_ID && snapshots.length > 0
-				? `htmx:before:request from:self -> umami.track("recent-games-poll", { player: "${snapshots[0].name}", kind: "${params.kind}" })`
-				: undefined,
-		"hx-trigger": "load delay:60s",
+		"hx-on": [
+			import.meta.env.PROD &&
+				UMAMI_SITE_ID &&
+				snapshots.length > 0 &&
+				`htmx:before:request from:self -> umami.track("recent-games-poll", { player: "${snapshots[0].name}", kind: "${params.kind}" })`,
+			"htmx:before:request from:self -> if (document.hidden) event.preventDefault()",
+		]
+			.filter(Boolean)
+			.join(";"),
+		"hx-trigger": "load delay:60s, visibilitychange from:document",
 	}}
 >
 	<h2 class="text-center text-2xl font-medium">

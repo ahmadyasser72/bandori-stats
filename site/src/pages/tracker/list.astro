@@ -197,11 +197,16 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 	hx-get={Astro.url.pathname}
 	hx-browser-indicator="true"
 	hx-indicator="#tracker-list-loader"
-	hx-on={import.meta.env.PROD && UMAMI_SITE_ID
-		? `htmx:before:request from:self -> umami.track("tracker-poll", { name: "${data.name}", kind: "${params.kind}" })`
-		: undefined}
+	hx-on={[
+		import.meta.env.PROD &&
+			UMAMI_SITE_ID &&
+			`htmx:before:request from:self -> umami.track("tracker-poll", { name: "${data.name}", kind: "${params.kind}" })`,
+		"htmx:before:request from:self -> if (document.hidden) event.preventDefault()",
+	]
+		.filter(Boolean)
+		.join(";")}
 	hx-swap="outerHTML transition:true"
-	hx-trigger="load delay:60s"
+	hx-trigger="load delay:60s, visibilitychange from:document"
 	hx-vals={JSON.stringify({ kind: params.kind, poll: true })}
 	class="list mt-4 py-1"
 	id="tracker-list"
