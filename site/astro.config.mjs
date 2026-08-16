@@ -93,6 +93,10 @@ export default defineConfig({
 				context: "server",
 			}),
 
+			VAPID_PUBLIC_KEY: envField.string({
+				access: "public",
+				context: "client",
+			}),
 			UMAMI_SITE_ID: envField.string({
 				access: "public",
 				context: "server",

@@ -17,3 +17,12 @@ export const PLAYER_STATS_SORTED_SET_PREFIX = "stats:player-stats";
 export const GAME_VERSION = "gbp:version";
 export const GAME_EVENT_CURRENT = "gbp:event:current";
 export const GAME_MONTHLY_CURRENT = "gbp:monthly:current";
+
+export interface NotifyWhenPlayer {
+	when: { point: number };
+	subscriptions: {
+		endpoint: string;
+		expirationTime: number | null;
+		keys: { p256dh: string; auth: string };
+	}[];
+}
