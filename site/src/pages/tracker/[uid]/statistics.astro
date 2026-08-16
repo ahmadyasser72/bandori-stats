@@ -10,7 +10,12 @@ import {
 	median,
 } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
+import Icon from "~/components/icon.astro";
 import SheetModal from "~/layouts/sheet-modal.astro";
+import {
+	StatsBarChart,
+	type StatsBarChartProps,
+} from "~/pages/tracker/charts/_stats-bar-chart";
 
 export const partial = true;
 
@@ -50,12 +55,28 @@ const snapshots = await Astro.locals.tracing.enterSpan(
 	},
 );
 
-const gameByHours = countBy(snapshots, ({ timestamp }) =>
-	dayjs.tz(timestamp, clientTimezone).get("hours"),
-);
-const gameByDayOfWeek = countBy(snapshots, ({ timestamp }) =>
-	dayjs.tz(timestamp, clientTimezone).get("day"),
-);
+const gameByHours = Object.entries({
+	...Object.fromEntries(
+		Array.from({ length: 24 }, (_, idx): [number, number] => [idx, 0]),
+	),
+	...countBy(snapshots, ({ timestamp }) =>
+		dayjs.tz(timestamp, clientTimezone).get("hour"),
+	),
+}).map(([hour, count]): [string, number] => [
+	now.set("hour", Number(hour)).startOf("hour").format("hh:mm A"),
+	count,
+]);
+const gameByDayOfWeek = Object.entries({
+	...Object.fromEntries(
+		Array.from({ length: 7 }, (_, idx): [number, number] => [idx, 0]),
+	),
+	...countBy(snapshots, ({ timestamp }) =>
+		dayjs.tz(timestamp, clientTimezone).get("day"),
+	),
+}).map(([day, count]): [string, number] => [
+	now.set("day", Number(day)).format("dddd"),
+	count,
+]);
 
 const rawPoints = snapshots
 	.slice(0, -1)
@@ -65,10 +86,20 @@ const outlierThreshold = mean(rawPoints) * 3;
 const points = rawPoints.filter((point) => point <= outlierThreshold);
 const outlierCount = rawPoints.length - points.length;
 
-const min = Math.min(...points);
-const gameByPoints = countBy(points, (point) =>
-	min <= 50 ? point : Math.round(point / 100) * 100,
-);
+const minPoints = Math.min(...points);
+const gameByPoints = Object.entries(
+	countBy(points, (point) =>
+		minPoints <= 50 ? point : Math.round(point / 100) * 100,
+	),
+)
+	.sort(
+		([aPoint, aCount], [bPoint, bCount]) =>
+			bCount - aCount || Number(bPoint) - Number(aPoint),
+	)
+	.map(([point, count]): [string, number] => [
+		`${minPoints > 50 ? "~" : ""}${formatNumber(Number(point))}`,
+		count,
+	]);
 
 const pointsPerHour = (() => {
 	const [first, last] = [snapshots[0], snapshots.at(-1)!];
@@ -86,6 +117,24 @@ const averageMinutesPerGame = (() => {
 		.filter((gap) => gap <= 30);
 	return mean(gaps);
 })();
+
+const charts = [
+	{
+		data: gameByPoints,
+		label: "Most obtained points",
+		color: "var(--color-primary)",
+	},
+	{
+		data: gameByHours,
+		label: "Active hours",
+		color: "var(--color-accent)",
+	},
+	{
+		data: gameByDayOfWeek,
+		label: "Active day of week",
+		color: "var(--color-accent)",
+	},
+] satisfies StatsBarChartProps[];
 
 if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 ---
@@ -106,7 +155,7 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 			Median: {formatNumber(median(points), { positiveSign: true })}
 		</div>
 		<div class="badge badge-soft badge-lg badge-info">
-			Min: {formatNumber(min, { positiveSign: true })}
+			Min: {formatNumber(minPoints, { positiveSign: true })}
 		</div>
 		<div class="badge badge-soft badge-lg badge-info">
 			Max: {formatNumber(Math.max(...points), { positiveSign: true })}
@@ -129,72 +178,21 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 		}
 	</div>
 
-	<h3 class="mt-4 text-xl font-medium">Most obtained points</h3>
-	<div class="mt-1 flex flex-wrap justify-center gap-x-1 gap-y-0.5">
-		{
-			Object.entries(gameByPoints)
-				.sort(([, a], [, b]) => b - a)
-				.slice(0, 10)
-				.map(([point, count]) => (
-					<div class="badge badge-md badge-primary">
-						{min > 50 && "~"}
-						{formatNumber(Number(point))} {count}&times;
-					</div>
-				))
-		}
-	</div>
-
-	<h3 class="mt-4 text-xl font-medium">Most active hours ({clientTimezone})</h3>
-	<div class="mt-1 flex flex-wrap justify-center gap-x-1 gap-y-0.5">
-		{
-			Object.entries(gameByHours)
-				.sort(([, a], [, b]) => b - a)
-				.slice(0, 10)
-				.map(([hour, count]) => (
-					<div class="badge badge-md badge-accent">
-						<span
-							class="tooltip tooltip-accent underline decoration-dotted"
-							data-tip={
-								now.get("hour") === Number(hour)
-									? "Now"
-									: now.set("hour", Number(hour)).startOf("hour").fromNow()
-							}
-							set:html={now
-								.set("hour", Number(hour))
-								.startOf("hour")
-								.format("HH:mm A")}
+	{
+		charts.map((props) => (
+			<StatsBarChart {...props} client:only="preact">
+				<div class="mt-8 w-full" slot="fallback">
+					<h3 class="text-center text-xl font-medium">
+						<Icon
+							class="mr-1 align-middle"
+							name="svg-spinners--90-ring-with-bg"
 						/>
-						{count}&times;
-					</div>
-				))
-		}
-	</div>
 
-	<h3 class="mt-4 text-xl font-medium">
-		Most active day of week ({clientTimezone})
-	</h3>
-	<div class="mt-1 flex flex-wrap justify-center gap-x-1 gap-y-0.5">
-		{
-			Object.entries(gameByDayOfWeek)
-				.sort(([, a], [, b]) => b - a)
-				.slice(0, 10)
-				.map(([day, count]) => (
-					<div class="badge badge-md badge-accent">
-						<span
-							class="tooltip tooltip-accent underline decoration-dotted"
-							data-tip={
-								now.get("day") === Number(day)
-									? "Today"
-									: now.set("day", Number(day)).startOf("day").fromNow()
-							}
-							set:html={now
-								.set("day", Number(day))
-								.startOf("day")
-								.format("dddd")}
-						/>
-						{count}&times;
-					</div>
-				))
-		}
-	</div>
+						{props.label}
+					</h3>
+					<div class="my-2 h-64 w-full skeleton" />
+				</div>
+			</StatsBarChart>
+		))
+	}
 </SheetModal>
