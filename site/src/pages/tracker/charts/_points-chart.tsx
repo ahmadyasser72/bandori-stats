@@ -65,13 +65,16 @@ export const PointsChart = ({
 						scale: scaleUtc().domain([startAt, endAt]),
 						axis: {
 							ticks: {
-								count: 6,
-								format: (date: Date) =>
-									new Intl.DateTimeFormat(undefined, {
-										hour: "2-digit",
-									}).format(date),
+								count: Math.max(
+									2,
+									Math.ceil(
+										(endAt.valueOf() - startAt.valueOf()) /
+											(60 * 60 * 1000 * 6),
+									),
+								),
+								format: (date) => formatTimestamp(date),
 							},
-							label: "Time",
+							label: "Timestamp",
 						},
 					},
 					y: {

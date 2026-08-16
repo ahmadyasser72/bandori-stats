@@ -10,7 +10,7 @@ export const CHART_THEME = {
 	foreground: "var(--color-base-content)",
 };
 
-export const formatTimestamp = (timestamp: number) =>
+export const formatTimestamp = (timestamp: number | Date) =>
 	new Intl.DateTimeFormat(undefined, {
 		month: "short",
 		day: "numeric",
