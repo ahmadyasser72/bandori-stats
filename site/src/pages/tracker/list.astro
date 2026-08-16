@@ -16,7 +16,10 @@ import IconLoader from "~/components/icon-loader.astro";
 export const partials = true;
 
 const params = Astro.locals.parseQuery(
-	z.object({ kind: z.enum(["event", "monthly"]) }),
+	z.object({
+		kind: z.enum(["event", "monthly"]),
+		poll: z.stringbool().catch(false),
+	}),
 );
 
 const { data, players } = await Astro.locals.tracing.enterSpan(
@@ -132,56 +135,61 @@ const { data, players } = await Astro.locals.tracing.enterSpan(
 if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 ---
 
-<hx-partial hx-target="#tracker-info">
-	<div
-		hx-get="/tracker/metadata"
-		hx-headers="js:{ 'client-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone }"
-		hx-swap="outerHTML"
-		hx-trigger="intersect once"
-		hx-vals={JSON.stringify({ kind: params.kind, id: data.id })}
-		class="mt-4 flex flex-col items-center gap-1"
-	>
-		<div class="flex gap-1">
-			<div class="flex flex-col justify-evenly">
-				<div class="size-10 skeleton"></div>
-				<div class="size-10 skeleton"></div>
+{
+	!params.poll && (
+		<hx-partial hx-target="#tracker-info">
+			<div
+				hx-get="/tracker/metadata"
+				hx-headers="js:{ 'client-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone }"
+				hx-swap="outerHTML"
+				hx-trigger="intersect once"
+				hx-vals={JSON.stringify({ kind: params.kind, id: data.id })}
+				class="mt-4 flex flex-col items-center gap-1"
+			>
+				<div class="flex gap-1">
+					<div class="flex flex-col justify-evenly">
+						<div class="size-10 skeleton" />
+						<div class="size-10 skeleton" />
+					</div>
+
+					<div class="aspect-9/4 w-64 skeleton" />
+
+					<div class="flex flex-col justify-evenly">
+						<div class="size-10 skeleton" />
+						<div class="size-10 skeleton" />
+					</div>
+				</div>
+
+				<h2 class="skeleton skeleton-text text-center text-lg font-semibold">
+					Loading {params.kind}...
+				</h2>
+
+				<div class="flex w-full flex-col gap-1">
+					<div class="flex translate-y-1.5 justify-between px-0.5">
+						<span class="h-4 w-24 skeleton" />
+						<span class="h-4 w-24 skeleton" />
+					</div>
+
+					<div class="relative w-full">
+						<progress class="progress w-full opacity-50" />
+
+						<div class="absolute center badge badge-sm badge-neutral">~</div>
+					</div>
+				</div>
 			</div>
-
-			<div class="aspect-9/4 w-64 skeleton"></div>
-
-			<div class="flex flex-col justify-evenly">
-				<div class="size-10 skeleton"></div>
-				<div class="size-10 skeleton"></div>
-			</div>
-		</div>
-
-		<h2 class="skeleton skeleton-text text-center text-lg font-semibold">
-			Loading {params.kind}...
-		</h2>
-
-		<div class="flex w-full flex-col gap-1">
-			<div class="flex translate-y-1.5 justify-between px-0.5">
-				<span class="h-4 w-24 skeleton"></span>
-				<span class="h-4 w-24 skeleton"></span>
-			</div>
-
-			<div class="relative w-full">
-				<progress class="progress w-full opacity-50"></progress>
-
-				<div class="absolute center badge badge-sm badge-neutral">~</div>
-			</div>
-		</div>
-	</div>
-</hx-partial>
+		</hx-partial>
+	)
+}
 
 <div
-	hx-get={`${Astro.url.pathname}${Astro.url.search}`}
+	hx-get={Astro.url.pathname}
 	hx-browser-indicator="true"
 	hx-on={import.meta.env.PROD && UMAMI_SITE_ID
 		? `htmx:before:request from:self -> umami.track("tracker-poll", { name: "${data.name}", kind: "${params.kind}" })`
 		: undefined}
 	hx-swap="outerHTML transition:true"
 	hx-trigger="load delay:60s"
+	hx-vals={JSON.stringify({ kind: params.kind, poll: true })}
 	class="list mt-4 py-1"
 	id="tracker-list"
 >

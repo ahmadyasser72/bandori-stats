@@ -54,6 +54,12 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 ---
 
 <div
+	hx-get="/tracker/metadata"
+	hx-headers={JSON.stringify({ "client-timezone": clientTimezone })}
+	hx-indicator="#metadata-loader"
+	hx-swap="outerMorph"
+	hx-trigger="load delay:60s"
+	hx-vals={JSON.stringify({ kind: params.kind, id: data.id })}
 	class="mt-4 flex flex-col items-center gap-1"
 	style="anchor-name: --anchor-tracker-info"
 >
@@ -105,7 +111,6 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 				<Icon class="size-5" name="lucide--music" />
 			</button>
 			<div
-				hx-preserve
 				class="dropdown dropdown-center"
 				id="tracker-info-audio"
 				popover
@@ -148,7 +153,15 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 		</div>
 	</div>
 
-	<h2 class="text-center text-lg font-semibold">{data.name}</h2>
+	<h2 class="text-center text-lg font-semibold">
+		<Icon
+			class="htmx-indicator mr-1 align-[-2px]"
+			id="metadata-loader"
+			name="svg-spinners--90-ring-with-bg"
+		/>
+
+		{data.name}
+	</h2>
 
 	<div class="flex w-full flex-col">
 		<div
