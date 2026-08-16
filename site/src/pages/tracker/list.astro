@@ -12,6 +12,7 @@ import {
 	redis,
 } from "@bandori-stats/database/redis";
 import IconLoader from "~/components/icon-loader.astro";
+import Icon from "~/components/icon.astro";
 
 export const partials = true;
 
@@ -137,53 +138,65 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 
 {
 	!params.poll && (
-		<hx-partial hx-target="#tracker-info">
-			<div
-				hx-get="/tracker/metadata"
-				hx-headers="js:{ 'client-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone }"
-				hx-swap="outerHTML"
-				hx-trigger="intersect once"
-				hx-vals={JSON.stringify({ kind: params.kind, id: data.id })}
-				class="mt-4 flex flex-col items-center gap-1"
-			>
-				<div class="flex gap-1">
-					<div class="flex flex-col justify-evenly">
-						<div class="size-10 skeleton" />
-						<div class="size-10 skeleton" />
+		<>
+			<hx-partial hx-target="#tracker-info">
+				<div
+					hx-get="/tracker/metadata"
+					hx-headers="js:{ 'client-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone }"
+					hx-swap="outerHTML"
+					hx-trigger="intersect once"
+					hx-vals={JSON.stringify({ kind: params.kind, id: data.id })}
+					class="mt-4 flex flex-col items-center gap-1"
+				>
+					<div class="flex gap-1">
+						<div class="flex flex-col justify-evenly">
+							<div class="size-10 skeleton" />
+							<div class="size-10 skeleton" />
+						</div>
+
+						<div class="aspect-9/4 w-64 skeleton" />
+
+						<div class="flex flex-col justify-evenly">
+							<div class="size-10 skeleton" />
+							<div class="size-10 skeleton" />
+						</div>
 					</div>
 
-					<div class="aspect-9/4 w-64 skeleton" />
+					<h2 class="skeleton skeleton-text text-center text-lg font-semibold">
+						Loading {params.kind}...
+					</h2>
 
-					<div class="flex flex-col justify-evenly">
-						<div class="size-10 skeleton" />
-						<div class="size-10 skeleton" />
+					<div class="flex w-full flex-col gap-1">
+						<div class="flex translate-y-1.5 justify-between px-0.5">
+							<span class="h-4 w-24 skeleton" />
+							<span class="h-4 w-24 skeleton" />
+						</div>
+
+						<div class="relative w-full">
+							<progress class="progress w-full opacity-50" />
+
+							<div class="absolute center badge badge-sm badge-neutral">~</div>
+						</div>
 					</div>
 				</div>
+			</hx-partial>
 
-				<h2 class="skeleton skeleton-text text-center text-lg font-semibold">
-					Loading {params.kind}...
-				</h2>
-
-				<div class="flex w-full flex-col gap-1">
-					<div class="flex translate-y-1.5 justify-between px-0.5">
-						<span class="h-4 w-24 skeleton" />
-						<span class="h-4 w-24 skeleton" />
-					</div>
-
-					<div class="relative w-full">
-						<progress class="progress w-full opacity-50" />
-
-						<div class="absolute center badge badge-sm badge-neutral">~</div>
+			<hx-partial hx-swap="after" hx-target="main">
+				<div class="toast toast-center">
+					<div class="htmx-indicator alert alert-info" id="tracker-list-loader">
+						<Icon class="size-6" name="svg-spinners--90-ring-with-bg" />
+						<span class="font-medium">Reloading tracker data...</span>
 					</div>
 				</div>
-			</div>
-		</hx-partial>
+			</hx-partial>
+		</>
 	)
 }
 
 <div
 	hx-get={Astro.url.pathname}
 	hx-browser-indicator="true"
+	hx-indicator="#tracker-list-loader"
 	hx-on={import.meta.env.PROD && UMAMI_SITE_ID
 		? `htmx:before:request from:self -> umami.track("tracker-poll", { name: "${data.name}", kind: "${params.kind}" })`
 		: undefined}
