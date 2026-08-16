@@ -32,11 +32,7 @@ export default defineConfig({
 	output: "server",
 	trailingSlash: "never",
 	cache: { provider: cacheCloudflare() },
-	session: {
-		driver: {
-			entrypoint: "unstorage/drivers/null",
-		},
-	},
+	session: false,
 
 	integrations: [preact()],
 	fonts: [
