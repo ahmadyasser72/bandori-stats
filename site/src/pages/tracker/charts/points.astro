@@ -36,6 +36,6 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30 * 60, swr: 30 * 60 });
 	<h2 class="text-center text-2xl font-medium">Points over time</h2>
 
 	<PointsChart client:only="preact" {data} metadata={metadata!}>
-		<div class="h-60vh"></div>
+		<div class="my-2 h-[60vh] w-full skeleton" slot="fallback"></div>
 	</PointsChart>
 </SheetModal>

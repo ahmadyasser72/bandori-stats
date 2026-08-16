@@ -88,7 +88,7 @@ export const RankingChart = ({
 	return (
 		<div class="container overflow-x-auto" ref={scrollRef}>
 			<Chart
-				className="mx-auto"
+				className="mx-auto py-2"
 				ariaLabel="Hourly rank chart"
 				definition={definition}
 				height={height}
