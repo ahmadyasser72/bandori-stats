@@ -30,7 +30,6 @@ import type {
 
 export const scheduleUpdateTracker = schedules.task({
 	id: "schedule-update-tracker",
-	machine: { preset: "small-1x" },
 	ttl: "1m",
 	cron: { pattern: "* * * * *" },
 	run: async (context) => {

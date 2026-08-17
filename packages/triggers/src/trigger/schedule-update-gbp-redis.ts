@@ -15,7 +15,6 @@ import { bestdori } from "~/bestdori";
 
 export const scheduleUpdateGbpRedis = schedules.task({
 	id: "schedule-update-gbp-redis",
-	machine: { preset: "small-2x" },
 	cron: {
 		pattern: "0 */12 * * *",
 		timezone: GBP_TIMEZONE,

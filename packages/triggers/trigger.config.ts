@@ -14,6 +14,7 @@ export default defineConfig({
 			maxTimeoutInMs: 15_000,
 			factor: 2,
 			randomize: true,
+			outOfMemory: { machine: "small-2x" },
 		},
 	},
 
