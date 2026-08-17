@@ -1,0 +1,42 @@
+---
+import z from "zod";
+
+import { db } from "@bandori-stats/database";
+import SheetModal from "~/layouts/sheet-modal.astro";
+import { NotifyWhenContainer } from "./_notify";
+
+export const partial = true;
+
+const uid = Astro.params.uid!;
+const params = Astro.locals.parseQuery(
+	z.object({
+		kind: z.enum(["event", "monthly"]),
+		id: z.coerce.number(),
+	}),
+);
+
+const snapshot = await db().query.trackerSnapshots.findFirst({
+	columns: {
+		uid: true,
+		trackingFor: true,
+		trackingId: true,
+		name: true,
+		point: true,
+		rank: true,
+	},
+	where: {
+		uid,
+		trackingFor: params.kind,
+		trackingId: params.id,
+	},
+	orderBy: { id: "desc" },
+});
+---
+
+<SheetModal class="mx-auto max-w-2xl">
+	<h2 class="text-center text-2xl font-medium">
+		{snapshot ? `Notify me when ${snapshot.name}...` : "Notify me when..."}
+	</h2>
+
+	{snapshot && <NotifyWhenContainer client:load {snapshot} />}
+</SheetModal>

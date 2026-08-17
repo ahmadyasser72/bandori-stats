@@ -331,9 +331,9 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 							data-umami-event-kind={params.kind}
 							data-umami-event-name={data.name}
 							data-umami-event-player={latest.name}
-							class="btn btn-primary btn-sm"
+							class="btn btn-primary btn-xs sm:btn-sm"
 						>
-							<IconLoader name="lucide--gamepad-2" />
+							<IconLoader class="max-sm:size-3" name="lucide--gamepad-2" />
 							Recent
 						</button>
 
@@ -347,10 +347,25 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 							data-umami-event-kind={params.kind}
 							data-umami-event-name={data.name}
 							data-umami-event-player={latest.name}
-							class="btn btn-accent btn-sm"
+							class="btn btn-accent btn-xs sm:btn-sm"
 						>
-							<IconLoader name="lucide--bar-chart-3" />
+							<IconLoader class="max-sm:size-3" name="lucide--bar-chart-3" />
 							Statistics
+						</button>
+
+						<button
+							hx-get={`/tracker/${latest.uid}/notify`}
+							hx-swap="after"
+							hx-target="main"
+							hx-vals={JSON.stringify({ kind: params.kind, id: data.id })}
+							data-umami-event="tracker-notify"
+							data-umami-event-kind={params.kind}
+							data-umami-event-name={data.name}
+							data-umami-event-player={latest.name}
+							class="btn btn-secondary btn-xs sm:btn-sm"
+						>
+							<IconLoader class="max-sm:size-3" name="lucide--bell" />
+							Notify me
 						</button>
 					</div>
 				</div>

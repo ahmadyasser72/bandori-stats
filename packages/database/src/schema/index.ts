@@ -112,4 +112,6 @@ export const trackerSnapshots = sqliteTable(
 
 export type GbpEvent = typeof gbpEvents.$inferSelect;
 export type GbpMonthlyRanking = typeof gbpMonthlyRankings.$inferSelect;
+export type GbpMetadata =
+	({ kind: "event" } & GbpEvent) | ({ kind: "monthly" } & GbpMonthlyRanking);
 export type TrackerSnapshot = typeof trackerSnapshots.$inferSelect;

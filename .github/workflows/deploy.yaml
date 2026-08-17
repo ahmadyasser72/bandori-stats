@@ -60,6 +60,7 @@ jobs:
           UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
           UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
           TRIGGER_SECRET_KEY: ${{ secrets.TRIGGER_SECRET_KEY }}
+          VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
           UMAMI_SITE_ID: ${{ vars.UMAMI_SITE_ID }}
 
       - name: Upload site build artifact

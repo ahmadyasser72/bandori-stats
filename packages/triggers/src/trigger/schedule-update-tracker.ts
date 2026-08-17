@@ -1,7 +1,9 @@
 import { AbortTaskRunError, schedules, tags } from "@trigger.dev/sdk";
+import webPush from "web-push";
 import type z from "zod";
 
 import dayjs from "@bandori-stats/bestdori/date";
+import { formatNumber, uniqBy } from "@bandori-stats/bestdori/helpers";
 import type {
 	GameEvent,
 	GameMonthlyRanking,
@@ -12,9 +14,14 @@ import {
 	GAME_MONTHLY_CURRENT,
 	GAME_VERSION,
 	redis,
+	type NotifyWhenPlayer,
 } from "@bandori-stats/database/redis";
-import { trackerSnapshots } from "@bandori-stats/database/schema";
+import {
+	trackerSnapshots,
+	type GbpMetadata,
+} from "@bandori-stats/database/schema";
 import { bangDream } from "~/bang-dream-gbp/fetch";
+import type { RankingUser } from "~/bang-dream-gbp/proto/event-mission_live.proto";
 
 export const scheduleUpdateTracker = schedules.task({
 	id: "schedule-update-tracker",
@@ -42,7 +49,7 @@ export const scheduleUpdateTracker = schedules.task({
 					return;
 				}
 
-				const { eventId, eventType, assetBundleName } = event;
+				const { eventId, eventType } = event;
 				const top = await (async () => {
 					if (
 						eventType === "versus" ||
@@ -66,35 +73,15 @@ export const scheduleUpdateTracker = schedules.task({
 
 					return [];
 				})();
+				if (top.length === 0) return;
 
-				const inserted = await db()
-					.insert(trackerSnapshots)
-					.values(
-						top.map(({ userId, name, rank, point }) => ({
-							trackingFor: "event" as const,
-							trackingId: eventId,
-							uid: userId?.toString()!,
-							name: name!,
-							rank: rank!,
-							point: point!,
-							timestamp: now.toDate(),
-						})),
-					)
-					.onConflictDoNothing()
-					.returning({ id: trackerSnapshots.id });
+				const metadata = { kind: "event", ...event } as unknown as GbpMetadata;
+				const inserted = await insertSnapshots(top, { now, metadata });
 
 				if (inserted.length > 0) {
-					await redis().mset(
-						Object.fromEntries(
-							top.map(({ userId, rank }) => [
-								`${GAME_EVENT_CURRENT.replace("current", event.eventId.toString())}:${rank}`,
-								userId?.toString(),
-							]),
-						),
-					);
-					await tags.add([
-						`event_${assetBundleName}`,
-						`event_+${inserted.length}`,
+					await Promise.all([
+						updateRedis(top, { inserted, metadata }),
+						sendPushNotifications(top, { inserted, metadata }),
 					]);
 				}
 			})(),
@@ -104,42 +91,198 @@ export const scheduleUpdateTracker = schedules.task({
 					return;
 				}
 
-				const { monthlyRankingId, assetBundleName } = monthly;
+				const { monthlyRankingId } = monthly;
 				const data = await bangDream(version, "monthly", monthlyRankingId);
 				const top = data.monthlyRankingPointTopUsers?.entries ?? [];
 				if (top.length === 0) return;
 
-				const inserted = await db()
-					.insert(trackerSnapshots)
-					.values(
-						top.map(({ userId, name, rank, point }) => ({
-							trackingFor: "monthly" as const,
-							trackingId: monthlyRankingId,
-							uid: userId?.toString()!,
-							name: name!,
-							rank: rank!,
-							point: point!,
-							timestamp: now.toDate(),
-						})),
-					)
-					.onConflictDoNothing()
-					.returning({ id: trackerSnapshots.id });
+				const metadata = {
+					kind: "monthly",
+					...monthly,
+				} as unknown as GbpMetadata;
+				const inserted = await insertSnapshots(top, { now, metadata });
 
 				if (inserted.length > 0) {
-					await redis().mset(
-						Object.fromEntries(
-							top.map(({ userId, rank }) => [
-								`${GAME_MONTHLY_CURRENT.replace("current", monthly.monthlyRankingId.toString())}:${rank}`,
-								userId?.toString(),
-							]),
-						),
-					);
-					await tags.add([
-						`monthly_${assetBundleName}`,
-						`monthly_+${inserted.length}`,
+					await Promise.all([
+						updateRedis(top, { inserted, metadata }),
+						sendPushNotifications(top, { inserted, metadata }),
 					]);
 				}
 			})(),
 		]);
 	},
 });
+
+interface InsertSnapshotOptions {
+	now: dayjs.Dayjs;
+	metadata: GbpMetadata;
+}
+
+const insertSnapshots = (
+	top10: RankingUser.$Shape[],
+	{ now, metadata }: InsertSnapshotOptions,
+) =>
+	db()
+		.insert(trackerSnapshots)
+		.values(
+			top10.map(({ userId, name, rank, point }) => ({
+				trackingFor: metadata.kind,
+				trackingId:
+					metadata.kind === "event"
+						? metadata.eventId
+						: metadata.monthlyRankingId,
+				uid: userId?.toString()!,
+				name: name!,
+				rank: rank!,
+				point: point!,
+				timestamp: now.toDate(),
+			})),
+		)
+		.onConflictDoNothing()
+		.returning({
+			uid: trackerSnapshots.uid,
+			name: trackerSnapshots.name,
+			point: trackerSnapshots.point,
+			rank: trackerSnapshots.rank,
+		});
+
+interface UpdateRedisTop10Options {
+	inserted: Awaited<ReturnType<typeof insertSnapshots>>;
+	metadata: GbpMetadata;
+}
+
+const updateRedis = async (
+	top10: RankingUser.$Shape[],
+	{ inserted, metadata }: UpdateRedisTop10Options,
+) => {
+	const key = getRedisKey(metadata);
+	await redis().mset(
+		Object.fromEntries(
+			top10.map(({ userId, rank }) => [`${key}:${rank}`, userId]),
+		),
+	);
+	await tags.add([
+		`${metadata.kind}_${metadata.assetBundleName}`,
+		`${metadata.kind}_+${inserted.length}`,
+	]);
+
+	const uids = top10.map(({ userId }) => userId!);
+	// @ts-expect-error should works
+	const newTop10 = await redis().sadd(`${key}:players`, ...uids);
+	if (newTop10 > 0) await tags.add(`${metadata.kind}_player+${newTop10}`);
+};
+
+interface SendPushNotificationOptions {
+	inserted: Awaited<ReturnType<typeof insertSnapshots>>;
+	metadata: GbpMetadata;
+}
+
+const sendPushNotifications = async (
+	top10: RankingUser.$Shape[],
+	{ inserted, metadata }: SendPushNotificationOptions,
+) => {
+	const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY } = process.env;
+	if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return;
+
+	const baseKey = getRedisKey(metadata);
+
+	const formerTop10 = [] as typeof inserted;
+	const newTop10 = !!inserted.find(({ rank }) => rank === 10);
+	const top10Uids = top10.map(({ userId }) => userId!.toString());
+	if (newTop10) {
+		const outsideTop10 = (
+			await redis().smembers<number[]>(`${baseKey}:players`)
+		)
+			.map((uid) => uid.toString())
+			.filter((uid) => !top10Uids.includes(uid));
+
+		if (outsideTop10.length > 0) {
+			const latestSnapshots = await Promise.all(
+				outsideTop10.map((uid) =>
+					db().query.trackerSnapshots.findFirst({
+						columns: { uid: true, name: true, point: true, rank: true },
+						where: {
+							trackingFor: metadata.kind,
+							trackingId:
+								metadata.kind === "event"
+									? metadata.eventId
+									: metadata.monthlyRankingId,
+							uid,
+						},
+						orderBy: { id: "desc" },
+					}),
+				),
+			);
+
+			for (const snapshot of latestSnapshots) {
+				if (snapshot) formerTop10.push(snapshot);
+			}
+		}
+	}
+
+	const payloads = await Promise.all(
+		[...inserted, ...formerTop10].map(async ({ uid, name, point, rank }) => {
+			const key = `${baseKey}:${uid}`;
+			const notify = await redis().json.get<NotifyWhenPlayer[]>(key, "$");
+			if (!notify) return [];
+
+			const subscriptions = [...notify.entries()].filter(
+				([, { on }]) =>
+					(on.target === "point" && point > on.value) ||
+					(on.target === "boated-from" &&
+						(rank > on.value || !top10Uids.includes(uid))),
+			);
+			if (subscriptions.length === 0) return [];
+
+			const deleteNotify = redis().multi();
+			for (const [idx] of [...subscriptions].reverse())
+				deleteNotify.json.del(key, `$[${idx}]`);
+			await deleteNotify.exec();
+
+			const title =
+				metadata.kind === "event"
+					? metadata.eventName
+					: metadata.monthlyRankingName;
+			return uniqBy(
+				subscriptions.map(([, it]) => it),
+				({ on, subscription }) =>
+					`${subscription.endpoint}:${on.target}:${on.value}`,
+			).map(({ on, subscription }) => ({
+				subscription,
+				id: `${key}-${on.target}-${on.value}`,
+				title: `${metadata.kind}: ${title}`,
+				body:
+					on.target === "point"
+						? `${name} just hit ${formatNumber(point)} Pts!`
+						: `${name} just got boated from rank #${on.value}!`,
+			}));
+		}),
+	).then((payloads) => payloads.flat());
+	if (payloads.length === 0) return;
+
+	await Promise.allSettled(
+		payloads.map(({ subscription, ...data }) =>
+			webPush.sendNotification(subscription, JSON.stringify(data), {
+				TTL: Math.max(
+					60 * 60 * 12,
+					dayjs(metadata.endAt).diff(dayjs(), "seconds"),
+				),
+				topic: data.id.replace(":", "__"),
+				vapidDetails: {
+					publicKey: VAPID_PUBLIC_KEY,
+					privateKey: VAPID_PRIVATE_KEY,
+					subject: "mailto:eh@example.com",
+				},
+			}),
+		),
+	);
+};
+
+const getRedisKey = (metadata: GbpMetadata) => {
+	const base =
+		metadata.kind === "event" ? GAME_EVENT_CURRENT : GAME_MONTHLY_CURRENT;
+	const id =
+		metadata.kind === "event" ? metadata.eventId : metadata.monthlyRankingId;
+
+	return base.replace("current", id.toString());
+};
