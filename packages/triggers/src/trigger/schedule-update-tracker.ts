@@ -174,7 +174,8 @@ const insertSnapshots = async (
 					"illust" in userProfileSituation
 						? {
 								id: userProfileSituation.situationId,
-								illust: userProfileSituation.illust,
+								illust:
+									userProfileSituation.illust as PlayerBandMember["illust"],
 							}
 						: null,
 

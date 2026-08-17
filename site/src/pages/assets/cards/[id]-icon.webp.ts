@@ -4,6 +4,7 @@ import { writeFile } from "node:fs/promises";
 import type {
 	APIRoute,
 	GetStaticPaths,
+	GetStaticPathsItem,
 	InferGetStaticParamsType,
 	InferGetStaticPropsType,
 } from "astro";
@@ -54,31 +55,72 @@ export const GET: APIRoute<Props, Params> = async ({ props }) => {
 
 export const getStaticPaths = (async () => {
 	const cards = await fetchCards(import.meta.env.DEV);
-	const accounts = await db().query.accounts.findMany({
-		columns: { profileArt: true },
-		where: { profileArt: { isNotNull: true } },
-	});
 
-	const paths = accounts.map(({ profileArt }) => {
-		let trained = profileArt!.trained;
-		const card = cards.get(profileArt!.id)!;
-		if (card.stat.training === undefined) {
-			// no trained art
-			trained = false;
-		} else if (card.stat.training.levelLimit === 0 || card.type === "others") {
-			// only trained art available
-			trained = true;
-		}
+	const paths = await Promise.all([
+		db()
+			.query.accounts.findMany({
+				columns: { profileArt: true },
+				where: { profileArt: { isNotNull: true } },
+			})
+			.then((accounts) =>
+				accounts.map(({ profileArt }): GetStaticPathsItem => {
+					let trained = profileArt!.trained;
+					const card = cards.get(profileArt!.id)!;
+					if (card.stat.training === undefined) {
+						// no trained art
+						trained = false;
+					} else if (
+						card.stat.training.levelLimit === 0 ||
+						card.type === "others"
+					) {
+						// only trained art available
+						trained = true;
+					}
 
-		return {
-			params: {
-				id: `${profileArt!.id}-${profileArt!.trained ? "trained" : "normal"}`,
-			},
-			props: { card: { ...card, ...profileArt!, trained } },
-		};
-	});
+					return {
+						params: {
+							id: `${profileArt!.id}-${profileArt!.trained ? "trained" : "normal"}`,
+						},
+						props: { card: { ...card, id: profileArt!.id, trained } },
+					};
+				}),
+			),
+		db()
+			.query.trackerSnapshotProfiles.findMany({
+				columns: { avatar: true, band: true },
+			})
+			.then((profiles) =>
+				profiles
+					.flatMap((profile) =>
+						[
+							profile.avatar,
+							profile.band.center,
+							...profile.band.members,
+						].filter((it) => it !== null),
+					)
+					.map(({ id, illust }) => {
+						let trained = illust === "after_training";
+						const card = cards.get(id)!;
+						if (card.stat.training === undefined) {
+							// no trained art
+							trained = false;
+						} else if (
+							card.stat.training.levelLimit === 0 ||
+							card.type === "others"
+						) {
+							// only trained art available
+							trained = true;
+						}
 
-	return uniqBy(paths, ({ params }) => params.id);
+						return {
+							params: { id: `${id}-${trained ? "trained" : "normal"}` },
+							props: { card: { ...card, id, trained } },
+						};
+					}),
+			),
+	]);
+
+	return uniqBy(paths.flat(), ({ params }) => params.id);
 }) satisfies GetStaticPaths;
 
 type Props = InferGetStaticPropsType<typeof getStaticPaths>;

@@ -1,4 +1,4 @@
-export type PlayerAvatar = Pick<PlayerBandMember, "id" | "illust"> | {};
+export type PlayerAvatar = Pick<PlayerBandMember, "id" | "illust">;
 
 export interface PlayerBand {
 	name: string;
@@ -14,7 +14,7 @@ export interface PlayerBand {
 export interface PlayerBandMember {
 	id: number;
 	level: number;
-	illust: "normal" | "after_traning";
+	illust: "normal" | "after_training";
 	skillLevel: number;
 }
 

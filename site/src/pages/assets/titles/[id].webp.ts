@@ -20,6 +20,7 @@ import {
 	BestdoriDegree,
 	fetchDegrees,
 } from "@bandori-stats/bestdori/schema/degree";
+import { db } from "@bandori-stats/database";
 import { PLAYER_TITLES_SET, redis } from "@bandori-stats/database/redis";
 
 export const prerender = true;
@@ -83,7 +84,18 @@ export const getStaticPaths = (async () => {
 	const degrees = await fetchDegrees(import.meta.env.DEV);
 
 	const imageEntries = [] as [number, string[]][];
-	const titles = await redis().smembers<number[]>(PLAYER_TITLES_SET);
+	const titles = (
+		await Promise.all([
+			redis().smembers<number[]>(PLAYER_TITLES_SET),
+			db()
+				.query.trackerSnapshotProfiles.findMany({ columns: { titles: true } })
+				.then((profiles) =>
+					profiles.flatMap(({ titles }) =>
+						Object.values(titles).filter((it) => it !== null),
+					),
+				),
+		])
+	).flat();
 	degrees.forEach((degree, id) => {
 		if (!titles.includes(id)) return;
 
