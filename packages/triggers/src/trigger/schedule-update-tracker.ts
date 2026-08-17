@@ -1,4 +1,4 @@
-import { AbortTaskRunError, schedules, tags } from "@trigger.dev/sdk";
+import { schedules, tags } from "@trigger.dev/sdk";
 import webPush from "web-push";
 import type z from "zod";
 
@@ -44,13 +44,13 @@ export const scheduleUpdateTracker = schedules.task({
 			]
 		>(GAME_VERSION, GAME_EVENT_CURRENT, GAME_MONTHLY_CURRENT);
 
-		if (!version)
-			throw new AbortTaskRunError(`${GAME_VERSION} is not defined.`);
+		await tags.add(`version_${version ?? "n/a"}`);
+		if (!version) return;
 
 		await Promise.all([
 			(async () => {
 				if (!event) {
-					await tags.add("no_event");
+					await tags.add("event_n/a");
 					return;
 				}
 
@@ -62,7 +62,6 @@ export const scheduleUpdateTracker = schedules.task({
 						eventType === "medley"
 					) {
 						const data = await bangDream(version, eventType, eventId);
-						data;
 						return data.eventPointTopUsers?.entries ?? [];
 					} else if (
 						eventType === "mission_live" ||
@@ -82,19 +81,17 @@ export const scheduleUpdateTracker = schedules.task({
 				if (top.length === 0) return;
 
 				const metadata = { kind: "event", ...event } as unknown as GbpMetadata;
-
 				const inserted = await insertSnapshots(top, { now, metadata });
+				if (inserted.length === 0) return;
 
-				if (inserted.length > 0) {
-					await Promise.all([
-						updateRedis(top, { inserted, metadata }),
-						sendPushNotifications(top, { inserted, metadata }),
-					]);
-				}
+				await Promise.all([
+					updateRedis(top, { inserted, metadata }),
+					sendPushNotifications(top, { inserted, metadata }),
+				]);
 			})(),
 			(async () => {
 				if (!monthly) {
-					await tags.add("no_monthly");
+					await tags.add("monthly_n/a");
 					return;
 				}
 
@@ -108,13 +105,12 @@ export const scheduleUpdateTracker = schedules.task({
 					...monthly,
 				} as unknown as GbpMetadata;
 				const inserted = await insertSnapshots(top, { now, metadata });
+				if (inserted.length === 0) return;
 
-				if (inserted.length > 0) {
-					await Promise.all([
-						updateRedis(top, { inserted, metadata }),
-						sendPushNotifications(top, { inserted, metadata }),
-					]);
-				}
+				await Promise.all([
+					updateRedis(top, { inserted, metadata }),
+					sendPushNotifications(top, { inserted, metadata }),
+				]);
 			})(),
 		]);
 	},
@@ -145,9 +141,9 @@ const insertSnapshots = async (
 
 			return {
 				id: data.situationId,
+				trained: data.illust === "after_training",
 				level: data.level,
 				skillLevel: data.skillLevel,
-				illust: data.illust as PlayerBandMember["illust"],
 			};
 		};
 
@@ -175,15 +171,14 @@ const insertSnapshots = async (
 					"illust" in userProfileSituation
 						? {
 								id: userProfileSituation.situationId,
-								illust:
-									userProfileSituation.illust as PlayerBandMember["illust"],
+								trained: userProfileSituation.illust === "after_training",
 							}
 						: null,
 
 				band: {
 					name: userDeck?.deckName!,
-					center: getBandMember(userSituationList!, 0),
 					members: [
+						getBandMember(userSituationList!, 0),
 						getBandMember(userSituationList!, 1),
 						getBandMember(userSituationList!, 2),
 						getBandMember(userSituationList!, 3),
@@ -191,10 +186,9 @@ const insertSnapshots = async (
 					],
 				},
 
-				titles: {
-					first: userProfileDegreeMap?.entries?.first?.degreeId ?? null,
-					second: userProfileDegreeMap?.entries?.second?.degreeId ?? null,
-				},
+				titles: Object.values(userProfileDegreeMap?.entries ?? {}).map(
+					({ degreeId }) => degreeId,
+				),
 			}),
 		);
 		await db()

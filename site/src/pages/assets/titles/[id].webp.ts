@@ -84,20 +84,18 @@ export const getStaticPaths = (async () => {
 	const degrees = await fetchDegrees(import.meta.env.DEV);
 
 	const imageEntries = [] as [number, string[]][];
-	const titles = (
-		await Promise.all([
-			redis().smembers<number[]>(PLAYER_TITLES_SET),
-			db()
-				.query.trackerSnapshotProfiles.findMany({ columns: { titles: true } })
-				.then((profiles) =>
-					profiles.flatMap(({ titles }) =>
-						Object.values(titles).filter((it) => it !== null),
-					),
-				),
-		])
-	).flat();
+	const titles = new Set(
+		(
+			await Promise.all([
+				redis().smembers<number[]>(PLAYER_TITLES_SET),
+				db()
+					.query.trackerSnapshotProfiles.findMany({ columns: { titles: true } })
+					.then((profiles) => profiles.flatMap(({ titles }) => titles)),
+			])
+		).flat(),
+	);
 	degrees.forEach((degree, id) => {
-		if (!titles.includes(id)) return;
+		if (!titles.has(id)) return;
 
 		const degreeImages = buildDegreeImages(degree);
 		if (degreeImages.length === 0)

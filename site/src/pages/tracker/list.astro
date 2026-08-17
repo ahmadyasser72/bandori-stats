@@ -299,12 +299,7 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 							<div class="avatar">
 								<div class="size-10 rounded-box">
 									<img
-										src={getProfileIcon({
-											profileArt: {
-												id: profile.avatar.id,
-												trained: profile.avatar.illust === "after_training",
-											},
-										})}
+										src={getProfileIcon({ profileArt: profile.avatar })}
 										alt={latest.name}
 										loading="lazy"
 									/>
@@ -462,24 +457,22 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 							<div class="flex flex-col items-center">
 								<p>{profile.introduction}</p>
 								<div class="mt-1 flex gap-1">
-									{Object.values(profile.titles)
-										.filter((it) => it !== null)
-										.map((id) => (
-											<img
-												class="aspect-23/5 w-32 rounded-2xl"
-												src={getTitleImage(id)}
-												loading="lazy"
-											/>
-										))}
+									{profile.titles.map((id) => (
+										<img
+											class="aspect-23/5 w-32 rounded-2xl"
+											src={getTitleImage(id)}
+											loading="lazy"
+										/>
+									))}
 								</div>
 
 								<span class="mt-2 text-lg font-medium">
 									{profile.band.name}
 								</span>
 								<div class="flex gap-1">
-									{[profile.band.center, ...profile.band.members]
+									{profile.band.members
 										.filter((it) => it !== null)
-										.map(({ id, illust, level, skillLevel }) => (
+										.map(({ id, trained, level, skillLevel }) => (
 											<a
 												class="tooltip avatar tooltip-info first:tooltip-start last:tooltip-end"
 												data-tip={`Level: ${level}, Skill level:${skillLevel}`}
@@ -489,10 +482,7 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 												<div class="size-12 rounded-box">
 													<img
 														src={getProfileIcon({
-															profileArt: {
-																id,
-																trained: illust === "after_training",
-															},
+															profileArt: { id, trained },
 														})}
 														alt={latest.name}
 														loading="lazy"

@@ -10,11 +10,7 @@ import type z from "zod";
 
 import type { Stats } from "@bandori-stats/bestdori/constants";
 import type { GameEventType } from "@bandori-stats/bestdori/schema/misc";
-import type {
-	PlayerAvatar,
-	PlayerBand,
-	PlayerTitles,
-} from "./tracker-snapshot-profile";
+import type { PlayerAvatar, PlayerBand } from "./tracker-snapshot-profile";
 
 export * from "./tracker-snapshot-profile";
 
@@ -25,10 +21,7 @@ export const accounts = sqliteTable(
 		username: text().unique().notNull(),
 		nickname: text(),
 		uid: text(),
-		profileArt: text({ mode: "json" }).$type<{
-			id: number;
-			trained: boolean;
-		}>(),
+		profileArt: text({ mode: "json" }).$type<PlayerAvatar>(),
 
 		lastUpdated: text().$default(() => sql`(CURRENT_DATE)`),
 		disabledAt: text(),
@@ -129,7 +122,7 @@ export const trackerSnapshotProfiles = sqliteTable(
 		introduction: text().notNull(),
 		avatar: text({ mode: "json" }).$type<PlayerAvatar>(),
 		band: text({ mode: "json" }).notNull().$type<PlayerBand>(),
-		titles: text({ mode: "json" }).notNull().$type<PlayerTitles>(),
+		titles: text({ mode: "json" }).notNull().$type<number[]>(),
 	},
 	(t) => [
 		unique("idx_tracker_reference").on(t.uid, t.trackingFor, t.trackingId),

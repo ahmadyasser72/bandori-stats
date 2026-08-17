@@ -1,9 +1,12 @@
-export type PlayerAvatar = Pick<PlayerBandMember, "id" | "illust">;
+export interface PlayerAvatar {
+	id: number;
+	trained: boolean;
+}
 
 export interface PlayerBand {
 	name: string;
-	center: PlayerBandMember | null;
 	members: [
+		PlayerBandMember | null,
 		PlayerBandMember | null,
 		PlayerBandMember | null,
 		PlayerBandMember | null,
@@ -11,11 +14,7 @@ export interface PlayerBand {
 	];
 }
 
-export interface PlayerBandMember {
-	id: number;
+export interface PlayerBandMember extends PlayerAvatar {
 	level: number;
-	illust: "normal" | "after_training";
 	skillLevel: number;
 }
-
-export type PlayerTitles = Record<"first" | "second", number | null>;
