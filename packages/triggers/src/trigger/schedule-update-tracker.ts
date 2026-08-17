@@ -158,7 +158,7 @@ const updateRedis = async (
 	const key = getRedisKey(metadata);
 	await redis().mset(
 		Object.fromEntries(
-			top10.map(({ userId, rank }) => [`${key}:${rank}`, userId]),
+			top10.map(({ userId, rank }) => [`${key}:${rank}`, userId!.toString()]),
 		),
 	);
 	await tags.add([
@@ -166,7 +166,7 @@ const updateRedis = async (
 		`${metadata.kind}_+${inserted.length}`,
 	]);
 
-	const uids = top10.map(({ userId }) => userId!);
+	const uids = top10.map(({ userId }) => userId!.toString());
 	// @ts-expect-error should works
 	const newTop10 = await redis().sadd(`${key}:players`, ...uids);
 	if (newTop10 > 0) await tags.add(`${metadata.kind}_player+${newTop10}`);
