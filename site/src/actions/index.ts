@@ -15,7 +15,7 @@ export const server = {
 		accept: "json",
 		input: z.object({
 			subscription: z.object({
-				endpoint: z.string(),
+				endpoint: z.url(),
 				expirationTime: z.number().nullable(),
 				keys: z.object({ p256dh: z.string(), auth: z.string() }),
 			}),
@@ -24,10 +24,16 @@ export const server = {
 				trackingFor: z.enum(["event", "monthly"]),
 				trackingId: z.number(),
 			}),
-			on: z.object({
-				target: z.enum(["point", "boated-from"]),
-				value: z.number(),
-			}),
+			on: z.discriminatedUnion("target", [
+				z.object({
+					target: z.literal("point"),
+					value: z.number().positive(),
+				}),
+				z.object({
+					target: z.literal("boated-from"),
+					value: z.number().min(1).max(10),
+				}),
+			]),
 		}),
 		handler: async ({ subscription, target, on }) => {
 			const metadata = await (target.trackingFor === "event"

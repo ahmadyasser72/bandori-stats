@@ -94,7 +94,9 @@ const NotifyWhen = ({
 	const [errorText, setErrorText] = useState("");
 	const [submitting, setSubmitting] = useState(false);
 	const [subscribed, setSubscribed] = useState(false);
-	const [value, setValue] = useState<number | "">("");
+	const [value, setValue] = useState<number | "">(
+		on === "boated-from" ? snapshot.rank : "",
+	);
 
 	const subscribe = async () => {
 		if (subscribed) return;

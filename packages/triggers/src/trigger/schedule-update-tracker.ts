@@ -75,13 +75,13 @@ export const scheduleUpdateTracker = schedules.task({
 				})();
 				if (top.length === 0) return;
 
-				const meta = { kind: "event", ...event } as unknown as GbpMetadata;
-				const inserted = await insertSnapshots(top, { now, meta });
+				const metadata = { kind: "event", ...event } as unknown as GbpMetadata;
+				const inserted = await insertSnapshots(top, { now, metadata });
 
 				if (inserted.length > 0) {
 					await Promise.all([
-						updateRedis(top, { inserted, meta }),
-						sendPushNotifications(top, { inserted, meta }),
+						updateRedis(top, { inserted, metadata }),
+						sendPushNotifications(top, { inserted, metadata }),
 					]);
 				}
 			})(),
@@ -96,13 +96,16 @@ export const scheduleUpdateTracker = schedules.task({
 				const top = data.monthlyRankingPointTopUsers?.entries ?? [];
 				if (top.length === 0) return;
 
-				const meta = { kind: "monthly", ...monthly } as unknown as GbpMetadata;
-				const inserted = await insertSnapshots(top, { now, meta });
+				const metadata = {
+					kind: "monthly",
+					...monthly,
+				} as unknown as GbpMetadata;
+				const inserted = await insertSnapshots(top, { now, metadata });
 
 				if (inserted.length > 0) {
 					await Promise.all([
-						updateRedis(top, { inserted, meta }),
-						sendPushNotifications(top, { inserted, meta }),
+						updateRedis(top, { inserted, metadata }),
+						sendPushNotifications(top, { inserted, metadata }),
 					]);
 				}
 			})(),
@@ -112,20 +115,22 @@ export const scheduleUpdateTracker = schedules.task({
 
 interface InsertSnapshotOptions {
 	now: dayjs.Dayjs;
-	meta: GbpMetadata;
+	metadata: GbpMetadata;
 }
 
 const insertSnapshots = (
 	top10: RankingUser.$Shape[],
-	{ now, meta }: InsertSnapshotOptions,
+	{ now, metadata }: InsertSnapshotOptions,
 ) =>
 	db()
 		.insert(trackerSnapshots)
 		.values(
 			top10.map(({ userId, name, rank, point }) => ({
-				trackingFor: meta.kind,
+				trackingFor: metadata.kind,
 				trackingId:
-					meta.kind === "event" ? meta.eventId : meta.monthlyRankingId,
+					metadata.kind === "event"
+						? metadata.eventId
+						: metadata.monthlyRankingId,
 				uid: userId?.toString()!,
 				name: name!,
 				rank: rank!,
@@ -143,43 +148,43 @@ const insertSnapshots = (
 
 interface UpdateRedisTop10Options {
 	inserted: Awaited<ReturnType<typeof insertSnapshots>>;
-	meta: GbpMetadata;
+	metadata: GbpMetadata;
 }
 
 const updateRedis = async (
 	top10: RankingUser.$Shape[],
-	{ inserted, meta }: UpdateRedisTop10Options,
+	{ inserted, metadata }: UpdateRedisTop10Options,
 ) => {
-	const key = getRedisKey(meta);
+	const key = getRedisKey(metadata);
 	await redis().mset(
 		Object.fromEntries(
 			top10.map(({ userId, rank }) => [`${key}:${rank}`, userId]),
 		),
 	);
 	await tags.add([
-		`${meta.kind}_${meta.assetBundleName}`,
-		`${meta.kind}_+${inserted.length}`,
+		`${metadata.kind}_${metadata.assetBundleName}`,
+		`${metadata.kind}_+${inserted.length}`,
 	]);
 
 	const uids = top10.map(({ userId }) => userId!);
 	// @ts-expect-error should works
 	const newTop10 = await redis().sadd(`${key}:players`, ...uids);
-	if (newTop10 > 0) await tags.add(`${meta.kind}_player+${newTop10}`);
+	if (newTop10 > 0) await tags.add(`${metadata.kind}_player+${newTop10}`);
 };
 
 interface SendPushNotificationOptions {
 	inserted: Awaited<ReturnType<typeof insertSnapshots>>;
-	meta: GbpMetadata;
+	metadata: GbpMetadata;
 }
 
 const sendPushNotifications = async (
 	top10: RankingUser.$Shape[],
-	{ inserted, meta }: SendPushNotificationOptions,
+	{ inserted, metadata }: SendPushNotificationOptions,
 ) => {
 	const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY } = process.env;
 	if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return;
 
-	const baseKey = getRedisKey(meta);
+	const baseKey = getRedisKey(metadata);
 
 	const formerTop10 = [] as typeof inserted;
 	const newTop10 = !!inserted.find(({ rank }) => rank === 10);
@@ -197,9 +202,11 @@ const sendPushNotifications = async (
 					db().query.trackerSnapshots.findFirst({
 						columns: { uid: true, name: true, point: true, rank: true },
 						where: {
-							trackingFor: meta.kind,
+							trackingFor: metadata.kind,
 							trackingId:
-								meta.kind === "event" ? meta.eventId : meta.monthlyRankingId,
+								metadata.kind === "event"
+									? metadata.eventId
+									: metadata.monthlyRankingId,
 							uid,
 						},
 						orderBy: { id: "desc" },
@@ -233,7 +240,9 @@ const sendPushNotifications = async (
 			await deleteNotify.exec();
 
 			const title =
-				meta.kind === "event" ? meta.eventName : meta.monthlyRankingName;
+				metadata.kind === "event"
+					? metadata.eventName
+					: metadata.monthlyRankingName;
 			return uniqBy(
 				subscriptions.map(([, it]) => it),
 				({ on, subscription }) =>
@@ -241,7 +250,7 @@ const sendPushNotifications = async (
 			).map(({ on, subscription }) => ({
 				subscription,
 				id: `${key}-${on.target}-${on.value}`,
-				title: `${meta.kind}: ${title}`,
+				title: `${metadata.kind}: ${title}`,
 				body:
 					on.target === "point"
 						? `${name} just hit ${formatNumber(point)} Pts!`
@@ -251,11 +260,14 @@ const sendPushNotifications = async (
 	).then((payloads) => payloads.flat());
 	if (payloads.length === 0) return;
 
-	await Promise.all(
+	await Promise.allSettled(
 		payloads.map(({ subscription, ...data }) =>
 			webPush.sendNotification(subscription, JSON.stringify(data), {
-				TTL: Math.max(60 * 60 * 12, dayjs(meta.endAt).diff(dayjs(), "seconds")),
-				topic: data.id,
+				TTL: Math.max(
+					60 * 60 * 12,
+					dayjs(metadata.endAt).diff(dayjs(), "seconds"),
+				),
+				topic: data.id.replace(":", "__"),
 				vapidDetails: {
 					publicKey: VAPID_PUBLIC_KEY,
 					privateKey: VAPID_PRIVATE_KEY,
@@ -266,10 +278,11 @@ const sendPushNotifications = async (
 	);
 };
 
-const getRedisKey = (meta: GbpMetadata) => {
+const getRedisKey = (metadata: GbpMetadata) => {
 	const base =
-		meta.kind === "event" ? GAME_EVENT_CURRENT : GAME_MONTHLY_CURRENT;
-	const id = meta.kind === "event" ? meta.eventId : meta.monthlyRankingId;
+		metadata.kind === "event" ? GAME_EVENT_CURRENT : GAME_MONTHLY_CURRENT;
+	const id =
+		metadata.kind === "event" ? metadata.eventId : metadata.monthlyRankingId;
 
 	return base.replace("current", id.toString());
 };
