@@ -126,7 +126,11 @@ const { data, players } = await Astro.locals.tracing.enterSpan(
 							: undefined,
 					lastPlayed,
 					boatHistory:
-						latest.point === previous?.point ? snapshots.reverse() : undefined,
+						previous &&
+						latest.point === previous.point &&
+						latest.rank > lastPlayed.rank
+							? snapshots.reverse()
+							: undefined,
 				};
 			}),
 		};
