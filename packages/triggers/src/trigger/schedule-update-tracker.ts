@@ -80,8 +80,8 @@ export const scheduleUpdateTracker = schedules.task({
 
 				if (inserted.length > 0) {
 					await Promise.all([
-						updateRedisTop10(top, { inserted, meta }),
-						sendPushNotifications(inserted, { meta }),
+						updateRedis(top, { inserted, meta }),
+						sendPushNotifications(top, { inserted, meta }),
 					]);
 				}
 			})(),
@@ -101,8 +101,8 @@ export const scheduleUpdateTracker = schedules.task({
 
 				if (inserted.length > 0) {
 					await Promise.all([
-						updateRedisTop10(top, { inserted, meta }),
-						sendPushNotifications(inserted, { meta }),
+						updateRedis(top, { inserted, meta }),
+						sendPushNotifications(top, { inserted, meta }),
 					]);
 				}
 			})(),
@@ -116,13 +116,13 @@ interface InsertSnapshotOptions {
 }
 
 const insertSnapshots = (
-	snapshots: RankingUser.$Shape[],
+	top10: RankingUser.$Shape[],
 	{ now, meta }: InsertSnapshotOptions,
 ) =>
 	db()
 		.insert(trackerSnapshots)
 		.values(
-			snapshots.map(({ userId, name, rank, point }) => ({
+			top10.map(({ userId, name, rank, point }) => ({
 				trackingFor: meta.kind,
 				trackingId:
 					meta.kind === "event" ? meta.eventId : meta.monthlyRankingId,
@@ -138,6 +138,7 @@ const insertSnapshots = (
 			uid: trackerSnapshots.uid,
 			name: trackerSnapshots.name,
 			point: trackerSnapshots.point,
+			rank: trackerSnapshots.rank,
 		});
 
 interface UpdateRedisTop10Options {
@@ -145,56 +146,107 @@ interface UpdateRedisTop10Options {
 	meta: GbpMetadata;
 }
 
-const updateRedisTop10 = async (
-	snapshots: RankingUser.$Shape[],
+const updateRedis = async (
+	top10: RankingUser.$Shape[],
 	{ inserted, meta }: UpdateRedisTop10Options,
 ) => {
 	const key = getRedisKey(meta);
 	await redis().mset(
 		Object.fromEntries(
-			snapshots.map(({ userId, rank }) => [`${key}:${rank}`, userId]),
+			top10.map(({ userId, rank }) => [`${key}:${rank}`, userId]),
 		),
 	);
 	await tags.add([
 		`${meta.kind}_${meta.assetBundleName}`,
 		`${meta.kind}_+${inserted.length}`,
 	]);
+
+	const uids = top10.map(({ userId }) => userId!);
+	// @ts-expect-error should works
+	const newTop10 = await redis().sadd(`${key}:players`, ...uids);
+	if (newTop10 > 0) await tags.add(`${meta.kind}_player+${newTop10}`);
 };
 
 interface SendPushNotificationOptions {
+	inserted: Awaited<ReturnType<typeof insertSnapshots>>;
 	meta: GbpMetadata;
 }
 
 const sendPushNotifications = async (
-	inserted: Awaited<ReturnType<typeof insertSnapshots>>,
-	{ meta }: SendPushNotificationOptions,
+	top10: RankingUser.$Shape[],
+	{ inserted, meta }: SendPushNotificationOptions,
 ) => {
 	const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY } = process.env;
 	if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return;
 
 	const baseKey = getRedisKey(meta);
-	const payloads = await Promise.all(
-		inserted.map(async ({ uid, name, point }) => {
-			const key = `${baseKey}:point:${uid}`;
-			const notify = await redis().json.get<NotifyWhenPlayer>(key);
-			if (
-				!notify ||
-				point < notify.when.point ||
-				notify.subscriptions.length === 0
-			)
-				return [];
 
-			await redis().del(key);
+	const formerTop10 = [] as typeof inserted;
+	const newTop10 = !!inserted.find(({ rank }) => rank === 10);
+	const top10Uids = top10.map(({ userId }) => userId!.toString());
+	if (newTop10) {
+		const outsideTop10 = (
+			await redis().smembers<number[]>(`${baseKey}:players`)
+		)
+			.map((uid) => uid.toString())
+			.filter((uid) => !top10Uids.includes(uid));
+
+		if (outsideTop10.length > 0) {
+			const latestSnapshots = await Promise.all(
+				outsideTop10.map((uid) =>
+					db().query.trackerSnapshots.findFirst({
+						columns: { uid: true, name: true, point: true, rank: true },
+						where: {
+							trackingFor: meta.kind,
+							trackingId:
+								meta.kind === "event" ? meta.eventId : meta.monthlyRankingId,
+							uid,
+						},
+						orderBy: { id: "desc" },
+					}),
+				),
+			);
+
+			for (const snapshot of latestSnapshots) {
+				if (snapshot) formerTop10.push(snapshot);
+			}
+		}
+	}
+
+	const payloads = await Promise.all(
+		[...inserted, ...formerTop10].map(async ({ uid, name, point, rank }) => {
+			const key = `${baseKey}:${uid}`;
+			const notify = await redis().json.get<NotifyWhenPlayer[]>(key, "$");
+			if (!notify) return [];
+
+			const subscriptions = [...notify.entries()].filter(
+				([, { on }]) =>
+					(on.target === "point" && point > on.value) ||
+					(on.target === "boated-from" &&
+						(rank > on.value || !top10Uids.includes(uid))),
+			);
+			if (subscriptions.length === 0) return [];
+
+			const deleteNotify = redis().multi();
+			for (const [idx] of [...subscriptions].reverse())
+				deleteNotify.json.del(key, `$[${idx}]`);
+			await deleteNotify.exec();
+
 			const title =
 				meta.kind === "event" ? meta.eventName : meta.monthlyRankingName;
-			return uniqBy(notify.subscriptions, ({ endpoint }) => endpoint).map(
-				(subscription) => ({
-					subscription,
-					id: `${key}-${notify.when.point}`,
-					title: `${meta.kind}: ${title}`,
-					body: `${name} just hit ${formatNumber(point)} Pts!`,
-				}),
-			);
+			return uniqBy(
+				subscriptions.map(([, it]) => it),
+				({ on, subscription }) =>
+					`${subscription.endpoint}:${on.target}:${on.value}`,
+			).map(({ on, subscription }) => ({
+				subscription,
+				id: `${key}-${on.target}-${on.value}`,
+				title: `${meta.kind}: ${title}`,
+				body:
+					on.target === "point"
+						? `${name} just hit ${formatNumber(point)} Pts!`
+						: `${name} just got boated from rank #${on.value}!`,
+			}));
 		}),
 	).then((payloads) => payloads.flat());
 	if (payloads.length === 0) return;

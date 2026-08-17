@@ -19,10 +19,10 @@ export const GAME_EVENT_CURRENT = "gbp:event:current";
 export const GAME_MONTHLY_CURRENT = "gbp:monthly:current";
 
 export interface NotifyWhenPlayer {
-	when: { point: number };
-	subscriptions: {
+	on: { target: "point" | "boated-from"; value: number };
+	subscription: {
 		endpoint: string;
 		expirationTime: number | null;
 		keys: { p256dh: string; auth: string };
-	}[];
+	};
 }

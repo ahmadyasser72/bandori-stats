@@ -3,7 +3,7 @@ import z from "zod";
 
 import { db } from "@bandori-stats/database";
 import SheetModal from "~/layouts/sheet-modal.astro";
-import { NotifyWhenForm } from "./_notify";
+import { NotifyWhenContainer } from "./_notify";
 
 export const partial = true;
 
@@ -22,6 +22,7 @@ const snapshot = await db().query.trackerSnapshots.findFirst({
 		trackingId: true,
 		name: true,
 		point: true,
+		rank: true,
 	},
 	where: {
 		uid,
@@ -37,5 +38,5 @@ const snapshot = await db().query.trackerSnapshots.findFirst({
 		{snapshot ? `Notify me when ${snapshot.name}...` : "Notify me when..."}
 	</h2>
 
-	{snapshot && <NotifyWhenForm client:load {snapshot} />}
+	{snapshot && <NotifyWhenContainer client:load {snapshot} />}
 </SheetModal>

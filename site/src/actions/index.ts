@@ -24,44 +24,64 @@ export const server = {
 				trackingFor: z.enum(["event", "monthly"]),
 				trackingId: z.number(),
 			}),
-			when: z.object({
-				point: z.number(),
+			on: z.object({
+				target: z.enum(["point", "boated-from"]),
+				value: z.number(),
 			}),
 		}),
-		handler: async ({ subscription, target, when }) => {
+		handler: async ({ subscription, target, on }) => {
+			const metadata = await (target.trackingFor === "event"
+				? db().query.gbpEvents.findFirst({
+						columns: { endAt: true },
+						where: { eventId: target.trackingId },
+					})
+				: db().query.gbpMonthlyRankings.findFirst({
+						columns: { endAt: true },
+						where: { monthlyRankingId: target.trackingId },
+					}));
+			if (!metadata)
+				throw new ActionError({
+					code: "NOT_FOUND",
+					message: `${target.trackingFor}:${target.trackingId} doesn't exists`,
+				});
+
+			const latestSnapshot = await db().query.trackerSnapshots.findFirst({
+				columns: { point: true, rank: true },
+				where: target,
+				orderBy: { id: "desc" },
+			});
+			if (!latestSnapshot)
+				throw new ActionError({
+					code: "NOT_FOUND",
+					message: `${target.uid} is not tracked in ${target.trackingFor}:${target.trackingId}`,
+				});
+
+			if (on.target === "point" && latestSnapshot.point > on.value)
+				throw new ActionError({
+					code: "BAD_REQUEST",
+					message: `${target.uid} points already above ${on.value}!`,
+				});
+			if (on.target === "boated-from" && latestSnapshot.rank > on.value)
+				throw new ActionError({
+					code: "BAD_REQUEST",
+					message: `${target.uid} already boated from rank #${on.value}!`,
+				});
+
 			const baseKey = (
 				target.trackingFor === "event"
 					? GAME_EVENT_CURRENT
 					: GAME_MONTHLY_CURRENT
 			).replace("current", target.trackingId.toString());
-			const key = `${baseKey}:point:${target.uid}`;
+			const key = `${baseKey}:${target.uid}`;
 
-			const data = await (target.trackingFor === "event"
-				? db().query.gbpEvents.findFirst({
-						columns: { startAt: true, endAt: true },
-						where: { eventId: target.trackingId },
-					})
-				: db().query.gbpMonthlyRankings.findFirst({
-						columns: { startAt: true, endAt: true },
-						where: { monthlyRankingId: target.trackingId },
-					}));
-			if (!data)
-				throw new ActionError({
-					code: "NOT_FOUND",
-					message: `${target.trackingFor} doesn't exists`,
-				});
-
+			const notify = { on, subscription } satisfies NotifyWhenPlayer;
 			const exists = await redis().exists(key);
-			if (exists)
-				await redis().json.arrappend(key, "$.subscriptions", subscription);
+			if (exists) await redis().json.arrappend(key, "$", notify);
 			else
 				await redis()
 					.multi()
-					.json.set(key, "$", {
-						when,
-						subscriptions: [subscription],
-					} satisfies NotifyWhenPlayer)
-					.pexpireat(key, data.endAt.valueOf())
+					.json.set(key, "$", [notify])
+					.pexpireat(key, metadata.endAt.valueOf())
 					.exec();
 		},
 	}),
