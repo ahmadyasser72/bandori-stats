@@ -27,6 +27,7 @@ import type {
 	RankingUser,
 	UserSituationList,
 } from "~/bang-dream-gbp/gen/common_pb";
+import { githubRedeploy } from "./github-redeploy";
 
 export const scheduleUpdateTracker = schedules.task({
 	id: "schedule-update-tracker",
@@ -216,6 +217,8 @@ const insertSnapshots = async (
 					titles: sql.raw(`excluded.${trackerSnapshotProfiles.titles.name}`),
 				},
 			});
+
+		await githubRedeploy.trigger(undefined);
 	}
 
 	const values = top10.map(
