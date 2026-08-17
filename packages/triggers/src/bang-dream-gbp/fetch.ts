@@ -1,5 +1,7 @@
 import { createDecipheriv } from "node:crypto";
 
+import { fromBinary, type Message } from "@bufbuild/protobuf";
+import type { GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { AbortTaskRunError } from "@trigger.dev/sdk";
 import type z from "zod";
 
@@ -12,50 +14,54 @@ const UNITY_VERSION = "2022.3.62f2";
 
 type ResponseType = "monthly" | z.infer<typeof GameEventType>;
 
-const PROTO_MAP = {
+const PROTOBUF_MAP = {
 	monthly: () =>
-		import("./proto/monthly-ranking.proto.js").then(
-			(it) => it.UserMonthlyRankingRankingResponse,
+		import("./gen/monthly-ranking_pb").then(
+			(it) => it.UserMonthlyRankingRankingResponseSchema,
 		),
 	story: () =>
-		import("./proto/event-story.proto.js").then(
-			(it) => it.UserStoryEventRankingResponse,
+		import("./gen/event-story_pb").then(
+			(it) => it.UserStoryEventRankingResponseSchema,
 		),
 	versus: () =>
-		import("./proto/event-versus.proto.js").then(
-			(it) => it.UserVersusEventRankingResponse,
+		import("./gen/event-versus_pb").then(
+			(it) => it.UserVersusEventRankingResponseSchema,
 		),
 	mission_live: () =>
-		import("./proto/event-mission_live.proto.js").then(
-			(it) => it.UserMissionLiveEventRankingResponse,
+		import("./gen/event-mission_live_pb").then(
+			(it) => it.UserMissionLiveEventRankingResponseSchema,
 		),
 	challenge: () =>
-		import("./proto/event-challenge.proto.js").then(
-			(it) => it.UserChallengeEventRankingResponse,
+		import("./gen/event-challenge_pb").then(
+			(it) => it.UserChallengeEventRankingResponseSchema,
 		),
 	live_try: () =>
-		import("./proto/event-live_try.proto.js").then(
-			(it) => it.UserLiveTryEventRankingResponse,
+		import("./gen/event-live_try_pb").then(
+			(it) => it.UserLiveTryEventRankingResponseSchema,
 		),
 	medley: () =>
-		import("./proto/event-medley.proto.js").then(
-			(it) => it.UserMedleyEventRankingResponse,
+		import("./gen/event-medley_pb").then(
+			(it) => it.UserMedleyEventRankingResponseSchema,
 		),
 	festival: () =>
-		import("./proto/event-festival.proto.js").then(
-			(it) => it.UserTeamLiveFestivalEventRankingResponse,
+		import("./gen/event-festival_pb").then(
+			(it) => it.UserTeamLiveFestivalEventRankingResponseSchema,
 		),
-} satisfies Record<ResponseType, () => unknown>;
+} satisfies Record<ResponseType, () => Promise<GenMessage<Message>>>;
+
+interface ProtobufOutput {
+	monthly: import("./gen/monthly-ranking_pb").UserMonthlyRankingRankingResponse;
+	story: import("./gen/event-story_pb").UserStoryEventRankingResponse;
+	versus: import("./gen/event-versus_pb").UserVersusEventRankingResponse;
+	mission_live: import("./gen/event-mission_live_pb").UserMissionLiveEventRankingResponse;
+	challenge: import("./gen/event-challenge_pb").UserChallengeEventRankingResponse;
+	live_try: import("./gen/event-live_try_pb").UserLiveTryEventRankingResponse;
+	medley: import("./gen/event-medley_pb").UserMedleyEventRankingResponse;
+	festival: import("./gen/event-festival_pb").UserTeamLiveFestivalEventRankingResponse;
+}
 
 export const bangDream = limitAsync(
-	async <
-		T extends ResponseType,
-		O = ReturnType<Awaited<ReturnType<(typeof PROTO_MAP)[T]>>["decode"]>,
-	>(
-		version: string,
-		type: T,
-		id: number,
-	) => {
+	async <T extends ResponseType>(version: string, type: T, id: number) => {
 		const {
 			BANG_DREAM_USER_ID,
 			BANG_DREAM_USER_TOKEN,
@@ -99,8 +105,8 @@ export const bangDream = limitAsync(
 			throw new AbortTaskRunError(`Response is not OK (${response.status})`);
 
 		const bytes = await response.arrayBuffer().then(decrypt);
-		const proto = await PROTO_MAP[type]();
-		return proto.decode(bytes) as O;
+		const schema = await PROTOBUF_MAP[type]();
+		return fromBinary(schema, bytes) as ProtobufOutput[T];
 	},
 	1,
 );

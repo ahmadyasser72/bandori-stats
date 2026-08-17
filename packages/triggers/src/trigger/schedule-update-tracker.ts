@@ -26,7 +26,7 @@ import { bangDream } from "~/bang-dream-gbp/fetch";
 import type {
 	RankingUser,
 	UserSituationList,
-} from "~/bang-dream-gbp/proto/event-mission_live.proto";
+} from "~/bang-dream-gbp/gen/common_pb";
 
 export const scheduleUpdateTracker = schedules.task({
 	id: "schedule-update-tracker",
@@ -62,6 +62,7 @@ export const scheduleUpdateTracker = schedules.task({
 						eventType === "medley"
 					) {
 						const data = await bangDream(version, eventType, eventId);
+						data;
 						return data.eventPointTopUsers?.entries ?? [];
 					} else if (
 						eventType === "mission_live" ||
@@ -81,6 +82,7 @@ export const scheduleUpdateTracker = schedules.task({
 				if (top.length === 0) return;
 
 				const metadata = { kind: "event", ...event } as unknown as GbpMetadata;
+
 				const inserted = await insertSnapshots(top, { now, metadata });
 
 				if (inserted.length > 0) {
@@ -124,7 +126,7 @@ interface InsertSnapshotOptions {
 }
 
 const insertSnapshots = async (
-	top10: RankingUser.$Shape[],
+	top10: RankingUser[],
 	{ now, metadata }: InsertSnapshotOptions,
 ) => {
 	const trackingReference = {
@@ -135,16 +137,16 @@ const insertSnapshots = async (
 
 	if (now.get("minutes") === 0) {
 		const getBandMember = (
-			list: UserSituationList.$Shape,
+			list: UserSituationList,
 			idx: number,
 		): PlayerBandMember | null => {
 			const data = list.entries?.at(idx);
 			if (!data) return null;
 
 			return {
-				id: data.situationId!,
-				level: data.level!,
-				skillLevel: data.skillLevel!,
+				id: data.situationId,
+				level: data.level,
+				skillLevel: data.skillLevel,
 				illust: data.illust as PlayerBandMember["illust"],
 			};
 		};
@@ -162,10 +164,10 @@ const insertSnapshots = async (
 			}): typeof trackerSnapshotProfiles.$inferInsert => ({
 				...trackingReference,
 
-				uid: userId?.toString()!,
-				name: name!,
-				level: rankLevel!,
-				introduction: introduction!,
+				uid: userId.toString(),
+				name: name,
+				level: rankLevel,
+				introduction: introduction,
 
 				avatar:
 					userProfileSituation &&
@@ -220,10 +222,10 @@ const insertSnapshots = async (
 		({ userId, name, rank, point }): typeof trackerSnapshots.$inferInsert => ({
 			...trackingReference,
 
-			uid: userId?.toString()!,
-			name: name!,
-			rank: rank!,
-			point: point!,
+			uid: userId.toString(),
+			name,
+			rank,
+			point: Number(point),
 			timestamp: now.toDate(),
 		}),
 	);
@@ -245,7 +247,7 @@ interface UpdateRedisTop10Options {
 }
 
 const updateRedis = async (
-	top10: RankingUser.$Shape[],
+	top10: RankingUser[],
 	{ inserted, metadata }: UpdateRedisTop10Options,
 ) => {
 	const key = getRedisKey(metadata);
@@ -271,7 +273,7 @@ interface SendPushNotificationOptions {
 }
 
 const sendPushNotifications = async (
-	top10: RankingUser.$Shape[],
+	top10: RankingUser[],
 	{ inserted, metadata }: SendPushNotificationOptions,
 ) => {
 	const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY } = process.env;
@@ -279,7 +281,7 @@ const sendPushNotifications = async (
 
 	const baseKey = getRedisKey(metadata);
 	const top10ByUid = new Map(
-		top10.map((data) => [data.userId!.toString(), data]),
+		top10.map((data) => [data.userId.toString(), data]),
 	);
 
 	const formerTop10 = [] as typeof inserted;

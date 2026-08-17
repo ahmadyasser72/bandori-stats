@@ -9,13 +9,15 @@
 	"dependencies": {
 		"@bandori-stats/bestdori": "workspace:*",
 		"@bandori-stats/database": "workspace:*",
+		"@bufbuild/protobuf": "2.14.0",
 		"@trigger.dev/sdk": "4.5.11",
-		"protobufjs": "8.7.2",
 		"random": "5.4.1",
 		"web-push": "3.6.7",
 		"zod": "4.4.3"
 	},
 	"devDependencies": {
+		"@bufbuild/buf": "1.72.0",
+		"@bufbuild/protoc-gen-es": "2.14.0",
 		"@trigger.dev/build": "4.5.11",
 		"@types/node": "26.2.0",
 		"@types/web-push": "3.6.4",
