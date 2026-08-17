@@ -75,7 +75,7 @@ export const notifyMe = defineAction({
 		const baseKey = (
 			target.trackingFor === "event" ? GAME_EVENT_CURRENT : GAME_MONTHLY_CURRENT
 		).replace("current", target.trackingId.toString());
-		const key = `${baseKey}:${target.uid}`;
+		const key = `${baseKey}:notify:${target.uid}`;
 
 		const notify = { on, subscription } satisfies NotifyWhenPlayer;
 		const exists = await redis().exists(key);

@@ -222,11 +222,11 @@ const sendPushNotifications = async (
 
 	const payloads = await Promise.all(
 		[...inserted, ...formerTop10].map(async ({ uid, name, point, rank }) => {
-			const key = `${baseKey}:${uid}`;
-			const notify = await redis().json.get<NotifyWhenPlayer[]>(key, "$");
+			const key = `${baseKey}:notify:${uid}`;
+			const notify = await redis().json.get<NotifyWhenPlayer[][]>(key, "$");
 			if (!notify) return [];
 
-			const subscriptions = [...notify.entries()].filter(
+			const subscriptions = [...notify.flat().entries()].filter(
 				([, { on }]) =>
 					(on.target === "point" && point > on.value) ||
 					(on.target === "boated-from" &&
