@@ -10,6 +10,13 @@ import type z from "zod";
 
 import type { Stats } from "@bandori-stats/bestdori/constants";
 import type { GameEventType } from "@bandori-stats/bestdori/schema/misc";
+import type {
+	PlayerAvatar,
+	PlayerBand,
+	PlayerTitles,
+} from "./tracker-snapshot-profile";
+
+export * from "./tracker-snapshot-profile";
 
 export const accounts = sqliteTable(
 	"accounts",
@@ -89,7 +96,6 @@ export const trackerSnapshots = sqliteTable(
 		name: text().notNull(),
 		rank: integer().notNull(),
 		point: integer().notNull(),
-
 		timestamp: integer({ mode: "timestamp_ms" }).notNull(),
 	},
 	(t) => [
@@ -110,8 +116,31 @@ export const trackerSnapshots = sqliteTable(
 	],
 );
 
+export const trackerSnapshotProfiles = sqliteTable(
+	"tracker_snapshot_profiles",
+	{
+		id: integer().primaryKey({ autoIncrement: true }),
+		trackingFor: text({ enum: ["event", "monthly"] }).notNull(),
+		trackingId: integer().notNull(),
+
+		uid: text().notNull(),
+		name: text().notNull(),
+		level: integer().notNull(),
+		introduction: text().notNull(),
+		avatar: text({ mode: "json" }).$type<PlayerAvatar>(),
+		band: text({ mode: "json" }).notNull().$type<PlayerBand>(),
+		titles: text({ mode: "json" }).notNull().$type<PlayerTitles>(),
+	},
+	(t) => [
+		unique("idx_tracker_reference").on(t.uid, t.trackingFor, t.trackingId),
+	],
+);
+
 export type GbpEvent = typeof gbpEvents.$inferSelect;
 export type GbpMonthlyRanking = typeof gbpMonthlyRankings.$inferSelect;
 export type GbpMetadata =
 	({ kind: "event" } & GbpEvent) | ({ kind: "monthly" } & GbpMonthlyRanking);
+
 export type TrackerSnapshot = typeof trackerSnapshots.$inferSelect;
+export type TrackerSnapshotProfile =
+	typeof trackerSnapshotProfiles.$inferSelect;

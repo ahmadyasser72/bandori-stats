@@ -8,7 +8,7 @@ import type {
 	GameEvent,
 	GameMonthlyRanking,
 } from "@bandori-stats/bestdori/schema/misc";
-import { db } from "@bandori-stats/database";
+import { db, sql } from "@bandori-stats/database";
 import {
 	GAME_EVENT_CURRENT,
 	GAME_MONTHLY_CURRENT,
@@ -17,11 +17,16 @@ import {
 	type NotifyWhenPlayer,
 } from "@bandori-stats/database/redis";
 import {
+	trackerSnapshotProfiles,
 	trackerSnapshots,
 	type GbpMetadata,
+	type PlayerBandMember,
 } from "@bandori-stats/database/schema";
 import { bangDream } from "~/bang-dream-gbp/fetch";
-import type { RankingUser } from "~/bang-dream-gbp/proto/event-mission_live.proto";
+import type {
+	RankingUser,
+	UserSituationList,
+} from "~/bang-dream-gbp/proto/event-mission_live.proto";
 
 export const scheduleUpdateTracker = schedules.task({
 	id: "schedule-update-tracker",
@@ -118,26 +123,113 @@ interface InsertSnapshotOptions {
 	metadata: GbpMetadata;
 }
 
-const insertSnapshots = (
+const insertSnapshots = async (
 	top10: RankingUser.$Shape[],
 	{ now, metadata }: InsertSnapshotOptions,
-) =>
-	db()
-		.insert(trackerSnapshots)
-		.values(
-			top10.map(({ userId, name, rank, point }) => ({
-				trackingFor: metadata.kind,
-				trackingId:
-					metadata.kind === "event"
-						? metadata.eventId
-						: metadata.monthlyRankingId,
+) => {
+	const trackingReference = {
+		trackingFor: metadata.kind,
+		trackingId:
+			metadata.kind === "event" ? metadata.eventId : metadata.monthlyRankingId,
+	};
+
+	if (now.get("minutes") === 0) {
+		const getBandMember = (
+			list: UserSituationList.$Shape,
+			idx: number,
+		): PlayerBandMember | null => {
+			const data = list.entries?.at(idx);
+			if (!data) return null;
+
+			return {
+				id: data.situationId!,
+				level: data.level!,
+				skillLevel: data.skillLevel!,
+				illust: data.illust as PlayerBandMember["illust"],
+			};
+		};
+
+		const values = top10.map(
+			({
+				userId,
+				name,
+				rankLevel,
+				introduction,
+				userProfileSituation,
+				userDeck,
+				userSituationList,
+				userProfileDegreeMap,
+			}): typeof trackerSnapshotProfiles.$inferInsert => ({
+				...trackingReference,
+
 				uid: userId?.toString()!,
 				name: name!,
-				rank: rank!,
-				point: point!,
-				timestamp: now.toDate(),
-			})),
-		)
+				level: rankLevel!,
+				introduction: introduction!,
+
+				avatar:
+					userProfileSituation &&
+					"situationId" in userProfileSituation &&
+					"illust" in userProfileSituation
+						? {
+								id: userProfileSituation.situationId,
+								illust: userProfileSituation.illust,
+							}
+						: null,
+
+				band: {
+					name: userDeck?.deckName!,
+					center: getBandMember(userSituationList!, 0),
+					members: [
+						getBandMember(userSituationList!, 1),
+						getBandMember(userSituationList!, 2),
+						getBandMember(userSituationList!, 3),
+						getBandMember(userSituationList!, 4),
+					],
+				},
+
+				titles: {
+					first: userProfileDegreeMap?.entries?.first?.degreeId ?? null,
+					second: userProfileDegreeMap?.entries?.second?.degreeId ?? null,
+				},
+			}),
+		);
+		await db()
+			.insert(trackerSnapshotProfiles)
+			.values(values)
+			.onConflictDoUpdate({
+				target: [
+					trackerSnapshotProfiles.uid,
+					trackerSnapshotProfiles.trackingFor,
+					trackerSnapshotProfiles.trackingId,
+				],
+				set: {
+					name: sql.raw(`excluded.${trackerSnapshotProfiles.name.name}`),
+					level: sql.raw(`excluded.${trackerSnapshotProfiles.level.name}`),
+					introduction: sql.raw(
+						`excluded.${trackerSnapshotProfiles.introduction.name}`,
+					),
+					avatar: sql.raw(`excluded.${trackerSnapshotProfiles.avatar.name}`),
+					band: sql.raw(`excluded.${trackerSnapshotProfiles.band.name}`),
+					titles: sql.raw(`excluded.${trackerSnapshotProfiles.titles.name}`),
+				},
+			});
+	}
+
+	const values = top10.map(
+		({ userId, name, rank, point }): typeof trackerSnapshots.$inferInsert => ({
+			...trackingReference,
+
+			uid: userId?.toString()!,
+			name: name!,
+			rank: rank!,
+			point: point!,
+			timestamp: now.toDate(),
+		}),
+	);
+	return db()
+		.insert(trackerSnapshots)
+		.values(values)
 		.onConflictDoNothing()
 		.returning({
 			uid: trackerSnapshots.uid,
@@ -145,6 +237,7 @@ const insertSnapshots = (
 			point: trackerSnapshots.point,
 			rank: trackerSnapshots.rank,
 		});
+};
 
 interface UpdateRedisTop10Options {
 	inserted: Awaited<ReturnType<typeof insertSnapshots>>;
@@ -185,16 +278,18 @@ const sendPushNotifications = async (
 	if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return;
 
 	const baseKey = getRedisKey(metadata);
+	const top10ByUid = new Map(
+		top10.map((data) => [data.userId!.toString(), data]),
+	);
 
 	const formerTop10 = [] as typeof inserted;
 	const newTop10 = !!inserted.find(({ rank }) => rank === 10);
-	const top10Uids = top10.map(({ userId }) => userId!.toString());
 	if (newTop10) {
 		const outsideTop10 = (
 			await redis().smembers<number[]>(`${baseKey}:players`)
 		)
 			.map((uid) => uid.toString())
-			.filter((uid) => !top10Uids.includes(uid));
+			.filter((uid) => !top10ByUid.has(uid));
 
 		if (outsideTop10.length > 0) {
 			const latestSnapshots = await Promise.all(
@@ -230,7 +325,7 @@ const sendPushNotifications = async (
 				([, { on }]) =>
 					(on.target === "point" && point > on.value) ||
 					(on.target === "boated-from" &&
-						(rank > on.value || !top10Uids.includes(uid))),
+						(rank > on.value || !top10ByUid.has(uid))),
 			);
 			if (subscriptions.length === 0) return [];
 
@@ -239,23 +334,24 @@ const sendPushNotifications = async (
 				deleteNotify.json.del(key, `$[${idx}]`);
 			await deleteNotify.exec();
 
-			const title =
-				metadata.kind === "event"
-					? metadata.eventName
-					: metadata.monthlyRankingName;
 			return uniqBy(
 				subscriptions.map(([, it]) => it),
 				({ on, subscription }) =>
 					`${subscription.endpoint}:${on.target}:${on.value}`,
-			).map(({ on, subscription }) => ({
-				subscription,
-				id: `${key}-${on.target}-${on.value}`,
-				title: `${metadata.kind}: ${title}`,
-				body:
-					on.target === "point"
-						? `${name} just hit ${formatNumber(point)} Pts!`
-						: `${name} just got boated from rank #${on.value}!`,
-			}));
+			).map(({ on, subscription }) => {
+				return {
+					subscription,
+					id: `${key}-${on.target}-${on.value}`,
+					title:
+						metadata.kind === "event"
+							? metadata.eventName
+							: metadata.monthlyRankingName,
+					body:
+						on.target === "point"
+							? `${name} just hit ${formatNumber(point)} Pts!`
+							: `${name} just got boated from rank #${on.value}!`,
+				};
+			});
 		}),
 	).then((payloads) => payloads.flat());
 	if (payloads.length === 0) return;

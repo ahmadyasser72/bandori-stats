@@ -35,4 +35,11 @@ export const relations = defineRelations(schema, (r) => ({
 			where: { trackingFor: "monthly" },
 		}),
 	},
+	trackerSnapshots: {
+		profiles: r.many.trackerSnapshotProfiles({
+			from: r.trackerSnapshots.uid,
+			to: r.trackerSnapshotProfiles.uid,
+			alias: "tracker_snapshot_profile",
+		}),
+	},
 }));
