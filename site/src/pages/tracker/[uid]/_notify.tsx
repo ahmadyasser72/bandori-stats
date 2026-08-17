@@ -111,7 +111,7 @@ const NotifyWhen = ({
 		setSubmitting(true);
 		try {
 			const subscription = await getSubscription();
-			const { error } = await actions.trackerNotify({
+			const { error } = await actions.tracker.notifyMe({
 				subscription: subscription as never,
 				target: snapshot,
 				on: { target: on, value },
