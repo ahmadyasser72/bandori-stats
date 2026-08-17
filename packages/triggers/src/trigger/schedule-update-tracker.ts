@@ -260,14 +260,13 @@ const sendPushNotifications = async (
 	).then((payloads) => payloads.flat());
 	if (payloads.length === 0) return;
 
-	await Promise.allSettled(
+	const results = await Promise.allSettled(
 		payloads.map(({ subscription, ...data }) =>
 			webPush.sendNotification(subscription, JSON.stringify(data), {
 				TTL: Math.max(
 					60 * 60 * 12,
 					dayjs(metadata.endAt).diff(dayjs(), "seconds"),
 				),
-				topic: data.id.replace(":", "__"),
 				vapidDetails: {
 					publicKey: VAPID_PUBLIC_KEY,
 					privateKey: VAPID_PRIVATE_KEY,
@@ -276,6 +275,14 @@ const sendPushNotifications = async (
 			}),
 		),
 	);
+
+	let notificationSent = 0;
+	for (const result of results) {
+		if (result.status === "rejected") console.error(result.reason);
+		else notificationSent += 1;
+	}
+
+	if (notificationSent > 0) await tags.add(`notified_${notificationSent}`);
 };
 
 const getRedisKey = (metadata: GbpMetadata) => {
