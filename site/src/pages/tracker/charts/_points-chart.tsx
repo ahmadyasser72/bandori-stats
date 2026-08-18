@@ -1,4 +1,4 @@
-import { d3Curve, defineChart, lineY } from "@tanstack/charts";
+import { d3Curve, defineChart, lineY, select, text } from "@tanstack/charts";
 import { Chart } from "@tanstack/charts/preact";
 import { tooltip } from "@tanstack/charts/tooltip";
 import { scaleLinear, scaleUtc } from "d3-scale";
@@ -52,6 +52,22 @@ export const PointsChart = ({
 							curve: d3Curve(curveLinear),
 							strokeWidth: 2,
 						}),
+						text(
+							select(chartData, {
+								by: "uid",
+								value: ({ timestamp }) => timestamp,
+								select: "max",
+							}),
+							{
+								id: "point-end-labels",
+								x: ({ timestamp }) => new Date(timestamp),
+								y: "point",
+								text: "name",
+								color: "uid",
+								anchor: "start",
+								dx: 8,
+							},
+						),
 					],
 					x: {
 						scale: scaleUtc().domain([startAt, endAt]),
@@ -72,11 +88,10 @@ export const PointsChart = ({
 					y: {
 						scale: scaleLinear,
 						grid: true,
-						axis: {
-							label: "Points",
-						},
+						axis: { label: "Points" },
 					},
 					theme: CHART_THEME,
+					margin: { right: 120 },
 				},
 				{ tooltip },
 			),

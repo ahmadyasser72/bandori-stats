@@ -1,4 +1,11 @@
-import { d3Curve, defineChart, dot, lineY } from "@tanstack/charts";
+import {
+	d3Curve,
+	defineChart,
+	dot,
+	lineY,
+	select,
+	text,
+} from "@tanstack/charts";
 import { Chart } from "@tanstack/charts/preact";
 import { tooltip } from "@tanstack/charts/tooltip";
 import { scaleLinear, scaleUtc } from "d3-scale";
@@ -46,6 +53,22 @@ export const RankingChart = ({
 							key: ({ uid, timestamp }) => `${uid}:${timestamp}`,
 							r: 3,
 						}),
+						text(
+							select(data, {
+								by: "uid",
+								value: ({ timestamp }) => timestamp,
+								select: "max",
+							}),
+							{
+								id: "point-end-labels",
+								x: ({ timestamp }) => new Date(timestamp),
+								y: "rank",
+								text: "name",
+								color: "uid",
+								anchor: "start",
+								dx: 8,
+							},
+						),
 					],
 					x: {
 						scale: scaleUtc().domain([startAt, endAt]),
@@ -75,6 +98,7 @@ export const RankingChart = ({
 						},
 					},
 					theme: CHART_THEME,
+					margin: { right: 120 },
 				},
 				{ tooltip },
 			),
