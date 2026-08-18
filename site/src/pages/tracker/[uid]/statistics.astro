@@ -42,9 +42,9 @@ const snapshots = await Astro.locals.tracing.enterSpan(
 		const rows = await db().query.trackerSnapshots.findMany({
 			columns: { name: true, point: true, timestamp: true },
 			where: {
-				uid,
 				trackingFor: params.kind,
 				trackingId: params.id,
+				uid,
 			},
 			orderBy: { id: "desc" },
 		});

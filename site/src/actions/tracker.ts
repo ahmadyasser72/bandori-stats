@@ -19,9 +19,9 @@ export const notifyMe = defineAction({
 			keys: z.object({ p256dh: z.string(), auth: z.string() }),
 		}),
 		target: z.object({
-			uid: z.string(),
 			trackingFor: z.enum(["event", "monthly"]),
 			trackingId: z.number(),
+			uid: z.string(),
 		}),
 		on: z.discriminatedUnion("target", [
 			z.object({

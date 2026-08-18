@@ -25,9 +25,9 @@ const snapshot = await db().query.trackerSnapshots.findFirst({
 		rank: true,
 	},
 	where: {
-		uid,
 		trackingFor: params.kind,
 		trackingId: params.id,
+		uid,
 	},
 	orderBy: { id: "desc" },
 });

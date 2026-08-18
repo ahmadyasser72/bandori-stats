@@ -92,10 +92,19 @@ export const trackerSnapshots = sqliteTable(
 		timestamp: integer({ mode: "timestamp_ms" }).notNull(),
 	},
 	(t) => [
-		index("idx_tracker_reference").on(
+		index("idx_tracker_1").on(t.trackingFor, t.trackingId, t.uid, desc(t.id)),
+		index("idx_tracker_2").on(
 			t.trackingFor,
 			t.trackingId,
 			t.uid,
+			t.timestamp,
+			desc(t.id),
+		),
+		index("idx_tracker_3").on(
+			t.trackingFor,
+			t.trackingId,
+			t.uid,
+			t.point,
 			desc(t.id),
 		),
 		unique("idx_tracker_data").on(
@@ -124,9 +133,7 @@ export const trackerSnapshotProfiles = sqliteTable(
 		band: text({ mode: "json" }).notNull().$type<PlayerBand>(),
 		titles: text({ mode: "json" }).notNull().$type<number[]>(),
 	},
-	(t) => [
-		unique("idx_tracker_reference").on(t.uid, t.trackingFor, t.trackingId),
-	],
+	(t) => [unique("idx_tracker_profile").on(t.trackingFor, t.trackingId, t.uid)],
 );
 
 export type GbpEvent = typeof gbpEvents.$inferSelect;

@@ -29,7 +29,7 @@ export const fetchTrackerData = async (params: {
 				trackingId: params.id,
 				uid: { in: top10 },
 			},
-			orderBy: { id: "asc" },
+			orderBy: { id: "desc" },
 		}),
 		params.kind === "event"
 			? db().query.gbpEvents.findFirst({
@@ -55,8 +55,9 @@ export const processTrackerData = <T extends keyof Snapshot>(
 	snapshots: Snapshot[],
 	{ pick: pickKeys, key }: { pick: T[]; key: T },
 ) => {
-	const changesByHour = new Map<number, Map<string, Snapshot>>();
+	snapshots.sort((a, b) => dayjs(a.timestamp).diff(b.timestamp));
 
+	const changesByHour = new Map<number, Map<string, Snapshot>>();
 	for (const snapshot of snapshots) {
 		const hour = dayjs(snapshot.timestamp).startOf("hour").valueOf();
 
