@@ -1,20 +1,14 @@
 import dayjs from "@bandori-stats/bestdori/date";
 import { pick } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
-import {
-	GAME_EVENT_CURRENT,
-	GAME_MONTHLY_CURRENT,
-	redis,
-} from "@bandori-stats/database/redis";
+import { GBP, redis } from "@bandori-stats/database/redis";
 import type { TrackerSnapshot } from "@bandori-stats/database/schema";
 
 export const fetchTrackerData = async (params: {
 	kind: "event" | "monthly";
 	id: number;
 }) => {
-	const key = (
-		params.kind === "event" ? GAME_EVENT_CURRENT : GAME_MONTHLY_CURRENT
-	).replace("current", params.id.toString());
+	const key = GBP[params.kind][params.id];
 	const players = (await redis().smembers<number[]>(`${key}:players`)).map(
 		(uid) => uid.toString(),
 	);

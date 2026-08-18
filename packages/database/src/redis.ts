@@ -1,5 +1,7 @@
 import { Redis } from "@upstash/redis";
 
+import type { PlayerBandMemberStat } from "./schema";
+
 export const redis = () => {
 	const { UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN } = process.env;
 	if (!UPSTASH_REDIS_REST_URL || !UPSTASH_REDIS_REST_TOKEN)
@@ -14,9 +16,58 @@ export const redis = () => {
 export const PLAYER_TITLES_SET = "stats:player-titles";
 export const PLAYER_STATS_SORTED_SET_PREFIX = "stats:player-stats";
 
-export const GAME_VERSION = "gbp:version";
-export const GAME_EVENT_CURRENT = "gbp:event:current";
-export const GAME_MONTHLY_CURRENT = "gbp:monthly:current";
+type Id = "current" | number;
+type IdPrefixed<P extends string> = `${P}:${Id}`;
+const idPrefixed = <P extends string>(prefix: P) =>
+	new Proxy({} as Record<Id, IdPrefixed<P>>, {
+		get: (_target, prop): IdPrefixed<P> => {
+			const id = Number(prop);
+			if (Number.isInteger(id) && id > 0) return `${prefix}:${id}`;
+
+			return `${prefix}:current`;
+		},
+	});
+
+export const GBP = {
+	version: "gbp:version",
+	credentials: "gbp:credentials",
+	areaItems: "gbp:area-items",
+	event: idPrefixed("gbp:event"),
+	monthly: idPrefixed("gbp:monthly"),
+} as const;
+
+export interface BangDreamCredentials {
+	uid: number;
+	token?: string;
+	signature: string;
+}
+
+export interface BangDreamAreaItem extends PlayerBandMemberStat {
+	targetAttributes: ("powerful" | "pure" | "cool" | "happy")[];
+	targetBandIds: number[];
+}
+
+const emptyAreaItem = {
+	performance: 0,
+	technique: 0,
+	visual: 0,
+	targetAttributes: [],
+	targetBandIds: [],
+};
+export const getAreaItems = async (
+	ids: number[],
+): Promise<BangDreamAreaItem[]> => {
+	if (ids.length === 0) return [];
+
+	const paths = ids.map((id) => `$.${id}`);
+	const results = await redis().json.get<Record<string, [BangDreamAreaItem]>>(
+		GBP.areaItems,
+		...paths,
+	);
+	if (!results) return ids.map(() => emptyAreaItem);
+
+	return paths.map((path) => results[path].pop() ?? emptyAreaItem);
+};
 
 export interface NotifyWhenPlayer {
 	on: { target: "point" | "boated-from"; value: number };

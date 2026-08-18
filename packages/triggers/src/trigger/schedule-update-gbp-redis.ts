@@ -4,12 +4,7 @@ import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
 import dayjs from "@bandori-stats/bestdori/date";
 import { MasterDB, Versions } from "@bandori-stats/bestdori/schema/misc";
 import { db } from "@bandori-stats/database";
-import {
-	GAME_EVENT_CURRENT,
-	GAME_MONTHLY_CURRENT,
-	GAME_VERSION,
-	redis,
-} from "@bandori-stats/database/redis";
+import { GBP, redis } from "@bandori-stats/database/redis";
 import { gbpEvents, gbpMonthlyRankings } from "@bandori-stats/database/schema";
 import { bestdori } from "~/bestdori";
 
@@ -20,12 +15,16 @@ export const scheduleUpdateGbpRedis = schedules.task({
 		timezone: GBP_TIMEZONE,
 	},
 	run: async () => {
-		const [currentVersion, currentEvent, currentMonthly] = await redis().mget<
-			string[]
-		>(GAME_VERSION, GAME_EVENT_CURRENT, GAME_MONTHLY_CURRENT);
+		const [currentVersion, currentEvent, currentMonthly, areaItems] =
+			await redis().mget<(unknown | null)[]>(
+				GBP.version,
+				GBP.event.current,
+				GBP.monthly.current,
+				GBP.areaItems,
+			);
 
 		const pipe = redis().pipeline();
-		pipe.get(GAME_VERSION);
+		pipe.get(GBP.version);
 
 		{
 			const { success, data, error } = Versions.safeParse(
@@ -38,12 +37,12 @@ export const scheduleUpdateGbpRedis = schedules.task({
 			}
 
 			if (currentVersion !== data.app) {
-				pipe.set(GAME_VERSION, data.app);
+				pipe.set(GBP.version, data.app);
 				await tags.add(`version_${data.app}`);
 			}
 		}
 
-		if (!currentEvent || !currentMonthly) {
+		if (!currentEvent || !currentMonthly || !areaItems) {
 			const { success, data, error } = MasterDB.safeParse(
 				await bestdori("api/MasterDB_en.json", {}),
 			);
@@ -58,7 +57,7 @@ export const scheduleUpdateGbpRedis = schedules.task({
 				for (const event of events) {
 					if (dayjs().isAfter(event.endAt)) continue;
 
-					pipe.set(GAME_EVENT_CURRENT, event, { pxat: event.endAt });
+					pipe.set(GBP.event.current, event, { pxat: event.endAt });
 					await db()
 						.insert(gbpEvents)
 						.values({
@@ -76,7 +75,7 @@ export const scheduleUpdateGbpRedis = schedules.task({
 					({ startAt, endAt }) => dayjs().isBetween(startAt, endAt),
 				);
 				if (active) {
-					pipe.set(GAME_MONTHLY_CURRENT, active, { pxat: active.endAt });
+					pipe.set(GBP.event.current, active, { pxat: active.endAt });
 					await db()
 						.insert(gbpMonthlyRankings)
 						.values({
@@ -88,6 +87,9 @@ export const scheduleUpdateGbpRedis = schedules.task({
 					await tags.add(`monthly_${active.assetBundleName}`);
 				}
 			}
+
+			if (!areaItems)
+				pipe.json.set(GBP.areaItems, "$", data.masterAreaItemMap.entries);
 		}
 
 		await pipe.exec();

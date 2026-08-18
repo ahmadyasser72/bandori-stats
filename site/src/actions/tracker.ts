@@ -4,8 +4,7 @@ import { z } from "zod";
 
 import { db } from "@bandori-stats/database";
 import {
-	GAME_EVENT_CURRENT,
-	GAME_MONTHLY_CURRENT,
+	GBP,
 	redis,
 	type NotifyWhenPlayer,
 } from "@bandori-stats/database/redis";
@@ -72,9 +71,7 @@ export const notifyMe = defineAction({
 				message: `${target.uid} already boated from rank #${on.value}!`,
 			});
 
-		const baseKey = (
-			target.trackingFor === "event" ? GAME_EVENT_CURRENT : GAME_MONTHLY_CURRENT
-		).replace("current", target.trackingId.toString());
+		const baseKey = GBP[target.trackingFor][target.trackingId];
 		const key = `${baseKey}:notify:${target.uid}`;
 
 		const notify = { on, subscription } satisfies NotifyWhenPlayer;

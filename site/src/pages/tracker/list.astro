@@ -6,11 +6,7 @@ import z from "zod";
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
 import { formatNumber } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
-import {
-	GAME_EVENT_CURRENT,
-	GAME_MONTHLY_CURRENT,
-	redis,
-} from "@bandori-stats/database/redis";
+import { GBP, redis } from "@bandori-stats/database/redis";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import { getProfileIcon, getTitleImage } from "~/lib/assets";
@@ -50,9 +46,7 @@ const { data, players } = await Astro.locals.tracing.enterSpan(
 			},
 		);
 
-		const key = (
-			params.kind === "event" ? GAME_EVENT_CURRENT : GAME_MONTHLY_CURRENT
-		).replace("current", data.id.toString());
+		const key = GBP[params.kind][data.id];
 		const top10 = await Astro.locals.tracing.enterSpan(
 			"fetch-top-10",
 			(span) => {

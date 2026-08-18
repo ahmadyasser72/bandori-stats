@@ -8,26 +8,19 @@ import type {
 	GameEvent,
 	GameMonthlyRanking,
 } from "@bandori-stats/bestdori/schema/misc";
-import { db, sql } from "@bandori-stats/database";
+import { db } from "@bandori-stats/database";
 import {
-	GAME_EVENT_CURRENT,
-	GAME_MONTHLY_CURRENT,
-	GAME_VERSION,
+	GBP,
 	redis,
 	type NotifyWhenPlayer,
 } from "@bandori-stats/database/redis";
 import {
-	trackerSnapshotProfiles,
 	trackerSnapshots,
 	type GbpMetadata,
-	type PlayerBandMember,
 } from "@bandori-stats/database/schema";
 import { bangDream } from "~/bang-dream-gbp/fetch";
-import type {
-	RankingUser,
-	UserSituationList,
-} from "~/bang-dream-gbp/gen/common_pb";
-import { githubRedeploy } from "./github-redeploy";
+import type { RankingUser } from "~/bang-dream-gbp/gen/common_pb";
+import { updateTrackerProfile } from "./update-tracker-profile";
 
 export const scheduleUpdateTracker = schedules.task({
 	id: "schedule-update-tracker",
@@ -42,7 +35,7 @@ export const scheduleUpdateTracker = schedules.task({
 				z.infer<typeof GameEvent> | null,
 				z.infer<typeof GameMonthlyRanking> | null,
 			]
-		>(GAME_VERSION, GAME_EVENT_CURRENT, GAME_MONTHLY_CURRENT);
+		>(GBP.version, GBP.event.current, GBP.monthly.current);
 
 		await tags.add(`version_${version ?? "n/a"}`);
 		if (!version) return;
@@ -132,87 +125,11 @@ const insertSnapshots = async (
 	};
 
 	if (now.get("minutes") === 0) {
-		const getBandMember = (
-			list: UserSituationList,
-			idx: number,
-		): PlayerBandMember | null => {
-			const data = list.entries?.at(idx);
-			if (!data) return null;
-
-			return {
-				id: data.situationId,
-				trained: data.illust === "after_training",
-				level: data.level,
-				skillLevel: data.skillLevel,
-			};
-		};
-
-		const values = top10.map(
-			({
-				userId,
-				name,
-				rankLevel,
-				introduction,
-				userProfileSituation,
-				userDeck,
-				userSituationList,
-				userProfileDegreeMap,
-			}): typeof trackerSnapshotProfiles.$inferInsert => ({
-				...trackingReference,
-
-				uid: userId.toString(),
-				name: name,
-				level: rankLevel,
-				introduction: introduction,
-
-				avatar:
-					userProfileSituation &&
-					"situationId" in userProfileSituation &&
-					"illust" in userProfileSituation
-						? {
-								id: userProfileSituation.situationId,
-								trained: userProfileSituation.illust === "after_training",
-							}
-						: null,
-
-				band: {
-					name: userDeck?.deckName!,
-					members: [
-						getBandMember(userSituationList!, 0),
-						getBandMember(userSituationList!, 1),
-						getBandMember(userSituationList!, 2),
-						getBandMember(userSituationList!, 3),
-						getBandMember(userSituationList!, 4),
-					],
-				},
-
-				titles: Object.values(userProfileDegreeMap?.entries ?? {}).map(
-					({ degreeId }) => degreeId,
-				),
-			}),
-		);
-		await db()
-			.insert(trackerSnapshotProfiles)
-			.values(values)
-			.onConflictDoUpdate({
-				target: [
-					trackerSnapshotProfiles.uid,
-					trackerSnapshotProfiles.trackingFor,
-					trackerSnapshotProfiles.trackingId,
-				],
-				set: {
-					name: sql.raw(`excluded.${trackerSnapshotProfiles.name.name}`),
-					level: sql.raw(`excluded.${trackerSnapshotProfiles.level.name}`),
-					introduction: sql.raw(
-						`excluded.${trackerSnapshotProfiles.introduction.name}`,
-					),
-					avatar: sql.raw(`excluded.${trackerSnapshotProfiles.avatar.name}`),
-					band: sql.raw(`excluded.${trackerSnapshotProfiles.band.name}`),
-					titles: sql.raw(`excluded.${trackerSnapshotProfiles.titles.name}`),
-				},
-			});
-
-		await githubRedeploy.trigger(undefined);
+		await updateTrackerProfile.trigger({
+			uid: top10[0].userId.toString(),
+			next: top10.slice(1).map(({ userId }) => userId.toString()),
+			trackingReference,
+		});
 	}
 
 	const values = top10.map(
@@ -380,11 +297,7 @@ const sendPushNotifications = async (
 	if (notificationSent > 0) await tags.add(`notified_${notificationSent}`);
 };
 
-const getRedisKey = (metadata: GbpMetadata) => {
-	const base =
-		metadata.kind === "event" ? GAME_EVENT_CURRENT : GAME_MONTHLY_CURRENT;
-	const id =
-		metadata.kind === "event" ? metadata.eventId : metadata.monthlyRankingId;
-
-	return base.replace("current", id.toString());
-};
+const getRedisKey = (metadata: GbpMetadata) =>
+	GBP[metadata.kind][
+		metadata.kind === "event" ? metadata.eventId : metadata.monthlyRankingId
+	];

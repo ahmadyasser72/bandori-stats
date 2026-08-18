@@ -7,14 +7,18 @@ import type z from "zod";
 
 import { limitAsync } from "@bandori-stats/bestdori/helpers";
 import type { GameEventType } from "@bandori-stats/bestdori/schema/misc";
+import {
+	GBP,
+	redis,
+	type BangDreamCredentials,
+} from "@bandori-stats/database/redis";
 
 const USER_AGENT =
 	"UnityPlayer/2022.3.62f2 (UnityWebRequest/1.0, libcurl/8.10.1-DEV)";
 const UNITY_VERSION = "2022.3.62f2";
 
-type ResponseType = "monthly" | z.infer<typeof GameEventType>;
-
-const PROTOBUF_MAP = {
+type MetadataType = "monthly" | z.infer<typeof GameEventType>;
+const METADATA_PROTOBUF = {
 	monthly: () =>
 		import("./gen/monthly-ranking_pb").then(
 			(it) => it.UserMonthlyRankingRankingResponseSchema,
@@ -47,9 +51,9 @@ const PROTOBUF_MAP = {
 		import("./gen/event-festival_pb").then(
 			(it) => it.UserTeamLiveFestivalEventRankingResponseSchema,
 		),
-} satisfies Record<ResponseType, () => Promise<GenMessage<Message>>>;
+} satisfies Record<MetadataType, () => Promise<GenMessage<Message>>>;
 
-interface ProtobufOutput {
+interface MetadataProtobufOutput {
 	monthly: import("./gen/monthly-ranking_pb").UserMonthlyRankingRankingResponse;
 	story: import("./gen/event-story_pb").UserStoryEventRankingResponse;
 	versus: import("./gen/event-versus_pb").UserVersusEventRankingResponse;
@@ -61,7 +65,7 @@ interface ProtobufOutput {
 }
 
 export const bangDream = limitAsync(
-	async <T extends ResponseType>(version: string, type: T, id: number) => {
+	async <T extends MetadataType>(version: string, type: T, id: number) => {
 		const {
 			BANG_DREAM_USER_ID,
 			BANG_DREAM_USER_TOKEN,
@@ -102,11 +106,65 @@ export const bangDream = limitAsync(
 
 		const response = await fetch(url, { headers });
 		if (!response.ok)
-			throw new AbortTaskRunError(`Response is not OK (${response.status})`);
+			throw new AbortTaskRunError(
+				`Request to ${url.pathname} failed (${response.status})`,
+			);
 
 		const bytes = await response.arrayBuffer().then(decrypt);
-		const schema = await PROTOBUF_MAP[type]();
-		return fromBinary(schema, bytes) as ProtobufOutput[T];
+		const schema = await METADATA_PROTOBUF[type]();
+		return fromBinary(schema, bytes) as MetadataProtobufOutput[T];
+	},
+	1,
+);
+
+export const bangDreamProfile = limitAsync(
+	async (version: string, uid: string) => {
+		const credentials = await redis().json.get<BangDreamCredentials>(
+			GBP.credentials,
+		);
+		if (!credentials?.token)
+			throw new AbortTaskRunError("BanG Dream credentials are missing.");
+
+		const { BANG_DREAM_AES_KEY, BANG_DREAM_AES_IV } = process.env;
+		if (!BANG_DREAM_AES_KEY || !BANG_DREAM_AES_IV)
+			throw new AbortTaskRunError("BanG Dream decryption keys are missing.");
+
+		const url = new URL(
+			`profile/${uid}`,
+			`https://api.app-bang-dream-gbp.com/api/user/${credentials.uid}/`,
+		);
+
+		const headers = {
+			host: "api.app-bang-dream-gbp.com",
+			"user-agent": USER_AGENT,
+			"accept-encoding": "deflate, gzip",
+			"content-type": "application/octet-stream",
+			accept: "application/octet-stream",
+			"x-clientversion": version,
+			"x-signature": credentials.signature,
+			"x-token": credentials.token,
+			"x-clientplatform": "Android",
+			"x-unity-version": UNITY_VERSION,
+		};
+
+		await redis().json.del(GBP.credentials, "$.token");
+		const response = await fetch(url, { method: "PUT", headers });
+		if (!response.ok)
+			throw new AbortTaskRunError(
+				`Request to ${url.pathname} failed (${response.status})`,
+			);
+
+		const newToken = response.headers.get("x-token");
+		if (!newToken)
+			throw new AbortTaskRunError(
+				`Request to ${url.pathname} not returning new token`,
+			);
+
+		await redis().json.set(GBP.credentials, "$.token", `"${newToken}"`);
+
+		const bytes = await response.arrayBuffer().then(decrypt);
+		const proto = await import("./gen/profile_pb");
+		return fromBinary(proto.UserProfileSchema, bytes);
 	},
 	1,
 );

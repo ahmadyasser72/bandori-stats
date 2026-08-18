@@ -1,0 +1,118 @@
+syntax = "proto3";
+
+import "common.proto";
+
+message UserProfile {
+    uint64 userId = 1;
+    string userName = 2;
+    uint32 rank = 3;
+    uint32 degree = 4;
+    string introduction = 5;
+    bool publishTotalDeckPowerFlg = 11;
+    bool publishBandRankFlg = 12;
+    bool publishMusicClearedFlg = 13;
+    bool publishMusicFullComboFlg = 14;
+    bool publishHighScoreRatingFlg = 15;
+    bool publishUserIdFlg = 16;
+    bool searchableFlg = 17;
+    bool publishUpdatedAtFlg = 18;
+    bool friendApplicableFlg = 19;
+    bool publishMusicAllPerfectFlg = 20;
+    bool publishDeckRankFlg = 21;
+    bool publishStageChallengeAchievementConditionsFlg = 22;
+    bool publishStageChallengeFriendRankingFlg = 23;
+    bool publishCharacterRankFlg = 24;
+    UserSituationList mainDeckUserSituations = 101;
+    UserAreaItemList enabledUserAreaItems = 102;
+    MapKeyUint32ValueUint32 bandRankMap = 103;
+    UserHighScoreRating userHighScoreRating = 106;
+    UserDeck mainUserDeck = 107;
+    UserProfileSituation userProfileSituation = 108;
+    UserProfileDegreeMap userProfileDegreeMap = 109;
+    UserTwitter userTwitter = 110;
+    UserDeckTotalRatingMap userDeckTotalRatingMap = 112;
+    MapKeyUint32ValueUint32 stageChallengeAchievementConditionsMap = 113;
+    UserMusicClearInfoMap userMusicClearInfoMap = 114;
+    UserCharacterRankMap userCharacterRankMap = 115;
+    bool searchSuccessFlg = 200;
+}
+
+message MapKeyUint32ValueUint32 {
+    map<uint32, uint32> entries = 1;
+}
+
+message UserAreaItem {
+    uint64 userId = 1;
+    uint32 areaItemId = 2;
+    uint32 areaItemCategory = 3;
+    uint32 level = 4;
+}
+
+message UserAreaItemList {
+    repeated UserAreaItem entries = 1;
+}
+
+message UserCharacterRank {
+    uint32 rank = 1;
+    uint64 exp = 2;
+    uint64 addExp = 3;
+    uint64 nextExp = 4;
+    uint64 totalExp = 5;
+    uint64 releasedPotentialLevel = 6;
+}
+
+message UserCharacterRankMap {
+    map<uint32, UserCharacterRank> entries = 1;
+}
+
+message UserDeckTotalRating {
+    string rank = 1;
+    uint32 score = 2;
+    uint32 level = 3;
+    uint32 lowerRating = 4;
+    uint32 upperRating = 5;
+}
+
+message UserDeckTotalRatingMap {
+    map<uint32, UserDeckTotalRating> entries = 1;
+}
+
+message UserHighScoreMusicRating {
+    uint32 musicId = 1;
+    string difficulty = 2;
+    uint32 rating = 3;
+}
+
+message UserHighScoreMusicRatingList {
+    repeated UserHighScoreMusicRating entries = 1;
+}
+
+message UserHighScoreRating {
+    UserHighScoreMusicRatingList userPoppinPartyHighScoreMusicList = 1;
+    UserHighScoreMusicRatingList userAfterglowHighScoreMusicList = 2;
+    UserHighScoreMusicRatingList userPastelPalettesHighScoreMusicList = 3;
+    UserHighScoreMusicRatingList userHelloHappyWorldHighScoreMusicList = 4;
+    UserHighScoreMusicRatingList userRoseliaHighScoreMusicList = 5;
+    UserHighScoreMusicRatingList userOtherHighScoreMusicList = 6;
+    UserHighScoreMusicRatingList userMorfonicaHighScoreMusicList = 7;
+    UserHighScoreMusicRatingList userRaiseASuilenHighScoreMusicList = 8;
+    UserHighScoreMusicRatingList userMyGOScoreMusicList = 9;
+}
+
+message UserMusicClearInfo {
+  uint32 clearedMusicCount = 1;
+  uint32 fullComboMusicCount = 2;
+  uint32 allPerfectMusicCount = 3;
+}
+
+message UserMusicClearInfoMap {
+  map<string, UserMusicClearInfo> entries = 1;
+}
+
+message UserTwitter {
+    uint64 twitterId = 1;
+    string twitterName = 2;
+    string screenName = 3;
+    string url = 4;
+    string profileImageUrl = 5;
+}
