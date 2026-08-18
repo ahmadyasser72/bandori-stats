@@ -4,12 +4,15 @@ import z from "zod";
 import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
 import dayjs from "@bandori-stats/bestdori/date";
 import {
+	capitalize,
 	countBy,
 	formatNumber,
 	mean,
 	median,
+	omit,
 } from "@bandori-stats/bestdori/helpers";
-import { db } from "@bandori-stats/database";
+import { db, EmptyFilter } from "@bandori-stats/database";
+import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import SheetModal from "~/layouts/sheet-modal.astro";
 import {
@@ -19,39 +22,73 @@ import {
 
 export const partial = true;
 
+const DURATIONS = ["1d", "3d", "all"] as const;
+
 const uid = Astro.params.uid!;
 const params = Astro.locals.parseQuery(
 	z.object({
 		kind: z.enum(["event", "monthly"]),
 		id: z.coerce.number(),
+		duration: z.enum(DURATIONS),
 	}),
 );
+
+let after: dayjs.Dayjs | EmptyFilter;
+if (params.duration === "1d") after = dayjs().subtract(1, "day");
+else if (params.duration === "3d") after = dayjs().subtract(3, "day");
+else after = EmptyFilter;
 
 const clientTimezone =
 	Astro.request.headers.get("client-timezone") ?? GBP_TIMEZONE;
 Astro.response.headers.append("vary", "client-timezone");
 const now = dayjs().tz(clientTimezone);
 
-const snapshots = await Astro.locals.tracing.enterSpan(
+const { profile, snapshots } = await Astro.locals.tracing.enterSpan(
 	"fetch-snapshots",
 	async (span) => {
 		span.setAttribute("uid", uid);
 		span.setAttribute("kind", params.kind);
 		span.setAttribute("id", params.id);
 
-		const rows = await db().query.trackerSnapshots.findMany({
-			columns: { name: true, point: true, timestamp: true },
-			where: {
-				trackingFor: params.kind,
-				trackingId: params.id,
-				uid,
-			},
-			orderBy: { id: "desc" },
-		});
+		const filter = {
+			trackingFor: params.kind,
+			trackingId: params.id,
+			uid,
+		};
+		const [rows, profile] = await Promise.all([
+			db().query.trackerSnapshots.findMany({
+				columns: { point: true, timestamp: true },
+				where: {
+					...filter,
+					timestamp: { gt: dayjs.isDayjs(after) ? after.toDate() : after },
+				},
+				orderBy: { id: "desc" },
+			}),
+			db().query.trackerSnapshotProfiles.findFirst({
+				columns: { name: true },
+				where: filter,
+			}),
+		]);
 
-		return rows.filter(
-			({ point }, idx, snapshots) => point !== snapshots.at(idx + 1)?.point,
-		);
+		if (params.duration !== "all" && rows.length > 0) {
+			const previous = await db().query.trackerSnapshots.findFirst({
+				columns: { point: true, timestamp: true },
+				where: {
+					...filter,
+					timestamp: { lte: dayjs.isDayjs(after) ? after.toDate() : after },
+				},
+				orderBy: { id: "desc" },
+			});
+
+			if (previous) rows.push(previous);
+		}
+
+		return {
+			profile,
+			snapshots: rows.filter(
+				({ point }, idx, snapshots) => point !== snapshots.at(idx + 1)?.point,
+			),
+		};
 	},
 );
 
@@ -141,8 +178,39 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 
 <SheetModal class="mx-auto max-w-2xl">
 	<h2 class="text-center text-2xl font-medium">
-		{snapshots[0].name}: Statistics
+		{
+			profile
+				? `${profile.name}: Statistics (${params.duration})`
+				: "Player not found"
+		}
 	</h2>
+
+	<fieldset
+		hx-vals:inherited={JSON.stringify(omit(params, ["duration"]))}
+		class="tabs mt-4 w-full tabs-sm text-accent"
+		role="tablist"
+	>
+		{
+			DURATIONS.map((duration) => (
+				<label class="tab h-16 flex-col hover:text-accent max-md:flex-1 md:px-12">
+					<input
+						hx-get={Astro.url.pathname}
+						hx-disable="closest .tabs"
+						data-umami-event="tracker-statistics-duration"
+						data-umami-event-duration={duration}
+						data-umami-event-kind={params.kind}
+						data-umami-event-player={profile?.name}
+						name="duration"
+						type="radio"
+						value={duration}
+						checked={duration === params.duration}
+					/>
+					<IconLoader class="size-5" name="lucide--clock" />
+					{capitalize(duration)}
+				</label>
+			))
+		}
+	</fieldset>
 
 	<div class="mt-4 flex flex-wrap justify-center gap-x-1 gap-y-0.5">
 		<div class="badge badge-soft badge-lg badge-accent">

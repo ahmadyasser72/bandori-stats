@@ -418,7 +418,11 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 								hx-headers="js:{ 'client-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone }"
 								hx-swap="after"
 								hx-target="main"
-								hx-vals={JSON.stringify({ kind: params.kind, id: data.id })}
+								hx-vals={JSON.stringify({
+									kind: params.kind,
+									id: data.id,
+									duration: dayjs().isBefore(data.endAt) ? "1d" : "all",
+								})}
 								data-umami-event="tracker-statistics"
 								data-umami-event-kind={params.kind}
 								data-umami-event-name={data.name}
