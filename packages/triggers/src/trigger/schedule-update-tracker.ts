@@ -20,6 +20,7 @@ import {
 } from "@bandori-stats/database/schema";
 import { bangDream } from "~/bang-dream-gbp/fetch";
 import type { RankingUser } from "~/bang-dream-gbp/gen/common_pb";
+import { githubRedeploy } from "./github-redeploy";
 import { updateTrackerProfile } from "./update-tracker-profile";
 
 export const scheduleUpdateTracker = schedules.task({
@@ -125,10 +126,15 @@ const insertSnapshots = async (
 	};
 
 	if (now.get("minutes") === 0) {
-		await updateTrackerProfile.trigger({
-			uid: top10[0].userId.toString(),
-			next: top10.slice(1).map(({ userId }) => userId.toString()),
-			trackingReference,
+		await updateTrackerProfile.batchTrigger(
+			top10.map(({ userId }) => ({
+				payload: { uid: userId.toString(), trackingReference },
+			})),
+		);
+		await githubRedeploy.trigger(undefined, {
+			delay: "5m",
+			idempotencyKey: `redeploy-tracker-profile`,
+			idempotencyKeyTTL: "1m",
 		});
 	}
 

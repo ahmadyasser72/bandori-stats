@@ -11,32 +11,23 @@ import {
 } from "@bandori-stats/database/schema";
 import { bangDreamProfile } from "~/bang-dream-gbp/fetch";
 import { bestdori } from "~/bestdori";
-import { githubRedeploy } from "./github-redeploy";
 
 export const updateTrackerProfile = schemaTask({
 	id: "update-tracker-profile",
+	queue: { concurrencyLimit: 1 },
 	schema: z.strictObject({
 		uid: z.string(),
-		next: z.array(z.string()),
 		trackingReference: z.object({
 			trackingFor: z.enum(["event", "monthly"]),
 			trackingId: z.number(),
 		}),
 	}),
-	run: async ({ uid, next, trackingReference }) => {
+	run: async ({ uid, trackingReference }) => {
 		const version = await redis().get<string>(GBP.version);
 		await tags.add([`uid_${uid}`, `version_${version ?? "n/a"}`]);
 		if (!version) return;
 
 		const profile = await bangDreamProfile(version, uid);
-		if (next.length > 0) {
-			await updateTrackerProfile.trigger({
-				uid: next[0],
-				next: next.slice(1),
-				trackingReference,
-			});
-		}
-
 		const {
 			userName,
 			rank,
@@ -49,7 +40,7 @@ export const updateTrackerProfile = schemaTask({
 			userProfileDegreeMap,
 		} = profile;
 
-		if (!publishTotalDeckPowerFlg) await tags.add("BP_hidden");
+		if (!publishTotalDeckPowerFlg) await tags.add("bp_hidden");
 
 		const zeroStat = { performance: 0, technique: 0, visual: 0 };
 		const statTypes = ["performance", "technique", "visual"] as const;
@@ -197,8 +188,6 @@ export const updateTrackerProfile = schemaTask({
 					titles: sql.raw(`excluded.${trackerSnapshotProfiles.titles.name}`),
 				},
 			});
-
-		if (next.length === 0) await githubRedeploy.trigger(undefined);
 	},
 });
 
