@@ -1,8 +1,8 @@
-import { d3Curve, defineChart, dot, lineY } from "@tanstack/charts";
+import { d3Curve, defineChart, lineY } from "@tanstack/charts";
 import { Chart } from "@tanstack/charts/preact";
 import { tooltip } from "@tanstack/charts/tooltip";
 import { scaleLinear, scaleUtc } from "d3-scale";
-import { curveBumpX } from "d3-shape";
+import { curveLinear } from "d3-shape";
 import { useMemo, useRef } from "preact/hooks";
 
 import {
@@ -49,16 +49,8 @@ export const PointsChart = ({
 							y: "point",
 							color: "uid",
 							key: ({ uid, timestamp }) => `${uid}:${timestamp}`,
-							curve: d3Curve(curveBumpX),
+							curve: d3Curve(curveLinear),
 							strokeWidth: 2,
-						}),
-						dot(chartData, {
-							id: "point-dots",
-							x: ({ timestamp }) => new Date(timestamp),
-							y: "point",
-							color: "uid",
-							key: ({ uid, timestamp }) => `${uid}:${timestamp}`,
-							r: 3,
 						}),
 					],
 					x: {

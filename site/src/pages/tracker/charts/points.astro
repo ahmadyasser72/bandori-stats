@@ -27,6 +27,7 @@ const [snapshots, metadata] = await Astro.locals.tracing.enterSpan(
 const data = processTrackerData(snapshots, {
 	pick: ["point", "rank"],
 	key: "point",
+	hoursInterval: 1,
 });
 
 if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30 * 60, swr: 30 * 60 });

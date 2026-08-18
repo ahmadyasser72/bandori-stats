@@ -39,6 +39,6 @@ export const getChartDimensions = (startAt: Date, endAt: Date) => {
 	const height = (window.innerHeight * 3) / 5; // 60vh
 	const durationHours =
 		(endAt.valueOf() - startAt.valueOf()) / (60 * 60 * 1000);
-	const width = Math.max(height * 2.5, durationHours * 40);
+	const width = Math.max(height * 2.5, durationHours * 5);
 	return { height, width };
 };

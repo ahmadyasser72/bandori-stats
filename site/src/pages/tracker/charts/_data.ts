@@ -15,22 +15,26 @@ export const fetchTrackerData = async (params: {
 	const key = (
 		params.kind === "event" ? GAME_EVENT_CURRENT : GAME_MONTHLY_CURRENT
 	).replace("current", params.id.toString());
-	const top10 = (
-		await redis().mget<number[]>(
-			...Array.from({ length: 10 }, (_, idx) => `${key}:${idx + 1}`),
-		)
-	).map((uid) => uid.toString());
+	const players = (await redis().smembers<number[]>(`${key}:players`)).map(
+		(uid) => uid.toString(),
+	);
 
-	return Promise.all([
+	const fetchSnapshots = (uid: string) =>
 		db().query.trackerSnapshots.findMany({
 			columns: { id: false, trackingFor: false, trackingId: false },
-			where: {
-				trackingFor: params.kind,
-				trackingId: params.id,
-				uid: { in: top10 },
-			},
-			orderBy: { id: "desc" },
-		}),
+			where: { trackingFor: params.kind, trackingId: params.id, uid },
+			orderBy: { timestamp: "asc" },
+		});
+
+	return Promise.all([
+		players.length > 0
+			? db()
+					.batch([
+						fetchSnapshots(players[0]),
+						...players.slice(1).map(fetchSnapshots),
+					])
+					.then((entries) => entries.flat())
+			: [],
 		params.kind === "event"
 			? db().query.gbpEvents.findFirst({
 					columns: { startAt: true, endAt: true },
@@ -51,12 +55,16 @@ export type ChartEntry<K extends string> = {
 	timestamp: number;
 } & { [P in K]: number };
 
+interface ProcessTrackerDataOptions<T extends keyof Snapshot> {
+	pick: T[];
+	key: T;
+	hoursInterval: number;
+}
+
 export const processTrackerData = <T extends keyof Snapshot>(
 	snapshots: Snapshot[],
-	{ pick: pickKeys, key }: { pick: T[]; key: T },
+	{ pick: pickKeys, key, hoursInterval }: ProcessTrackerDataOptions<T>,
 ) => {
-	snapshots.sort((a, b) => dayjs(a.timestamp).diff(b.timestamp));
-
 	const changesByHour = new Map<number, Map<string, Snapshot>>();
 	for (const snapshot of snapshots) {
 		const hour = dayjs(snapshot.timestamp).startOf("hour").valueOf();
@@ -76,28 +84,34 @@ export const processTrackerData = <T extends keyof Snapshot>(
 
 	const data: ChartEntry<T>[] = [];
 	const previous = new Map<string, ChartEntry<T>>();
-
 	for (
 		let hour = firstHour;
 		hour <= lastHour;
-		hour = dayjs(hour).add(1, "hour").valueOf()
+		hour = dayjs(hour).add(hoursInterval, "hour").valueOf()
 	) {
 		const changes = changesByHour.get(hour);
-
 		if (changes) {
-			for (const [uid, snapshot] of changes) {
-				state.set(uid, snapshot);
-			}
+			for (const [uid, snapshot] of changes) state.set(uid, snapshot);
 		}
 
-		for (const snapshot of state.values()) {
+		const rankSeen = new Set<number>();
+		const snapshots = [...state.values()].sort((a, b) =>
+			dayjs(b.timestamp).diff(a.timestamp),
+		);
+		for (const snapshot of snapshots) {
+			if (rankSeen.has(snapshot.rank)) {
+				if (!rankSeen.has(Math.min(10, snapshot.rank + 1))) snapshot.rank += 1;
+				else if (!rankSeen.has(Math.max(1, snapshot.rank - 1)))
+					snapshot.rank -= 1;
+				else continue;
+			}
+
 			const entry = {
 				timestamp: hour,
 				...pick(snapshot, ["uid", "name", ...pickKeys]),
 			} as ChartEntry<T>;
 
 			const prev = previous.get(snapshot.uid);
-
 			if (!prev) {
 				data.push(entry);
 			} else if (prev[key] !== entry[key]) {
@@ -106,15 +120,14 @@ export const processTrackerData = <T extends keyof Snapshot>(
 			}
 
 			previous.set(snapshot.uid, entry);
+			rankSeen.add(snapshot.rank);
 		}
 	}
 
 	// Keep the final occurrence of every UID.
 	for (const entry of previous.values()) {
-		const last = data.findLast((dit) => dit.uid === entry.uid);
-		if (!last || last.timestamp !== entry.timestamp) {
-			data.push(entry);
-		}
+		const last = data.findLast(({ uid }) => uid === entry.uid);
+		if (!last || last.timestamp !== entry.timestamp) data.push(entry);
 	}
 
 	return data;
