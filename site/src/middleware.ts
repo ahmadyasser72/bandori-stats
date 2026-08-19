@@ -39,6 +39,8 @@ const querySchema = z.preprocess(
 export const onRequest = defineMiddleware(
 	async ({ request, cache, locals, url, redirect, isPrerendered }, next) => {
 		if (isPrerendered) return next();
+		else if (import.meta.env.DEV && url.searchParams.has("poll"))
+			return new Response(null, { status: 304 });
 
 		const { tracing } = await import("cloudflare:workers");
 		locals.tracing = tracing;

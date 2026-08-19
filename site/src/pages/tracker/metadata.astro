@@ -60,7 +60,7 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 	hx-on="htmx:before:request from:self -> if (document.hidden) event.preventDefault()"
 	hx-swap="outerMorph"
 	hx-trigger="load delay:60s, visibilitychange from:document"
-	hx-vals={JSON.stringify({ kind: params.kind, id: data.id })}
+	hx-vals={JSON.stringify({ kind: params.kind, id: data.id, poll: true })}
 	class="mt-4 flex flex-col items-center gap-1"
 	style="anchor-name: --anchor-tracker-info"
 >
