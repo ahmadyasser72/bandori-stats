@@ -38,15 +38,16 @@ export const scheduleUpdateTracker = schedules.task({
 			]
 		>(GBP.version, GBP.event.current, GBP.monthly.current);
 
-		await tags.add(`version_${version ?? "n/a"}`);
+		await tags.add([
+			`version_${version ?? "n/a"}`,
+			`event_${event?.assetBundleName ?? "n/a"}`,
+			`monthly_${monthly?.assetBundleName ?? "n/a"}`,
+		]);
 		if (!version) return;
 
 		await Promise.all([
 			(async () => {
-				if (!event) {
-					await tags.add("event_n/a");
-					return;
-				}
+				if (!event) return;
 
 				const { eventId, eventType } = event;
 				const top = await (async () => {
@@ -84,10 +85,7 @@ export const scheduleUpdateTracker = schedules.task({
 				]);
 			})(),
 			(async () => {
-				if (!monthly) {
-					await tags.add("monthly_n/a");
-					return;
-				}
+				if (!monthly) return;
 
 				const { monthlyRankingId } = monthly;
 				const data = await bangDream(version, "monthly", monthlyRankingId);
@@ -176,10 +174,7 @@ const updateRedis = async (
 			top10.map(({ userId, rank }) => [`${key}:${rank}`, userId!.toString()]),
 		),
 	);
-	await tags.add([
-		`${metadata.kind}_${metadata.assetBundleName}`,
-		`${metadata.kind}_+${inserted.length}`,
-	]);
+	await tags.add(`${metadata.kind}_+${inserted.length}`);
 
 	const uids = top10.map(({ userId }) => userId!.toString());
 	// @ts-expect-error should works
