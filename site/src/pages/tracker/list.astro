@@ -4,7 +4,12 @@ import { UMAMI_SITE_ID } from "astro:env/server";
 import z from "zod";
 
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
-import { formatNumber } from "@bandori-stats/bestdori/helpers";
+import {
+	capitalize,
+	formatNumber,
+	mapValues,
+	sum,
+} from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
 import { GBP, redis } from "@bandori-stats/database/redis";
 import IconLoader from "~/components/icon-loader.astro";
@@ -78,6 +83,7 @@ const { data, players } = await Astro.locals.tracing.enterSpan(
 							with: {
 								profiles: {
 									columns: {
+										level: true,
 										avatar: true,
 										introduction: true,
 										band: true,
@@ -117,6 +123,7 @@ const { data, players } = await Astro.locals.tracing.enterSpan(
 							with: {
 								profiles: {
 									columns: {
+										level: true,
 										avatar: true,
 										introduction: true,
 										band: true,
@@ -453,7 +460,12 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 							style={`position-anchor: --anchor-${latest.uid}-profile`}
 						>
 							<div class="flex flex-col items-center">
-								<p>{profile.introduction}</p>
+								<h3 class="text-center">
+									<span class="text-xs">Level {profile.level}</span>
+									<br />
+									<span class="text-xl font-medium">{latest.name}</span>
+								</h3>
+								<p class="mt-1">{profile.introduction}</p>
 								<div class="mt-1 flex gap-1">
 									{profile.titles.map((id) => (
 										<img
@@ -464,30 +476,106 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 									))}
 								</div>
 
-								<span class="mt-2 text-lg font-medium">
-									{profile.band.name}
-								</span>
-								<div class="flex gap-1">
+								<div class="mt-2 flex w-full items-end justify-between text-lg">
+									<span class="font-medium">{profile.band.name}</span>
+									{profile.band.totalStats ? (
+										<span class="tooltip tooltip-end tooltip-info underline decoration-dotted">
+											<div class="tooltip-content">
+												<div class="flex flex-col">
+													{Object.entries(profile.band.totalStats).map(
+														([type, value]) => (
+															<div class="flex w-full items-center justify-between">
+																<span>{capitalize(type)}</span>
+																<span class="ml-4 font-mono">
+																	{formatNumber(Math.floor(value))}
+																</span>
+															</div>
+														),
+													)}
+												</div>
+											</div>
+											{formatNumber(
+												Math.floor(sum(Object.values(profile.band.totalStats))),
+											)}
+										</span>
+									) : (
+										<span class="text-base-content/67">Hidden</span>
+									)}
+								</div>
+								<div class="flex w-full justify-between">
 									{profile.band.members
 										.filter((it) => it !== null)
-										.map(({ id, trained, level, skillLevel }) => (
-											<a
-												class="tooltip avatar tooltip-info first:tooltip-start last:tooltip-end"
-												data-tip={`Level: ${level}, Skill level:${skillLevel}`}
-												href={`https://bestdori.com/info/cards/${id}`}
-												target="_blank"
-											>
-												<div class="size-12 rounded-box">
-													<img
-														src={getProfileIcon({
-															profileArt: { id, trained },
-														})}
-														alt={latest.name}
-														loading="lazy"
-													/>
+										.map((it) => ({
+											...it,
+											statBase: mapValues(
+												it.stat,
+												(value, type) =>
+													value -
+													it.potentialBonus[type] -
+													it.missionBonus[type],
+											),
+										}))
+										.map(
+											({
+												id,
+												trained,
+												stat,
+												statBase,
+												potentialBonus,
+												missionBonus,
+											}) => (
+												<div class="tooltip avatar tooltip-info first:tooltip-start last:tooltip-end">
+													<span class="tooltip-content">
+														<div class="flex flex-col">
+															{[
+																[
+																	"Power",
+																	`${formatNumber(sum(Object.values(stat)))} (${formatNumber(sum([...Object.values(potentialBonus), ...Object.values(missionBonus)]), { positiveSign: true })})`,
+																],
+
+																...Object.keys(stat).map((type) => [
+																	capitalize(type),
+																	`${formatNumber(stat[type])} (${formatNumber(potentialBonus[type] + missionBonus[type], { positiveSign: true })})`,
+																]),
+
+																[
+																	"Potentials",
+																	Object.keys(stat)
+																		.map(
+																			(type) =>
+																				`+${(Math.ceil((potentialBonus[type] / statBase[type]) * 10000) / 100).toLocaleString("en-US", { minimumFractionDigits: 1 })}%`,
+																		)
+																		.join(" "),
+																],
+																[
+																	"Missions",
+																	Object.keys(stat)
+																		.map(
+																			(type) =>
+																				`+${(Math.ceil((missionBonus[type] / statBase[type]) * 10000) / 100).toLocaleString("en-US", { minimumFractionDigits: 1 })}%`,
+																		)
+																		.join(" "),
+																],
+															].map(([key, value]) => (
+																<div class="flex w-full items-center justify-between">
+																	<span>{key}</span>
+																	<span class="ml-4 font-mono">{value}</span>
+																</div>
+															))}
+														</div>
+													</span>
+													<div class="size-12 rounded-box">
+														<img
+															src={getProfileIcon({
+																profileArt: { id, trained },
+															})}
+															alt={`card ${id}`}
+															loading="lazy"
+														/>
+													</div>
 												</div>
-											</a>
-										))}
+											),
+										)}
 								</div>
 							</div>
 						</div>
