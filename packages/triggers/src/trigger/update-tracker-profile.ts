@@ -66,7 +66,7 @@ export const updateTrackerProfile = schemaTask({
 								stat[type] +=
 									data.userAppendParameter[type] +
 									data.userAppendParameter[
-										`characterBonus${capitalize(type)}`
+										`characterPotential${capitalize(type)}`
 									] +
 									data.userAppendParameter![
 										`characterBonus${capitalize(type)}`
