@@ -50,3 +50,44 @@ bottom-sheet::part(sheet) {
 		@apply w-24 lg:w-28;
 	}
 }
+
+@utility gbp-card {
+	@apply relative size-12 sm:size-16;
+
+	.gbp-card-icon,
+	.gbp-card-frame {
+		@apply absolute inset-0 size-full;
+	}
+
+	.gbp-card-band,
+	.gbp-card-attribute {
+		@apply absolute top-[2%] size-1/4 sm:top-[1%];
+	}
+	.gbp-card-band {
+		@apply left-[1%];
+	}
+	.gbp-card-attribute {
+		@apply right-[1%];
+	}
+
+	.gbp-card-stars {
+		@apply absolute bottom-0 left-0 flex flex-col -space-y-0.5 sm:-space-y-1;
+		> img {
+			@apply size-2 sm:size-3;
+		}
+	}
+
+	.gbp-card-limit-break {
+		@apply absolute top-[27%] right-[1%] grid size-1/4 sm:top-[26%];
+		> img {
+			@apply absolute inset-0;
+		}
+		> span {
+			@apply z-1 place-self-center text-[8px] font-medium text-white sm:text-[10px];
+		}
+	}
+
+	.gbp-card-level {
+		@apply absolute right-0 bottom-0 rounded-tl-sm bg-black/60 px-0.5 py-px text-[10px] leading-none text-white sm:rounded-tl-md sm:px-1 sm:text-[12px] dark:bg-black/80;
+	}
+}

@@ -72,6 +72,30 @@ export const getStaticPaths = (() => {
 			params: { name: "characters", id: id.toString(), ext: "webp" as const },
 			props: { path: `/res/icon/chara_icon_${id}.png` },
 		})),
+		...Array.from({ length: 4 }, (_, idx) => ({
+			params: {
+				name: "card-frame",
+				id: (idx + 2).toString(),
+				ext: "webp" as const,
+			},
+			props: { path: `/res/image/card-${idx + 2}.png` },
+		})),
+		...[true, false].map((trained) => ({
+			params: {
+				name: "card-rarity",
+				id: trained ? "normal" : "trained",
+				ext: "webp" as const,
+			},
+			props: { path: `/res/icon/${trained ? "star_trained" : "star"}.png` },
+		})),
+		{
+			params: {
+				name: "card-limit-break",
+				id: "overlay",
+				ext: "svg" as const,
+			},
+			props: { path: "/res/icon/master.svg" },
+		},
 	];
 }) satisfies GetStaticPaths;
 
