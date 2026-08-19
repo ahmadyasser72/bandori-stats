@@ -93,8 +93,9 @@ export const updateTrackerProfile = schemaTask({
 						band: CHARACTER_TO_BAND[card.characterId],
 
 						level: data.level,
-						skill: { id: card.skillId, level: data.skillLevel },
 						rarity: card.rarity,
+						skill: { id: card.skillId, level: data.skillLevel },
+						trainedStatus: data.trainingStatus === "done",
 						limitBreakRank: data.limitBreakRank,
 
 						stat,

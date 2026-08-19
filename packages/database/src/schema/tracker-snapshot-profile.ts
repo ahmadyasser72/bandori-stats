@@ -19,6 +19,7 @@ export interface PlayerBandMember extends PlayerAvatar {
 	level: number;
 	rarity: number;
 	skill: string;
+	trainedStatus: boolean;
 	limitBreakRank: number;
 
 	stat: PlayerBandMemberStat;

@@ -532,6 +532,7 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 												band,
 												trained,
 												level,
+												trainedStatus,
 												limitBreakRank,
 												skill,
 												stat,
@@ -623,7 +624,7 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 														<div class="gbp-card-stars">
 															{Array.from({ length: rarity }, () => (
 																<img
-																	src={`/assets/card-rarity/${trained ? "trained" : "normal"}.webp`}
+																	src={`/assets/card-rarity/${trainedStatus ? "trained" : "normal"}.webp`}
 																	loading="lazy"
 																/>
 															))}
