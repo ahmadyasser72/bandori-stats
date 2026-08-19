@@ -1,11 +1,19 @@
 import { AbortTaskRunError, schemaTask, tags } from "@trigger.dev/sdk";
 import z from "zod";
 
-import { capitalize, pick, sumBy } from "@bandori-stats/bestdori/helpers";
+import {
+	allKeyed,
+	capitalize,
+	pick,
+	sumBy,
+	unwrapRegionTuple,
+} from "@bandori-stats/bestdori/helpers";
 import { Card } from "@bandori-stats/bestdori/schema/cards";
+import { Skills } from "@bandori-stats/bestdori/schema/skills";
 import { db, sql } from "@bandori-stats/database";
 import { GBP, getAreaItems, redis } from "@bandori-stats/database/redis";
 import {
+	STAT_TYPES,
 	trackerSnapshotProfiles,
 	type PlayerBandMember,
 } from "@bandori-stats/database/schema";
@@ -43,83 +51,94 @@ export const updateTrackerProfile = schemaTask({
 		if (!publishTotalDeckPowerFlg) await tags.add("bp_hidden");
 
 		const zeroStat = { performance: 0, technique: 0, visual: 0 };
-		const statTypes = ["performance", "technique", "visual"] as const;
-		const bandMembers = mainDeckUserSituations
-			? await Promise.all(
-					mainDeckUserSituations.entries.map(async (data) => {
-						const {
-							success,
-							data: card,
-							error,
-						} = Card.safeParse(
-							await bestdori(`api/cards/${data.situationId}.json`, {}),
-						);
+		const { areaItems, bandMembers, skillsMap } = await allKeyed({
+			areaItems: getAreaItems(
+				(enabledUserAreaItems?.entries ?? []).map(
+					({ areaItemId }) => areaItemId,
+				),
+			),
+			bandMembers: Promise.all(
+				(mainDeckUserSituations?.entries ?? []).map(async (data) => {
+					const {
+						success,
+						data: card,
+						error,
+					} = Card.safeParse(
+						await bestdori(`api/cards/${data.situationId}.json`, {}),
+					);
 
-						if (!success) {
-							await tags.add("schema_error");
-							throw new AbortTaskRunError(error.message);
+					if (!success) {
+						await tags.add("schema_error");
+						throw new AbortTaskRunError(error.message);
+					}
+
+					const stat = card.stat[data.level] ?? zeroStat;
+					if (data.userAppendParameter && stat !== zeroStat) {
+						for (const type of STAT_TYPES) {
+							stat[type] +=
+								data.userAppendParameter[type] +
+								data.userAppendParameter[
+									`characterPotential${capitalize(type)}`
+								] +
+								data.userAppendParameter![`characterBonus${capitalize(type)}`];
 						}
+					}
 
-						const stat = card.stat[data.level] ?? zeroStat;
-						if (data.userAppendParameter && stat !== zeroStat) {
-							for (const type of statTypes) {
-								stat[type] +=
-									data.userAppendParameter[type] +
-									data.userAppendParameter[
-										`characterPotential${capitalize(type)}`
-									] +
-									data.userAppendParameter![
-										`characterBonus${capitalize(type)}`
-									];
-							}
-						}
+					return {
+						id: data.situationId,
+						trained: data.illust === "after_training",
 
-						return {
-							id: data.situationId,
-							trained: data.illust === "after_training",
+						attribute: card.attribute,
+						character: card.characterId,
+						band: CHARACTER_TO_BAND[card.characterId],
 
-							attribute: card.attribute,
-							character: card.characterId,
+						level: data.level,
+						skill: { id: card.skillId, level: data.skillLevel },
+						rarity: card.rarity,
+						limitBreakRank: data.limitBreakRank,
 
-							level: data.level,
-							trainedStatus: data.trainingStatus === "done",
-							skillLevel: data.skillLevel,
-							limitBreakRank: data.limitBreakRank,
+						stat,
+						...(data.userAppendParameter
+							? {
+									cardBonus: pick(data.userAppendParameter, STAT_TYPES),
+									potentialBonus: Object.fromEntries(
+										STAT_TYPES.map((type) => [
+											type,
+											data.userAppendParameter![
+												`characterPotential${capitalize(type)}`
+											],
+										]),
+									),
+									missionBonus: Object.fromEntries(
+										STAT_TYPES.map((type) => [
+											type,
+											data.userAppendParameter![
+												`characterBonus${capitalize(type)}`
+											],
+										]),
+									),
+								}
+							: {
+									cardBonus: zeroStat,
+									potentialBonus: zeroStat,
+									missionBonus: zeroStat,
+								}),
+					} satisfies Omit<PlayerBandMember, "skill"> & {
+						skill: { id: number; level: number };
+					};
+				}),
+			),
+			skillsMap: bestdori("api/skills/all.10.json", {}).then(async (json) => {
+				const { success, data, error } = Skills.safeParse(json);
 
-							stat,
-							...(data.userAppendParameter
-								? {
-										cardBonus: pick(data.userAppendParameter, statTypes),
-										potentialBonus: Object.fromEntries(
-											statTypes.map((type) => [
-												type,
-												data.userAppendParameter![
-													`characterPotential${capitalize(type)}`
-												],
-											]),
-										),
-										missionBonus: Object.fromEntries(
-											statTypes.map((type) => [
-												type,
-												data.userAppendParameter![
-													`characterBonus${capitalize(type)}`
-												],
-											]),
-										),
-									}
-								: {
-										cardBonus: zeroStat,
-										potentialBonus: zeroStat,
-										missionBonus: zeroStat,
-									}),
-						} satisfies PlayerBandMember;
-					}),
-				)
-			: [];
+				if (!success) {
+					await tags.add("schema_error");
+					throw new AbortTaskRunError(error.message);
+				}
 
-		const areaItems = await getAreaItems(
-			enabledUserAreaItems?.entries.map(({ areaItemId }) => areaItemId) ?? [],
-		);
+				return data;
+			}),
+		});
 
 		const data: typeof trackerSnapshotProfiles.$inferInsert = {
 			...trackingReference,
@@ -143,14 +162,14 @@ export const updateTrackerProfile = schemaTask({
 				name: mainUserDeck?.deckName!,
 				totalStats: publishTotalDeckPowerFlg
 					? Object.fromEntries(
-							statTypes.map((type) => [
+							STAT_TYPES.map((type) => [
 								type,
-								sumBy(bandMembers, ({ attribute, character, stat }) => {
+								sumBy(bandMembers, ({ attribute, band, stat }) => {
 									const multiplier = sumBy(
 										areaItems,
 										({ targetAttributes, targetBandIds, ...bonus }) =>
 											targetAttributes.includes(attribute) &&
-											targetBandIds.includes(CHARACTER_TO_BAND[character])
+											targetBandIds.includes(band)
 												? (bonus[type] ?? 0)
 												: 0,
 									);
@@ -160,7 +179,23 @@ export const updateTrackerProfile = schemaTask({
 							]),
 						)
 					: null,
-				members: bandMembers,
+				members: bandMembers.map(({ skill, ...member }) => ({
+					...member,
+					skill: (() => {
+						const data = skillsMap.get(skill.id)!;
+						const template = unwrapRegionTuple(data.description)!;
+						const duration = data.duration[skill.level - 1].toString();
+
+						return data.onceEffect
+							? template
+									.replace(
+										"{0}",
+										data.onceEffect.onceEffectValue[skill.level - 1].toString(),
+									)
+									.replace("{1}", duration)
+							: template.replace("{0}", duration);
+					})(),
+				})),
 			},
 
 			titles: Object.values(userProfileDegreeMap?.entries ?? {}).map(

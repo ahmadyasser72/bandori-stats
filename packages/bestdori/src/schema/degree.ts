@@ -1,23 +1,19 @@
 import z from "zod";
 
 import { fetchBestdori } from "../fetch";
-
-const regionTuple = <T extends z.ZodType>(value: T) => {
-	const nullable = value.nullable();
-	return z.tuple([nullable, nullable, nullable, nullable, nullable]);
-};
+import { RegionTuple } from "./misc";
 
 export const BestdoriDegree = z.strictObject({
-	degreeType: regionTuple(
+	degreeType: RegionTuple(
 		z.enum(["event_point", "score_ranking", "try_clear", "normal"]),
 	),
-	iconImageName: regionTuple(
+	iconImageName: RegionTuple(
 		z
 			.enum(["none", "event_point_icon", "opening_1", "opening_2"])
 			.or(z.templateLiteral(["medley_", z.coerce.number()])),
 	),
-	baseImageName: regionTuple(z.string()),
-	rank: regionTuple(
+	baseImageName: RegionTuple(z.string()),
+	rank: RegionTuple(
 		z.union([
 			z.coerce.number().positive(),
 			z.enum([
@@ -30,7 +26,7 @@ export const BestdoriDegree = z.strictObject({
 			]),
 		]),
 	),
-	degreeName: regionTuple(z.string()),
+	degreeName: RegionTuple(z.string()),
 });
 export type BestdoriDegree = z.infer<typeof BestdoriDegree>;
 

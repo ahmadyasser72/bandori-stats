@@ -1,5 +1,10 @@
 import z from "zod";
 
+export const RegionTuple = <T extends z.ZodType>(value: T) => {
+	const nullable = value.nullable();
+	return z.tuple([nullable, nullable, nullable, nullable, nullable]);
+};
+
 export const GameEventType = z.enum([
 	"story",
 	"versus",

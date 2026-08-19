@@ -5,6 +5,7 @@ import { fetchBestdori } from "../fetch";
 export const Card = z.object({
 	characterId: z.coerce.number(),
 	rarity: z.number().min(1).max(5),
+	skillId: z.number(),
 	attribute: z.enum(["powerful", "pure", "cool", "happy"]),
 	resourceSetName: z.string(),
 	type: z.string(),

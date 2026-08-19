@@ -12,6 +12,7 @@ import {
 } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
 import { GBP, redis } from "@bandori-stats/database/redis";
+import { sumStats } from "@bandori-stats/database/schema";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import { getProfileIcon, getTitleImage } from "~/lib/assets";
@@ -168,6 +169,11 @@ const { data, players } = await Astro.locals.tracing.enterSpan(
 		};
 	},
 );
+
+const getBonusPercentage = (baseStat: number, bonusStat: number) =>
+	(Math.ceil((bonusStat / baseStat) * 10000) / 100).toLocaleString("en-US", {
+		minimumFractionDigits: 1,
+	});
 
 if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 ---
@@ -530,12 +536,12 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 															{[
 																[
 																	"Power",
-																	`${formatNumber(sum(Object.values(stat)))} (${formatNumber(sum([...Object.values(potentialBonus), ...Object.values(missionBonus)]), { positiveSign: true })})`,
+																	`${formatNumber(sumStats(stat))} (+${formatNumber(sumStats(potentialBonus) + sumStats(missionBonus))})`,
 																],
 
 																...Object.keys(stat).map((type) => [
 																	capitalize(type),
-																	`${formatNumber(stat[type])} (${formatNumber(potentialBonus[type] + missionBonus[type], { positiveSign: true })})`,
+																	`${formatNumber(stat[type])} (+${formatNumber(potentialBonus[type] + missionBonus[type])})`,
 																]),
 
 																[
@@ -543,7 +549,7 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 																	Object.keys(stat)
 																		.map(
 																			(type) =>
-																				`+${(Math.ceil((potentialBonus[type] / statBase[type]) * 10000) / 100).toLocaleString("en-US", { minimumFractionDigits: 1 })}%`,
+																				`+${getBonusPercentage(statBase[type], potentialBonus[type])}%`,
 																		)
 																		.join(" "),
 																],
@@ -552,7 +558,7 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 																	Object.keys(stat)
 																		.map(
 																			(type) =>
-																				`+${(Math.ceil((missionBonus[type] / statBase[type]) * 10000) / 100).toLocaleString("en-US", { minimumFractionDigits: 1 })}%`,
+																				`+${getBonusPercentage(statBase[type], missionBonus[type])}%`,
 																		)
 																		.join(" "),
 																],
