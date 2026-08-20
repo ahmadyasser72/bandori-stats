@@ -1,5 +1,6 @@
 import { openAsBlob } from "node:fs";
 import { writeFile } from "node:fs/promises";
+import path from "node:path";
 
 import type {
 	APIRoute,
@@ -35,16 +36,17 @@ export const GET: APIRoute<Props, Params> = async ({ params, props }) => {
 		}
 	}
 
-	const bytes = await response
-		.arrayBuffer()
-		.then((buffer) => new Uint8Array(buffer));
-	const cachePath = getCachePath(`_${params.name}_${params.id}.webp`);
+	const name = path.basename(props.path).replace(path.extname(props.path), "");
+	const cachePath = getCachePath(`_${params.name}_${params.id}.${name}.webp`);
 	const cacheExists = await exists(cachePath);
 	if (cacheExists) {
 		const blob = await openAsBlob(cachePath);
 		return new Response(blob);
 	}
 
+	const bytes = await response
+		.arrayBuffer()
+		.then((buffer) => new Uint8Array(buffer));
 	const image = vips.Image.newFromBuffer(bytes);
 	const out = image.webpsaveBuffer(imageConfig);
 	await writeFile(cachePath, out);
