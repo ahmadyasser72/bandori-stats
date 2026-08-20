@@ -83,7 +83,7 @@ export const getStaticPaths = (() => {
 		...[true, false].map((trained) => ({
 			params: {
 				name: "card-rarity",
-				id: trained ? "normal" : "trained",
+				id: trained ? "trained" : "normal",
 				ext: "webp" as const,
 			},
 			props: { path: `/res/icon/${trained ? "star_trained" : "star"}.png` },
