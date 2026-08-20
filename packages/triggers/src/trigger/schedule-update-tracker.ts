@@ -268,6 +268,7 @@ const sendPushNotifications = async (
 						: undefined,
 					image: `/assets/tracker/${trackingReference.trackingFor}-${trackingReference.trackingId}-logo.webp`,
 					timestamp: now.valueOf(),
+					navigate: `/tracker?tab=${trackingReference.trackingFor}&id=${trackingReference.trackingId}`,
 				};
 			});
 		}),
