@@ -10,15 +10,14 @@ import {
 	mean,
 	median,
 	omit,
+	sumBy,
 } from "@bandori-stats/bestdori/helpers";
 import { db, EmptyFilter } from "@bandori-stats/database";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import SheetModal from "~/layouts/sheet-modal.astro";
-import {
-	StatsBarChart,
-	type StatsBarChartProps,
-} from "~/pages/tracker/charts/_stats-bar-chart";
+import { ActivityChart } from "~/pages/tracker/charts/_activity-chart";
+import { BarChart } from "~/pages/tracker/charts/_bar-chart";
 
 export const partial = true;
 
@@ -43,7 +42,7 @@ const clientTimezone =
 Astro.response.headers.append("vary", "client-timezone");
 const now = dayjs().tz(clientTimezone);
 
-const { profile, snapshots } = await Astro.locals.tracing.enterSpan(
+const { metadata, profile, snapshots } = await Astro.locals.tracing.enterSpan(
 	"fetch-snapshots",
 	async (span) => {
 		span.setAttribute("uid", uid);
@@ -55,7 +54,7 @@ const { profile, snapshots } = await Astro.locals.tracing.enterSpan(
 			trackingId: params.id,
 			uid,
 		};
-		const [rows, profile] = await Promise.all([
+		const [rows, profile, metadata] = await Promise.all([
 			db().query.trackerSnapshots.findMany({
 				columns: { point: true, timestamp: true },
 				where: {
@@ -68,6 +67,15 @@ const { profile, snapshots } = await Astro.locals.tracing.enterSpan(
 				columns: { name: true },
 				where: filter,
 			}),
+			params.kind === "event"
+				? db().query.gbpEvents.findFirst({
+						columns: { startAt: true, endAt: true },
+						where: { eventId: params.id },
+					})
+				: db().query.gbpMonthlyRankings.findFirst({
+						columns: { startAt: true, endAt: true },
+						where: { monthlyRankingId: params.id },
+					}),
 		]);
 
 		if (params.duration !== "all" && rows.length > 0) {
@@ -85,6 +93,7 @@ const { profile, snapshots } = await Astro.locals.tracing.enterSpan(
 
 		return {
 			profile,
+			metadata: metadata!,
 			snapshots: rows.filter(
 				({ point }, idx, snapshots) => point !== snapshots.at(idx + 1)?.point,
 			),
@@ -92,26 +101,22 @@ const { profile, snapshots } = await Astro.locals.tracing.enterSpan(
 	},
 );
 
-const gameByHours = Object.entries({
+const gameByHours = Object.entries<string, number>({
 	...Object.fromEntries(
-		Array.from({ length: 24 }, (_, idx): [number, number] => [idx, 0]),
+		Array.from(
+			{
+				length: dayjs(metadata.endAt)
+					.endOf("hour")
+					.diff(metadata.startAt, "hours"),
+			},
+			(_, idx): [number, number] => [idx, 0],
+		),
 	),
-	...countBy(snapshots, ({ timestamp }) =>
-		dayjs.tz(timestamp, clientTimezone).get("hour"),
+	...countBy(snapshots, ({ timestamp }): number =>
+		dayjs(timestamp).diff(metadata.startAt, "hours"),
 	),
-}).map(([hour, count]): [string, number] => [
-	now.set("hour", Number(hour)).startOf("hour").format("hh:mm A"),
-	count,
-]);
-const gameByDayOfWeek = Object.entries({
-	...Object.fromEntries(
-		Array.from({ length: 7 }, (_, idx): [number, number] => [idx, 0]),
-	),
-	...countBy(snapshots, ({ timestamp }) =>
-		dayjs.tz(timestamp, clientTimezone).get("day"),
-	),
-}).map(([day, count]): [string, number] => [
-	now.set("day", Number(day)).format("dddd"),
+}).map(([hour, count]): [number, number] => [
+	dayjs(metadata.startAt).add(Number(hour), "hours").startOf("hour").valueOf(),
 	count,
 ]);
 
@@ -155,24 +160,6 @@ const averageMinutesPerGame = (() => {
 	return mean(gaps);
 })();
 
-const charts = [
-	{
-		data: gameByPoints,
-		label: "Most obtained points",
-		color: "var(--color-primary)",
-	},
-	{
-		data: gameByHours,
-		label: "Active hours",
-		color: "var(--color-accent)",
-	},
-	{
-		data: gameByDayOfWeek,
-		label: "Active day of week",
-		color: "var(--color-accent)",
-	},
-] satisfies StatsBarChartProps[];
-
 if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 ---
 
@@ -196,6 +183,8 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 					<input
 						hx-get={Astro.url.pathname}
 						hx-disable="closest .tabs"
+						hx-swap="after"
+						hx-target="main"
 						data-umami-event="tracker-statistics-duration"
 						data-umami-event-duration={duration}
 						data-umami-event-kind={params.kind}
@@ -247,20 +236,64 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 	</div>
 
 	{
-		charts.map((props) => (
-			<StatsBarChart {...props} client:only="preact">
+		params.duration === "all" ? (
+			<ActivityChart
+				client:only="preact"
+				data={gameByHours}
+				label="Activity heatmap"
+			>
 				<div class="mt-8 w-full" slot="fallback">
 					<h3 class="text-center text-xl font-medium">
 						<Icon
 							class="mr-1 align-[-2px]"
 							name="svg-spinners--90-ring-with-bg"
 						/>
-
-						{props.label}
+						Activity heatmap
 					</h3>
 					<div class="my-2 h-64 w-full skeleton" />
 				</div>
-			</StatsBarChart>
-		))
+			</ActivityChart>
+		) : (
+			<BarChart
+				client:only="preact"
+				color="var(--color-primary)"
+				data={Array.from({ length: 24 }, (_, hour) => [
+					now.set("hour", hour).startOf("hour").format("hh:mm A"),
+					sumBy(gameByHours, ([timestamp, value]) =>
+						dayjs.tz(timestamp, clientTimezone).get("hour") === hour
+							? value
+							: 0,
+					),
+				])}
+				label="Active hours"
+			>
+				<div class="mt-8 w-full" slot="fallback">
+					<h3 class="text-center text-xl font-medium">
+						<Icon
+							class="mr-1 align-[-2px]"
+							name="svg-spinners--90-ring-with-bg"
+						/>
+						Active hours
+					</h3>
+					<div class="my-2 h-64 w-full skeleton" />
+				</div>
+			</BarChart>
+		)
 	}
+
+	<BarChart
+		client:only="preact"
+		color="var(--color-accent)"
+		data={gameByPoints}
+		label="Most obtained points"
+	>
+		<div class="mt-8 w-full" slot="fallback">
+			<h3 class="text-center text-xl font-medium">
+				<Icon class="mr-1 align-[-2px]" name="svg-spinners--90-ring-with-bg" />
+
+				Most obtained points
+			</h3>
+			<div class="my-2 h-64 w-full skeleton"></div>
+		</div>
+	</BarChart>
 </SheetModal>

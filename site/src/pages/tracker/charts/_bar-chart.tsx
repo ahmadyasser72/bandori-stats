@@ -6,13 +6,13 @@ import { useMemo } from "preact/hooks";
 
 import { CHART_THEME } from "./_utilities";
 
-export interface StatsBarChartProps {
+export interface BarChartProps {
 	data: [string, number][];
 	label: string;
 	color: string;
 }
 
-export const StatsBarChart = ({ data, label, color }: StatsBarChartProps) => {
+export const BarChart = ({ data, label, color }: BarChartProps) => {
 	const chartData = useMemo(
 		() => data.map(([key, count]) => ({ key, count })),
 		[data],
