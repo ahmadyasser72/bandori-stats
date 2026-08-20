@@ -34,6 +34,11 @@ export const fetchBestdori = limitAsync(
 					pathname.replace("/assets/en", "/assets/jp"),
 					cache,
 				);
+			else if (pathname.startsWith("/assets/jp"))
+				return fetchBestdori(
+					pathname.replace("/assets/jp", "/assets/cn"),
+					cache,
+				);
 
 			throw new Error(`request to ${url.href} failed`);
 		}
