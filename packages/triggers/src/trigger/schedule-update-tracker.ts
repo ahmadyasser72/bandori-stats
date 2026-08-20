@@ -231,6 +231,7 @@ const sendPushNotifications = async (
 
 			const subscriptions = [...notify.flat().entries()].filter(
 				([, { on }]) =>
+					on.target === "play-again" ||
 					(on.target === "point" && point > on.value) ||
 					(on.target === "boated-from" &&
 						(rank > on.value || !top10ByUid.has(uid))),
@@ -247,22 +248,27 @@ const sendPushNotifications = async (
 				where: { ...trackingReference, uid },
 			});
 
+			const title =
+				metadata.kind === "event"
+					? metadata.eventName
+					: metadata.monthlyRankingName;
 			return uniqBy(
 				subscriptions.map(([, it]) => it),
 				({ on, subscription }) =>
 					`${subscription.endpoint}:${on.target}:${on.value}`,
 			).map(({ on, subscription }) => {
+				let body = `notify me: ${name}`;
+				if (on.target === "play-again") body = `${name} just plays again!`;
+				else if (on.target === "point")
+					body = `${name} just hit ${formatNumber(point)} Pts!`;
+				else if (on.target === "boated-from")
+					body = `${name} just got boated from rank #${on.value}!`;
+
 				return {
 					subscription,
-					id: `${key}-${on.target}-${on.value}`,
-					title:
-						metadata.kind === "event"
-							? metadata.eventName
-							: metadata.monthlyRankingName,
-					body:
-						on.target === "point"
-							? `${name} just hit ${formatNumber(point)} Pts!`
-							: `${name} just got boated from rank #${on.value}!`,
+					tag: `${key}-${on.target}-${on.value}`,
+					title,
+					body,
 					icon: profile?.avatar
 						? `/assets/cards/${profile.avatar.id}-${profile.avatar.trained ? "trained" : "normal"}-icon.webp`
 						: undefined,

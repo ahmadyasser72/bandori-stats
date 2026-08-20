@@ -8,16 +8,41 @@ import type { TrackerSnapshot } from "@bandori-stats/database/schema";
 interface NotifyWhenContainerProps {
 	snapshot: Pick<
 		TrackerSnapshot,
-		"uid" | "trackingFor" | "trackingId" | "point" | "rank"
+		"uid" | "name" | "trackingFor" | "trackingId" | "point" | "rank"
 	>;
 }
 
 export const NotifyWhenContainer = (props: NotifyWhenContainerProps) => (
 	<div class="mt-4">
+		<NotifyWhenPlayAgain {...props} />
 		<NotifyWhenPointAbove {...props} />
 		<NotifyWhenBoated {...props} />
 	</div>
 );
+
+const NotifyWhenPlayAgain = ({ snapshot }: NotifyWhenContainerProps) => {
+	const inputRef = useRef<HTMLInputElement>(null);
+
+	return (
+		<NotifyWhen
+			inputRef={inputRef}
+			label="Plays again"
+			on="play-again"
+			snapshot={snapshot}
+		>
+			{(setValue) => (
+				<input
+					class="btn join-item flex-1 overflow-clip text-xs break-all not-checked:btn-outline"
+					type="checkbox"
+					aria-label={snapshot.name}
+					onInput={(event) => setValue(event.currentTarget.checked ? 1 : 0)}
+					ref={inputRef}
+					required
+				/>
+			)}
+		</NotifyWhen>
+	);
+};
 
 const NotifyWhenPointAbove = ({ snapshot }: NotifyWhenContainerProps) => {
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -78,7 +103,7 @@ const NotifyWhenBoated = ({ snapshot }: NotifyWhenContainerProps) => {
 };
 
 interface NotifyWhenProps extends NotifyWhenContainerProps {
-	on: "point" | "boated-from";
+	on: "play-again" | "point" | "boated-from";
 	label: string;
 	inputRef: preact.RefObject<HTMLInputElement | HTMLSelectElement>;
 	children: (setValue: (value: number) => void) => preact.ComponentChildren;

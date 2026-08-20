@@ -70,7 +70,7 @@ export const getAreaItems = async (
 };
 
 export interface NotifyWhenPlayer {
-	on: { target: "point" | "boated-from"; value: number };
+	on: { target: "play-again" | "point" | "boated-from"; value: number };
 	subscription: {
 		endpoint: string;
 		expirationTime: number | null;

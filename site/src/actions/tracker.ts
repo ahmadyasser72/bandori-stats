@@ -2,6 +2,7 @@ import { ActionError, defineAction } from "astro:actions";
 
 import { z } from "zod";
 
+import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
 import { db } from "@bandori-stats/database";
 import {
 	GBP,
@@ -23,6 +24,10 @@ export const notifyMe = defineAction({
 			uid: z.string(),
 		}),
 		on: z.discriminatedUnion("target", [
+			z.object({
+				target: z.literal("play-again"),
+				value: z.number().min(1).max(1),
+			}),
 			z.object({
 				target: z.literal("point"),
 				value: z.number().positive(),
@@ -50,7 +55,7 @@ export const notifyMe = defineAction({
 			});
 
 		const latestSnapshot = await db().query.trackerSnapshots.findFirst({
-			columns: { point: true, rank: true },
+			columns: { name: true, point: true, rank: true, timestamp: true },
 			where: target,
 			orderBy: { id: "desc" },
 		});
@@ -60,15 +65,23 @@ export const notifyMe = defineAction({
 				message: `${target.uid} is not tracked in ${target.trackingFor}:${target.trackingId}`,
 			});
 
+		if (on.target === "play-again") {
+			const sinceLastPlayed = dayjs().diff(latestSnapshot.timestamp, "minutes");
+			if (sinceLastPlayed <= 60)
+				throw new ActionError({
+					code: "BAD_REQUEST",
+					message: `${latestSnapshot.name} recently played ${formatDuration(dayjs(), dayjs(latestSnapshot.timestamp))}!`,
+				});
+		}
 		if (on.target === "point" && latestSnapshot.point > on.value)
 			throw new ActionError({
 				code: "BAD_REQUEST",
-				message: `${target.uid} points already above ${on.value}!`,
+				message: `${latestSnapshot.name} points already above ${on.value}!`,
 			});
 		if (on.target === "boated-from" && latestSnapshot.rank > on.value)
 			throw new ActionError({
 				code: "BAD_REQUEST",
-				message: `${target.uid} already boated from rank #${on.value}!`,
+				message: `${latestSnapshot.name} already boated from rank #${on.value}!`,
 			});
 
 		const baseKey = GBP[target.trackingFor][target.trackingId];
