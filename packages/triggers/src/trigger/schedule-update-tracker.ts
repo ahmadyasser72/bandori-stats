@@ -1,4 +1,4 @@
-import { schedules, tags } from "@trigger.dev/sdk";
+import { schedules, tags, wait } from "@trigger.dev/sdk";
 import webPush from "web-push";
 import type z from "zod";
 
@@ -28,7 +28,8 @@ export const scheduleUpdateTracker = schedules.task({
 	ttl: "1m",
 	cron: { pattern: "* * * * *" },
 	run: async (context) => {
-		const now = dayjs(context.timestamp).startOf("minute");
+		const now = dayjs(context.timestamp).startOf("minute").add(1, "minute");
+		await wait.until({ date: now.toDate() });
 
 		const [version, event, monthly] = await redis().mget<
 			[
