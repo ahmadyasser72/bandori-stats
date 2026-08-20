@@ -3,6 +3,6 @@
 const sw = self;
 
 sw.addEventListener("push", (event) => {
-	const { title, body } = event.data.json();
-	event.waitUntil(sw.registration.showNotification(title, { body }));
+	const { title, ...options } = event.data.json();
+	event.waitUntil(sw.registration.showNotification(title, options));
 });

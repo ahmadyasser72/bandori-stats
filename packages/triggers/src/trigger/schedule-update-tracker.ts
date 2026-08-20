@@ -81,7 +81,7 @@ export const scheduleUpdateTracker = schedules.task({
 
 				await Promise.all([
 					updateRedis(top, { inserted, metadata }),
-					sendPushNotifications(top, { inserted, metadata }),
+					sendPushNotifications(top, { now, inserted, metadata }),
 				]);
 			})(),
 			(async () => {
@@ -101,7 +101,7 @@ export const scheduleUpdateTracker = schedules.task({
 
 				await Promise.all([
 					updateRedis(top, { inserted, metadata }),
-					sendPushNotifications(top, { inserted, metadata }),
+					sendPushNotifications(top, { now, inserted, metadata }),
 				]);
 			})(),
 		]);
@@ -117,11 +117,7 @@ const insertSnapshots = async (
 	top10: RankingUser[],
 	{ now, metadata }: InsertSnapshotOptions,
 ) => {
-	const trackingReference = {
-		trackingFor: metadata.kind,
-		trackingId:
-			metadata.kind === "event" ? metadata.eventId : metadata.monthlyRankingId,
-	};
+	const trackingReference = getTrackingReference(metadata);
 
 	if (now.get("minutes") === 0) {
 		await updateTrackerProfile.batchTrigger(
@@ -183,16 +179,19 @@ const updateRedis = async (
 };
 
 interface SendPushNotificationOptions {
+	now: dayjs.Dayjs;
 	inserted: Awaited<ReturnType<typeof insertSnapshots>>;
 	metadata: GbpMetadata;
 }
 
 const sendPushNotifications = async (
 	top10: RankingUser[],
-	{ inserted, metadata }: SendPushNotificationOptions,
+	{ now, inserted, metadata }: SendPushNotificationOptions,
 ) => {
 	const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY } = process.env;
 	if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return;
+
+	const trackingReference = getTrackingReference(metadata);
 
 	const baseKey = getRedisKey(metadata);
 	const top10ByUid = new Map(
@@ -200,27 +199,19 @@ const sendPushNotifications = async (
 	);
 
 	const formerTop10 = [] as typeof inserted;
-	const newTop10 = !!inserted.find(({ rank }) => rank === 10);
-	if (newTop10) {
+	const updatedTop10 = !!inserted.find(({ rank }) => rank === 10);
+	if (updatedTop10) {
 		const outsideTop10 = (
 			await redis().smembers<number[]>(`${baseKey}:players`)
 		)
 			.map((uid) => uid.toString())
 			.filter((uid) => !top10ByUid.has(uid));
-
 		if (outsideTop10.length > 0) {
 			const latestSnapshots = await Promise.all(
 				outsideTop10.map((uid) =>
 					db().query.trackerSnapshots.findFirst({
 						columns: { uid: true, name: true, point: true, rank: true },
-						where: {
-							trackingFor: metadata.kind,
-							trackingId:
-								metadata.kind === "event"
-									? metadata.eventId
-									: metadata.monthlyRankingId,
-							uid,
-						},
+						where: { ...trackingReference, uid },
 						orderBy: { id: "desc" },
 					}),
 				),
@@ -251,6 +242,11 @@ const sendPushNotifications = async (
 				deleteNotify.json.del(key, `$[${idx}]`);
 			await deleteNotify.exec();
 
+			const profile = await db().query.trackerSnapshotProfiles.findFirst({
+				columns: { avatar: true },
+				where: { ...trackingReference, uid },
+			});
+
 			return uniqBy(
 				subscriptions.map(([, it]) => it),
 				({ on, subscription }) =>
@@ -267,6 +263,11 @@ const sendPushNotifications = async (
 						on.target === "point"
 							? `${name} just hit ${formatNumber(point)} Pts!`
 							: `${name} just got boated from rank #${on.value}!`,
+					icon: profile?.avatar
+						? `/assets/cards/${profile.avatar.id}-${profile.avatar.trained ? "trained" : "normal"}-icon.webp`
+						: undefined,
+					image: `/assets/tracker/${trackingReference.trackingFor}-${trackingReference.trackingId}-logo.webp`,
+					timestamp: now.valueOf(),
 				};
 			});
 		}),
@@ -302,3 +303,9 @@ const getRedisKey = (metadata: GbpMetadata) =>
 	GBP[metadata.kind][
 		metadata.kind === "event" ? metadata.eventId : metadata.monthlyRankingId
 	];
+
+const getTrackingReference = (metadata: GbpMetadata) => ({
+	trackingFor: metadata.kind,
+	trackingId:
+		metadata.kind === "event" ? metadata.eventId : metadata.monthlyRankingId,
+});
