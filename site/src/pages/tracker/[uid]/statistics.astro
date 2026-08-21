@@ -14,11 +14,13 @@ import {
 import {
 	and,
 	asc,
+	avg,
 	db,
 	desc,
 	eq,
 	gt,
 	gte,
+	lte,
 	max,
 	min,
 	sql,
@@ -85,13 +87,13 @@ if (params.duration === "1d") after = dayjs().subtract(1, "day");
 else if (params.duration === "3d") after = dayjs().subtract(3, "day");
 else after = null;
 
-const startAt = dayjs.tz(metadata.startAt, clientTimezone).startOf("hour");
+const startAt = dayjs(metadata.startAt).startOf("hour");
 const since = after && startAt.isBefore(after) ? after : startAt;
-const filter = and(
+
+const baseFilter = and(
 	eq(trackerSnapshots.trackingFor, params.kind),
 	eq(trackerSnapshots.trackingId, params.id),
 	eq(trackerSnapshots.uid, uid),
-	gte(trackerSnapshots.timestamp, since.toDate()),
 );
 
 const { gameStatistics, gameByHours, gameByPoints } =
@@ -102,47 +104,53 @@ const { gameStatistics, gameByHours, gameByPoints } =
 		span.setAttribute("timezone", clientTimezone);
 		span.setAttribute("after", since.toISOString());
 
+		const countSql = sql<number>`COUNT(*)`;
+		const deltaSql = sql<number>`${trackerSnapshots.point} - LAG(${trackerSnapshots.point}, 1, ${trackerSnapshots.point}) OVER (ORDER BY ${asc(trackerSnapshots.id)})`;
+		const gapsCte = db()
+			.$with("gaps")
+			.as(
+				db()
+					.select({
+						point: deltaSql.as("point"),
+						gapMinutes:
+							sql<number>`(${trackerSnapshots.timestamp} - LAG(${trackerSnapshots.timestamp}) OVER (ORDER BY ${asc(trackerSnapshots.id)})) / 60000.0`.as(
+								"gap_minutes",
+							),
+						timestamp: trackerSnapshots.timestamp,
+					})
+					.from(trackerSnapshots)
+					.where(baseFilter),
+			);
+
+		const cteFilter = and(
+			gte(gapsCte.timestamp, since.toDate()),
+			gt(gapsCte.point, 0),
+			lte(gapsCte.point, params.kind === "monthly" ? 20 : 100_000),
+		);
+
 		return allKeyed({
 			gameStatistics: Astro.locals.tracing.enterSpan(
 				"fetch-game-statistics",
 				async () => {
-					const gapsCte = db()
-						.$with("gaps")
-						.as(
-							db()
-								.select({
-									point:
-										sql<number>`${trackerSnapshots.point} - LAG(${trackerSnapshots.point}, 1, ${trackerSnapshots.point}) OVER (ORDER BY ${asc(trackerSnapshots.id)})`.as(
-											"point",
-										),
-									gapMinutes:
-										sql<number>`(${trackerSnapshots.timestamp} - LAG(${trackerSnapshots.timestamp}) OVER (ORDER BY ${asc(trackerSnapshots.id)})) / 60000.0`.as(
-											"gap_minutes",
-										),
-								})
-								.from(trackerSnapshots)
-								.where(filter)
-								.orderBy(desc(trackerSnapshots.id)),
-						);
-
 					const [statistics] = await db()
 						.with(gapsCte)
 						.select({
-							gamesCount: sql<number>`COUNT(*)`,
+							gamesTotal: countSql,
 							minPoints: min(gapsCte.point),
 							maxPoints: max(gapsCte.point),
-							meanPoints: sql<number>`AVG(${gapsCte.point})`,
+							meanPoints: avg(gapsCte.point),
 							medianPoints: sql<number>`MEDIAN(${gapsCte.point})`,
-							averageMinutesPerGame: sql<number>`AVG(CASE WHEN ${gapsCte.gapMinutes} <= 30 THEN ${gapsCte.gapMinutes} ELSE NULL END)`,
+							averageMinutesPerGame: avg(
+								sql`CASE WHEN ${gapsCte.gapMinutes} <= 30 THEN ${gapsCte.gapMinutes} ELSE NULL END`,
+							),
 
-							// Use scalar subqueries to grab the newest and oldest snapshots instantly
-							latestPoint: sql<number>`(SELECT ${trackerSnapshots.point} FROM ${trackerSnapshots} WHERE ${filter} ORDER BY ${trackerSnapshots.timestamp} DESC LIMIT 1)`,
-							latestTimestamp: sql<number>`(SELECT ${trackerSnapshots.timestamp} FROM ${trackerSnapshots} WHERE ${filter} ORDER BY ${trackerSnapshots.timestamp} DESC LIMIT 1)`,
-							oldestPoint: sql<number>`(SELECT ${trackerSnapshots.point} FROM ${trackerSnapshots} WHERE ${filter} ORDER BY ${trackerSnapshots.timestamp} ASC LIMIT 1)`,
-							oldestTimestamp: sql<number>`(SELECT ${trackerSnapshots.timestamp} FROM ${trackerSnapshots} WHERE ${filter} ORDER BY ${trackerSnapshots.timestamp} ASC LIMIT 1)`,
+							latestPoint: sql<number>`(SELECT ${trackerSnapshots.point} FROM ${trackerSnapshots} WHERE ${cteFilter} ORDER BY ${trackerSnapshots.timestamp} DESC LIMIT 1)`,
+							latestTimestamp: sql<number>`(SELECT ${trackerSnapshots.timestamp} FROM ${trackerSnapshots} WHERE ${cteFilter} ORDER BY ${trackerSnapshots.timestamp} DESC LIMIT 1)`,
+							oldestPoint: sql<number>`(SELECT ${trackerSnapshots.point} FROM ${trackerSnapshots} WHERE ${cteFilter} ORDER BY ${trackerSnapshots.timestamp} ASC LIMIT 1)`,
+							oldestTimestamp: sql<number>`(SELECT ${trackerSnapshots.timestamp} FROM ${trackerSnapshots} WHERE ${cteFilter} ORDER BY ${trackerSnapshots.timestamp} ASC LIMIT 1)`,
 						})
 						.from(gapsCte)
-						.where(gt(gapsCte.point, 0));
+						.where(cteFilter);
 
 					return {
 						...mapValues(statistics, (value) => Number(value ?? 0)),
@@ -151,6 +159,7 @@ const { gameStatistics, gameByHours, gameByPoints } =
 							dayjs(statistics.latestTimestamp).diff(
 								statistics.oldestTimestamp,
 								"hours",
+								true,
 							),
 					};
 				},
@@ -160,14 +169,17 @@ const { gameStatistics, gameByHours, gameByPoints } =
 				async () => {
 					const snapshotHour = sql<number>`CAST(${trackerSnapshots.timestamp} / 3600000 AS INTEGER) * 3600000`;
 					const aggregatedCounts = await db()
-						.select({ hour: snapshotHour, count: sql<number>`COUNT(*)` })
+						.select({ hour: snapshotHour, count: countSql })
 						.from(trackerSnapshots)
-						.where(filter)
+						.where(
+							and(baseFilter, gt(trackerSnapshots.timestamp, since.toDate())),
+						)
 						.groupBy(snapshotHour);
 
-					const countMap = new Map(
+					const countByHours = new Map(
 						aggregatedCounts.map(({ hour, count }) => [hour, count]),
 					);
+
 					return Array.from(
 						{
 							length: dayjs(metadata.endAt)
@@ -176,7 +188,7 @@ const { gameStatistics, gameByHours, gameByPoints } =
 						},
 						(_, idx): [number, number] => {
 							const timestamp = startAt.add(idx, "hours").valueOf();
-							return [timestamp, countMap.get(timestamp) ?? 0];
+							return [timestamp, countByHours.get(timestamp) ?? 0];
 						},
 					);
 				},
@@ -184,34 +196,35 @@ const { gameStatistics, gameByHours, gameByPoints } =
 			gameByPoints: Astro.locals.tracing.enterSpan(
 				"fetch-game-by-points",
 				async () => {
-					const [{ minPoints }] = await db()
-						.select({ minPoints: min(trackerSnapshots.point) })
-						.from(trackerSnapshots)
-						.where(filter);
-					const deltaQuery = (() => {
-						const deltaSql = sql<number>`${trackerSnapshots.point} - LAG(${trackerSnapshots.point}, 1, ${trackerSnapshots.point}) OVER (ORDER BY ${asc(trackerSnapshots.id)})`;
-						return db()
-							.select({
-								delta: ((minPoints ?? 0) <= 50
-									? deltaSql
-									: sql<number>`CAST(ROUND((${deltaSql}) / 100.0) * 100 AS INTEGER)`
-								).as("delta"),
-							})
-							.from(trackerSnapshots)
-							.where(filter)
-							.as("delta_query");
-					})();
-					const countQuery = sql<number>`COUNT(*)`;
+					const minPoints = await db()
+						.with(gapsCte)
+						.select({ minPoints: min(gapsCte.point) })
+						.from(gapsCte)
+						.where(cteFilter)
+						.then(([{ minPoints }]) => Number(minPoints ?? 0));
+					const deltaQuery = db()
+						.with(gapsCte)
+						.select({
+							delta:
+								minPoints <= 50
+									? gapsCte.point
+									: sql<number>`CAST(ROUND((${gapsCte.point}) / 100.0) * 100 AS INTEGER)`.as(
+											"delta",
+										),
+						})
+						.from(gapsCte)
+						.where(cteFilter)
+						.as("delta_query");
 
 					return db()
-						.select({ delta: deltaQuery.delta, count: countQuery })
+						.select({ delta: deltaQuery.delta, count: countSql })
 						.from(deltaQuery)
 						.groupBy(deltaQuery.delta)
-						.where(gt(deltaQuery.delta, 0))
-						.orderBy(desc(countQuery), desc(deltaQuery.delta))
+						.where(sql`${deltaQuery.delta} > 0`)
+						.orderBy(desc(countSql), desc(deltaQuery.delta))
 						.then((rows) =>
 							rows.map(({ delta, count }): [string, number] => [
-								`${(minPoints ?? 0) > 50 ? "~" : ""}${delta.toLocaleString()}`,
+								`${minPoints > 50 ? "~" : ""}${formatNumber(delta)}`,
 								count,
 							]),
 						);
@@ -221,7 +234,7 @@ const { gameStatistics, gameByHours, gameByPoints } =
 	});
 
 const {
-	gamesCount,
+	gamesTotal,
 	minPoints,
 	maxPoints,
 	meanPoints,
@@ -273,7 +286,7 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 
 	<div class="mt-4 flex flex-wrap justify-center gap-x-1 gap-y-0.5">
 		<div class="badge badge-soft badge-lg badge-accent">
-			{gamesCount} Games
+			{gamesTotal} Games
 		</div>
 		<div class="badge badge-soft badge-lg badge-info">
 			Average: {formatNumber(meanPoints, { positiveSign: true })}
@@ -288,8 +301,8 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 			Max: {formatNumber(maxPoints, { positiveSign: true })}
 		</div>
 		<div class="badge badge-soft badge-lg badge-info">
-			{formatNumber(pointsPerHour, { positiveSign: true })} Pts/hour {
-				params.duration !== "all" && "(estimated)"
+			{formatNumber(pointsPerHour, { positiveSign: true })} Pts/hour{
+				params.duration !== "all" && " (estimated)"
 			}
 		</div>
 		<div class="badge badge-soft badge-lg badge-info">
