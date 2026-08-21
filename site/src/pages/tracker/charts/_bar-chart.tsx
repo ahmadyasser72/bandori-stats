@@ -53,7 +53,7 @@ export const BarChart = ({ data, label, color }: BarChartProps) => {
 	return (
 		<div class="mt-8 w-full">
 			<h3 class="text-center text-xl font-medium">{label}</h3>
-			<div class="max-h-64 overflow-y-auto p-2">
+			<div class="max-h-64 scrollbar-gutter-stable overflow-y-auto p-2">
 				<Chart
 					ariaLabel={label}
 					definition={definition}
