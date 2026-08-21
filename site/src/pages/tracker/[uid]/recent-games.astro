@@ -10,24 +10,17 @@ import {
 	mapValues,
 	omit,
 } from "@bandori-stats/bestdori/helpers";
-import {
-	and,
-	asc,
-	avg,
-	db,
-	desc,
-	eq,
-	gt,
-	gte,
-	lte,
-	max,
-	min,
-	sql,
-} from "@bandori-stats/database";
-import { trackerSnapshots } from "@bandori-stats/database/schema";
+import { avg, db, desc, gte, max, min, sql } from "@bandori-stats/database";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import SheetModal from "~/layouts/sheet-modal.astro";
+import {
+	countSql,
+	createBaseFilter,
+	createCteFilter,
+	createGapsCte,
+	outlierCap,
+} from "./_aggregate";
 
 export const partial = true;
 
@@ -42,8 +35,6 @@ const params = Astro.locals.parseQuery(
 	}),
 );
 
-const outlierCap = params.kind === "monthly" ? 20 : 100_000;
-
 let after: dayjs.Dayjs;
 if (params.duration === "1h") after = dayjs().subtract(1, "hour");
 else if (params.duration === "3h") after = dayjs().subtract(3, "hour");
@@ -51,11 +42,7 @@ else if (params.duration === "6h") after = dayjs().subtract(6, "hour");
 else if (params.duration === "12h") after = dayjs().subtract(12, "hour");
 else after = dayjs().subtract(1, "day");
 
-const baseFilter = and(
-	eq(trackerSnapshots.trackingFor, params.kind),
-	eq(trackerSnapshots.trackingId, params.id),
-	eq(trackerSnapshots.uid, uid),
-);
+const baseFilter = createBaseFilter(params.kind, params.id, uid);
 
 const { profile, statistics, games } = await Astro.locals.tracing.enterSpan(
 	"fetch-recent-games",
@@ -66,25 +53,8 @@ const { profile, statistics, games } = await Astro.locals.tracing.enterSpan(
 		span.setAttribute("duration", params.duration);
 		span.setAttribute("after", after.toISOString());
 
-		const deltaSql = sql<number>`${trackerSnapshots.point} - LAG(${trackerSnapshots.point}, 1, ${trackerSnapshots.point}) OVER (ORDER BY ${asc(trackerSnapshots.id)})`;
-		const gapsCte = db()
-			.$with("gaps")
-			.as(
-				db()
-					.select({
-						point: trackerSnapshots.point,
-						delta: deltaSql.as("delta"),
-						timestamp: trackerSnapshots.timestamp,
-					})
-					.from(trackerSnapshots)
-					.where(baseFilter),
-			);
-
-		const cteFilter = and(
-			gte(gapsCte.timestamp, after.toDate()),
-			gt(gapsCte.delta, 0),
-			lte(gapsCte.delta, outlierCap),
-		);
+		const gapsCte = createGapsCte(baseFilter);
+		const cteFilter = createCteFilter(params.kind, gapsCte, after.toDate());
 
 		return allKeyed({
 			profile: db().query.trackerSnapshotProfiles.findFirst({
@@ -98,23 +68,26 @@ const { profile, statistics, games } = await Astro.locals.tracing.enterSpan(
 			statistics: Astro.locals.tracing.enterSpan(
 				"fetch-game-statistics",
 				async () => {
-					const [statistics] = await db()
+					const statistics = await db()
 						.with(gapsCte)
 						.select({
-							gamesTotal: sql<number>`COUNT(*)`,
+							gamesTotal: countSql,
 							minPoints: min(gapsCte.delta),
 							maxPoints: max(gapsCte.delta),
 							meanPoints: avg(gapsCte.delta),
 							medianPoints: sql<number>`MEDIAN(${gapsCte.delta})`,
 
-							latestPoint: sql<number>`(SELECT ${trackerSnapshots.point} FROM ${trackerSnapshots} WHERE ${cteFilter} ORDER BY ${desc(trackerSnapshots.id)} LIMIT 1)`,
-							oldestPoint: sql<number>`(SELECT ${trackerSnapshots.point} FROM ${trackerSnapshots} WHERE ${cteFilter} ORDER BY ${asc(trackerSnapshots.id)} LIMIT 1)`,
+							oldestPoint: min(gapsCte.point),
+							latestPoint: max(gapsCte.point),
 						})
 						.from(gapsCte)
-						.where(cteFilter);
+						.where(cteFilter)
+						.then(([results]) =>
+							mapValues(results, (value) => Number(value ?? 0)),
+						);
 
 					return {
-						...mapValues(statistics, (value) => Number(value ?? 0)),
+						...statistics,
 						pointsPerHour:
 							(statistics.latestPoint - statistics.oldestPoint) /
 							dayjs().diff(after, "hours", true),
@@ -200,16 +173,16 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 	<div class="mt-4 flex max-w-4/5 flex-wrap justify-center gap-x-1 gap-y-0.5">
 		{
 			params.duration !== "1h" && (
-				<div class="badge badge-md badge-primary">
+				<div class="badge badge-soft badge-md badge-primary">
 					{formatNumber(statistics.gamesTotal / dayjs().diff(after, "hours"))}{" "}
 					Games/hour
 				</div>
 			)
 		}
-		<div class="badge badge-md badge-accent">
+		<div class="badge badge-soft badge-md badge-primary">
 			{statistics.gamesTotal} Games
 		</div>
-		<div class="badge badge-md badge-info">
+		<div class="badge badge-soft badge-md badge-accent">
 			Average:{" "}
 			{
 				formatNumber(Math.round(statistics.meanPoints), {
@@ -217,19 +190,19 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 				})
 			}
 		</div>
-		<div class="badge badge-md badge-info">
+		<div class="badge badge-soft badge-md badge-accent">
 			Median:{" "}
 			{formatNumber(statistics.medianPoints, { positiveSign: true })}
 		</div>
-		<div class="badge badge-md badge-info">
+		<div class="badge badge-soft badge-md badge-accent">
 			Min: {formatNumber(statistics.minPoints, { positiveSign: true })}
 		</div>
-		<div class="badge badge-md badge-info">
+		<div class="badge badge-soft badge-md badge-accent">
 			Max: {formatNumber(statistics.maxPoints, { positiveSign: true })}
 		</div>
-		<div class="badge badge-md badge-info">
+		<div class="badge badge-soft badge-md badge-accent">
 			{formatNumber(statistics.pointsPerHour, { positiveSign: true })}{" "}
-			Pts/hour
+			Pts/hour (estimated)
 		</div>
 	</div>
 
@@ -249,13 +222,15 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 							<span
 								class:list={[
 									"ml-1 badge px-1.5 badge-xs",
-									delta > outlierCap ? "badge-warning" : "badge-success",
+									delta > outlierCap(params.kind)
+										? "badge-warning"
+										: "badge-success",
 								]}
 							>
 								{formatNumber(delta, { positiveSign: true })}
 							</span>
 
-							{delta > outlierCap && (
+							{delta > outlierCap(params.kind) && (
 								<span
 									class="tooltip tooltip-end ml-1 badge badge-xs tooltip-warning badge-warning before:max-w-32"
 									data-tip="Likely accumulated while untracked"
