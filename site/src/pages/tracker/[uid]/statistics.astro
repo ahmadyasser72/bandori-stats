@@ -4,21 +4,26 @@ import z from "zod";
 import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
 import dayjs from "@bandori-stats/bestdori/date";
 import {
+	allKeyed,
 	capitalize,
-	countBy,
 	formatNumber,
-	mean,
-	median,
+	mapValues,
 	omit,
+	sumBy,
 } from "@bandori-stats/bestdori/helpers";
-import { db, EmptyFilter } from "@bandori-stats/database";
+import { and, avg, db, desc, gt, max, min, sql } from "@bandori-stats/database";
+import { trackerSnapshots } from "@bandori-stats/database/schema";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import SheetModal from "~/layouts/sheet-modal.astro";
+import { ActivityChart } from "~/pages/tracker/charts/_activity-chart";
+import { BarChart } from "~/pages/tracker/charts/_bar-chart";
 import {
-	StatsBarChart,
-	type StatsBarChartProps,
-} from "~/pages/tracker/charts/_stats-bar-chart";
+	countSql,
+	createBaseFilter,
+	createCteFilter,
+	createGapsCte,
+} from "./_aggregate";
 
 export const partial = true;
 
@@ -33,145 +38,181 @@ const params = Astro.locals.parseQuery(
 	}),
 );
 
-let after: dayjs.Dayjs | EmptyFilter;
-if (params.duration === "1d") after = dayjs().subtract(1, "day");
-else if (params.duration === "3d") after = dayjs().subtract(3, "day");
-else after = EmptyFilter;
-
 const clientTimezone =
 	Astro.request.headers.get("client-timezone") ?? GBP_TIMEZONE;
 Astro.response.headers.append("vary", "client-timezone");
 const now = dayjs().tz(clientTimezone);
 
-const { profile, snapshots } = await Astro.locals.tracing.enterSpan(
-	"fetch-snapshots",
+const { metadata, profile } = await Astro.locals.tracing.enterSpan(
+	"fetch-metadata",
 	async (span) => {
 		span.setAttribute("uid", uid);
 		span.setAttribute("kind", params.kind);
 		span.setAttribute("id", params.id);
 
-		const filter = {
-			trackingFor: params.kind,
-			trackingId: params.id,
-			uid,
-		};
-		const [rows, profile] = await Promise.all([
-			db().query.trackerSnapshots.findMany({
-				columns: { point: true, timestamp: true },
-				where: {
-					...filter,
-					timestamp: { gt: dayjs.isDayjs(after) ? after.toDate() : after },
-				},
-				orderBy: { id: "desc" },
-			}),
-			db().query.trackerSnapshotProfiles.findFirst({
+		return allKeyed({
+			profile: db().query.trackerSnapshotProfiles.findFirst({
 				columns: { name: true },
-				where: filter,
-			}),
-		]);
-
-		if (params.duration !== "all" && rows.length > 0) {
-			const previous = await db().query.trackerSnapshots.findFirst({
-				columns: { point: true, timestamp: true },
 				where: {
-					...filter,
-					timestamp: { lte: dayjs.isDayjs(after) ? after.toDate() : after },
+					trackingFor: params.kind,
+					trackingId: params.id,
+					uid,
 				},
-				orderBy: { id: "desc" },
-			});
-
-			if (previous) rows.push(previous);
-		}
-
-		return {
-			profile,
-			snapshots: rows.filter(
-				({ point }, idx, snapshots) => point !== snapshots.at(idx + 1)?.point,
-			),
-		};
+			}),
+			metadata:
+				params.kind === "event"
+					? db().query.gbpEvents.findFirst({
+							columns: { startAt: true, endAt: true },
+							where: { eventId: params.id },
+						})
+					: db().query.gbpMonthlyRankings.findFirst({
+							columns: { startAt: true, endAt: true },
+							where: { monthlyRankingId: params.id },
+						}),
+		});
 	},
 );
 
-const gameByHours = Object.entries({
-	...Object.fromEntries(
-		Array.from({ length: 24 }, (_, idx): [number, number] => [idx, 0]),
-	),
-	...countBy(snapshots, ({ timestamp }) =>
-		dayjs.tz(timestamp, clientTimezone).get("hour"),
-	),
-}).map(([hour, count]): [string, number] => [
-	now.set("hour", Number(hour)).startOf("hour").format("hh:mm A"),
-	count,
-]);
-const gameByDayOfWeek = Object.entries({
-	...Object.fromEntries(
-		Array.from({ length: 7 }, (_, idx): [number, number] => [idx, 0]),
-	),
-	...countBy(snapshots, ({ timestamp }) =>
-		dayjs.tz(timestamp, clientTimezone).get("day"),
-	),
-}).map(([day, count]): [string, number] => [
-	now.set("day", Number(day)).format("dddd"),
-	count,
-]);
+if (!metadata) return new Response(null, { status: 404 });
 
-const rawPoints = snapshots
-	.slice(0, -1)
-	.map(({ point }, idx) => point - snapshots[idx + 1].point);
-const outlierThreshold = mean(rawPoints) * 3;
+let after: dayjs.Dayjs | null;
+if (params.duration === "1d") after = dayjs().subtract(1, "day");
+else if (params.duration === "3d") after = dayjs().subtract(3, "day");
+else after = null;
 
-const points = rawPoints.filter((point) => point <= outlierThreshold);
-const outlierCount = rawPoints.length - points.length;
+const startAt = dayjs(metadata.startAt).startOf("hour");
+after = after && startAt.isBefore(after) ? after : startAt;
 
-const minPoints = Math.min(...points);
-const gameByPoints = Object.entries(
-	countBy(points, (point) =>
-		minPoints <= 50 ? point : Math.round(point / 100) * 100,
-	),
-)
-	.sort(
-		([aPoint, aCount], [bPoint, bCount]) =>
-			bCount - aCount || Number(bPoint) - Number(aPoint),
-	)
-	.map(([point, count]): [string, number] => [
-		`${minPoints > 50 ? "~" : ""}${formatNumber(Number(point))}`,
-		count,
-	]);
+const baseFilter = createBaseFilter(params.kind, params.id, uid);
 
-const pointsPerHour = (() => {
-	const [first, last] = [snapshots[0], snapshots.at(-1)!];
-	const pointsGained = first.point - last.point;
-	const duration = dayjs(first.timestamp).diff(last.timestamp, "hour", true);
-	return pointsGained / duration;
-})();
+const { gameStatistics, gameByHours, gameByPoints } =
+	await Astro.locals.tracing.enterSpan("fetch-statistics", (span) => {
+		span.setAttribute("uid", uid);
+		span.setAttribute("kind", params.kind);
+		span.setAttribute("id", params.id);
+		span.setAttribute("timezone", clientTimezone);
+		span.setAttribute("after", after.toISOString());
 
-const averageMinutesPerGame = (() => {
-	const gaps = snapshots
-		.slice(0, -1)
-		.map(({ timestamp }, idx) =>
-			dayjs(timestamp).diff(snapshots[idx + 1].timestamp, "minute"),
-		)
-		.filter((gap) => gap <= 30);
-	return mean(gaps);
-})();
+		const gapsCte = createGapsCte(baseFilter);
+		const cteFilter = createCteFilter(params.kind, gapsCte, after.toDate());
 
-const charts = [
-	{
-		data: gameByPoints,
-		label: "Most obtained points",
-		color: "var(--color-primary)",
-	},
-	{
-		data: gameByHours,
-		label: "Active hours",
-		color: "var(--color-accent)",
-	},
-	{
-		data: gameByDayOfWeek,
-		label: "Active day of week",
-		color: "var(--color-accent)",
-	},
-] satisfies StatsBarChartProps[];
+		return allKeyed({
+			gameStatistics: Astro.locals.tracing.enterSpan(
+				"fetch-game-statistics",
+				async () => {
+					const statistics = await db()
+						.with(gapsCte)
+						.select({
+							gamesTotal: countSql,
+							minPoints: min(gapsCte.delta),
+							maxPoints: max(gapsCte.delta),
+							meanPoints: avg(gapsCte.delta),
+							medianPoints: sql<number>`MEDIAN(${gapsCte.delta})`,
+							averageMinutesPerGame: avg(
+								sql`CASE WHEN ${gapsCte.gapMinutes} <= 10 THEN ${gapsCte.gapMinutes} ELSE NULL END`,
+							),
+
+							oldestPoint: min(gapsCte.point),
+							latestPoint: max(gapsCte.point),
+							latestTimestamp: max(gapsCte.timestamp),
+							oldestTimestamp: min(gapsCte.timestamp),
+						})
+						.from(gapsCte)
+						.where(cteFilter)
+						.then(([results]) =>
+							mapValues(results, (value) => Number(value ?? 0)),
+						);
+
+					return {
+						...statistics,
+						pointsPerHour:
+							(statistics.latestPoint - statistics.oldestPoint) /
+							dayjs(statistics.latestTimestamp).diff(
+								statistics.oldestTimestamp,
+								"hours",
+								true,
+							),
+					};
+				},
+			),
+			gameByHours: Astro.locals.tracing.enterSpan(
+				"fetch-game-by-hours",
+				async () => {
+					const snapshotHour = sql<number>`CAST(${trackerSnapshots.timestamp} / 3600000 AS INTEGER) * 3600000`;
+					const aggregatedCounts = await db()
+						.select({ hour: snapshotHour, count: countSql })
+						.from(trackerSnapshots)
+						.where(
+							and(baseFilter, gt(trackerSnapshots.timestamp, after.toDate())),
+						)
+						.groupBy(snapshotHour);
+
+					const countByHours = new Map(
+						aggregatedCounts.map(({ hour, count }) => [hour, count]),
+					);
+
+					return Array.from(
+						{
+							length: dayjs(metadata.endAt)
+								.endOf("hour")
+								.diff(metadata.startAt, "hours"),
+						},
+						(_, idx): [number, number] => {
+							const timestamp = startAt.add(idx, "hours").valueOf();
+							return [timestamp, countByHours.get(timestamp) ?? 0];
+						},
+					);
+				},
+			),
+			gameByPoints: Astro.locals.tracing.enterSpan(
+				"fetch-game-by-points",
+				async () => {
+					const minPoints = await db()
+						.with(gapsCte)
+						.select({ minPoints: min(gapsCte.delta) })
+						.from(gapsCte)
+						.where(cteFilter)
+						.then(([{ minPoints }]) => Number(minPoints ?? 0));
+					const deltaQuery = db()
+						.with(gapsCte)
+						.select({
+							delta:
+								minPoints <= 50
+									? gapsCte.delta
+									: sql<number>`CAST(ROUND((${gapsCte.delta}) / 100.0) * 100 AS INTEGER)`.as(
+											"delta",
+										),
+						})
+						.from(gapsCte)
+						.where(cteFilter)
+						.as("delta_query");
+
+					return db()
+						.select({ delta: deltaQuery.delta, count: countSql })
+						.from(deltaQuery)
+						.groupBy(deltaQuery.delta)
+						.where(gt(deltaQuery.delta, 0))
+						.orderBy(desc(countSql), desc(deltaQuery.delta))
+						.then((rows) =>
+							rows.map(({ delta, count }): [string, number] => [
+								`${minPoints > 50 ? "~" : ""}${formatNumber(delta)}`,
+								count,
+							]),
+						);
+				},
+			),
+		});
+	});
+
+const {
+	gamesTotal,
+	minPoints,
+	maxPoints,
+	meanPoints,
+	medianPoints,
+	averageMinutesPerGame,
+	pointsPerHour,
+} = gameStatistics;
 
 if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 ---
@@ -196,6 +237,8 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 					<input
 						hx-get={Astro.url.pathname}
 						hx-disable="closest .tabs"
+						hx-swap="after"
+						hx-target="main"
 						data-umami-event="tracker-statistics-duration"
 						data-umami-event-duration={duration}
 						data-umami-event-kind={params.kind}
@@ -213,54 +256,90 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 	</fieldset>
 
 	<div class="mt-4 flex flex-wrap justify-center gap-x-1 gap-y-0.5">
+		<div class="badge badge-soft badge-lg badge-primary">
+			{gamesTotal} Games
+		</div>
 		<div class="badge badge-soft badge-lg badge-accent">
-			{snapshots.length - 1} Games
+			Average: {formatNumber(meanPoints, { positiveSign: true })}
 		</div>
-		<div class="badge badge-soft badge-lg badge-info">
-			Average: {formatNumber(Math.round(mean(points)), { positiveSign: true })}
+		<div class="badge badge-soft badge-lg badge-accent">
+			Median: {formatNumber(medianPoints, { positiveSign: true })}
 		</div>
-		<div class="badge badge-soft badge-lg badge-info">
-			Median: {formatNumber(median(points), { positiveSign: true })}
-		</div>
-		<div class="badge badge-soft badge-lg badge-info">
+		<div class="badge badge-soft badge-lg badge-accent">
 			Min: {formatNumber(minPoints, { positiveSign: true })}
 		</div>
-		<div class="badge badge-soft badge-lg badge-info">
-			Max: {formatNumber(Math.max(...points), { positiveSign: true })}
+		<div class="badge badge-soft badge-lg badge-accent">
+			Max: {formatNumber(maxPoints, { positiveSign: true })}
 		</div>
-		<div class="badge badge-soft badge-lg badge-info">
-			{formatNumber(pointsPerHour, { positiveSign: true })} Pts/hour (estimated)
+		<div class="badge badge-soft badge-lg badge-accent">
+			{formatNumber(pointsPerHour, { positiveSign: true })} Pts/hour{
+				params.duration !== "all" && " (estimated)"
+			}
 		</div>
-		<div class="badge badge-soft badge-lg badge-info">
+		<div class="badge badge-soft badge-lg badge-accent">
 			{formatNumber(averageMinutesPerGame)} Minutes/game (average)
 		</div>
-		{
-			outlierCount > 0 && (
-				<div
-					class="tooltip badge badge-soft badge-lg tooltip-warning badge-warning before:max-w-32"
-					data-tip="Point jumps during untracked gaps are excluded from stats"
-				>
-					{outlierCount} gap{outlierCount > 1 && "s"} excluded
-				</div>
-			)
-		}
 	</div>
 
 	{
-		charts.map((props) => (
-			<StatsBarChart {...props} client:only="preact">
+		params.duration === "all" ? (
+			<ActivityChart
+				client:only="preact"
+				data={gameByHours}
+				label="Activity heatmap"
+			>
 				<div class="mt-8 w-full" slot="fallback">
 					<h3 class="text-center text-xl font-medium">
 						<Icon
 							class="mr-1 align-[-2px]"
 							name="svg-spinners--90-ring-with-bg"
 						/>
-
-						{props.label}
+						Activity heatmap
 					</h3>
 					<div class="my-2 h-64 w-full skeleton" />
 				</div>
-			</StatsBarChart>
-		))
+			</ActivityChart>
+		) : (
+			<BarChart
+				client:only="preact"
+				color="var(--color-primary)"
+				data={Array.from({ length: 24 }, (_, hour) => [
+					now.set("hour", hour).startOf("hour").format("hh:mm A"),
+					sumBy(gameByHours, ([timestamp, value]) =>
+						dayjs.tz(timestamp, clientTimezone).get("hour") === hour
+							? value
+							: 0,
+					),
+				])}
+				label="Active hours"
+			>
+				<div class="mt-8 w-full" slot="fallback">
+					<h3 class="text-center text-xl font-medium">
+						<Icon
+							class="mr-1 align-[-2px]"
+							name="svg-spinners--90-ring-with-bg"
+						/>
+						Active hours
+					</h3>
+					<div class="my-2 h-64 w-full skeleton" />
+				</div>
+			</BarChart>
+		)
 	}
+
+	<BarChart
+		client:only="preact"
+		color="var(--color-accent)"
+		data={gameByPoints}
+		label="Most obtained points"
+	>
+		<div class="mt-8 w-full" slot="fallback">
+			<h3 class="text-center text-xl font-medium">
+				<Icon class="mr-1 align-[-2px]" name="svg-spinners--90-ring-with-bg" />
+
+				Most obtained points
+			</h3>
+			<div class="my-2 h-64 w-full skeleton"></div>
+		</div>
+	</BarChart>
 </SheetModal>

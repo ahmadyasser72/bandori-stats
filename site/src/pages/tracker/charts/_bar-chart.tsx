@@ -6,13 +6,13 @@ import { useMemo } from "preact/hooks";
 
 import { CHART_THEME } from "./_utilities";
 
-export interface StatsBarChartProps {
+export interface BarChartProps {
 	data: [string, number][];
 	label: string;
 	color: string;
 }
 
-export const StatsBarChart = ({ data, label, color }: StatsBarChartProps) => {
+export const BarChart = ({ data, label, color }: BarChartProps) => {
 	const chartData = useMemo(
 		() => data.map(([key, count]) => ({ key, count })),
 		[data],
@@ -53,7 +53,7 @@ export const StatsBarChart = ({ data, label, color }: StatsBarChartProps) => {
 	return (
 		<div class="mt-8 w-full">
 			<h3 class="text-center text-xl font-medium">{label}</h3>
-			<div class="max-h-64 overflow-y-auto p-2">
+			<div class="max-h-64 scrollbar-gutter-stable overflow-y-auto p-2">
 				<Chart
 					ariaLabel={label}
 					definition={definition}
