@@ -82,6 +82,7 @@ else after = null;
 
 const startAt = dayjs(metadata.startAt).startOf("hour");
 after = after && startAt.isBefore(after) ? after : startAt;
+const isPastData = now.isAfter(metadata.endAt);
 
 const baseFilter = createBaseFilter(params.kind, params.id, uid);
 
@@ -214,7 +215,8 @@ const {
 	pointsPerHour,
 } = gameStatistics;
 
-if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
+if (Astro.cache.enabled)
+	Astro.cache.set(isPastData ? { maxAge: 60 * 60 } : { maxAge: 30, swr: 30 });
 ---
 
 <SheetModal class="mx-auto max-w-2xl">
@@ -226,34 +228,36 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 		}
 	</h2>
 
-	<fieldset
-		hx-vals:inherited={JSON.stringify(omit(params, ["duration"]))}
-		class="tabs mt-4 w-full tabs-sm text-accent"
-		role="tablist"
-	>
-		{
-			DURATIONS.map((duration) => (
-				<label class="tab h-16 flex-col hover:text-accent max-md:flex-1 md:px-12">
-					<input
-						hx-get={Astro.url.pathname}
-						hx-disable="closest .tabs"
-						hx-swap="after"
-						hx-target="main"
-						data-umami-event="tracker-statistics-duration"
-						data-umami-event-duration={duration}
-						data-umami-event-kind={params.kind}
-						data-umami-event-player={profile?.name}
-						name="duration"
-						type="radio"
-						value={duration}
-						checked={duration === params.duration}
-					/>
-					<IconLoader class="size-5" name="lucide--clock" />
-					{capitalize(duration)}
-				</label>
-			))
-		}
-	</fieldset>
+	{
+		!isPastData && (
+			<fieldset
+				hx-vals:inherited={JSON.stringify(omit(params, ["duration"]))}
+				class="tabs mt-4 w-full tabs-sm text-accent"
+				role="tablist"
+			>
+				{DURATIONS.map((duration) => (
+					<label class="tab h-16 flex-col hover:text-accent max-md:flex-1 md:px-12">
+						<input
+							hx-get={Astro.url.pathname}
+							hx-disable="closest .tabs"
+							hx-swap="after"
+							hx-target="main"
+							data-umami-event="tracker-statistics-duration"
+							data-umami-event-duration={duration}
+							data-umami-event-kind={params.kind}
+							data-umami-event-player={profile?.name}
+							name="duration"
+							type="radio"
+							value={duration}
+							checked={duration === params.duration}
+						/>
+						<IconLoader class="size-5" name="lucide--clock" />
+						{capitalize(duration)}
+					</label>
+				))}
+			</fieldset>
+		)
+	}
 
 	<div class="mt-4 flex flex-wrap justify-center gap-x-1 gap-y-0.5">
 		<div class="badge badge-soft badge-lg badge-primary">

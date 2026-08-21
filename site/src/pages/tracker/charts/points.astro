@@ -1,6 +1,7 @@
 ---
 import z from "zod";
 
+import dayjs from "@bandori-stats/bestdori/date";
 import SheetModal from "~/layouts/sheet-modal.astro";
 import { fetchTrackerData, processTrackerData } from "./_data";
 import { PointsChart } from "./_points-chart";
@@ -30,7 +31,12 @@ const data = processTrackerData(snapshots, {
 	hoursInterval: 1,
 });
 
-if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30 * 60, swr: 30 * 60 });
+if (Astro.cache.enabled)
+	Astro.cache.set(
+		metadata && dayjs().isAfter(metadata.endAt)
+			? { maxAge: 60 * 60 }
+			: { maxAge: 30 * 60, swr: 30 * 60 },
+	);
 ---
 
 <SheetModal>

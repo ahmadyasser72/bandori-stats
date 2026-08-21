@@ -51,7 +51,12 @@ export const notifyMe = defineAction({
 		if (!metadata)
 			throw new ActionError({
 				code: "NOT_FOUND",
-				message: `${target.trackingFor}:${target.trackingId} doesn't exists`,
+				message: `${target.trackingFor}:${target.trackingId} doesn't exists!`,
+			});
+		else if (dayjs().isAfter(metadata.endAt))
+			throw new ActionError({
+				code: "BAD_GATEWAY",
+				message: `${target.trackingFor}:${target.trackingId} already ended!`,
 			});
 
 		const latestSnapshot = await db().query.trackerSnapshots.findFirst({
@@ -62,7 +67,7 @@ export const notifyMe = defineAction({
 		if (!latestSnapshot)
 			throw new ActionError({
 				code: "NOT_FOUND",
-				message: `${target.uid} is not tracked in ${target.trackingFor}:${target.trackingId}`,
+				message: `${target.uid} is not tracked in ${target.trackingFor}:${target.trackingId}!`,
 			});
 
 		if (on.target === "play-again") {

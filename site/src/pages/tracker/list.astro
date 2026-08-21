@@ -26,7 +26,7 @@ const params = Astro.locals.parseQuery(
 	}),
 );
 
-const { data, players } = await Astro.locals.tracing.enterSpan(
+const { data, isPastData, players } = await Astro.locals.tracing.enterSpan(
 	"fetch-data",
 	async () => {
 		const data = await Astro.locals.tracing.enterSpan(
@@ -51,6 +51,8 @@ const { data, players } = await Astro.locals.tracing.enterSpan(
 				}
 			},
 		);
+
+		const isPastData = dayjs().isAfter(data.endAt);
 
 		const key = GBP[params.kind][data.id];
 		const top10 = await Astro.locals.tracing.enterSpan(
@@ -144,15 +146,18 @@ const { data, players } = await Astro.locals.tracing.enterSpan(
 
 		return {
 			data,
+			isPastData,
 			players: players.map((snapshots) => {
 				const [latest, previous] = snapshots;
 				const lastPlayed =
-					latest.point === previous?.point ? snapshots.at(-1)! : latest;
+					!isPastData && latest.point === previous?.point
+						? snapshots.at(-1)!
+						: latest;
 
 				return {
 					latest,
 					previous:
-						dayjs().diff(latest.timestamp, "minutes") <= 30
+						!isPastData && dayjs().diff(latest.timestamp, "minutes") <= 30
 							? previous
 							: undefined,
 					lastPlayed,
@@ -175,7 +180,8 @@ const getBonusPercentage = (baseStat: number, bonusStat: number) =>
 		minimumFractionDigits: 1,
 	});
 
-if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
+if (Astro.cache.enabled)
+	Astro.cache.set(isPastData ? { maxAge: 60 * 60 } : { maxAge: 30, swr: 30 });
 ---
 
 {
@@ -236,20 +242,22 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 }
 
 <div
-	hx-get={Astro.url.pathname}
-	hx-browser-indicator="true"
-	hx-indicator="#tracker-list-loader"
-	hx-on={[
-		import.meta.env.PROD &&
-			UMAMI_SITE_ID &&
-			`htmx:before:request from:self -> umami.track("tracker-poll", { name: "${data.name}", kind: "${params.kind}" })`,
-		"htmx:before:request from:self -> if (document.hidden) event.preventDefault()",
-	]
-		.filter(Boolean)
-		.join(";")}
-	hx-swap="outerHTML transition:true"
-	hx-trigger="load delay:60s, visibilitychange from:document"
-	hx-vals={JSON.stringify({ kind: params.kind, poll: true })}
+	{...!isPastData && {
+		"hx-get": Astro.url.pathname,
+		"hx-browser-indicator": "true",
+		"hx-indicator": "#tracker-list-loader",
+		"hx-on": [
+			import.meta.env.PROD &&
+				UMAMI_SITE_ID &&
+				`htmx:before:request from:self -> umami.track("tracker-poll", { name: "${data.name}", kind: "${params.kind}" })`,
+			"htmx:before:request from:self -> if (document.hidden) event.preventDefault()",
+		]
+			.filter(Boolean)
+			.join(";"),
+		"hx-swap": "outerHTML transition:true",
+		"hx-trigger": "load delay:60s, visibilitychange from:document",
+		"hx-vals": JSON.stringify({ kind: params.kind, poll: true }),
+	}}
 	class="list mt-4 py-1"
 	id="tracker-list"
 >
@@ -346,14 +354,16 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 								)}
 							</span>
 
-							<span>
-								played{" "}
-								{dayjs().diff(lastPlayed.timestamp, "minutes") < 1
-									? "just now"
-									: dayjs(lastPlayed.timestamp).fromNow()}
-							</span>
+							{!isPastData && (
+								<span>
+									played{" "}
+									{dayjs().diff(lastPlayed.timestamp, "minutes") < 1
+										? "just now"
+										: dayjs(lastPlayed.timestamp).fromNow()}
+								</span>
+							)}
 
-							{boatHistory && (
+							{!isPastData && boatHistory && (
 								<span>
 									boated{" "}
 									{boatHistory.length === 1 ? (
@@ -400,25 +410,27 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 						</button>
 
 						<div class="col-span-full flex gap-1 sm:justify-end">
-							<button
-								hx-get={`/tracker/${latest.uid}/recent-games`}
-								hx-vals={JSON.stringify({
-									kind: params.kind,
-									id: data.id,
-									duration:
-										dayjs().diff(lastPlayed.timestamp, "minutes") < 60
-											? "1h"
-											: "12h",
-								})}
-								data-umami-event="tracker-recent-games"
-								data-umami-event-kind={params.kind}
-								data-umami-event-name={data.name}
-								data-umami-event-player={latest.name}
-								class="btn btn-primary btn-xs sm:btn-sm"
-							>
-								<IconLoader class="max-sm:size-3" name="lucide--gamepad-2" />
-								Recent
-							</button>
+							{!isPastData && (
+								<button
+									hx-get={`/tracker/${latest.uid}/recent-games`}
+									hx-vals={JSON.stringify({
+										kind: params.kind,
+										id: data.id,
+										duration:
+											dayjs().diff(lastPlayed.timestamp, "minutes") < 60
+												? "1h"
+												: "12h",
+									})}
+									data-umami-event="tracker-recent-games"
+									data-umami-event-kind={params.kind}
+									data-umami-event-name={data.name}
+									data-umami-event-player={latest.name}
+									class="btn btn-primary btn-xs sm:btn-sm"
+								>
+									<IconLoader class="max-sm:size-3" name="lucide--gamepad-2" />
+									Recent
+								</button>
+							)}
 
 							<button
 								hx-get={`/tracker/${latest.uid}/statistics`}
@@ -440,20 +452,22 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 								Statistics
 							</button>
 
-							<button
-								hx-get={`/tracker/${latest.uid}/notify`}
-								hx-swap="after"
-								hx-target="main"
-								hx-vals={JSON.stringify({ kind: params.kind, id: data.id })}
-								data-umami-event="tracker-notify"
-								data-umami-event-kind={params.kind}
-								data-umami-event-name={data.name}
-								data-umami-event-player={latest.name}
-								class="btn btn-secondary btn-xs max-sm:flex-1 sm:btn-sm"
-							>
-								<IconLoader class="max-sm:size-3" name="lucide--bell" />
-								Notify me
-							</button>
+							{!isPastData && (
+								<button
+									hx-get={`/tracker/${latest.uid}/notify`}
+									hx-swap="after"
+									hx-target="main"
+									hx-vals={JSON.stringify({ kind: params.kind, id: data.id })}
+									data-umami-event="tracker-notify"
+									data-umami-event-kind={params.kind}
+									data-umami-event-name={data.name}
+									data-umami-event-player={latest.name}
+									class="btn btn-secondary btn-xs max-sm:flex-1 sm:btn-sm"
+								>
+									<IconLoader class="max-sm:size-3" name="lucide--bell" />
+									Notify me
+								</button>
+							)}
 						</div>
 					</div>
 
