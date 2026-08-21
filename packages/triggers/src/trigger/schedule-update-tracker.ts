@@ -48,7 +48,7 @@ export const scheduleUpdateTracker = schedules.task({
 
 		await Promise.all([
 			(async () => {
-				if (!event) return;
+				if (!event || now.isBefore(event.startAt)) return;
 
 				const { eventId, eventType } = event;
 				const top = await (async () => {
@@ -86,7 +86,7 @@ export const scheduleUpdateTracker = schedules.task({
 				]);
 			})(),
 			(async () => {
-				if (!monthly) return;
+				if (!monthly || now.isBefore(monthly.startAt)) return;
 
 				const { monthlyRankingId } = monthly;
 				const data = await bangDream(version, "monthly", monthlyRankingId);
