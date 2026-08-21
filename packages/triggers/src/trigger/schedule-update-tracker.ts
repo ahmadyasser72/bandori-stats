@@ -46,7 +46,7 @@ export const scheduleUpdateTracker = schedules.task({
 		]);
 		if (!version) return;
 
-		await Promise.all([
+		await Promise.allSettled([
 			(async () => {
 				if (!event || now.isBefore(event.startAt)) return;
 
