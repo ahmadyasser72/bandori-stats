@@ -101,7 +101,7 @@ export const PointsChart = ({
 	const scrollRef = useRef<HTMLDivElement>(null);
 	useAutoScroll(scrollRef, startAt, endAt);
 
-	const { height, width } = getChartDimensions(startAt, endAt);
+	const { height, width } = getChartDimensions(startAt, endAt, 4);
 	return (
 		<div class="container overflow-x-auto" ref={scrollRef}>
 			<Chart

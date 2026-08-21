@@ -35,10 +35,14 @@ export const useAutoScroll = (
 	}, []);
 };
 
-export const getChartDimensions = (startAt: Date, endAt: Date) => {
+export const getChartDimensions = (
+	startAt: Date,
+	endAt: Date,
+	pointWidth: number,
+) => {
 	const height = (window.innerHeight * 3) / 5; // 60vh
 	const durationHours =
 		(endAt.valueOf() - startAt.valueOf()) / (60 * 60 * 1000);
-	const width = Math.max(height * 2.5, durationHours * 5);
+	const width = Math.max(height * 2.5, durationHours * pointWidth);
 	return { height, width };
 };

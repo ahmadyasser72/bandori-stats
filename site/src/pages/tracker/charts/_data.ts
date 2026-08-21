@@ -1,8 +1,8 @@
 import dayjs from "@bandori-stats/bestdori/date";
 import { pick } from "@bandori-stats/bestdori/helpers";
-import { db } from "@bandori-stats/database";
+import { and, asc, db, eq, inArray, max, sql } from "@bandori-stats/database";
 import { GBP, redis } from "@bandori-stats/database/redis";
-import type { TrackerSnapshot } from "@bandori-stats/database/schema";
+import { trackerSnapshots } from "@bandori-stats/database/schema";
 
 export const fetchTrackerData = async (params: {
 	kind: "event" | "monthly";
@@ -13,22 +13,53 @@ export const fetchTrackerData = async (params: {
 		(uid) => uid.toString(),
 	);
 
-	const fetchSnapshots = (uid: string) =>
-		db().query.trackerSnapshots.findMany({
-			columns: { id: false, trackingFor: false, trackingId: false },
-			where: { trackingFor: params.kind, trackingId: params.id, uid },
-			orderBy: { timestamp: "asc" },
-		});
+	const hourBucket =
+		sql<number>`CAST(${trackerSnapshots.timestamp} / 3600000 AS INTEGER) * 3600000`.as(
+			"hour",
+		);
 
-	return Promise.all([
+	const snapshots =
 		players.length > 0
-			? db()
-					.batch([
-						fetchSnapshots(players[0]),
-						...players.slice(1).map(fetchSnapshots),
-					])
-					.then((entries) => entries.flat())
-			: [],
+			? await (() => {
+					const latestPerHour = db()
+						.$with("latest_per_hour")
+						.as(
+							db()
+								.select({
+									uid: trackerSnapshots.uid,
+									hour: hourBucket,
+									maxId: max(trackerSnapshots.id).as("max_id"),
+								})
+								.from(trackerSnapshots)
+								.where(
+									and(
+										eq(trackerSnapshots.trackingFor, params.kind),
+										eq(trackerSnapshots.trackingId, params.id),
+										inArray(trackerSnapshots.uid, players),
+									),
+								)
+								.groupBy(trackerSnapshots.uid, hourBucket),
+						);
+
+					return db()
+						.with(latestPerHour)
+						.select({
+							uid: trackerSnapshots.uid,
+							name: trackerSnapshots.name,
+							rank: trackerSnapshots.rank,
+							point: trackerSnapshots.point,
+							timestamp: latestPerHour.hour,
+						})
+						.from(trackerSnapshots)
+						.innerJoin(
+							latestPerHour,
+							eq(trackerSnapshots.id, latestPerHour.maxId),
+						)
+						.orderBy(asc(latestPerHour.hour));
+				})()
+			: [];
+
+	const metadata =
 		params.kind === "event"
 			? db().query.gbpEvents.findFirst({
 					columns: { startAt: true, endAt: true },
@@ -37,11 +68,18 @@ export const fetchTrackerData = async (params: {
 			: db().query.gbpMonthlyRankings.findFirst({
 					columns: { startAt: true, endAt: true },
 					where: { monthlyRankingId: params.id },
-				}),
-	]);
+				});
+
+	return Promise.all([snapshots, metadata]);
 };
 
-type Snapshot = Omit<TrackerSnapshot, "id" | "trackingFor" | "trackingId">;
+type Snapshot = {
+	uid: string;
+	name: string;
+	rank: number;
+	point: number;
+	timestamp: number;
+};
 
 export type ChartEntry<K extends string> = {
 	uid: string;
@@ -52,16 +90,15 @@ export type ChartEntry<K extends string> = {
 interface ProcessTrackerDataOptions<T extends keyof Snapshot> {
 	pick: T[];
 	key: T;
-	hoursInterval: number;
 }
 
 export const processTrackerData = <T extends keyof Snapshot>(
 	snapshots: Snapshot[],
-	{ pick: pickKeys, key, hoursInterval }: ProcessTrackerDataOptions<T>,
+	{ pick: pickKeys, key }: ProcessTrackerDataOptions<T>,
 ) => {
 	const changesByHour = new Map<number, Map<string, Snapshot>>();
 	for (const snapshot of snapshots) {
-		const hour = dayjs(snapshot.timestamp).startOf("hour").valueOf();
+		const hour = snapshot.timestamp;
 
 		let changes = changesByHour.get(hour);
 		if (!changes) {
@@ -81,25 +118,17 @@ export const processTrackerData = <T extends keyof Snapshot>(
 	for (
 		let hour = firstHour;
 		hour <= lastHour;
-		hour = dayjs(hour).add(hoursInterval, "hour").valueOf()
+		hour = dayjs(hour).add(1, "hour").valueOf()
 	) {
 		const changes = changesByHour.get(hour);
 		if (changes) {
 			for (const [uid, snapshot] of changes) state.set(uid, snapshot);
 		}
 
-		const rankSeen = new Set<number>();
-		const snapshots = [...state.values()].sort((a, b) =>
-			dayjs(b.timestamp).diff(a.timestamp),
+		const hourSnapshots = [...state.values()].sort(
+			(a, b) => b.timestamp - a.timestamp,
 		);
-		for (const snapshot of snapshots) {
-			if (rankSeen.has(snapshot.rank)) {
-				if (!rankSeen.has(Math.min(10, snapshot.rank + 1))) snapshot.rank += 1;
-				else if (!rankSeen.has(Math.max(1, snapshot.rank - 1)))
-					snapshot.rank -= 1;
-				else continue;
-			}
-
+		for (const snapshot of hourSnapshots) {
 			const entry = {
 				timestamp: hour,
 				...pick(snapshot, ["uid", "name", ...pickKeys]),
@@ -114,14 +143,7 @@ export const processTrackerData = <T extends keyof Snapshot>(
 			}
 
 			previous.set(snapshot.uid, entry);
-			rankSeen.add(snapshot.rank);
 		}
-	}
-
-	// Keep the final occurrence of every UID.
-	for (const entry of previous.values()) {
-		const last = data.findLast(({ uid }) => uid === entry.uid);
-		if (!last || last.timestamp !== entry.timestamp) data.push(entry);
 	}
 
 	return data;

@@ -73,6 +73,7 @@ if (Astro.cache.enabled)
 >
 	<div class="flex gap-1">
 		<div class="flex flex-col justify-evenly">
+			<div class="size-10"></div>
 			<button
 				hx-get="/tracker/charts/points"
 				hx-swap="after"
@@ -85,19 +86,6 @@ if (Astro.cache.enabled)
 				data-tip="Points Chart"
 			>
 				<IconLoader class="size-5" name="lucide--chart-no-axes-combined" />
-			</button>
-			<button
-				hx-get="/tracker/charts/ranking"
-				hx-swap="after"
-				hx-target="main"
-				hx-vals={JSON.stringify(params)}
-				data-umami-event="tracker-chart-ranking"
-				data-umami-event-kind={params.kind}
-				data-umami-event-name={data.name}
-				class="tooltip btn tooltip-bottom tooltip-start btn-square size-10 tooltip-secondary btn-secondary"
-				data-tip="Ranking Chart"
-			>
-				<IconLoader class="size-5" name="lucide--activity" />
 			</button>
 		</div>
 
