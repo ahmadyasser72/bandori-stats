@@ -434,7 +434,6 @@ if (Astro.cache.enabled)
 
 							<button
 								hx-get={`/tracker/${latest.uid}/statistics`}
-								hx-headers="js:{ 'client-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone }"
 								hx-swap="after"
 								hx-target="main"
 								hx-vals={JSON.stringify({

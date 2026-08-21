@@ -4,19 +4,32 @@ import { tooltip } from "@tanstack/charts/tooltip";
 import { scaleBand, scaleLinear } from "d3-scale";
 import { useMemo } from "preact/hooks";
 
+import { sumBy } from "@bandori-stats/bestdori/helpers";
 import { CHART_THEME } from "./_utilities";
 
 export interface BarChartProps {
-	data: [string, number][];
+	data: [number, number][];
 	label: string;
 	color: string;
+	hourly?: boolean;
 }
 
-export const BarChart = ({ data, label, color }: BarChartProps) => {
-	const chartData = useMemo(
-		() => data.map(([key, count]) => ({ key, count })),
-		[data],
-	);
+export const BarChart = ({ data, label, color, hourly }: BarChartProps) => {
+	const chartData = useMemo(() => {
+		if (!hourly)
+			return data.map(([key, count]) => ({ key: key.toLocaleString(), count }));
+
+		return Array.from({ length: 24 }, (_, hour) => ({
+			key: new Date(2000, 0, 1, hour).toLocaleTimeString("en-US", {
+				hour: "2-digit",
+				minute: "2-digit",
+				hour12: true,
+			}),
+			count: sumBy(data, ([timestamp, value]) =>
+				new Date(timestamp).getHours() === hour ? value : 0,
+			),
+		}));
+	}, [data, hourly]);
 	const maxCount = useMemo(
 		() => Math.max(...data.map(([, count]) => count)),
 		[data],

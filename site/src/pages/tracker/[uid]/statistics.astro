@@ -1,7 +1,6 @@
 ---
 import z from "zod";
 
-import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
 import dayjs from "@bandori-stats/bestdori/date";
 import {
 	allKeyed,
@@ -9,7 +8,6 @@ import {
 	formatNumber,
 	mapValues,
 	omit,
-	sumBy,
 } from "@bandori-stats/bestdori/helpers";
 import { and, avg, db, desc, gt, max, min, sql } from "@bandori-stats/database";
 import { trackerSnapshots } from "@bandori-stats/database/schema";
@@ -37,11 +35,6 @@ const params = Astro.locals.parseQuery(
 		duration: z.enum(DURATIONS),
 	}),
 );
-
-const clientTimezone =
-	Astro.request.headers.get("client-timezone") ?? GBP_TIMEZONE;
-Astro.response.headers.append("vary", "client-timezone");
-const now = dayjs().tz(clientTimezone);
 
 const { metadata, profile } = await Astro.locals.tracing.enterSpan(
 	"fetch-metadata",
@@ -80,9 +73,9 @@ if (params.duration === "1d") after = dayjs().subtract(1, "day");
 else if (params.duration === "3d") after = dayjs().subtract(3, "day");
 else after = null;
 
-const startAt = dayjs(metadata.startAt).startOf("hour");
-after = after && startAt.isBefore(after) ? after : startAt;
-const isPastData = now.isAfter(metadata.endAt);
+const startAt = dayjs(metadata.startAt).startOf("hour").valueOf();
+after = after && after.isAfter(startAt) ? after : dayjs(startAt);
+const isPastData = dayjs().isAfter(metadata.endAt);
 
 const baseFilter = createBaseFilter(params.kind, params.id, uid);
 
@@ -91,7 +84,6 @@ const { gameStatistics, gameByHours, gameByPoints } =
 		span.setAttribute("uid", uid);
 		span.setAttribute("kind", params.kind);
 		span.setAttribute("id", params.id);
-		span.setAttribute("timezone", clientTimezone);
 		span.setAttribute("after", after.toISOString());
 
 		const gapsCte = createGapsCte(baseFilter);
@@ -155,11 +147,12 @@ const { gameStatistics, gameByHours, gameByPoints } =
 					return Array.from(
 						{
 							length: dayjs(metadata.endAt)
-								.endOf("hour")
+								.startOf("hour")
+								.add(1, "hour")
 								.diff(metadata.startAt, "hours"),
 						},
 						(_, idx): [number, number] => {
-							const timestamp = startAt.add(idx, "hours").valueOf();
+							const timestamp = startAt + idx * 60 * 60 * 1000;
 							return [timestamp, countByHours.get(timestamp) ?? 0];
 						},
 					);
@@ -195,10 +188,7 @@ const { gameStatistics, gameByHours, gameByPoints } =
 						.where(gt(deltaQuery.delta, 0))
 						.orderBy(desc(countSql), desc(deltaQuery.delta))
 						.then((rows) =>
-							rows.map(({ delta, count }): [string, number] => [
-								`${minPoints > 50 ? "~" : ""}${formatNumber(delta)}`,
-								count,
-							]),
+							rows.map(({ delta, count }): [number, number] => [delta, count]),
 						);
 				},
 			),
@@ -307,14 +297,8 @@ if (Astro.cache.enabled)
 			<BarChart
 				client:only="preact"
 				color="var(--color-primary)"
-				data={Array.from({ length: 24 }, (_, hour) => [
-					now.set("hour", hour).startOf("hour").format("hh:mm A"),
-					sumBy(gameByHours, ([timestamp, value]) =>
-						dayjs.tz(timestamp, clientTimezone).get("hour") === hour
-							? value
-							: 0,
-					),
-				])}
+				data={gameByHours}
+				hourly
 				label="Active hours"
 			>
 				<div class="mt-8 w-full" slot="fallback">
