@@ -36,11 +36,13 @@ const { data, isPastData, players } = await Astro.locals.tracing.enterSpan(
 
 				if (params.kind === "event") {
 					const event = await db().query.gbpEvents.findFirst({
+						where: { startAt: { lt: new Date() } },
 						orderBy: { eventId: "desc" },
 					});
 					return { ...event!, name: event?.eventName!, id: event?.eventId! };
 				} else {
 					const monthly = await db().query.gbpMonthlyRankings.findFirst({
+						where: { startAt: { lt: new Date() } },
 						orderBy: { monthlyRankingId: "desc" },
 					});
 					return {
@@ -57,12 +59,14 @@ const { data, isPastData, players } = await Astro.locals.tracing.enterSpan(
 		const key = GBP[params.kind][data.id];
 		const top10 = await Astro.locals.tracing.enterSpan(
 			"fetch-top-10",
-			(span) => {
+			async (span) => {
 				span.setAttribute("key", key);
 
-				return redis().mget<number[]>(
-					...Array.from({ length: 10 }, (_, idx) => `${key}:${idx + 1}`),
-				);
+				return redis()
+					.mget<(number | null)[]>(
+						...Array.from({ length: 10 }, (_, idx) => `${key}:${idx + 1}`),
+					)
+					.then((uids) => uids.map((uid) => uid?.toString()));
 			},
 		);
 
@@ -74,31 +78,33 @@ const { data, isPastData, players } = await Astro.locals.tracing.enterSpan(
 
 				return Promise.all(
 					top10.map((uid) =>
-						db().query.trackerSnapshots.findMany({
-							columns: { trackingFor: false, trackingId: false },
-							where: {
-								trackingFor: params.kind,
-								trackingId: data.id,
-								uid: uid.toString(),
-							},
-							limit: 2,
-							orderBy: { id: "desc" },
-							with: {
-								profiles: {
-									columns: {
-										level: true,
-										avatar: true,
-										introduction: true,
-										band: true,
-										titles: true,
-									},
+						!uid
+							? []
+							: db().query.trackerSnapshots.findMany({
+									columns: { trackingFor: false, trackingId: false },
 									where: {
 										trackingFor: params.kind,
 										trackingId: data.id,
+										uid,
 									},
-								},
-							},
-						}),
+									limit: 2,
+									orderBy: { id: "desc" },
+									with: {
+										profiles: {
+											columns: {
+												level: true,
+												avatar: true,
+												introduction: true,
+												band: true,
+												titles: true,
+											},
+											where: {
+												trackingFor: params.kind,
+												trackingId: data.id,
+											},
+										},
+									},
+								}),
 					),
 				);
 			},
@@ -147,30 +153,32 @@ const { data, isPastData, players } = await Astro.locals.tracing.enterSpan(
 		return {
 			data,
 			isPastData,
-			players: players.map((snapshots) => {
-				const [latest, previous] = snapshots;
-				const lastPlayed =
-					!isPastData && latest.point === previous?.point
-						? snapshots.at(-1)!
-						: latest;
+			players: players
+				.filter((snapshots) => snapshots.length > 0)
+				.map((snapshots) => {
+					const [latest, previous] = snapshots;
+					const lastPlayed =
+						!isPastData && latest.point === previous?.point
+							? snapshots.at(-1)!
+							: latest;
 
-				return {
-					latest,
-					previous:
-						!isPastData && dayjs().diff(latest.timestamp, "minutes") <= 30
-							? previous
-							: undefined,
-					lastPlayed,
-					boatHistory:
-						previous &&
-						latest.point === previous.point &&
-						latest.rank > lastPlayed.rank
-							? snapshots.reverse()
-							: undefined,
+					return {
+						latest,
+						previous:
+							!isPastData && dayjs().diff(latest.timestamp, "minutes") <= 30
+								? previous
+								: undefined,
+						lastPlayed,
+						boatHistory:
+							previous &&
+							latest.point === previous.point &&
+							latest.rank > lastPlayed.rank
+								? snapshots.reverse()
+								: undefined,
 
-					profile: latest.profiles.at(0),
-				};
-			}),
+						profile: latest.profiles.at(0),
+					};
+				}),
 		};
 	},
 );
@@ -270,7 +278,8 @@ if (Astro.cache.enabled)
 					latest.rank === 2 && "aura-gold",
 					latest.rank === 3 && "aura-silver",
 
-					dayjs().diff(lastPlayed.timestamp, "minutes") >= 30 &&
+					!isPastData &&
+						dayjs().diff(lastPlayed.timestamp, "minutes") >= 30 &&
 						"opacity-50 transition-opacity hover:opacity-100 focus:opacity-100",
 				]}
 				style={`view-transition-name: uid-${latest.uid}`}
