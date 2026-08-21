@@ -5,12 +5,26 @@ import z from "zod";
 
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
 import {
+	allKeyed,
 	formatNumber,
-	mean,
-	median,
+	mapValues,
 	omit,
 } from "@bandori-stats/bestdori/helpers";
-import { db } from "@bandori-stats/database";
+import {
+	and,
+	asc,
+	avg,
+	db,
+	desc,
+	eq,
+	gt,
+	gte,
+	lte,
+	max,
+	min,
+	sql,
+} from "@bandori-stats/database";
+import { trackerSnapshots } from "@bandori-stats/database/schema";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import SheetModal from "~/layouts/sheet-modal.astro";
@@ -28,6 +42,8 @@ const params = Astro.locals.parseQuery(
 	}),
 );
 
+const outlierCap = params.kind === "monthly" ? 20 : 100_000;
+
 let after: dayjs.Dayjs;
 if (params.duration === "1h") after = dayjs().subtract(1, "hour");
 else if (params.duration === "3h") after = dayjs().subtract(3, "hour");
@@ -35,71 +51,91 @@ else if (params.duration === "6h") after = dayjs().subtract(6, "hour");
 else if (params.duration === "12h") after = dayjs().subtract(12, "hour");
 else after = dayjs().subtract(1, "day");
 
-const { profile, snapshots } = await Astro.locals.tracing.enterSpan(
-	"fetch-snapshots",
-	async (span) => {
+const baseFilter = and(
+	eq(trackerSnapshots.trackingFor, params.kind),
+	eq(trackerSnapshots.trackingId, params.id),
+	eq(trackerSnapshots.uid, uid),
+);
+
+const { profile, statistics, games } = await Astro.locals.tracing.enterSpan(
+	"fetch-recent-games",
+	(span) => {
 		span.setAttribute("uid", uid);
 		span.setAttribute("kind", params.kind);
 		span.setAttribute("id", params.id);
 		span.setAttribute("duration", params.duration);
 		span.setAttribute("after", after.toISOString());
 
-		const filter = {
-			trackingFor: params.kind,
-			trackingId: params.id,
-			uid,
-		};
-		const [rows, profile] = await Promise.all([
-			db().query.trackerSnapshots.findMany({
-				columns: { point: true, timestamp: true },
-				where: { ...filter, timestamp: { gt: after.toDate() } },
-				orderBy: { id: "desc" },
-			}),
-			db().query.trackerSnapshotProfiles.findFirst({
+		const deltaSql = sql<number>`${trackerSnapshots.point} - LAG(${trackerSnapshots.point}, 1, ${trackerSnapshots.point}) OVER (ORDER BY ${asc(trackerSnapshots.id)})`;
+		const gapsCte = db()
+			.$with("gaps")
+			.as(
+				db()
+					.select({
+						point: trackerSnapshots.point,
+						delta: deltaSql.as("delta"),
+						timestamp: trackerSnapshots.timestamp,
+					})
+					.from(trackerSnapshots)
+					.where(baseFilter),
+			);
+
+		const cteFilter = and(
+			gte(gapsCte.timestamp, after.toDate()),
+			gt(gapsCte.delta, 0),
+			lte(gapsCte.delta, outlierCap),
+		);
+
+		return allKeyed({
+			profile: db().query.trackerSnapshotProfiles.findFirst({
 				columns: { name: true },
-				where: filter,
+				where: {
+					trackingFor: params.kind,
+					trackingId: params.id,
+					uid,
+				},
 			}),
-		]);
+			statistics: Astro.locals.tracing.enterSpan(
+				"fetch-game-statistics",
+				async () => {
+					const [statistics] = await db()
+						.with(gapsCte)
+						.select({
+							gamesTotal: sql<number>`COUNT(*)`,
+							minPoints: min(gapsCte.delta),
+							maxPoints: max(gapsCte.delta),
+							meanPoints: avg(gapsCte.delta),
+							medianPoints: sql<number>`MEDIAN(${gapsCte.delta})`,
 
-		if (rows.length > 0) {
-			const previous = await db().query.trackerSnapshots.findFirst({
-				columns: { point: true, timestamp: true },
-				where: { ...filter, timestamp: { lte: after.toDate() } },
-				orderBy: { id: "desc" },
-			});
+							latestPoint: sql<number>`(SELECT ${trackerSnapshots.point} FROM ${trackerSnapshots} WHERE ${cteFilter} ORDER BY ${desc(trackerSnapshots.id)} LIMIT 1)`,
+							oldestPoint: sql<number>`(SELECT ${trackerSnapshots.point} FROM ${trackerSnapshots} WHERE ${cteFilter} ORDER BY ${asc(trackerSnapshots.id)} LIMIT 1)`,
+						})
+						.from(gapsCte)
+						.where(cteFilter);
 
-			if (previous) rows.push(previous);
-		}
-
-		return {
-			profile,
-			snapshots: rows.filter(
-				({ point }, idx, snapshots) => point !== snapshots.at(idx + 1)?.point,
+					return {
+						...mapValues(statistics, (value) => Number(value ?? 0)),
+						pointsPerHour:
+							(statistics.latestPoint - statistics.oldestPoint) /
+							dayjs().diff(after, "hours", true),
+					};
+				},
 			),
-		};
+			games: Astro.locals.tracing.enterSpan("fetch-game-list", () =>
+				db()
+					.with(gapsCte)
+					.select({
+						point: gapsCte.point,
+						timestamp: gapsCte.timestamp,
+						delta: gapsCte.delta,
+					})
+					.from(gapsCte)
+					.where(gte(gapsCte.timestamp, after.toDate()))
+					.orderBy(desc(gapsCte.timestamp)),
+			),
+		});
 	},
 );
-
-const rawPoints = snapshots
-	.slice(0, -1)
-	.map(({ point }, idx) => point - snapshots[idx + 1].point);
-const outlierThreshold = mean(rawPoints) * 3;
-
-const points = rawPoints.filter((point) => point <= outlierThreshold);
-const games = snapshots.slice(0, -1).map(({ point, timestamp }, idx) => ({
-	point,
-	timestamp,
-	delta: point - snapshots[idx + 1].point,
-}));
-
-const pointsPerHour = (() => {
-	if (snapshots.length < 2) return 0;
-
-	const [first, last] = [snapshots[0], snapshots.at(-1)!];
-	const pointsGained = first.point - last.point;
-	const duration = dayjs().diff(after, "hour");
-	return pointsGained / duration;
-})();
 
 if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 ---
@@ -161,81 +197,82 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 		}
 	</fieldset>
 
-	{
-		snapshots.length > 0 && (
-			<>
-				<div class="mt-4 flex max-w-4/5 flex-wrap justify-center gap-x-1 gap-y-0.5">
-					{params.duration !== "1h" && (
-						<div class="badge badge-md badge-primary">
-							{formatNumber(
-								(snapshots.length - 1) / dayjs().diff(after, "hours"),
-							)}{" "}
-							Games/hour
-						</div>
-					)}
-
-					<div class="badge badge-md badge-accent">
-						{snapshots.length - 1} Games
-					</div>
-					<div class="badge badge-md badge-info">
-						Average:{" "}
-						{formatNumber(Math.round(mean(points)), { positiveSign: true })}
-					</div>
-					<div class="badge badge-md badge-info">
-						Median: {formatNumber(median(points), { positiveSign: true })}
-					</div>
-					<div class="badge badge-md badge-info">
-						Min: {formatNumber(Math.min(...points), { positiveSign: true })}
-					</div>
-					<div class="badge badge-md badge-info">
-						Max: {formatNumber(Math.max(...points), { positiveSign: true })}
-					</div>
-					<div class="badge badge-md badge-info">
-						{formatNumber(pointsPerHour, { positiveSign: true })} Pts/hour
-					</div>
+	<div class="mt-4 flex max-w-4/5 flex-wrap justify-center gap-x-1 gap-y-0.5">
+		{
+			params.duration !== "1h" && (
+				<div class="badge badge-md badge-primary">
+					{formatNumber(statistics.gamesTotal / dayjs().diff(after, "hours"))}{" "}
+					Games/hour
 				</div>
+			)
+		}
+		<div class="badge badge-md badge-accent">
+			{statistics.gamesTotal} Games
+		</div>
+		<div class="badge badge-md badge-info">
+			Average:{" "}
+			{
+				formatNumber(Math.round(statistics.meanPoints), {
+					positiveSign: true,
+				})
+			}
+		</div>
+		<div class="badge badge-md badge-info">
+			Median:{" "}
+			{formatNumber(statistics.medianPoints, { positiveSign: true })}
+		</div>
+		<div class="badge badge-md badge-info">
+			Min: {formatNumber(statistics.minPoints, { positiveSign: true })}
+		</div>
+		<div class="badge badge-md badge-info">
+			Max: {formatNumber(statistics.maxPoints, { positiveSign: true })}
+		</div>
+		<div class="badge badge-md badge-info">
+			{formatNumber(statistics.pointsPerHour, { positiveSign: true })}{" "}
+			Pts/hour
+		</div>
+	</div>
 
-				<ul class="timeline timeline-vertical mt-2 max-h-[60vh] w-full max-w-120 overflow-y-auto">
-					{games.map(({ point, timestamp, delta }, idx) => (
-						<li>
-							{idx > 0 && <hr class="bg-neutral" />}
-							<div class="timeline-start font-mono">
-								{formatDuration(dayjs(timestamp), dayjs())}
-							</div>
-							<div class="timeline-end">
-								<div class="inline-flex items-center font-semibold">
-									{formatNumber(point)}
-									<span
-										class:list={[
-											"ml-1 badge px-1.5 badge-xs",
-											delta > outlierThreshold
-												? "badge-warning"
-												: "badge-success",
-										]}
-									>
-										{formatNumber(delta, { positiveSign: true })}
-									</span>
+	<ul
+		class="timeline timeline-vertical mt-2 max-h-[60vh] w-full max-w-120 overflow-y-auto"
+	>
+		{
+			games.map(({ point, timestamp, delta }, idx) => (
+				<li>
+					{idx > 0 && <hr class="bg-neutral" />}
+					<div class="timeline-start font-mono">
+						{formatDuration(dayjs(timestamp), dayjs())}
+					</div>
+					<div class="timeline-end">
+						<div class="inline-flex items-center font-semibold">
+							{formatNumber(point)}
+							<span
+								class:list={[
+									"ml-1 badge px-1.5 badge-xs",
+									delta > outlierCap ? "badge-warning" : "badge-success",
+								]}
+							>
+								{formatNumber(delta, { positiveSign: true })}
+							</span>
 
-									{delta > outlierThreshold && (
-										<span
-											class="tooltip tooltip-end ml-1 badge badge-xs tooltip-warning badge-warning before:max-w-32"
-											data-tip="Likely accumulated while untracked"
-										>
-											gap
-										</span>
-									)}
-								</div>
-							</div>
-							{idx < games.length - 1 && <hr class="bg-neutral" />}
-						</li>
-					))}
-				</ul>
-			</>
-		)
-	}
+							{delta > outlierCap && (
+								<span
+									class="tooltip tooltip-end ml-1 badge badge-xs tooltip-warning badge-warning before:max-w-32"
+									data-tip="Likely accumulated while untracked"
+								>
+									gap
+								</span>
+							)}
+						</div>
+					</div>
+					{idx < games.length - 1 && <hr class="bg-neutral" />}
+				</li>
+			))
+		}
+	</ul>
 
 	{
-		snapshots.length === 0 && (
+		statistics.gamesTotal === 0 && (
 			<div class="flex items-center justify-center gap-2 py-16">
 				<Icon class="size-10" name="lucide--x" />
 				<span class="text-lg font-medium">No recent games found</span>

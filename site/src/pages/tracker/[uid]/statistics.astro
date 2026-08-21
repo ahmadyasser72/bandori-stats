@@ -144,10 +144,10 @@ const { gameStatistics, gameByHours, gameByPoints } =
 								sql`CASE WHEN ${gapsCte.gapMinutes} <= 30 THEN ${gapsCte.gapMinutes} ELSE NULL END`,
 							),
 
-							latestPoint: sql<number>`(SELECT ${trackerSnapshots.point} FROM ${trackerSnapshots} WHERE ${cteFilter} ORDER BY ${trackerSnapshots.timestamp} DESC LIMIT 1)`,
-							latestTimestamp: sql<number>`(SELECT ${trackerSnapshots.timestamp} FROM ${trackerSnapshots} WHERE ${cteFilter} ORDER BY ${trackerSnapshots.timestamp} DESC LIMIT 1)`,
-							oldestPoint: sql<number>`(SELECT ${trackerSnapshots.point} FROM ${trackerSnapshots} WHERE ${cteFilter} ORDER BY ${trackerSnapshots.timestamp} ASC LIMIT 1)`,
-							oldestTimestamp: sql<number>`(SELECT ${trackerSnapshots.timestamp} FROM ${trackerSnapshots} WHERE ${cteFilter} ORDER BY ${trackerSnapshots.timestamp} ASC LIMIT 1)`,
+							latestPoint: sql<number>`(SELECT ${trackerSnapshots.point} FROM ${trackerSnapshots} WHERE ${cteFilter} ORDER BY ${desc(trackerSnapshots.id)} LIMIT 1)`,
+							latestTimestamp: sql<number>`(SELECT ${trackerSnapshots.timestamp} FROM ${trackerSnapshots} WHERE ${cteFilter} ORDER BY ${desc(trackerSnapshots.id)} LIMIT 1)`,
+							oldestPoint: sql<number>`(SELECT ${trackerSnapshots.point} FROM ${trackerSnapshots} WHERE ${cteFilter} ORDER BY ${asc(trackerSnapshots.id)} LIMIT 1)`,
+							oldestTimestamp: sql<number>`(SELECT ${trackerSnapshots.timestamp} FROM ${trackerSnapshots} WHERE ${cteFilter} ORDER BY ${asc(trackerSnapshots.id)} LIMIT 1)`,
 						})
 						.from(gapsCte)
 						.where(cteFilter);
