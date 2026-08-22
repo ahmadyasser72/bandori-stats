@@ -17,7 +17,7 @@
 		"@bandori-stats/discord-bot": "workspace:*",
 		"@catppuccin/daisyui": "2.1.1",
 		"@iconify-json/line-md": "1.2.16",
-		"@iconify-json/lucide": "1.2.124",
+		"@iconify-json/lucide": "1.2.125",
 		"@iconify-json/svg-spinners": "1.2.4",
 		"@iconify/tailwind4": "1.2.3",
 		"@tailwindcss/typography": "0.5.20",
