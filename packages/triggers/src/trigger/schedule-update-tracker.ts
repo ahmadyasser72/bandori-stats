@@ -3,12 +3,12 @@ import webPush from "web-push";
 import type z from "zod";
 
 import dayjs from "@bandori-stats/bestdori/date";
-import { formatNumber, uniqBy } from "@bandori-stats/bestdori/helpers";
+import { formatNumber, omit, uniqBy } from "@bandori-stats/bestdori/helpers";
 import type {
 	GameEvent,
 	GameMonthlyRanking,
 } from "@bandori-stats/bestdori/schema/misc";
-import { db } from "@bandori-stats/database";
+import { db, getTableColumns } from "@bandori-stats/database";
 import {
 	GBP,
 	redis,
@@ -46,9 +46,9 @@ export const scheduleUpdateTracker = schedules.task({
 		]);
 		if (!version) return;
 
-		await Promise.allSettled([
+		const results = await Promise.allSettled([
 			(async () => {
-				if (!event || now.isBefore(event.startAt)) return;
+				if (!event || now.isBefore(event.startAt)) return [];
 
 				const { eventId, eventType } = event;
 				const top = await (async () => {
@@ -74,38 +74,56 @@ export const scheduleUpdateTracker = schedules.task({
 
 					return [];
 				})();
-				if (top.length === 0) return;
+				if (top.length === 0) return [];
 
 				const metadata = { kind: "event", ...event } as unknown as GbpMetadata;
 				const inserted = await insertSnapshots(top, { now, metadata });
-				if (inserted.length === 0) return;
+				if (inserted.length === 0) return [];
 
 				await Promise.all([
 					updateRedis(top, { inserted, metadata }),
 					sendPushNotifications(top, { now, inserted, metadata }),
 				]);
+
+				return inserted;
 			})(),
 			(async () => {
-				if (!monthly || now.isBefore(monthly.startAt)) return;
+				if (!monthly || now.isBefore(monthly.startAt)) return [];
 
 				const { monthlyRankingId } = monthly;
 				const data = await bangDream(version, "monthly", monthlyRankingId);
 				const top = data.monthlyRankingPointTopUsers?.entries ?? [];
-				if (top.length === 0) return;
+				if (top.length === 0) return [];
 
 				const metadata = {
 					kind: "monthly",
 					...monthly,
 				} as unknown as GbpMetadata;
 				const inserted = await insertSnapshots(top, { now, metadata });
-				if (inserted.length === 0) return;
+				if (inserted.length === 0) return [];
 
 				await Promise.all([
 					updateRedis(top, { inserted, metadata }),
 					sendPushNotifications(top, { now, inserted, metadata }),
 				]);
+
+				return inserted;
 			})(),
 		]);
+
+		const inserted = results.flatMap((promise) =>
+			promise.status === "fulfilled" ? promise.value : [],
+		);
+
+		await updateTrackerProfile.batchTriggerAndWait(
+			inserted.map(({ uid, trackingFor, trackingId }) => ({
+				payload: { uid, trackingReference: { trackingFor, trackingId } },
+				options: {
+					idempotencyKey: `uid:${trackingFor}:${trackingId}:${now.startOf("hour").toISOString()}`,
+				},
+			})),
+		);
+		await githubRedeploy.trigger(undefined);
 	},
 });
 
@@ -119,20 +137,6 @@ const insertSnapshots = async (
 	{ now, metadata }: InsertSnapshotOptions,
 ) => {
 	const trackingReference = getTrackingReference(metadata);
-
-	if (now.get("minutes") === 0) {
-		await updateTrackerProfile.batchTrigger(
-			top10.map(({ userId }) => ({
-				payload: { uid: userId.toString(), trackingReference },
-			})),
-		);
-		await githubRedeploy.trigger(undefined, {
-			delay: "5m",
-			idempotencyKey: `redeploy-tracker-profile`,
-			idempotencyKeyTTL: "1m",
-		});
-	}
-
 	const values = top10.map(
 		({ userId, name, rank, point }): typeof trackerSnapshots.$inferInsert => ({
 			...trackingReference,
@@ -144,16 +148,12 @@ const insertSnapshots = async (
 			timestamp: now.toDate(),
 		}),
 	);
+
 	return db()
 		.insert(trackerSnapshots)
 		.values(values)
 		.onConflictDoNothing()
-		.returning({
-			uid: trackerSnapshots.uid,
-			name: trackerSnapshots.name,
-			point: trackerSnapshots.point,
-			rank: trackerSnapshots.rank,
-		});
+		.returning(omit(getTableColumns(trackerSnapshots), ["id", "timestamp"]));
 };
 
 interface UpdateRedisTop10Options {
@@ -211,7 +211,7 @@ const sendPushNotifications = async (
 			const latestSnapshots = await Promise.all(
 				outsideTop10.map((uid) =>
 					db().query.trackerSnapshots.findFirst({
-						columns: { uid: true, name: true, point: true, rank: true },
+						columns: { id: false, timestamp: false },
 						where: { ...trackingReference, uid },
 						orderBy: { id: "desc" },
 					}),
