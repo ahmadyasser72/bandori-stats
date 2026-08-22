@@ -48,10 +48,16 @@ const clientTimezone =
 Astro.response.headers.append("vary", "client-timezone");
 const now = dayjs().tz(clientTimezone);
 
+const isNotStarted = now.isBefore(data.startAt);
 const isPastData = now.isAfter(data.endAt);
-const progress = isPastData
-	? 100
-	: (now.diff(data.startAt) / dayjs(data.endAt).diff(data.startAt)) * 100;
+const progress = (() => {
+	if (isNotStarted) return 0;
+	else if (isPastData) return 100;
+	else
+		return (
+			(now.diff(data.startAt) / dayjs(data.endAt).diff(data.startAt)) * 100
+		);
+})();
 
 if (Astro.cache.enabled)
 	Astro.cache.set(isPastData ? { maxAge: 60 * 60 } : { maxAge: 30, swr: 30 });
@@ -167,7 +173,9 @@ if (Astro.cache.enabled)
 				{...!isPastData && {
 					class:
 						"tooltip tooltip-start tooltip-primary underline decoration-dotted",
-					"data-tip": formatDuration(dayjs(data.startAt), now),
+					"data-tip": isNotStarted
+						? `in ${formatDuration(now, dayjs(data.startAt), false)}`
+						: formatDuration(dayjs(data.startAt), now),
 				}}
 				>{
 					dayjs.tz(data.startAt, clientTimezone).format("YYYY-MM-DD, HH:mm")

@@ -4,7 +4,12 @@ import { UMAMI_SITE_ID } from "astro:env/server";
 import z from "zod";
 
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
-import { capitalize, formatNumber, sum } from "@bandori-stats/bestdori/helpers";
+import {
+	allKeyed,
+	capitalize,
+	formatNumber,
+	sum,
+} from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
 import { GBP, redis } from "@bandori-stats/database/redis";
 import GbpCardTooltip from "~/components/gbp-card-tooltip.astro";
@@ -18,165 +23,146 @@ export const partials = true;
 const params = Astro.locals.parseQuery(
 	z.object({
 		kind: z.enum(["event", "monthly"]),
+		id: z.coerce.number(),
 		poll: z.stringbool().catch(false),
 	}),
 );
 
-const { data, isPastData, players } = await Astro.locals.tracing.enterSpan(
-	"fetch-data",
-	async () => {
-		const data = await Astro.locals.tracing.enterSpan(
-			"fetch-latest-data",
-			async (span) => {
-				span.setAttribute("kind", params.kind);
+const metadata = await Astro.locals.tracing.enterSpan(
+	"fetch-metadata",
+	async (span) => {
+		span.setAttribute("kind", params.kind);
+		span.setAttribute("id", params.id);
 
-				if (params.kind === "event") {
-					const event = await db().query.gbpEvents.findFirst({
-						where: { startAt: { lt: new Date() } },
-						orderBy: { eventId: "desc" },
-					});
-					return { ...event!, name: event?.eventName!, id: event?.eventId! };
-				} else {
-					const monthly = await db().query.gbpMonthlyRankings.findFirst({
-						where: { startAt: { lt: new Date() } },
-						orderBy: { monthlyRankingId: "desc" },
-					});
-					return {
-						...monthly!,
-						name: monthly?.monthlyRankingName!,
-						id: monthly?.monthlyRankingId!,
-					};
-				}
-			},
-		);
-
-		const isPastData = dayjs().isAfter(data.endAt);
-
-		const key = GBP[params.kind][data.id];
-		const top10 = await Astro.locals.tracing.enterSpan(
-			"fetch-top-10",
-			async (span) => {
-				span.setAttribute("key", key);
-
-				return redis()
-					.mget<(number | null)[]>(
-						...Array.from({ length: 10 }, (_, idx) => `${key}:${idx + 1}`),
+		return params.kind === "event"
+			? db()
+					.query.gbpEvents.findFirst({
+						columns: { eventName: true, startAt: true, endAt: true },
+						where: { eventId: params.id },
+					})
+					.then((event) =>
+						event ? { ...event, name: event.eventName } : undefined,
 					)
-					.then((uids) => uids.map((uid) => uid?.toString()));
-			},
-		);
-
-		const players = await Astro.locals.tracing.enterSpan(
-			"fetch-snapshots",
-			(span) => {
-				for (const [idx, uid] of top10.entries())
-					span.setAttribute(`t${idx + 1}`, uid);
-
-				return Promise.all(
-					top10.map((uid) =>
-						!uid
-							? []
-							: db().query.trackerSnapshots.findMany({
-									columns: { trackingFor: false, trackingId: false },
-									where: {
-										trackingFor: params.kind,
-										trackingId: data.id,
-										uid,
-									},
-									limit: 2,
-									orderBy: { id: "desc" },
-									with: {
-										profiles: {
-											columns: {
-												level: true,
-												avatar: true,
-												introduction: true,
-												band: true,
-												titles: true,
-											},
-											where: {
-												trackingFor: params.kind,
-												trackingId: data.id,
-											},
-										},
-									},
-								}),
-					),
-				);
-			},
-		);
-
-		for (const [idx, [current, previous]] of players.entries()) {
-			if (!previous) continue;
-
-			if (current.point === previous.point) {
-				players[idx] = await Astro.locals.tracing.enterSpan(
-					"fetch-same-points",
-					async (span) => {
-						span.setAttribute("uid", current.uid);
-						span.setAttribute("point", current.point);
-
-						return db().query.trackerSnapshots.findMany({
-							columns: { trackingFor: false, trackingId: false },
-							where: {
-								trackingFor: params.kind,
-								trackingId: data.id,
-								uid: current.uid,
-								point: current.point,
-							},
-							orderBy: { id: "desc" },
-							with: {
-								profiles: {
-									columns: {
-										level: true,
-										avatar: true,
-										introduction: true,
-										band: true,
-										titles: true,
-									},
-									where: {
-										trackingFor: params.kind,
-										trackingId: data.id,
-									},
-								},
-							},
-						});
-					},
-				);
-			}
-		}
-
-		return {
-			data,
-			isPastData,
-			players: players
-				.filter((snapshots) => snapshots.length > 0)
-				.map((snapshots) => {
-					const [latest, previous] = snapshots;
-					const lastPlayed =
-						!isPastData && latest.point === previous?.point
-							? snapshots.at(-1)!
-							: latest;
-
-					return {
-						latest,
-						previous:
-							!isPastData && dayjs().diff(latest.timestamp, "minutes") <= 30
-								? previous
-								: undefined,
-						lastPlayed,
-						boatHistory:
-							previous &&
-							latest.point === previous.point &&
-							latest.rank > lastPlayed.rank
-								? snapshots.reverse()
-								: undefined,
-
-						profile: latest.profiles.at(0),
-					};
-				}),
-		};
+			: db()
+					.query.gbpMonthlyRankings.findFirst({
+						columns: { monthlyRankingName: true, startAt: true, endAt: true },
+						where: { monthlyRankingId: params.id },
+					})
+					.then((monthly) =>
+						monthly
+							? { ...monthly, name: monthly.monthlyRankingName }
+							: undefined,
+					);
 	},
+);
+if (!metadata) return new Response(null, { status: 404 });
+
+const isPastData = dayjs().isAfter(metadata.endAt);
+
+const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
+	const key = GBP[params.kind][params.id!];
+	const top10 = await Astro.locals.tracing.enterSpan(
+		"fetch-t10",
+		async (span) => {
+			span.setAttribute("key", key);
+
+			return redis()
+				.mget<(number | null)[]>(
+					...Array.from({ length: 10 }, (_, idx) => `${key}:${idx + 1}`),
+				)
+				.then((uids) =>
+					uids.filter((uid) => uid !== null).map((uid) => uid.toString()),
+				);
+		},
+	);
+
+	const trackingReference = {
+		trackingFor: params.kind,
+		trackingId: params.id,
+	};
+
+	const players = await Astro.locals.tracing.enterSpan(
+		"fetch-snapshots",
+		(span) => {
+			for (const [idx, uid] of top10.entries())
+				span.setAttribute(`t${idx + 1}`, uid);
+
+			return Promise.all(
+				top10.map((uid) =>
+					allKeyed({
+						snapshots: db()
+							.query.trackerSnapshots.findMany({
+								columns: { trackingFor: false, trackingId: false },
+								where: { ...trackingReference, uid },
+								limit: isPastData ? 1 : 2,
+								orderBy: { id: "desc" },
+							})
+							.then((snapshots) => {
+								if (snapshots.length === 1) return snapshots;
+
+								const [current, previous] = snapshots;
+								if (current.point !== previous.point) return snapshots;
+								else {
+									return Astro.locals.tracing.enterSpan(
+										"fetch-same-points",
+										async (span) => {
+											span.setAttribute("uid", current.uid);
+											span.setAttribute("point", current.point);
+
+											return db().query.trackerSnapshots.findMany({
+												columns: { trackingFor: false, trackingId: false },
+												where: {
+													...trackingReference,
+													uid: current.uid,
+													point: current.point,
+												},
+												orderBy: { id: "desc" },
+											});
+										},
+									);
+								}
+							}),
+						profile: db().query.trackerSnapshotProfiles.findFirst({
+							columns: {
+								level: true,
+								avatar: true,
+								introduction: true,
+								band: true,
+								titles: true,
+							},
+							where: { ...trackingReference, uid },
+						}),
+					}),
+				),
+			);
+		},
+	);
+
+	return players.map(({ snapshots, profile }) => {
+		const [latest, previous] = snapshots;
+		if (isPastData) return { latest, profile };
+
+		const lastPlayed =
+			latest.point === previous?.point ? snapshots.at(-1)! : latest;
+		return {
+			latest,
+			profile,
+			previous:
+				dayjs().diff(latest.timestamp, "minutes") <= 30 ? previous : undefined,
+			lastPlayed,
+			boatHistory:
+				previous &&
+				latest.point === previous.point &&
+				latest.rank > lastPlayed.rank
+					? snapshots.reverse()
+					: undefined,
+		};
+	});
+});
+
+Astro.response.headers.set(
+	"hx-replace-url",
+	`/tracker?id=${params.id}&tab=${params.kind}`,
 );
 
 if (Astro.cache.enabled)
@@ -192,7 +178,7 @@ if (Astro.cache.enabled)
 					hx-headers="js:{ 'client-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone }"
 					hx-swap="outerHTML"
 					hx-trigger="intersect once"
-					hx-vals={JSON.stringify({ kind: params.kind, id: data.id })}
+					hx-vals={JSON.stringify({ kind: params.kind, id: params.id })}
 					class="mt-4 flex flex-col items-center gap-1"
 				>
 					<div class="flex gap-1">
@@ -248,14 +234,14 @@ if (Astro.cache.enabled)
 		"hx-on": [
 			import.meta.env.PROD &&
 				UMAMI_SITE_ID &&
-				`htmx:before:request from:self -> umami.track("tracker-poll", { name: "${data.name}", kind: "${params.kind}" })`,
+				`htmx:before:request from:self -> umami.track("tracker-poll", { name: "${metadata.name}", kind: "${params.kind}" })`,
 			"htmx:before:request from:self -> if (document.hidden) event.preventDefault()",
 		]
 			.filter(Boolean)
 			.join(";"),
 		"hx-swap": "outerHTML transition:true",
 		"hx-trigger": "load delay:60s, visibilitychange from:document",
-		"hx-vals": JSON.stringify({ kind: params.kind, poll: true }),
+		"hx-vals": JSON.stringify({ kind: params.kind, id: params.id, poll: true }),
 	}}
 	class="list mt-4 py-1"
 	id="tracker-list"
@@ -269,7 +255,7 @@ if (Astro.cache.enabled)
 					latest.rank === 2 && "aura-gold",
 					latest.rank === 3 && "aura-silver",
 
-					!isPastData &&
+					lastPlayed &&
 						dayjs().diff(lastPlayed.timestamp, "minutes") >= 30 &&
 						"opacity-50 transition-opacity hover:opacity-100 focus:opacity-100",
 				]}
@@ -295,7 +281,7 @@ if (Astro.cache.enabled)
 							{latest.rank}
 						</span>
 
-						{lastPlayed.rank !== latest.rank && (
+						{lastPlayed && lastPlayed.rank !== latest.rank && (
 							<span
 								class:list={[
 									"badge w-8 px-0 badge-xs font-semibold",
@@ -321,7 +307,7 @@ if (Astro.cache.enabled)
 						<button
 							data-umami-event="tracker-profile"
 							data-umami-event-kind={params.kind}
-							data-umami-event-name={data.name}
+							data-umami-event-name={metadata.name}
 							data-umami-event-player={latest.name}
 							class="btn btn-info btn-sm max-sm:hidden"
 							disabled={!profile}
@@ -346,7 +332,7 @@ if (Astro.cache.enabled)
 								)}
 							</span>
 
-							{!isPastData && (
+							{lastPlayed && (
 								<span>
 									played{" "}
 									{dayjs().diff(lastPlayed.timestamp, "minutes") < 1
@@ -355,7 +341,7 @@ if (Astro.cache.enabled)
 								</span>
 							)}
 
-							{!isPastData && boatHistory && (
+							{boatHistory && (
 								<span>
 									boated{" "}
 									{boatHistory.length === 1 ? (
@@ -390,7 +376,7 @@ if (Astro.cache.enabled)
 						<button
 							data-umami-event="tracker-profile"
 							data-umami-event-kind={params.kind}
-							data-umami-event-name={data.name}
+							data-umami-event-name={metadata.name}
 							data-umami-event-player={latest.name}
 							class="btn col-span-2 self-center btn-info btn-sm sm:hidden"
 							disabled={!profile}
@@ -402,12 +388,12 @@ if (Astro.cache.enabled)
 						</button>
 
 						<div class="col-span-full flex gap-1 sm:justify-end">
-							{!isPastData && (
+							{lastPlayed && (
 								<button
 									hx-get={`/tracker/${latest.uid}/recent-games`}
 									hx-vals={JSON.stringify({
 										kind: params.kind,
-										id: data.id,
+										id: params.id,
 										duration:
 											dayjs().diff(lastPlayed.timestamp, "minutes") < 60
 												? "1h"
@@ -415,7 +401,7 @@ if (Astro.cache.enabled)
 									})}
 									data-umami-event="tracker-recent-games"
 									data-umami-event-kind={params.kind}
-									data-umami-event-name={data.name}
+									data-umami-event-name={metadata.name}
 									data-umami-event-player={latest.name}
 									class="btn btn-primary btn-xs sm:btn-sm"
 								>
@@ -430,12 +416,12 @@ if (Astro.cache.enabled)
 								hx-target="main"
 								hx-vals={JSON.stringify({
 									kind: params.kind,
-									id: data.id,
-									duration: dayjs().isBefore(data.endAt) ? "1d" : "all",
+									id: params.id,
+									duration: dayjs().isBefore(metadata.endAt) ? "1d" : "all",
 								})}
 								data-umami-event="tracker-statistics"
 								data-umami-event-kind={params.kind}
-								data-umami-event-name={data.name}
+								data-umami-event-name={metadata.name}
 								data-umami-event-player={latest.name}
 								class="btn btn-accent btn-xs max-sm:flex-1 sm:btn-sm"
 							>
@@ -448,10 +434,10 @@ if (Astro.cache.enabled)
 									hx-get={`/tracker/${latest.uid}/notify`}
 									hx-swap="after"
 									hx-target="main"
-									hx-vals={JSON.stringify({ kind: params.kind, id: data.id })}
+									hx-vals={JSON.stringify({ kind: params.kind, id: params.id })}
 									data-umami-event="tracker-notify"
 									data-umami-event-kind={params.kind}
-									data-umami-event-name={data.name}
+									data-umami-event-name={metadata.name}
 									data-umami-event-player={latest.name}
 									class="btn btn-secondary btn-xs max-sm:flex-1 sm:btn-sm"
 								>
