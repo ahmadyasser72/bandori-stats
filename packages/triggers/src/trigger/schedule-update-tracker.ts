@@ -114,6 +114,7 @@ export const scheduleUpdateTracker = schedules.task({
 		const inserted = results.flatMap((promise) =>
 			promise.status === "fulfilled" ? promise.value : [],
 		);
+		if (inserted.length === 0) return;
 
 		await updateTrackerProfile.batchTriggerAndWait(
 			inserted.map(({ uid, trackingFor, trackingId }) => ({
