@@ -1,13 +1,12 @@
 ---
-import { type PlayerBandMember } from "@bandori-stats/database/schema";
+import {
+	type PlayerBandMember,
+	type PlayerBandMemberStateless,
+} from "@bandori-stats/database/schema";
 import { getProfileIcon } from "~/lib/assets";
 
 interface Props {
-	member: Pick<
-		PlayerBandMember,
-		"id" | "trained" | "band" | "rarity" | "attribute"
-	> &
-		Partial<PlayerBandMember>;
+	member: PlayerBandMemberStateless & Partial<PlayerBandMember>;
 }
 
 const { member } = Astro.props;

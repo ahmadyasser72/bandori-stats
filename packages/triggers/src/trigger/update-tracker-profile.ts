@@ -16,6 +16,7 @@ import {
 	STAT_TYPES,
 	trackerSnapshotProfiles,
 	type PlayerBandMember,
+	type PlayerBandMemberStateless,
 } from "@bandori-stats/database/schema";
 import { bangDreamProfile } from "~/bang-dream-gbp/fetch";
 import { bestdori } from "~/bestdori";
@@ -50,8 +51,42 @@ export const updateTrackerProfile = schemaTask({
 
 		if (!publishTotalDeckPowerFlg) await tags.add("bp_hidden");
 
+		const getCardById = async (id: number) => {
+			const { success, data, error } = Card.safeParse(
+				await bestdori(`api/cards/${id}.json`, {}),
+			);
+
+			if (!success) {
+				await tags.add("schema_error");
+				throw new AbortTaskRunError(error.message);
+			}
+
+			return data;
+		};
+
 		const zeroStat = { performance: 0, technique: 0, visual: 0 };
-		const { areaItems, bandMembers, skillsMap } = await allKeyed({
+		const { avatar, areaItems, bandMembers, skillsMap } = await allKeyed({
+			avatar: await (async () => {
+				if (
+					!userProfileSituation ||
+					!(
+						"situationId" in userProfileSituation &&
+						"illust" in userProfileSituation
+					)
+				)
+					return null;
+
+				const card = await getCardById(userProfileSituation.situationId);
+
+				return {
+					id: userProfileSituation.situationId,
+					trained: userProfileSituation.illust === "after_training",
+					attribute: card.attribute,
+					character: card.characterId,
+					band: CHARACTER_TO_BAND[card.characterId],
+					rarity: card.rarity,
+				} satisfies PlayerBandMemberStateless;
+			})(),
 			areaItems: getAreaItems(
 				(enabledUserAreaItems?.entries ?? []).map(
 					({ areaItemId }) => areaItemId,
@@ -59,18 +94,7 @@ export const updateTrackerProfile = schemaTask({
 			),
 			bandMembers: Promise.all(
 				(mainDeckUserSituations?.entries ?? []).map(async (data) => {
-					const {
-						success,
-						data: card,
-						error,
-					} = Card.safeParse(
-						await bestdori(`api/cards/${data.situationId}.json`, {}),
-					);
-
-					if (!success) {
-						await tags.add("schema_error");
-						throw new AbortTaskRunError(error.message);
-					}
+					const card = await getCardById(data.situationId);
 
 					const stat = card.stat[data.level] ?? zeroStat;
 					if (data.userAppendParameter && stat !== zeroStat) {
@@ -148,16 +172,7 @@ export const updateTrackerProfile = schemaTask({
 			name: userName,
 			level: rank,
 			introduction,
-
-			avatar:
-				userProfileSituation &&
-				"situationId" in userProfileSituation &&
-				"illust" in userProfileSituation
-					? {
-							id: userProfileSituation.situationId,
-							trained: userProfileSituation.illust === "after_training",
-						}
-					: null,
+			avatar,
 
 			band: {
 				name: mainUserDeck?.deckName!,

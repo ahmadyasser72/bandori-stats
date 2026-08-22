@@ -10,7 +10,11 @@ import type z from "zod";
 
 import type { Stats } from "@bandori-stats/bestdori/constants";
 import type { GameEventType } from "@bandori-stats/bestdori/schema/misc";
-import type { PlayerAvatar, PlayerBand } from "./tracker-snapshot-profile";
+import type {
+	PlayerAvatar,
+	PlayerBand,
+	PlayerBandMemberStateless,
+} from "./tracker-snapshot-profile";
 
 export * from "./tracker-snapshot-profile";
 
@@ -129,7 +133,7 @@ export const trackerSnapshotProfiles = sqliteTable(
 		name: text().notNull(),
 		level: integer().notNull(),
 		introduction: text().notNull(),
-		avatar: text({ mode: "json" }).$type<PlayerAvatar>(),
+		avatar: text({ mode: "json" }).$type<PlayerBandMemberStateless>(),
 		band: text({ mode: "json" }).notNull().$type<PlayerBand>(),
 		titles: text({ mode: "json" }).notNull().$type<number[]>(),
 	},

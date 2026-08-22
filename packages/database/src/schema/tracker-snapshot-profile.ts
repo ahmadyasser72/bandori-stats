@@ -11,17 +11,18 @@ export interface PlayerBand {
 	members: PlayerBandMember[];
 }
 
-export interface PlayerBandMember extends PlayerAvatar {
+export interface PlayerBandMemberStateless extends PlayerAvatar {
 	attribute: "powerful" | "pure" | "cool" | "happy";
 	character: number;
 	band: number;
-
-	level: number;
 	rarity: number;
+}
+
+export interface PlayerBandMember extends PlayerBandMemberStateless {
+	level: number;
 	skill: string;
 	trainedStatus: boolean;
 	limitBreakRank: number;
-
 	stat: PlayerBandMemberStat;
 	cardBonus: PlayerBandMemberStat;
 	potentialBonus: PlayerBandMemberStat;
