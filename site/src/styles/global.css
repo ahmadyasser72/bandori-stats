@@ -91,3 +91,9 @@ bottom-sheet::part(sheet) {
 		@apply absolute right-0 bottom-0 rounded-tl-sm bg-black/60 px-0.5 py-px text-[10px] leading-none text-white sm:rounded-tl-md sm:px-1 sm:text-[12px] dark:bg-black/80;
 	}
 }
+
+@utility tooltip {
+	&:has(.gbp-card) {
+		@apply size-12 sm:size-16;
+	}
+}

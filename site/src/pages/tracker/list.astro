@@ -4,15 +4,11 @@ import { UMAMI_SITE_ID } from "astro:env/server";
 import z from "zod";
 
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
-import {
-	capitalize,
-	formatNumber,
-	mapValues,
-	sum,
-} from "@bandori-stats/bestdori/helpers";
+import { capitalize, formatNumber, sum } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
 import { GBP, redis } from "@bandori-stats/database/redis";
-import { sumStats } from "@bandori-stats/database/schema";
+import GbpCardTooltip from "~/components/gbp-card-tooltip.astro";
+import GbpCard from "~/components/gbp-card.astro";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import { getProfileIcon, getTitleImage } from "~/lib/assets";
@@ -182,11 +178,6 @@ const { data, isPastData, players } = await Astro.locals.tracing.enterSpan(
 		};
 	},
 );
-
-const getBonusPercentage = (baseStat: number, bonusStat: number) =>
-	(Math.ceil((bonusStat / baseStat) * 10000) / 100).toLocaleString("en-US", {
-		minimumFractionDigits: 1,
-	});
 
 if (Astro.cache.enabled)
 	Astro.cache.set(isPastData ? { maxAge: 60 * 60 } : { maxAge: 30, swr: 30 });
@@ -535,137 +526,27 @@ if (Astro.cache.enabled)
 										.filter((it) => it !== null)
 										.map((it, idx) => ({
 											...it,
-											statBase: mapValues(
-												it.stat,
-												(value, type) =>
-													value -
-													it.potentialBonus[type] -
-													it.missionBonus[type],
-											),
 											tooltipAlign:
 												(idx < 2 && "tooltip-start") ||
 												(idx > 2 && "tooltip-end"),
 										}))
-										.map(
-											({
-												id,
-												rarity,
-												attribute,
-												band,
-												trained,
-												level,
-												trainedStatus,
-												limitBreakRank,
-												skill,
-												stat,
-												statBase,
-												potentialBonus,
-												missionBonus,
-												tooltipAlign,
-											}) => (
+										.map(({ tooltipAlign, ...member }) => (
+											<div
+												class:list={[
+													"tooltip tooltip-bottom tooltip-info before:w-64",
+													tooltipAlign,
+												]}
+												data-tip={member.skill}
+											>
 												<div
-													class:list={[
-														"tooltip tooltip-bottom tooltip-info before:w-64",
-														tooltipAlign,
-													]}
-													data-tip={skill}
+													class:list={["tooltip tooltip-info", tooltipAlign]}
 												>
-													<div
-														class:list={[
-															"tooltip gbp-card tooltip-info",
-															tooltipAlign,
-														]}
-													>
-														<span class="tooltip-content w-64">
-															<div class="flex flex-col">
-																{[
-																	[
-																		"Power",
-																		`${formatNumber(sumStats(stat))} (+${formatNumber(sumStats(potentialBonus) + sumStats(missionBonus))})`,
-																	],
+													<GbpCardTooltip {member} />
 
-																	...Object.keys(stat).map((type) => [
-																		capitalize(type),
-																		`${formatNumber(stat[type])} (+${formatNumber(potentialBonus[type] + missionBonus[type])})`,
-																	]),
-
-																	[
-																		"Potentials",
-																		Object.keys(stat)
-																			.map(
-																				(type) =>
-																					`+${getBonusPercentage(statBase[type], potentialBonus[type])}%`,
-																			)
-																			.join(" "),
-																	],
-																	[
-																		"Missions",
-																		Object.keys(stat)
-																			.map(
-																				(type) =>
-																					`+${getBonusPercentage(statBase[type], missionBonus[type])}%`,
-																			)
-																			.join(" "),
-																	],
-																].map(([key, value]) => (
-																	<div class="flex w-full items-center justify-between">
-																		<span>{key}</span>
-																		<span class="ml-4 font-mono">{value}</span>
-																	</div>
-																))}
-															</div>
-														</span>
-
-														<img
-															class="gbp-card-icon"
-															src={getProfileIcon({
-																profileArt: { id, trained },
-															})}
-															alt={`card ${id}`}
-															loading="lazy"
-														/>
-														{rarity > 1 && (
-															<img
-																class="gbp-card-frame"
-																src={`/assets/card-frame/${rarity}.webp`}
-																loading="lazy"
-															/>
-														)}
-
-														<img
-															class="gbp-card-band"
-															src={`/assets/bands/${band}.svg`}
-															loading="lazy"
-														/>
-														<img
-															class="gbp-card-attribute"
-															src={`/assets/attributes/${attribute}.svg`}
-															loading="lazy"
-														/>
-
-														<div class="gbp-card-stars">
-															{Array.from({ length: rarity }, () => (
-																<img
-																	src={`/assets/card-rarity/${trainedStatus ? "trained" : "normal"}.webp`}
-																	loading="lazy"
-																/>
-															))}
-														</div>
-														{limitBreakRank > 0 && (
-															<div class="gbp-card-limit-break">
-																<img
-																	src="/assets/card-limit-break/overlay.svg"
-																	loading="lazy"
-																/>
-																<span>{limitBreakRank}</span>
-															</div>
-														)}
-
-														<div class="gbp-card-level">{level}</div>
-													</div>
+													<GbpCard {member} />
 												</div>
-											),
-										)}
+											</div>
+										))}
 								</div>
 							</div>
 						</div>

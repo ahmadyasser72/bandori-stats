@@ -1,0 +1,65 @@
+---
+import { type PlayerBandMember } from "@bandori-stats/database/schema";
+import { getProfileIcon } from "~/lib/assets";
+
+interface Props {
+	member: Pick<
+		PlayerBandMember,
+		"id" | "trained" | "band" | "rarity" | "attribute"
+	> &
+		Partial<PlayerBandMember>;
+}
+
+const { member } = Astro.props;
+---
+
+<div class="gbp-card">
+	<img
+		class="gbp-card-icon"
+		src={getProfileIcon({ profileArt: member })}
+		alt={`card ${member.id}`}
+		loading="lazy"
+	/>
+	{
+		member.rarity > 1 && (
+			<img
+				class="gbp-card-frame"
+				src={`/assets/card-frame/${member.rarity}.webp`}
+				loading="lazy"
+			/>
+		)
+	}
+
+	<img
+		class="gbp-card-band"
+		src={`/assets/bands/${member.band}.svg`}
+		loading="lazy"
+	/>
+	<img
+		class="gbp-card-attribute"
+		src={`/assets/attributes/${member.attribute}.svg`}
+		loading="lazy"
+	/>
+
+	<div class="gbp-card-stars">
+		{
+			Array.from({ length: member.rarity }, () => (
+				<img
+					src={`/assets/card-rarity/${(member.trainedStatus ?? member.trained) ? "trained" : "normal"}.webp`}
+					loading="lazy"
+				/>
+			))
+		}
+	</div>
+
+	{
+		member.limitBreakRank && member.limitBreakRank > 0 && (
+			<div class="gbp-card-limit-break">
+				<img src="/assets/card-limit-break/overlay.svg" loading="lazy" />
+				<span>{member.limitBreakRank}</span>
+			</div>
+		)
+	}
+
+	{member.level && <div class="gbp-card-level">{member.level}</div>}
+</div>

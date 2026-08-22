@@ -1,0 +1,65 @@
+---
+import {
+	capitalize,
+	formatNumber,
+	mapValues,
+} from "@bandori-stats/bestdori/helpers";
+import {
+	sumStats,
+	type PlayerBandMember,
+} from "@bandori-stats/database/schema";
+
+interface Props {
+	member: PlayerBandMember;
+}
+
+const { member } = Astro.props;
+
+const statBase = mapValues(
+	member.stat,
+	(value, type) =>
+		value - member.potentialBonus[type] - member.missionBonus[type],
+);
+const getBonusPercentage = (baseStat: number, bonusStat: number) =>
+	(Math.ceil((bonusStat / baseStat) * 10000) / 100).toLocaleString("en-US", {
+		minimumFractionDigits: 1,
+	});
+
+const totalPower = sumStats(member.stat);
+const totalPotentialBonus = sumStats(member.potentialBonus);
+const totalMissionBonus = sumStats(member.missionBonus);
+const totalPowerBonus = totalPotentialBonus + totalMissionBonus;
+---
+
+<div class="tooltip-content w-64">
+	<div class="flex flex-col">
+		{
+			[
+				[
+					"Power",
+					`${formatNumber(totalPower)} (+${formatNumber(totalPowerBonus)})`,
+				],
+
+				...Object.keys(member.stat).map((type) => [
+					capitalize(type),
+					`${formatNumber(member.stat[type])} (+${formatNumber(member.potentialBonus[type] + member.missionBonus[type])})`,
+				]),
+
+				...(["potential", "mission"] as const).map((bonusType) => [
+					capitalize(bonusType),
+					Object.keys(member.stat)
+						.map(
+							(type) =>
+								`+${getBonusPercentage(statBase[type], member[`${bonusType}Bonus`][type])}%`,
+						)
+						.join(" "),
+				]),
+			].map(([key, value]) => (
+				<div class="flex w-full items-center justify-between">
+					<span>{key}</span>
+					<span class="ml-4 font-mono">{value}</span>
+				</div>
+			))
+		}
+	</div>
+</div>
