@@ -7,12 +7,13 @@ import { getProfileIcon } from "~/lib/assets";
 
 interface Props {
 	member: PlayerBandMemberStateless & Partial<PlayerBandMember>;
+	class?: string;
 }
 
-const { member } = Astro.props;
+const { member, class: className } = Astro.props;
 ---
 
-<div class="gbp-card">
+<div class:list={["gbp-card", className]}>
 	<img
 		class="gbp-card-icon"
 		src={getProfileIcon({ profileArt: member })}

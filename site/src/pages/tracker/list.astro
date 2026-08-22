@@ -11,7 +11,7 @@ import GbpCardTooltip from "~/components/gbp-card-tooltip.astro";
 import GbpCard from "~/components/gbp-card.astro";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
-import { getProfileIcon, getTitleImage } from "~/lib/assets";
+import { getTitleImage } from "~/lib/assets";
 
 export const partials = true;
 
@@ -311,15 +311,7 @@ if (Astro.cache.enabled)
 
 					<div class="flex min-w-0 items-center gap-2 list-col-grow">
 						{profile?.avatar && (
-							<div class="avatar">
-								<div class="size-10 rounded-box">
-									<img
-										src={getProfileIcon({ profileArt: profile.avatar })}
-										alt={latest.name}
-										loading="lazy"
-									/>
-								</div>
-							</div>
+							<GbpCard class="scale-75" member={profile.avatar} />
 						)}
 
 						<span class="flex-1 truncate text-lg font-medium text-ellipsis">
