@@ -3,12 +3,12 @@ import webPush from "web-push";
 import type z from "zod";
 
 import dayjs from "@bandori-stats/bestdori/date";
-import { formatNumber, omit, uniqBy } from "@bandori-stats/bestdori/helpers";
+import { formatNumber, sumBy, uniqBy } from "@bandori-stats/bestdori/helpers";
 import type {
 	GameEvent,
 	GameMonthlyRanking,
 } from "@bandori-stats/bestdori/schema/misc";
-import { db, getTableColumns } from "@bandori-stats/database";
+import { db } from "@bandori-stats/database";
 import {
 	GBP,
 	redis,
@@ -81,11 +81,12 @@ export const scheduleUpdateTracker = schedules.task({
 				if (inserted.length === 0) return [];
 
 				await Promise.all([
-					updateRedis(top, { inserted, metadata }),
+					tags.add(`${metadata.kind}_+${inserted.length}`),
+					updateRedis(top, { metadata }),
 					sendPushNotifications(top, { now, inserted, metadata }),
 				]);
 
-				return inserted;
+				return inserted.map(({ uid }) => ({ uid, metadata }));
 			})(),
 			(async () => {
 				if (!monthly || now.isBefore(monthly.startAt)) return [];
@@ -103,11 +104,12 @@ export const scheduleUpdateTracker = schedules.task({
 				if (inserted.length === 0) return [];
 
 				await Promise.all([
-					updateRedis(top, { inserted, metadata }),
+					tags.add(`${metadata.kind}_+${inserted.length}`),
+					updateRedis(top, { metadata }),
 					sendPushNotifications(top, { now, inserted, metadata }),
 				]);
 
-				return inserted;
+				return inserted.map(({ uid }) => ({ uid, metadata }));
 			})(),
 		]);
 
@@ -117,10 +119,11 @@ export const scheduleUpdateTracker = schedules.task({
 		if (inserted.length === 0) return;
 
 		await updateTrackerProfile.batchTriggerAndWait(
-			inserted.map(({ uid, trackingFor, trackingId }) => ({
-				payload: { uid, trackingReference: { trackingFor, trackingId } },
+			inserted.map(({ uid, metadata }) => ({
+				payload: { uid, trackingReference: getTrackingReference(metadata) },
 				options: {
-					idempotencyKey: `uid:${trackingFor}:${trackingId}:${now.startOf("hour").toISOString()}`,
+					idempotencyKey: `uid:${metadata.kind}:${metadata.assetBundleName}:${now.startOf("hour").toISOString()}`,
+					tags: `${metadata.kind}_${metadata.assetBundleName}`,
 				},
 			})),
 		);
@@ -154,17 +157,21 @@ const insertSnapshots = async (
 		.insert(trackerSnapshots)
 		.values(values)
 		.onConflictDoNothing()
-		.returning(omit(getTableColumns(trackerSnapshots), ["id", "timestamp"]));
+		.returning({
+			uid: trackerSnapshots.uid,
+			name: trackerSnapshots.name,
+			point: trackerSnapshots.point,
+			rank: trackerSnapshots.rank,
+		});
 };
 
 interface UpdateRedisTop10Options {
-	inserted: Awaited<ReturnType<typeof insertSnapshots>>;
 	metadata: GbpMetadata;
 }
 
 const updateRedis = async (
 	top10: RankingUser[],
-	{ inserted, metadata }: UpdateRedisTop10Options,
+	{ metadata }: UpdateRedisTop10Options,
 ) => {
 	const key = getRedisKey(metadata);
 	await redis().mset(
@@ -172,7 +179,6 @@ const updateRedis = async (
 			top10.map(({ userId, rank }) => [`${key}:${rank}`, userId!.toString()]),
 		),
 	);
-	await tags.add(`${metadata.kind}_+${inserted.length}`);
 
 	const uids = top10.map(({ userId }) => userId!.toString());
 	// @ts-expect-error should works
@@ -212,7 +218,7 @@ const sendPushNotifications = async (
 			const latestSnapshots = await Promise.all(
 				outsideTop10.map((uid) =>
 					db().query.trackerSnapshots.findFirst({
-						columns: { id: false, timestamp: false },
+						columns: { uid: true, name: true, point: true, rank: true },
 						where: { ...trackingReference, uid },
 						orderBy: { id: "desc" },
 					}),
@@ -299,12 +305,9 @@ const sendPushNotifications = async (
 		),
 	);
 
-	let notificationSent = 0;
-	for (const result of results) {
-		if (result.status === "rejected") console.error(result.reason);
-		else notificationSent += 1;
-	}
-
+	const notificationSent = sumBy(results, ({ status }) =>
+		status === "fulfilled" ? 1 : 0,
+	);
 	if (notificationSent > 0) await tags.add(`notified_${notificationSent}`);
 };
 

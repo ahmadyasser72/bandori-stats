@@ -1,4 +1,4 @@
-import { AbortTaskRunError, schemaTask, tags } from "@trigger.dev/sdk";
+import { schemaTask, tags } from "@trigger.dev/sdk";
 import z from "zod";
 
 import {
@@ -36,7 +36,6 @@ export const updateTrackerProfile = schemaTask({
 		await tags.add([`uid_${uid}`, `version_${version ?? "n/a"}`]);
 		if (!version) return;
 
-		const profile = await bangDreamProfile(version, uid);
 		const {
 			userName,
 			rank,
@@ -47,22 +46,12 @@ export const updateTrackerProfile = schemaTask({
 			publishTotalDeckPowerFlg,
 			enabledUserAreaItems,
 			userProfileDegreeMap,
-		} = profile;
+		} = await bangDreamProfile(version, uid);
 
 		if (!publishTotalDeckPowerFlg) await tags.add("bp_hidden");
 
-		const getCardById = async (id: number) => {
-			const { success, data, error } = Card.safeParse(
-				await bestdori(`api/cards/${id}.json`, {}),
-			);
-
-			if (!success) {
-				await tags.add("schema_error");
-				throw new AbortTaskRunError(error.message);
-			}
-
-			return data;
-		};
+		const getCardById = async (id: number) =>
+			bestdori({ path: `api/cards/${id}.json`, schema: Card });
 
 		const zeroStat = { performance: 0, technique: 0, visual: 0 };
 		const { avatar, areaItems, bandMembers, skillsMap } = await allKeyed({
@@ -153,16 +142,7 @@ export const updateTrackerProfile = schemaTask({
 					};
 				}),
 			),
-			skillsMap: bestdori("api/skills/all.10.json", {}).then(async (json) => {
-				const { success, data, error } = Skills.safeParse(json);
-
-				if (!success) {
-					await tags.add("schema_error");
-					throw new AbortTaskRunError(error.message);
-				}
-
-				return data;
-			}),
+			skillsMap: bestdori({ path: "api/skills/all.10.json", schema: Skills }),
 		});
 
 		const data: typeof trackerSnapshotProfiles.$inferInsert = {

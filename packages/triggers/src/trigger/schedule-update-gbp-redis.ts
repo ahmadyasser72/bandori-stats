@@ -1,4 +1,4 @@
-import { AbortTaskRunError, schedules, tags } from "@trigger.dev/sdk";
+import { schedules, tags } from "@trigger.dev/sdk";
 
 import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
 import dayjs from "@bandori-stats/bestdori/date";
@@ -27,30 +27,21 @@ export const scheduleUpdateGbpRedis = schedules.task({
 		pipe.get(GBP.version);
 
 		{
-			const { success, data, error } = Versions.safeParse(
-				await bestdori("api/Versions_en.json", {}),
-			);
-
-			if (!success) {
-				await tags.add("schema_error");
-				throw new AbortTaskRunError(error.message);
-			}
-
-			if (currentVersion !== data.app) {
-				pipe.set(GBP.version, data.app);
-				await tags.add(`version_${data.app}`);
+			const versions = await bestdori({
+				path: "api/Versions_en.json",
+				schema: Versions,
+			});
+			if (currentVersion !== versions.app) {
+				pipe.set(GBP.version, versions.app);
+				await tags.add(`version_${versions.app}`);
 			}
 		}
 
 		if (!currentEvent || !currentMonthly || !areaItems) {
-			const { success, data, error } = MasterDB.safeParse(
-				await bestdori("api/MasterDB_en.json", {}),
-			);
-
-			if (!success) {
-				await tags.add("schema_error");
-				throw new AbortTaskRunError(error.message);
-			}
+			const data = await bestdori({
+				path: "api/MasterDB_en.json",
+				schema: MasterDB,
+			});
 
 			const events = Object.values(data.masterEventMap.entries);
 			if (!currentEvent && events.length > 0) {

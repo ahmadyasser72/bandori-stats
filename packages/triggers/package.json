@@ -10,6 +10,7 @@
 		"@bandori-stats/bestdori": "workspace:*",
 		"@bandori-stats/database": "workspace:*",
 		"@bufbuild/protobuf": "2.14.0",
+		"@isaacs/ttlcache": "2.1.5",
 		"@trigger.dev/sdk": "4.5.12",
 		"random": "5.5.1",
 		"web-push": "3.6.7",

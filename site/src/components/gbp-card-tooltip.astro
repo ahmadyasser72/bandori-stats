@@ -5,6 +5,7 @@ import {
 	mapValues,
 } from "@bandori-stats/bestdori/helpers";
 import {
+	STAT_TYPES,
 	sumStats,
 	type PlayerBandMember,
 } from "@bandori-stats/database/schema";
@@ -40,19 +41,17 @@ const totalPowerBonus = totalPotentialBonus + totalMissionBonus;
 					`${formatNumber(totalPower)} (+${formatNumber(totalPowerBonus)})`,
 				],
 
-				...Object.keys(member.stat).map((type) => [
+				...STAT_TYPES.map((type) => [
 					capitalize(type),
 					`${formatNumber(member.stat[type])} (+${formatNumber(member.potentialBonus[type] + member.missionBonus[type])})`,
 				]),
 
 				...(["potential", "mission"] as const).map((bonusType) => [
 					capitalize(bonusType),
-					Object.keys(member.stat)
-						.map(
-							(type) =>
-								`+${getBonusPercentage(statBase[type], member[`${bonusType}Bonus`][type])}%`,
-						)
-						.join(" "),
+					STAT_TYPES.map(
+						(type) =>
+							`+${getBonusPercentage(statBase[type], member[`${bonusType}Bonus`][type])}%`,
+					).join(" "),
 				]),
 			].map(([key, value]) => (
 				<div class="flex w-full items-center justify-between">

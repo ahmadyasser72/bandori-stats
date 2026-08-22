@@ -1,26 +1,61 @@
-import { queue } from "@trigger.dev/sdk";
+import { TTLCache } from "@isaacs/ttlcache";
+import { AbortTaskRunError, queue, tags } from "@trigger.dev/sdk";
+import z from "zod";
 
-import { limitAsync, retry } from "@bandori-stats/bestdori/helpers";
+import { limitAsync, memoize, retry } from "@bandori-stats/bestdori/helpers";
 
-export const bestdori = limitAsync(
-	async (path: string, query: Record<string, string>) => {
-		const url = new URL(path, "https://bestdori.com/");
-		url.search = new URLSearchParams(query).toString();
+interface BestdoriOptions<S extends z.ZodType> {
+	path: string;
+	query?: Record<string, string>;
+	schema?: S;
+}
 
-		const response = await retry(
-			async () => {
-				const response = await fetch(url);
-				const contentType = response.headers.get("content-type") ?? "";
-				if (!response.ok || !contentType.startsWith("application/json"))
-					throw new Error(`Error fetching ${url.href} (${response.status})`);
+type BestdoriFetch = <
+	S extends z.ZodType,
+	O = S extends z.ZodType ? z.infer<S> : unknown,
+>(
+	options: BestdoriOptions<S>,
+) => Promise<O>;
 
-				return response;
-			},
-			{ delay: (attempt) => attempt * 2500, retries: 4 },
-		);
+export const bestdori = limitAsync<BestdoriFetch>(
+	memoize(
+		async ({ path, query, schema }) => {
+			const url = new URL(path, "https://bestdori.com/");
+			url.search = new URLSearchParams(query).toString();
 
-		return response.json();
-	},
+			const response = await retry(
+				async () => {
+					const response = await fetch(url);
+					const contentType = response.headers.get("content-type") ?? "";
+					if (!response.ok || !contentType.startsWith("application/json"))
+						throw new Error(`Error fetching ${url.href} (${response.status})`);
+
+					return response;
+				},
+				{ delay: (attempt) => attempt * 2500, retries: 4 },
+			);
+
+			const json = await response.json();
+			if (!schema) return json as never;
+
+			const { success, data, error } = schema.safeParse(json);
+			if (!success) {
+				await tags.add("schema_error");
+				throw new AbortTaskRunError(error.message);
+			}
+
+			return data as never;
+		},
+		{
+			getCacheKey: ({ path, query }) =>
+				query ? `${path}?${new URLSearchParams(query)}` : path,
+			cache: new TTLCache({
+				max: 100,
+				ttl: 60 * 60 * 1000,
+				checkAgeOnGet: true,
+			}) as never,
+		},
+	),
 	4,
 );
 

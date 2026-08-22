@@ -1,4 +1,4 @@
-import { AbortTaskRunError, schemaTask, tags } from "@trigger.dev/sdk";
+import { schemaTask, tags } from "@trigger.dev/sdk";
 import z from "zod";
 
 import {
@@ -27,19 +27,16 @@ export const bestdoriLeaderboard = schemaTask({
 		offset: z.number().nonnegative().default(0),
 	}),
 	run: async ({ type, limit, offset }) => {
-		const { success, data, error } = PlayerLeaderboard.safeParse(
-			await bestdori("api/sync/list/player", {
+		const data = await bestdori({
+			path: "api/sync/list/player",
+			schema: PlayerLeaderboard,
+			query: {
 				server: "1",
 				stats: leaderboardTypeMap[type],
 				limit: limit.toString(),
 				offset: offset.toString(),
-			}),
-		);
-
-		if (!success) {
-			await tags.add("schema_error");
-			throw new AbortTaskRunError(error.message);
-		}
+			},
+		});
 
 		if (offset === 0 && data.rows.length > 2) {
 			await tags.add(

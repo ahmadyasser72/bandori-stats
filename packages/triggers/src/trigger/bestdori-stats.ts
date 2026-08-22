@@ -1,4 +1,4 @@
-import { AbortTaskRunError, schemaTask, tags } from "@trigger.dev/sdk/v3";
+import { schemaTask, tags } from "@trigger.dev/sdk/v3";
 import z from "zod";
 
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
@@ -15,14 +15,11 @@ export const bestdoriStats = schemaTask({
 	queue: bestdoriQueue,
 	schema: z.object({ username: z.string().nonempty() }),
 	run: async ({ username }) => {
-		const { success, data, error } = PlayerStats.safeParse(
-			await bestdori("api/user/sync", { username }),
-		);
-
-		if (!success) {
-			await tags.add("schema_error");
-			throw new AbortTaskRunError(error.message);
-		}
+		const data = await bestdori({
+			path: "api/user/sync",
+			schema: PlayerStats,
+			query: { username },
+		});
 
 		const { uid, stats } = data.accounts
 			.filter(({ server }) => server === 1)
