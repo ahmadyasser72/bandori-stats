@@ -41,8 +41,8 @@ export const bestdoriStats = schemaTask({
 			...STAT_NAMES.map(
 				(name) => `${abbreviateStatName(name)}_${displayValue(stats?.[name])}`,
 			),
-			`TITLES_${displayValue(stats?.titles?.length)}`,
-			`UID_${displayValue(uid)}`,
+			`titles_${displayValue(stats?.titles?.length)}`,
+			`uid_${displayValue(uid)}`,
 		]);
 
 		return AccountSchema.parse({ uid, stats });

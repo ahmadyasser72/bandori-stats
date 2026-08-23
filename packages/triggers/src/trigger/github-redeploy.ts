@@ -1,4 +1,4 @@
-import { AbortTaskRunError, tags, task } from "@trigger.dev/sdk";
+import { AbortTaskRunError, task } from "@trigger.dev/sdk";
 
 export const githubRedeploy = task({
 	id: "github-redeploy",
@@ -9,8 +9,6 @@ export const githubRedeploy = task({
 		const token = process.env.GITHUB_TOKEN;
 		if (!token)
 			throw new AbortTaskRunError("No GITHUB_TOKEN environment variable");
-
-		await tags.add("site_rebuild");
 
 		const { ghUsername, commitRef } = ctx.deployment.git;
 		await fetch(

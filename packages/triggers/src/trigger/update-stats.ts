@@ -29,7 +29,7 @@ export const updateStats = schemaTask({
 				{ username },
 				{
 					idempotencyKey: await idempotencyKeys.create(
-						`stats_${username}_${date}`,
+						`stats:bestdori:${username}:${date}`,
 						{ scope: "global" },
 					),
 					tags: `@_${username}`,
@@ -93,10 +93,7 @@ export const updateStats = schemaTask({
 			);
 
 			const deltaTotal = sum(Object.values(difference));
-			if (deltaTotal === 0) {
-				await tags.add("diff_none");
-				return;
-			}
+			if (deltaTotal === 0) return;
 
 			await tags.add(
 				Object.entries(difference)
@@ -106,7 +103,7 @@ export const updateStats = schemaTask({
 
 			if (difference.titles !== 0) {
 				await githubRedeploy.trigger(undefined, {
-					idempotencyKey: `redeploy-${username}-${date}`,
+					idempotencyKey: `redeploy:bestdori:${username}:${date}`,
 				});
 			}
 

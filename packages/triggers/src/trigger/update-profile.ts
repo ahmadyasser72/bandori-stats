@@ -2,7 +2,6 @@ import {
 	AbortTaskRunError,
 	idempotencyKeys,
 	schemaTask,
-	tags,
 } from "@trigger.dev/sdk";
 import z from "zod";
 
@@ -23,9 +22,12 @@ export const updateProfile = schemaTask({
 				{ username },
 				{
 					idempotencyKeyTTL: "7d",
-					idempotencyKey: await idempotencyKeys.create(`profile_${username}`, {
-						scope: "global",
-					}),
+					idempotencyKey: await idempotencyKeys.create(
+						`profile:bestdori:${username}`,
+						{
+							scope: "global",
+						},
+					),
 					tags: `@_${username}`,
 				},
 			)
@@ -36,7 +38,6 @@ export const updateProfile = schemaTask({
 			where: { username },
 		});
 		if (!existing) {
-			await tags.add("account_not found");
 			throw new AbortTaskRunError(
 				`Account with username @${username} doesn't exists`,
 			);
@@ -54,7 +55,7 @@ export const updateProfile = schemaTask({
 				})
 				.where(eq(accounts.id, existing.id));
 			await githubRedeploy.trigger(undefined, {
-				idempotencyKey: `redeploy-${username}-${date}`,
+				idempotencyKey: `redeploy:bestdori:${username}:${date}`,
 			});
 		}
 	},

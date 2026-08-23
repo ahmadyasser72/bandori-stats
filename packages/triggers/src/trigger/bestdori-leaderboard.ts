@@ -1,4 +1,4 @@
-import { schemaTask, tags } from "@trigger.dev/sdk";
+import { schemaTask } from "@trigger.dev/sdk";
 import z from "zod";
 
 import {
@@ -37,15 +37,6 @@ export const bestdoriLeaderboard = schemaTask({
 				offset: offset.toString(),
 			},
 		});
-
-		if (offset === 0 && data.rows.length > 2) {
-			await tags.add(
-				Array.from(
-					{ length: 5 },
-					(_, idx) => `#${idx + 1}_${data.rows[idx]!.user.username}`,
-				),
-			);
-		}
 
 		return data.rows.map((row) => row.user);
 	},

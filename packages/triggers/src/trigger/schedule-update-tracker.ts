@@ -121,10 +121,7 @@ export const scheduleUpdateTracker = schedules.task({
 		await updateTrackerProfile.batchTriggerAndWait(
 			inserted.map(({ uid, metadata }) => ({
 				payload: { uid, trackingReference: getTrackingReference(metadata) },
-				options: {
-					idempotencyKey: `uid:${metadata.kind}:${metadata.assetBundleName}:${now.startOf("hour").toISOString()}`,
-					tags: `${metadata.kind}_${metadata.assetBundleName}`,
-				},
+				options: { tags: `${metadata.kind}_${metadata.assetBundleName}` },
 			})),
 		);
 		await githubRedeploy.trigger(undefined);

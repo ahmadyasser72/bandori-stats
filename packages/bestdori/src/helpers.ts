@@ -16,12 +16,12 @@ export const abbreviateStatName = (name: keyof Stats) => {
 			return words(name.replace(/Count$/, ""))
 				.map((s) => s.charAt(0))
 				.join("")
-				.toUpperCase();
+				.toLowerCase();
 		case "clearCount":
-			return "CLEAR";
+			return "clear";
 		case "rank":
 		case "titles":
-			return name.toUpperCase();
+			return name;
 	}
 };
 

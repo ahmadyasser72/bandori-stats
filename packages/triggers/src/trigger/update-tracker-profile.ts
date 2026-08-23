@@ -1,4 +1,4 @@
-import { schemaTask, tags } from "@trigger.dev/sdk";
+import { idempotencyKeys, schemaTask, tags } from "@trigger.dev/sdk";
 import z from "zod";
 
 import {
@@ -18,12 +18,11 @@ import {
 	type PlayerBandMember,
 	type PlayerBandMemberStateless,
 } from "@bandori-stats/database/schema";
-import { bangDreamProfile } from "~/bang-dream-gbp/fetch";
 import { bestdori } from "~/bestdori";
+import { bandoriProfile } from "./bandori-profile";
 
 export const updateTrackerProfile = schemaTask({
 	id: "update-tracker-profile",
-	queue: { concurrencyLimit: 1 },
 	schema: z.strictObject({
 		uid: z.string(),
 		trackingReference: z.object({
@@ -36,6 +35,17 @@ export const updateTrackerProfile = schemaTask({
 		await tags.add([`uid_${uid}`, `version_${version ?? "n/a"}`]);
 		if (!version) return;
 
+		const profileResult = await bandoriProfile.triggerAndWait(
+			{ uid },
+			{
+				idempotencyKey: await idempotencyKeys.create(`profile:bandori:${uid}`, {
+					scope: "global",
+				}),
+				idempotencyKeyTTL: "1h",
+			},
+		);
+		if (!profileResult.ok) throw profileResult.error;
+
 		const {
 			userName,
 			rank,
@@ -46,7 +56,7 @@ export const updateTrackerProfile = schemaTask({
 			publishTotalDeckPowerFlg,
 			enabledUserAreaItems,
 			userProfileDegreeMap,
-		} = await bangDreamProfile(version, uid);
+		} = profileResult.output!;
 
 		if (!publishTotalDeckPowerFlg) await tags.add("bp_hidden");
 

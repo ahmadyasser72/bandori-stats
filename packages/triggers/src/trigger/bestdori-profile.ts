@@ -16,7 +16,7 @@ export const bestdoriProfile = schemaTask({
 		});
 
 		const { posterCard: card } = data;
-		if (card) await tags.add([`CARD_${card.id}`, `TRAINED_${card.trainedArt}`]);
+		if (card) await tags.add([`card_${card.id}`, `trained_${card.trainedArt}`]);
 
 		return { card };
 	},
