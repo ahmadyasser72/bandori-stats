@@ -37,6 +37,9 @@ export const GameMonthlyRanking = z.object({
 });
 
 export const GameAreaItem = z.object({
+	areaItemName: z.string(),
+	level: z.number(),
+
 	performance: z.number(),
 	technique: z.number(),
 	visual: z.number(),
