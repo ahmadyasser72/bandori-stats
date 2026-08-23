@@ -113,9 +113,12 @@ export const scheduleUpdateTracker = schedules.task({
 			})(),
 		]);
 
-		const inserted = results.flatMap((promise) =>
-			promise.status === "fulfilled" ? promise.value : [],
-		);
+		const errors = results.filter((promise) => promise.status === "rejected");
+		for (const { reason } of errors) console.error(reason);
+
+		const inserted = results
+			.filter((promise) => promise.status === "fulfilled")
+			.flatMap(({ value }) => value);
 		if (inserted.length === 0) return;
 
 		await updateTrackerProfile.batchTriggerAndWait(
