@@ -85,7 +85,7 @@ export const bangDream = limitAsync(
 		const path =
 			type === "monthly"
 				? `monthlyranking/${id}/ranking`
-				: `event/${id}/${type}/ranking`;
+				: `event/${id}/${type === "mission_live" ? "mission" : type}/ranking`;
 		const url = new URL(
 			path,
 			`https://api.app-bang-dream-gbp.com/api/user/${BANG_DREAM_USER_ID}/`,
