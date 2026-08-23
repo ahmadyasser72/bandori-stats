@@ -82,10 +82,15 @@ export const bangDream = limitAsync(
 		if (!BANG_DREAM_AES_KEY || !BANG_DREAM_AES_IV)
 			throw new AbortTaskRunError("BanG Dream decryption keys are missing.");
 
-		const path =
-			type === "monthly"
-				? `monthlyranking/${id}/ranking`
-				: `event/${id}/${type === "mission_live" ? "mission" : type}/ranking`;
+		let path: string;
+		if (type === "monthly") path = `monthlyranking/${id}/ranking`;
+		else {
+			let typ: string = type;
+			if (type === "live_try") typ = "livetry";
+			if (type === "mission_live") typ = "mission";
+			path = `event/${id}/${typ}/ranking`;
+		}
+
 		const url = new URL(
 			path,
 			`https://api.app-bang-dream-gbp.com/api/user/${BANG_DREAM_USER_ID}/`,
