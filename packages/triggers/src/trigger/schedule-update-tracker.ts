@@ -231,13 +231,21 @@ const sendPushNotifications = async (
 		}
 	}
 
-	const payloads = await Promise.all(
-		[...inserted, ...formerTop10].map(async ({ uid, name, point, rank }) => {
-			const key = `${baseKey}:notify:${uid}`;
-			const notify = await redis().json.get<NotifyWhenPlayer[][]>(key, "$");
-			if (!notify) return [];
+	const items = [...inserted, ...formerTop10];
+	const notifyMap = await redis().json.mget<
+		Partial<Record<string, NotifyWhenPlayer[][]>>
+	>(
+		items.map(({ uid }) => `${baseKey}:notify:${uid}`),
+		"$",
+	);
 
-			const subscriptions = [...notify.flat().entries()].filter(
+	const payloads = await Promise.all(
+		items.map(async ({ uid, name, point, rank }) => {
+			const key = `${baseKey}:notify:${uid}`;
+			const notify = notifyMap[key]?.flat();
+			if (!notify || notify.length === 0) return [];
+
+			const subscriptions = [...notify.entries()].filter(
 				([, { on }]) =>
 					on.target === "play-again" ||
 					(on.target === "point" && point > on.value) ||
