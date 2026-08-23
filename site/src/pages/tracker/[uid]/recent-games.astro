@@ -10,7 +10,7 @@ import {
 	mapValues,
 	omit,
 } from "@bandori-stats/bestdori/helpers";
-import { avg, db, desc, gte, max, min, sql } from "@bandori-stats/database";
+import { avg, db, desc, max, min, sql } from "@bandori-stats/database";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import SheetModal from "~/layouts/sheet-modal.astro";
@@ -103,7 +103,7 @@ const { profile, statistics, games } = await Astro.locals.tracing.enterSpan(
 						delta: gapsCte.delta,
 					})
 					.from(gapsCte)
-					.where(gte(gapsCte.timestamp, after.toDate()))
+					.where(cteFilter)
 					.orderBy(desc(gapsCte.timestamp)),
 			),
 		});
