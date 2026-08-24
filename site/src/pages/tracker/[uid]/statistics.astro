@@ -6,9 +6,10 @@ import {
 	allKeyed,
 	capitalize,
 	formatNumber,
+	mapValues,
 	omit,
 } from "@bandori-stats/bestdori/helpers";
-import { and, db, desc, gt, min, sql } from "@bandori-stats/database";
+import { and, db, desc, gt, min, sql, sum } from "@bandori-stats/database";
 import { trackerSnapshots } from "@bandori-stats/database/schema";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
@@ -73,8 +74,8 @@ if (params.duration === "1d") after = dayjs().subtract(1, "day");
 else if (params.duration === "3d") after = dayjs().subtract(3, "day");
 else after = null;
 
-const startAt = dayjs(metadata.startAt).startOf("hour").valueOf();
-after = after && after.isAfter(startAt) ? after : dayjs(startAt);
+const startAt = dayjs(metadata.startAt).startOf("hour");
+after = after && startAt.isBefore(after) ? after : startAt;
 const isPastData = dayjs().isAfter(metadata.endAt);
 
 const baseFilter = createBaseFilter(params.kind, params.id, uid);
@@ -98,17 +99,30 @@ const { gameStatistics, gameByHours, gameByPoints } =
 			gameByHours: Astro.locals.tracing.enterSpan(
 				"fetch-game-by-hours",
 				async () => {
-					const snapshotHour = sql<number>`CAST(${trackerSnapshots.timestamp} / 3600000 AS INTEGER) * 3600000`;
-					const aggregatedCounts = await db()
-						.select({ hour: snapshotHour, count: countSql })
-						.from(trackerSnapshots)
-						.where(
-							and(baseFilter, gt(trackerSnapshots.timestamp, after.toDate())),
-						)
-						.groupBy(snapshotHour);
-
-					const countByHours = new Map(
-						aggregatedCounts.map(({ hour, count }) => [hour, count]),
+					const snapshotHour = sql<number>`CAST(timestamp / 3600000 AS INTEGER) * 3600000`;
+					const aggregated = mapValues(
+						await allKeyed({
+							counts: db()
+								.select({ hour: snapshotHour, value: countSql })
+								.from(trackerSnapshots)
+								.where(
+									and(
+										baseFilter,
+										gt(trackerSnapshots.timestamp, after.toDate()),
+									),
+								)
+								.groupBy(snapshotHour),
+							points: db()
+								.with(gapsCte)
+								.select({ hour: snapshotHour, value: sum(gapsCte.delta) })
+								.from(gapsCte)
+								.where(cteFilter)
+								.groupBy(snapshotHour),
+						}),
+						(byHours) =>
+							new Map(
+								byHours.map(({ hour, value }) => [hour, Number(value ?? 0)]),
+							),
 					);
 
 					return Array.from(
@@ -118,9 +132,15 @@ const { gameStatistics, gameByHours, gameByPoints } =
 								.add(1, "hour")
 								.diff(metadata.startAt, "hours"),
 						},
-						(_, idx): [number, number] => {
-							const timestamp = startAt + idx * 60 * 60 * 1000;
-							return [timestamp, countByHours.get(timestamp) ?? 0];
+						(_, idx): [number, { count: number; point: number }] => {
+							const timestamp = startAt.add(idx, "hours").valueOf();
+							return [
+								timestamp,
+								{
+									count: aggregated.counts.get(timestamp) ?? 0,
+									point: aggregated.points.get(timestamp) ?? 0,
+								},
+							];
 						},
 					);
 				},
@@ -264,7 +284,7 @@ if (Astro.cache.enabled)
 			<BarChart
 				client:only="preact"
 				color="var(--color-primary)"
-				data={gameByHours}
+				data={gameByHours.map(([timestamp, { count }]) => [timestamp, count])}
 				hourly
 				label="Active hours"
 			>

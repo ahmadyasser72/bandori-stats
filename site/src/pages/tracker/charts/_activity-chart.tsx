@@ -8,7 +8,7 @@ import { uniq } from "@bandori-stats/bestdori/helpers";
 import { CHART_THEME } from "./_utilities";
 
 export interface ActivityChartProps {
-	data: [number, number][];
+	data: [number, { count: number; point: number }][];
 	label: string;
 }
 
@@ -16,15 +16,20 @@ const HOURS = Array.from({ length: 24 }, (_, idx) => idx);
 
 export const ActivityChart = ({ data, label }: ActivityChartProps) => {
 	const heatmapData = useMemo(
-		() => data.map(([timestamp, value]) => ({ timestamp, value })),
+		() =>
+			data.map(([timestamp, { count, point }]) => ({
+				timestamp,
+				count,
+				point,
+			})),
 		[data],
 	);
 	const days = useMemo(
 		() => uniq(heatmapData.map(({ timestamp }) => formatDate(timestamp))),
 		[heatmapData],
 	);
-	const maxValue = useMemo(
-		() => Math.max(1, ...heatmapData.map(({ value }) => value)),
+	const maxActivityValue = useMemo(
+		() => Math.max(1, ...heatmapData.map(({ count }) => count)),
 		[heatmapData],
 	);
 
@@ -44,7 +49,7 @@ export const ActivityChart = ({ data, label }: ActivityChartProps) => {
 						cell(heatmapData, {
 							x: ({ timestamp }) => new Date(timestamp).getHours(),
 							y: ({ timestamp }) => formatDate(timestamp),
-							color: "value",
+							color: "count",
 							key: "timestamp",
 							inset: 1,
 							radius: 2,
@@ -60,14 +65,14 @@ export const ActivityChart = ({ data, label }: ActivityChartProps) => {
 					},
 					color: {
 						scale: scaleLinear<string>()
-							.domain([0, maxValue])
+							.domain([0, maxActivityValue])
 							.range([colors.base, colors.primary]),
 					},
 					theme: CHART_THEME,
 				},
 				{ tooltip },
 			),
-		[heatmapData, days, maxValue, colors],
+		[heatmapData, days, maxActivityValue, colors],
 	);
 
 	return (
@@ -83,7 +88,12 @@ export const ActivityChart = ({ data, label }: ActivityChartProps) => {
 							{points.map(({ datum }) => (
 								<div key={datum.timestamp}>
 									<b>{formatDateTime(datum.timestamp)}</b>
-									<div>{datum.value.toLocaleString()}&times;</div>
+									<div>
+										{datum.count.toLocaleString()}&times;
+										{datum.point > 0 && (
+											<span> (+{datum.point.toLocaleString()} Pts)</span>
+										)}
+									</div>
 								</div>
 							))}
 						</div>
