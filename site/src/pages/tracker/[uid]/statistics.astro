@@ -6,10 +6,9 @@ import {
 	allKeyed,
 	capitalize,
 	formatNumber,
-	mapValues,
 	omit,
 } from "@bandori-stats/bestdori/helpers";
-import { and, avg, db, desc, gt, max, min, sql } from "@bandori-stats/database";
+import { and, db, desc, gt, min, sql } from "@bandori-stats/database";
 import { trackerSnapshots } from "@bandori-stats/database/schema";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
@@ -21,6 +20,7 @@ import {
 	createBaseFilter,
 	createCteFilter,
 	createGapsCte,
+	fetchStatistics,
 } from "./_aggregate";
 
 export const partial = true;
@@ -84,6 +84,7 @@ const { gameStatistics, gameByHours, gameByPoints } =
 		span.setAttribute("uid", uid);
 		span.setAttribute("kind", params.kind);
 		span.setAttribute("id", params.id);
+		span.setAttribute("duration", params.duration);
 		span.setAttribute("after", after.toISOString());
 
 		const gapsCte = createGapsCte(baseFilter);
@@ -92,41 +93,7 @@ const { gameStatistics, gameByHours, gameByPoints } =
 		return allKeyed({
 			gameStatistics: Astro.locals.tracing.enterSpan(
 				"fetch-game-statistics",
-				async () => {
-					const statistics = await db()
-						.with(gapsCte)
-						.select({
-							gamesTotal: countSql,
-							minPoints: min(gapsCte.delta),
-							maxPoints: max(gapsCte.delta),
-							meanPoints: avg(gapsCte.delta),
-							medianPoints: sql<number>`MEDIAN(${gapsCte.delta})`,
-							averageMinutesPerGame: avg(
-								sql`CASE WHEN ${gapsCte.gapMinutes} <= 10 THEN ${gapsCte.gapMinutes} ELSE NULL END`,
-							),
-
-							oldestPoint: min(gapsCte.point),
-							latestPoint: max(gapsCte.point),
-							latestTimestamp: max(gapsCte.timestamp),
-							oldestTimestamp: min(gapsCte.timestamp),
-						})
-						.from(gapsCte)
-						.where(cteFilter)
-						.then(([results]) =>
-							mapValues(results, (value) => Number(value ?? 0)),
-						);
-
-					return {
-						...statistics,
-						pointsPerHour:
-							(statistics.latestPoint - statistics.oldestPoint) /
-							dayjs(statistics.latestTimestamp).diff(
-								statistics.oldestTimestamp,
-								"hours",
-								true,
-							),
-					};
-				},
+				() => fetchStatistics(gapsCte, cteFilter),
 			),
 			gameByHours: Astro.locals.tracing.enterSpan(
 				"fetch-game-by-hours",

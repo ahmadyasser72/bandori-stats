@@ -4,21 +4,16 @@ import { UMAMI_SITE_ID } from "astro:env/server";
 import z from "zod";
 
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
-import {
-	allKeyed,
-	formatNumber,
-	mapValues,
-	omit,
-} from "@bandori-stats/bestdori/helpers";
-import { avg, db, desc, max, min, sql } from "@bandori-stats/database";
+import { allKeyed, formatNumber, omit } from "@bandori-stats/bestdori/helpers";
+import { db, desc } from "@bandori-stats/database";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import SheetModal from "~/layouts/sheet-modal.astro";
 import {
-	countSql,
 	createBaseFilter,
 	createCteFilter,
 	createGapsCte,
+	fetchStatistics,
 	outlierCap,
 } from "./_aggregate";
 
@@ -65,34 +60,8 @@ const { profile, statistics, games } = await Astro.locals.tracing.enterSpan(
 					uid,
 				},
 			}),
-			statistics: Astro.locals.tracing.enterSpan(
-				"fetch-game-statistics",
-				async () => {
-					const statistics = await db()
-						.with(gapsCte)
-						.select({
-							gamesTotal: countSql,
-							minPoints: min(gapsCte.delta),
-							maxPoints: max(gapsCte.delta),
-							meanPoints: avg(gapsCte.delta),
-							medianPoints: sql<number>`MEDIAN(${gapsCte.delta})`,
-
-							oldestPoint: min(gapsCte.point),
-							latestPoint: max(gapsCte.point),
-						})
-						.from(gapsCte)
-						.where(cteFilter)
-						.then(([results]) =>
-							mapValues(results, (value) => Number(value ?? 0)),
-						);
-
-					return {
-						...statistics,
-						pointsPerHour:
-							(statistics.latestPoint - statistics.oldestPoint) /
-							dayjs().diff(after, "hours", true),
-					};
-				},
+			statistics: Astro.locals.tracing.enterSpan("fetch-game-statistics", () =>
+				fetchStatistics(gapsCte, cteFilter),
 			),
 			games: Astro.locals.tracing.enterSpan("fetch-game-list", () =>
 				db()
@@ -109,6 +78,16 @@ const { profile, statistics, games } = await Astro.locals.tracing.enterSpan(
 		});
 	},
 );
+
+const {
+	gamesTotal,
+	minPoints,
+	maxPoints,
+	meanPoints,
+	medianPoints,
+	averageMinutesPerGame,
+	pointsPerHour,
+} = statistics;
 
 if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 ---
@@ -174,35 +153,34 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 		{
 			params.duration !== "1h" && (
 				<div class="badge badge-soft badge-md badge-primary">
-					{formatNumber(statistics.gamesTotal / dayjs().diff(after, "hours"))}{" "}
-					Games/hour
+					{formatNumber(gamesTotal / dayjs().diff(after, "hours"))} Games/hour
 				</div>
 			)
 		}
+
 		<div class="badge badge-soft badge-md badge-primary">
-			{statistics.gamesTotal} Games
+			{gamesTotal} Games
 		</div>
 		<div class="badge badge-soft badge-md badge-accent">
 			Average:{" "}
-			{
-				formatNumber(Math.round(statistics.meanPoints), {
-					positiveSign: true,
-				})
-			}
+			{formatNumber(meanPoints, { positiveSign: true })}
 		</div>
 		<div class="badge badge-soft badge-md badge-accent">
 			Median:{" "}
-			{formatNumber(statistics.medianPoints, { positiveSign: true })}
+			{formatNumber(medianPoints, { positiveSign: true })}
 		</div>
 		<div class="badge badge-soft badge-md badge-accent">
-			Min: {formatNumber(statistics.minPoints, { positiveSign: true })}
+			Min: {formatNumber(minPoints, { positiveSign: true })}
 		</div>
 		<div class="badge badge-soft badge-md badge-accent">
-			Max: {formatNumber(statistics.maxPoints, { positiveSign: true })}
+			Max: {formatNumber(maxPoints, { positiveSign: true })}
 		</div>
 		<div class="badge badge-soft badge-md badge-accent">
-			{formatNumber(statistics.pointsPerHour, { positiveSign: true })}{" "}
+			{formatNumber(pointsPerHour, { positiveSign: true })}{" "}
 			Pts/hour (estimated)
+		</div>
+		<div class="badge badge-soft badge-md badge-accent">
+			{formatNumber(averageMinutesPerGame)} Minutes/game (average)
 		</div>
 	</div>
 
@@ -247,7 +225,7 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 	</ul>
 
 	{
-		statistics.gamesTotal === 0 && (
+		gamesTotal === 0 && (
 			<div class="flex items-center justify-center gap-2 py-16">
 				<Icon class="size-10" name="lucide--x" />
 				<span class="text-lg font-medium">No recent games found</span>
