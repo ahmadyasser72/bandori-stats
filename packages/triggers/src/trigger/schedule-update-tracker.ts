@@ -1,4 +1,4 @@
-import { schedules, tags, wait } from "@trigger.dev/sdk";
+import { idempotencyKeys, schedules, tags, wait } from "@trigger.dev/sdk";
 import webPush from "web-push";
 import type z from "zod";
 
@@ -127,7 +127,13 @@ export const scheduleUpdateTracker = schedules.task({
 				options: { tags: `${metadata.kind}_${metadata.assetBundleName}` },
 			})),
 		);
-		await githubRedeploy.trigger(undefined);
+
+		await githubRedeploy.trigger(undefined, {
+			idempotencyKey: await idempotencyKeys.create(`redeploy:bandori`, {
+				scope: "global",
+			}),
+			idempotencyKeyTTL: "1h",
+		});
 	},
 });
 
