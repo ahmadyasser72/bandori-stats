@@ -12,8 +12,7 @@ import { db, desc, gt, min, sql, sum } from "@bandori-stats/database";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import SheetModal from "~/layouts/sheet-modal.astro";
-import { ActivityChart } from "~/pages/tracker/charts/_activity-chart";
-import { BarChart } from "~/pages/tracker/charts/_bar-chart";
+import { ActivityChart } from "./_activity-chart";
 import {
 	countSql,
 	createBaseFilter,
@@ -21,6 +20,7 @@ import {
 	createGapsCte,
 	fetchStatistics,
 } from "./_aggregate";
+import { BarChart } from "./_bar-chart";
 
 export const partial = true;
 
