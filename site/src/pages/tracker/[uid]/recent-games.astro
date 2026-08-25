@@ -192,7 +192,7 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 				<li>
 					{idx > 0 && <hr class="bg-neutral" />}
 					<div class="timeline-start font-mono">
-						{formatDuration(dayjs(timestamp), dayjs())}
+						{formatDuration({ from: timestamp })}
 					</div>
 					<div class="timeline-end">
 						<div class="inline-flex items-center font-semibold">

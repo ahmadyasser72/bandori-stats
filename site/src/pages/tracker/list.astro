@@ -334,10 +334,7 @@ if (Astro.cache.enabled)
 
 							{lastPlayed && (
 								<span>
-									played{" "}
-									{dayjs().diff(lastPlayed.timestamp, "minutes") < 1
-										? "just now"
-										: dayjs(lastPlayed.timestamp).fromNow()}
+									played {formatDuration({ from: lastPlayed.timestamp })}
 								</span>
 							)}
 
@@ -346,7 +343,7 @@ if (Astro.cache.enabled)
 									boated{" "}
 									{boatHistory.length === 1 ? (
 										<span class="text-error">
-											{dayjs(latest.timestamp).fromNow()}
+											{formatDuration({ from: latest.timestamp })}
 										</span>
 									) : (
 										<span class="tooltip tooltip-error text-error underline decoration-dotted sm:tooltip-end">
@@ -360,13 +357,13 @@ if (Astro.cache.enabled)
 																	{boatHistory[idx].rank} -> {rank}
 																</span>
 																<span>
-																	{formatDuration(dayjs(timestamp), dayjs())}
+																	{formatDuration({ from: timestamp })}
 																</span>
 															</div>
 														))}
 												</div>
 											</div>
-											{dayjs(latest.timestamp).fromNow()}
+											{formatDuration({ from: latest.timestamp })}
 										</span>
 									)}
 								</span>

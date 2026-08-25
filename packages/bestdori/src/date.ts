@@ -17,12 +17,16 @@ dayjs.tz.setDefault(GBP_TIMEZONE);
 
 export default dayjs;
 
-export const formatDuration = (
-	from: dayjs.Dayjs,
-	to: dayjs.Dayjs,
-	suffix = true,
-) => {
-	const totalMinutes = to.diff(from, "minutes");
+interface FormatDurationParams {
+	from?: dayjs.ConfigType;
+	to?: dayjs.ConfigType;
+}
+
+export const formatDuration = (config: FormatDurationParams) => {
+	const from = dayjs(config.from);
+	const to = dayjs(config.to);
+
+	const totalMinutes = Math.abs(to.diff(from, "minutes"));
 	if (totalMinutes < 1) return "just now";
 
 	const days = Math.floor(totalMinutes / (60 * 24));
@@ -30,10 +34,11 @@ export const formatDuration = (
 	const minutes = totalMinutes % 60;
 
 	const parts: string[] = [];
+	if (to.isBefore(from)) parts.push("in");
 	if (days) parts.push(`${days}d`);
 	if (hours) parts.push(`${hours}h`);
 	if (minutes) parts.push(`${minutes}m`);
-	if (suffix) parts.push("ago");
+	if (from.isBefore(to)) parts.push("ago");
 
 	return parts.join(" ");
 };
