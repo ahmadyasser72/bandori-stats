@@ -54,6 +54,10 @@ bottom-sheet::part(sheet) {
 @utility gbp-card {
 	@apply relative size-12 sm:size-16;
 
+	:not(.gbp-card-icon) {
+		@apply pointer-events-none;
+	}
+
 	.gbp-card-icon,
 	.gbp-card-frame {
 		@apply absolute inset-0 size-full;
