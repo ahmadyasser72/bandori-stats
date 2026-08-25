@@ -8,7 +8,7 @@ import { uniq } from "@bandori-stats/bestdori/helpers";
 import { CHART_THEME } from "./_utilities";
 
 export interface ActivityChartProps {
-	data: [number, { count: number; point: number }][];
+	data: [number, [number, number]][];
 	label: string;
 }
 
@@ -17,7 +17,7 @@ const HOURS = Array.from({ length: 24 }, (_, idx) => idx);
 export const ActivityChart = ({ data, label }: ActivityChartProps) => {
 	const heatmapData = useMemo(
 		() =>
-			data.map(([timestamp, { count, point }]) => ({
+			data.map(([timestamp, [count, point]]) => ({
 				timestamp,
 				count,
 				point,

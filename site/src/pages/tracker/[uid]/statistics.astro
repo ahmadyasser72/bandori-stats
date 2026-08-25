@@ -6,11 +6,9 @@ import {
 	allKeyed,
 	capitalize,
 	formatNumber,
-	mapValues,
 	omit,
 } from "@bandori-stats/bestdori/helpers";
-import { and, db, desc, gt, min, sql, sum } from "@bandori-stats/database";
-import { trackerSnapshots } from "@bandori-stats/database/schema";
+import { db, desc, gt, min, sql, sum } from "@bandori-stats/database";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import SheetModal from "~/layouts/sheet-modal.astro";
@@ -100,30 +98,25 @@ const { gameStatistics, gameByHours, gameByPoints } =
 				"fetch-game-by-hours",
 				async () => {
 					const snapshotHour = sql<number>`CAST(timestamp / 3600000 AS INTEGER) * 3600000`;
-					const aggregated = mapValues(
-						await allKeyed({
-							counts: db()
-								.select({ hour: snapshotHour, value: countSql })
-								.from(trackerSnapshots)
-								.where(
-									and(
-										baseFilter,
-										gt(trackerSnapshots.timestamp, after.toDate()),
-									),
-								)
-								.groupBy(snapshotHour),
-							points: db()
-								.with(gapsCte)
-								.select({ hour: snapshotHour, value: sum(gapsCte.delta) })
-								.from(gapsCte)
-								.where(cteFilter)
-								.groupBy(snapshotHour),
-						}),
-						(byHours) =>
-							new Map(
-								byHours.map(({ hour, value }) => [hour, Number(value ?? 0)]),
-							),
-					);
+					const byHours = await db()
+						.with(gapsCte)
+						.select({
+							hour: snapshotHour,
+							count: countSql,
+							point: sum(gapsCte.delta),
+						})
+						.from(gapsCte)
+						.where(cteFilter)
+						.groupBy(snapshotHour)
+						.then(
+							(byHours) =>
+								new Map<number, [number, number]>(
+									byHours.map(({ hour, count, point }) => [
+										hour,
+										[count, Number(point ?? 0)],
+									]),
+								),
+						);
 
 					return Array.from(
 						{
@@ -132,15 +125,9 @@ const { gameStatistics, gameByHours, gameByPoints } =
 								.add(1, "hour")
 								.diff(metadata.startAt, "hours"),
 						},
-						(_, idx): [number, { count: number; point: number }] => {
+						(_, idx): [number, [number, number]] => {
 							const timestamp = startAt.add(idx, "hours").valueOf();
-							return [
-								timestamp,
-								{
-									count: aggregated.counts.get(timestamp) ?? 0,
-									point: aggregated.points.get(timestamp) ?? 0,
-								},
-							];
+							return [timestamp, byHours.get(timestamp) ?? [0, 0]];
 						},
 					);
 				},
@@ -284,7 +271,7 @@ if (Astro.cache.enabled)
 			<BarChart
 				client:only="preact"
 				color="var(--color-primary)"
-				data={gameByHours.map(([timestamp, { count }]) => [timestamp, count])}
+				data={gameByHours.map(([timestamp, [count]]) => [timestamp, count])}
 				hourly
 				label="Active hours"
 			>
