@@ -121,13 +121,12 @@ export const scheduleUpdateTracker = schedules.task({
 			.flatMap(({ value }) => value);
 		if (inserted.length === 0) return;
 
-		await updateTrackerProfile.batchTriggerAndWait(
-			inserted.map(({ uid, metadata }) => ({
-				payload: { uid, trackingReference: getTrackingReference(metadata) },
-				options: { tags: `${metadata.kind}_${metadata.assetBundleName}` },
+		await updateTrackerProfile.triggerAndWait({
+			players: inserted.map(({ uid, metadata }) => ({
+				uid,
+				trackingReference: getTrackingReference(metadata),
 			})),
-		);
-
+		});
 		await githubRedeploy.trigger(undefined, {
 			idempotencyKey: await idempotencyKeys.create(`redeploy:bandori`, {
 				scope: "global",
