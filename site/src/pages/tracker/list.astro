@@ -4,12 +4,7 @@ import { UMAMI_SITE_ID } from "astro:env/server";
 import z from "zod";
 
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
-import {
-	allKeyed,
-	capitalize,
-	formatNumber,
-	sum,
-} from "@bandori-stats/bestdori/helpers";
+import { capitalize, formatNumber, sum } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
 import { GBP, redis } from "@bandori-stats/database/redis";
 import GbpCardTooltip from "~/components/gbp-card-tooltip.astro";
@@ -81,59 +76,65 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 		trackingId: params.id,
 	};
 
+	const getSnapshots = (uid: string) =>
+		db().query.trackerSnapshots.findMany({
+			columns: { trackingFor: false, trackingId: false },
+			where: { ...trackingReference, uid },
+			limit: isPastData ? 1 : 2,
+			orderBy: { id: "desc" },
+		});
+	const getProfile = (uid: string) =>
+		db().query.trackerSnapshotProfiles.findFirst({
+			columns: {
+				level: true,
+				avatar: true,
+				introduction: true,
+				band: true,
+				titles: true,
+			},
+			where: { ...trackingReference, uid },
+		});
+
 	const players = await Astro.locals.tracing.enterSpan(
-		"fetch-snapshots",
-		(span) => {
+		"fetch-players",
+		async (span) => {
 			for (const [idx, uid] of top10.entries())
 				span.setAttribute(`t${idx + 1}`, uid);
 
+			const rows = await db().batch([
+				getSnapshots(top10[0]),
+				getProfile(top10[0]),
+				...top10
+					.slice(1)
+					.flatMap((uid) => [getSnapshots(uid), getProfile(uid)]),
+			]);
+
 			return Promise.all(
-				top10.map((uid) =>
-					allKeyed({
-						snapshots: db()
-							.query.trackerSnapshots.findMany({
-								columns: { trackingFor: false, trackingId: false },
-								where: { ...trackingReference, uid },
-								limit: isPastData ? 1 : 2,
-								orderBy: { id: "desc" },
-							})
-							.then((snapshots) => {
-								if (snapshots.length === 1) return snapshots;
+				top10.map(async (_, idx) => {
+					let snapshots = rows[2 * idx] as Awaited<
+						ReturnType<typeof getSnapshots>
+					>;
 
-								const [current, previous] = snapshots;
-								if (current.point !== previous.point) return snapshots;
-								else {
-									return Astro.locals.tracing.enterSpan(
-										"fetch-same-points",
-										async (span) => {
-											span.setAttribute("uid", current.uid);
-											span.setAttribute("point", current.point);
-
-											return db().query.trackerSnapshots.findMany({
-												columns: { trackingFor: false, trackingId: false },
-												where: {
-													...trackingReference,
-													uid: current.uid,
-													point: current.point,
-												},
-												orderBy: { id: "desc" },
-											});
-										},
-									);
-								}
-							}),
-						profile: db().query.trackerSnapshotProfiles.findFirst({
-							columns: {
-								level: true,
-								avatar: true,
-								introduction: true,
-								band: true,
-								titles: true,
+					const [current, previous] = snapshots;
+					if (previous && current.point === previous.point) {
+						snapshots = await db().query.trackerSnapshots.findMany({
+							columns: { trackingFor: false, trackingId: false },
+							where: {
+								...trackingReference,
+								uid: current.uid,
+								point: current.point,
 							},
-							where: { ...trackingReference, uid },
-						}),
-					}),
-				),
+							orderBy: { id: "desc" },
+						});
+					}
+
+					return {
+						snapshots,
+						profile: rows[2 * idx + 1] as Awaited<
+							ReturnType<typeof getProfile>
+						>,
+					};
+				}),
 			);
 		},
 	);
@@ -159,11 +160,6 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 		};
 	});
 });
-
-Astro.response.headers.set(
-	"hx-replace-url",
-	`/tracker?id=${params.id}&tab=${params.kind}`,
-);
 
 if (Astro.cache.enabled)
 	Astro.cache.set(isPastData ? { maxAge: 60 * 60 } : { maxAge: 30, swr: 30 });
