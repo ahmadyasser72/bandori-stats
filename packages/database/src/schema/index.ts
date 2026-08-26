@@ -67,6 +67,32 @@ export const gbpEvents = sqliteTable("gbp_events", {
 	bgmAssetBundleName: text().notNull(),
 	bgmFileName: text().notNull(),
 
+	metadata: text({ mode: "json" }).$type<{
+		attributes: {
+			attribute: "powerful" | "pure" | "cool" | "happy";
+			percent: number;
+		}[];
+		characters: { characterId: number; percent: number }[];
+		eventAttributeAndCharacterBonus: {
+			pointPercent: number;
+			parameterPercent: number;
+		};
+		eventCharacterParameterBonus?: {
+			performance: number;
+			technique: number;
+			visual: number;
+		};
+		members: {
+			situationId: number;
+			percent: number;
+		}[];
+		limitBreaks: {
+			rarity: number;
+			rank: number;
+			percent: number;
+		}[];
+	}>(),
+
 	startAt: integer({ mode: "timestamp_ms" }).notNull(),
 	endAt: integer({ mode: "timestamp_ms" }).notNull(),
 });

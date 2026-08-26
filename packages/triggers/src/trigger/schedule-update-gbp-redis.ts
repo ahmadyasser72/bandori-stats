@@ -2,6 +2,7 @@ import { schedules, tags } from "@trigger.dev/sdk";
 
 import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
 import dayjs from "@bandori-stats/bestdori/date";
+import { EventMetadata } from "@bandori-stats/bestdori/schema/events";
 import { MasterDB, Versions } from "@bandori-stats/bestdori/schema/misc";
 import { db } from "@bandori-stats/database";
 import { GBP, redis } from "@bandori-stats/database/redis";
@@ -55,6 +56,10 @@ export const scheduleUpdateGbpRedis = schedules.task({
 							...event,
 							startAt: new Date(event.startAt),
 							endAt: new Date(event.endAt),
+							metadata: await bestdori({
+								path: `/api/events/${event.eventId}.json`,
+								schema: EventMetadata,
+							}),
 						});
 
 					await tags.add(`event_${event.assetBundleName}`);
