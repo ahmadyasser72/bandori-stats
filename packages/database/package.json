@@ -14,12 +14,12 @@
 	"dependencies": {
 		"@bandori-stats/bestdori": "workspace:*",
 		"@libsql/client": "0.17.4",
-		"@upstash/redis": "1.38.2",
+		"@upstash/redis": "1.38.3",
 		"drizzle-orm": "1.0.0-rc.5-ab785fc",
 		"zod": "4.4.3"
 	},
 	"devDependencies": {
-		"@types/node": "26.2.0",
+		"@types/node": "26.3.0",
 		"drizzle-kit": "1.0.0-rc.5-ab785fc",
 		"typescript": "5.9.3"
 	}
