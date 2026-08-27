@@ -1,5 +1,5 @@
 import { idempotencyKeys, schemaTask, tags } from "@trigger.dev/sdk";
-import { allKeyed, capitalize, pick, sumBy } from "es-toolkit";
+import { allKeyed, capitalize, mapValues, pick, sumBy } from "es-toolkit";
 import z from "zod";
 
 import { unwrapRegionTuple } from "@bandori-stats/bestdori/helpers";
@@ -146,15 +146,18 @@ const getBandMember = async (
 ) => {
 	const card = await getCardById(data.situationId);
 
-	const stat = card.stat[data.level] ?? ZERO_STAT;
-	if (data.userAppendParameter && stat !== ZERO_STAT) {
-		for (const type of STAT_TYPES) {
-			stat[type] +=
-				data.userAppendParameter[type] +
-				data.userAppendParameter[`characterPotential${capitalize(type)}`] +
-				data.userAppendParameter![`characterBonus${capitalize(type)}`];
-		}
-	}
+	const stat = card.stat[data.level]
+		? mapValues(card.stat[data.level]!, (base, type) => {
+				if (!data.userAppendParameter) return base;
+
+				return (
+					base +
+					data.userAppendParameter[type] +
+					data.userAppendParameter[`characterPotential${capitalize(type)}`] +
+					data.userAppendParameter[`characterBonus${capitalize(type)}`]
+				);
+			})
+		: ZERO_STAT;
 
 	const skill = (() => {
 		const skillData = skills.get(card.skillId)!;
