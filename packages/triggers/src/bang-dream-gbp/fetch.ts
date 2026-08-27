@@ -3,9 +3,9 @@ import { createDecipheriv } from "node:crypto";
 import { fromBinary, type Message } from "@bufbuild/protobuf";
 import type { GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { AbortTaskRunError } from "@trigger.dev/sdk";
+import { limitAsync } from "es-toolkit";
 import type z from "zod";
 
-import { limitAsync } from "@bandori-stats/bestdori/helpers";
 import type { GameEventType } from "@bandori-stats/bestdori/schema/misc";
 import {
 	GBP,

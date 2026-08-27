@@ -1,6 +1,6 @@
 import { Redis } from "@upstash/redis";
+import { once } from "es-toolkit";
 
-import { once } from "@bandori-stats/bestdori/helpers";
 import type { PlayerBandMemberStat } from "./schema";
 
 export const redis = once(() => {

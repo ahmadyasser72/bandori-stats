@@ -1,11 +1,11 @@
 import { idempotencyKeys, schemaTask, tags } from "@trigger.dev/sdk";
+import { sum } from "es-toolkit";
 import z from "zod";
 
 import { STAT_NAMES } from "@bandori-stats/bestdori/constants";
 import {
 	abbreviateStatName,
 	compareValue,
-	sum,
 } from "@bandori-stats/bestdori/helpers";
 import {
 	fetchDegrees,

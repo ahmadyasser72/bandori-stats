@@ -35,6 +35,7 @@
         "@libsql/client": "0.17.4",
         "@upstash/redis": "1.38.3",
         "drizzle-orm": "1.0.0-rc.5-ab785fc",
+        "es-toolkit": "1.51.0",
         "zod": "4.4.3",
       },
       "devDependencies": {
@@ -64,6 +65,7 @@
         "@bufbuild/protobuf": "2.14.0",
         "@isaacs/ttlcache": "2.1.5",
         "@trigger.dev/sdk": "4.5.12",
+        "es-toolkit": "1.51.0",
         "random": "5.5.1",
         "web-push": "3.6.7",
         "zod": "4.4.3",
@@ -103,6 +105,7 @@
         "d3-shape": "3.2.0",
         "daisyui": "5.7.22",
         "devalue": "5.9.1",
+        "es-toolkit": "1.51.0",
         "htmx.org": "4.0.0-beta6",
         "minisearch": "7.2.0",
         "preact": "10.29.8",

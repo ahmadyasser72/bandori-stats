@@ -99,5 +99,3 @@ export const unwrapRegionTuple = <T>(
 
 	return main ?? tuple?.at(fallback) ?? null;
 };
-
-export * from "es-toolkit";

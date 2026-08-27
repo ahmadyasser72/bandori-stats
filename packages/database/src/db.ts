@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/libsql/http";
+import { once } from "es-toolkit";
 
-import { once } from "@bandori-stats/bestdori/helpers";
 import { relations } from "./schema/relations";
 
 export const db = once(() => {

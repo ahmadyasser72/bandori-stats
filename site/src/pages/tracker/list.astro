@@ -1,10 +1,11 @@
 ---
 import { UMAMI_SITE_ID } from "astro:env/server";
 
+import { capitalize, sum } from "es-toolkit";
 import z from "zod";
 
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
-import { capitalize, formatNumber, sum } from "@bandori-stats/bestdori/helpers";
+import { formatNumber } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
 import { GBP, redis } from "@bandori-stats/database/redis";
 import GbpCardTooltip from "~/components/gbp-card-tooltip.astro";

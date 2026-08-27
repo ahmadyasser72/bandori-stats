@@ -16,6 +16,7 @@
 		"@libsql/client": "0.17.4",
 		"@upstash/redis": "1.38.3",
 		"drizzle-orm": "1.0.0-rc.5-ab785fc",
+		"es-toolkit": "1.51.0",
 		"zod": "4.4.3"
 	},
 	"devDependencies": {

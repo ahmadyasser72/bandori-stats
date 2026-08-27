@@ -1,4 +1,5 @@
-import { groupBy } from "@bandori-stats/bestdori/helpers";
+import { groupBy } from "es-toolkit";
+
 import { titlesLookup, type Category } from "virtual:bandori-leaderboard";
 
 interface CategorizeOptions<C extends string> {

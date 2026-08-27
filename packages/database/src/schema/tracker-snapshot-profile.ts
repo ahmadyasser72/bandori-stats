@@ -1,4 +1,4 @@
-import { sum } from "@bandori-stats/bestdori/helpers";
+import { sum } from "es-toolkit";
 
 export interface PlayerAvatar {
 	id: number;

@@ -1,13 +1,9 @@
 ---
 import * as devalue from "devalue";
+import { countBy, groupBy, sortKeys } from "es-toolkit";
 import z from "zod";
 
-import {
-	accountHasNickname,
-	countBy,
-	groupBy,
-	sortKeys,
-} from "@bandori-stats/bestdori/helpers";
+import { accountHasNickname } from "@bandori-stats/bestdori/helpers";
 import {
 	leaderboards,
 	type Category,

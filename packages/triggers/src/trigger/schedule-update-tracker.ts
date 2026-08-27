@@ -1,9 +1,10 @@
 import { idempotencyKeys, schedules, tags, wait } from "@trigger.dev/sdk";
+import { sumBy, uniqBy } from "es-toolkit";
 import webPush from "web-push";
 import type z from "zod";
 
 import dayjs from "@bandori-stats/bestdori/date";
-import { formatNumber, sumBy, uniqBy } from "@bandori-stats/bestdori/helpers";
+import { formatNumber } from "@bandori-stats/bestdori/helpers";
 import type {
 	GameEvent,
 	GameMonthlyRanking,

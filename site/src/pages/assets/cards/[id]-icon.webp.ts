@@ -8,12 +8,13 @@ import type {
 	InferGetStaticPropsType,
 } from "astro";
 
+import { uniqBy } from "es-toolkit";
+
 import {
 	exists,
 	fetchBestdori,
 	getCachePath,
 } from "@bandori-stats/bestdori/fetch";
-import { uniqBy } from "@bandori-stats/bestdori/helpers";
 import { imageConfig, vips } from "@bandori-stats/bestdori/image";
 import { fetchCards } from "@bandori-stats/bestdori/schema/cards";
 import { db } from "@bandori-stats/database";

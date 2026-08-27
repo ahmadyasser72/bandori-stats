@@ -2,9 +2,9 @@ import { cell, defineChart } from "@tanstack/charts";
 import { Chart } from "@tanstack/charts/preact";
 import { tooltip } from "@tanstack/charts/tooltip";
 import { scaleBand, scaleLinear } from "d3-scale";
+import { uniq } from "es-toolkit";
 import { useMemo, useState } from "preact/hooks";
 
-import { uniq } from "@bandori-stats/bestdori/helpers";
 import { CHART_THEME } from "../charts/_utilities";
 
 export interface ActivityChartProps {

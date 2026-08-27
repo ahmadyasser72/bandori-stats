@@ -1,13 +1,9 @@
 ---
+import { allKeyed, capitalize, omit } from "es-toolkit";
 import z from "zod";
 
 import dayjs from "@bandori-stats/bestdori/date";
-import {
-	allKeyed,
-	capitalize,
-	formatNumber,
-	omit,
-} from "@bandori-stats/bestdori/helpers";
+import { formatNumber } from "@bandori-stats/bestdori/helpers";
 import { db, desc, gt, min, sql, sum } from "@bandori-stats/database";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";

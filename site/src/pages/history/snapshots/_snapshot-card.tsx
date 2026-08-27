@@ -1,4 +1,5 @@
 import { clsx } from "clsx";
+import { startCase } from "es-toolkit";
 import type { ComponentChildren } from "preact";
 import type z from "zod";
 
@@ -8,7 +9,6 @@ import {
 	compareValue,
 	displayValue,
 	formatNumber,
-	startCase,
 	type StatValue,
 } from "@bandori-stats/bestdori/helpers";
 import type { Account, Snapshot } from "@bandori-stats/database/schema";

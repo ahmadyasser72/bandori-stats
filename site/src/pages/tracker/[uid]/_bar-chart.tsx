@@ -2,9 +2,9 @@ import { barX, defineChart } from "@tanstack/charts";
 import { Chart } from "@tanstack/charts/preact";
 import { tooltip } from "@tanstack/charts/tooltip";
 import { scaleBand, scaleLinear } from "d3-scale";
+import { sumBy } from "es-toolkit";
 import { useMemo } from "preact/hooks";
 
-import { sumBy } from "@bandori-stats/bestdori/helpers";
 import { CHART_THEME } from "../charts/_utilities";
 
 export interface BarChartProps {

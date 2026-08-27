@@ -1,15 +1,9 @@
 import { exactRegex } from "@rolldown/pluginutils";
 import * as devalue from "devalue";
+import { capitalize, omit, pick, startCase, sumBy } from "es-toolkit";
 import z from "zod";
 
-import {
-	capitalize,
-	omit,
-	pick,
-	startCase,
-	sumBy,
-	unwrapRegionTuple,
-} from "@bandori-stats/bestdori/helpers";
+import { unwrapRegionTuple } from "@bandori-stats/bestdori/helpers";
 import {
 	compareDegreeRank,
 	fetchDegrees,

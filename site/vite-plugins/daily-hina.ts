@@ -1,10 +1,10 @@
 import { exactRegex } from "@rolldown/pluginutils";
 import * as devalue from "devalue";
+import { pick } from "es-toolkit";
 import { Random } from "random";
 import type { DailyHina } from "virtual:daily-hina";
 
 import dayjs from "@bandori-stats/bestdori/date";
-import { pick } from "@bandori-stats/bestdori/helpers";
 import { fetchCards } from "@bandori-stats/bestdori/schema/cards";
 
 export default function bandoriLeaderboard() {
