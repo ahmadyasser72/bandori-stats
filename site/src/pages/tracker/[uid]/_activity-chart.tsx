@@ -2,19 +2,18 @@ import { cell, defineChart } from "@tanstack/charts";
 import { Chart } from "@tanstack/charts/preact";
 import { tooltip } from "@tanstack/charts/tooltip";
 import { scaleBand, scaleLinear } from "d3-scale";
-import { useMemo } from "preact/hooks";
+import { useMemo, useState } from "preact/hooks";
 
 import { uniq } from "@bandori-stats/bestdori/helpers";
 import { CHART_THEME } from "../charts/_utilities";
 
 export interface ActivityChartProps {
 	data: [number, [number, number]][];
-	label: string;
 }
 
 const HOURS = Array.from({ length: 24 }, (_, idx) => idx);
 
-export const ActivityChart = ({ data, label }: ActivityChartProps) => {
+export const ActivityChart = ({ data }: ActivityChartProps) => {
 	const heatmapData = useMemo(
 		() =>
 			data.map(([timestamp, [count, point]]) => ({
@@ -28,9 +27,15 @@ export const ActivityChart = ({ data, label }: ActivityChartProps) => {
 		() => uniq(heatmapData.map(({ timestamp }) => formatDate(timestamp))),
 		[heatmapData],
 	);
+
+	const [activityKind, setActivityKind] = useState<"count" | "point">("count");
+	const title = useMemo(
+		() => `Activity heatmap (${activityKind})`,
+		[activityKind],
+	);
 	const maxActivityValue = useMemo(
-		() => Math.max(1, ...heatmapData.map(({ count }) => count)),
-		[heatmapData],
+		() => Math.max(1, ...heatmapData.map((data) => data[activityKind])),
+		[heatmapData, activityKind],
 	);
 
 	const colors = useMemo(() => {
@@ -49,7 +54,7 @@ export const ActivityChart = ({ data, label }: ActivityChartProps) => {
 						cell(heatmapData, {
 							x: ({ timestamp }) => new Date(timestamp).getHours(),
 							y: ({ timestamp }) => formatDate(timestamp),
-							color: "count",
+							color: activityKind,
 							key: "timestamp",
 							inset: 1,
 							radius: 2,
@@ -72,15 +77,27 @@ export const ActivityChart = ({ data, label }: ActivityChartProps) => {
 				},
 				{ tooltip },
 			),
-		[heatmapData, days, maxActivityValue, colors],
+		[heatmapData, days, activityKind, maxActivityValue, colors],
 	);
 
 	return (
 		<div class="mt-8 w-full">
-			<h3 class="text-center text-xl font-medium">{label}</h3>
+			<div class="flex items-center justify-center gap-2">
+				<h3 class="text-center text-xl font-medium">{title}</h3>
+
+				<button
+					class="btn capitalize btn-xs"
+					onClick={() =>
+						setActivityKind(activityKind === "count" ? "point" : "count")
+					}
+				>
+					<span class="iconify size-3 lucide--arrow-left-right"></span>
+					{activityKind === "count" ? "point" : "count"}
+				</button>
+			</div>
 			<div class="max-h-64 scrollbar-gutter-stable overflow-y-auto p-2">
 				<Chart
-					ariaLabel={label}
+					ariaLabel={title}
 					definition={definition}
 					height={days.length * 28}
 					renderTooltipBody={({ points }) => (
