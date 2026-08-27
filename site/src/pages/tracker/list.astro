@@ -231,12 +231,12 @@ if (Astro.cache.enabled)
 			import.meta.env.PROD &&
 				UMAMI_SITE_ID &&
 				`htmx:before:request from:self -> umami.track("tracker-poll", { name: "${metadata.name}", kind: "${params.kind}" })`,
-			"htmx:before:request from:self -> if (document.hidden) event.preventDefault()",
+			"htmx:config:request from:self -> if (document.hidden) event.preventDefault()",
 		]
 			.filter(Boolean)
 			.join(";"),
-		"hx-swap": "outerHTML transition:true",
-		"hx-trigger": "load delay:60s, visibilitychange from:document",
+		"hx-swap": "outerMorph transition:true",
+		"hx-trigger": "every 60s, visibilitychange from:document",
 		"hx-vals": JSON.stringify({ kind: params.kind, id: params.id, poll: true }),
 	}}
 	class="list mt-4 py-1"

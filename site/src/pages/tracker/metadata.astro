@@ -65,14 +65,13 @@ if (Astro.cache.enabled)
 
 <div
 	{...!isPastData && {
-		"hx-get": "/tracker/metadata",
+		"hx-get": `${Astro.url.pathname}${Astro.url.search}`,
 		"hx-headers": JSON.stringify({ "client-timezone": clientTimezone }),
 		"hx-indicator": "#metadata-loader",
 		"hx-on":
-			"htmx:before:request from:self -> if (document.hidden) event.preventDefault()",
+			"htmx:config:request from:self -> if (document.hidden) event.preventDefault()",
 		"hx-swap": "outerMorph",
-		"hx-trigger": "load delay:60s, visibilitychange from:document",
-		"hx-vals": JSON.stringify({ kind: params.kind, id: data.id, poll: true }),
+		"hx-trigger": "every 60s, visibilitychange from:document",
 	}}
 	class="mt-4 flex flex-col items-center gap-1"
 	style="anchor-name: --anchor-tracker-info"

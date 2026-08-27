@@ -101,11 +101,11 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 				UMAMI_SITE_ID &&
 				profile &&
 				`htmx:before:request from:self -> umami.track("recent-games-poll", { player: "${profile.name}", kind: "${params.kind}" })`,
-			"htmx:before:request from:self -> if (document.hidden) event.preventDefault()",
+			"htmx:config:request from:self -> if (document.hidden) event.preventDefault()",
 		]
 			.filter(Boolean)
 			.join(";"),
-		"hx-trigger": "load delay:60s, visibilitychange from:document",
+		"hx-trigger": "every 60s, visibilitychange from:document",
 	}}
 >
 	<h2 class="text-center text-2xl font-medium">
