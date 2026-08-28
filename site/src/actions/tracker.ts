@@ -92,13 +92,18 @@ export const notifyMe = defineAction({
 		const baseKey = GBP[target.trackingFor][target.trackingId];
 		const key = `${baseKey}:notify:${target.uid}`;
 
-		const notify = { on, subscription } satisfies NotifyWhenPlayer;
+		const payload = {
+			on,
+			subscription,
+			createdAt: new Date(),
+		} satisfies NotifyWhenPlayer;
+
 		const exists = await redis().exists(key);
-		if (exists) await redis().json.arrappend(key, "$", notify);
+		if (exists) await redis().json.arrappend(key, "$", payload);
 		else
 			await redis()
 				.multi()
-				.json.set(key, "$", [notify])
+				.json.set(key, "$", [payload])
 				.pexpireat(key, metadata.endAt.valueOf())
 				.exec();
 	},
