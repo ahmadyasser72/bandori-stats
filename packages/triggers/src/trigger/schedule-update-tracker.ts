@@ -83,7 +83,7 @@ export const scheduleUpdateTracker = schedules.task({
 
 				await Promise.all([
 					tags.add(`${metadata.kind}_+${inserted.length}`),
-					updateRedis(top, { metadata }),
+					updateRedisLeaderboard(top, { metadata }),
 					sendPushNotifications(top, { now, inserted, metadata }),
 				]);
 
@@ -106,7 +106,7 @@ export const scheduleUpdateTracker = schedules.task({
 
 				await Promise.all([
 					tags.add(`${metadata.kind}_+${inserted.length}`),
-					updateRedis(top, { metadata }),
+					updateRedisLeaderboard(top, { metadata }),
 					sendPushNotifications(top, { now, inserted, metadata }),
 				]);
 
@@ -171,25 +171,24 @@ const insertSnapshots = async (
 		});
 };
 
-interface UpdateRedisTop10Options {
+interface UpdateRedisLeaderboardOptions {
 	metadata: GbpMetadata;
 }
 
-const updateRedis = async (
+const updateRedisLeaderboard = async (
 	top10: RankingUser[],
-	{ metadata }: UpdateRedisTop10Options,
+	{ metadata }: UpdateRedisLeaderboardOptions,
 ) => {
 	const key = getRedisKey(metadata);
-	await redis().mset(
-		Object.fromEntries(
-			top10.map(({ userId, rank }) => [`${key}:${rank}`, userId!.toString()]),
-		),
+	await redis().zadd(
+		`${key}:leaderboard`,
+		{ gt: true },
+		{ member: top10[0].userId.toString(), score: Number(top10[0].point) },
+		...top10.slice(1).map(({ userId, point }) => ({
+			member: userId.toString(),
+			score: Number(point),
+		})),
 	);
-
-	const uids = top10.map(({ userId }) => userId!.toString());
-	// @ts-expect-error should works
-	const newTop10 = await redis().sadd(`${key}:players`, ...uids);
-	if (newTop10 > 0) await tags.add(`${metadata.kind}_player+${newTop10}`);
 };
 
 interface SendPushNotificationOptions {
@@ -215,11 +214,9 @@ const sendPushNotifications = async (
 	const formerTop10 = [] as typeof inserted;
 	const updatedTop10 = !!inserted.find(({ rank }) => rank === 10);
 	if (updatedTop10) {
-		const outsideTop10 = (
-			await redis().smembers<number[]>(`${baseKey}:players`)
-		)
-			.map((uid) => uid.toString())
-			.filter((uid) => !top10ByUid.has(uid));
+		const outsideTop10 = await redis()
+			.zrange<number[]>(`${baseKey}:leaderboard`, 10, -1, { rev: true })
+			.then((uids) => uids.map((uid) => uid.toString()));
 		if (outsideTop10.length > 0) {
 			const latestSnapshots = await Promise.all(
 				outsideTop10.map((uid) =>

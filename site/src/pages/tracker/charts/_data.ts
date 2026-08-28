@@ -10,9 +10,9 @@ export const fetchTrackerData = async (params: {
 	id: number;
 }) => {
 	const key = GBP[params.kind][params.id];
-	const players = (await redis().smembers<number[]>(`${key}:players`)).map(
-		(uid) => uid.toString(),
-	);
+	const players = await redis()
+		.zrange<number[]>(`${key}:leaderboard`, 0, -1)
+		.then((uids) => uids.map((uid) => uid.toString()));
 
 	const hourBucket =
 		sql<number>`CAST(${trackerSnapshots.timestamp} / 3600000 AS INTEGER) * 3600000`.as(

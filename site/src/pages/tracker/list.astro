@@ -56,19 +56,15 @@ if (!metadata) return new Response(null, { status: 404 });
 const isPastData = dayjs().isAfter(metadata.endAt);
 
 const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
-	const key = GBP[params.kind][params.id!];
 	const top10 = await Astro.locals.tracing.enterSpan(
 		"fetch-t10",
 		async (span) => {
+			const key = GBP[params.kind][params.id!];
 			span.setAttribute("key", key);
 
 			return redis()
-				.mget<(number | null)[]>(
-					...Array.from({ length: 10 }, (_, idx) => `${key}:${idx + 1}`),
-				)
-				.then((uids) =>
-					uids.filter((uid) => uid !== null).map((uid) => uid.toString()),
-				);
+				.zrange<number[]>(`${key}:leaderboard`, 0, 9, { rev: true })
+				.then((uids) => uids.map((uid) => uid.toString()));
 		},
 	);
 
