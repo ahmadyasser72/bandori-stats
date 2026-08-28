@@ -235,17 +235,14 @@ const sendPushNotifications = async (
 	}
 
 	const items = [...inserted, ...formerTop10];
-	const notifyMap = await redis().json.mget<
-		Partial<Record<string, NotifyWhenPlayer[][]>>
-	>(
+	const notifyEntries = await redis().json.mget<NotifyWhenPlayer[][][]>(
 		items.map(({ uid }) => `${baseKey}:notify:${uid}`),
 		"$",
 	);
 
 	const payloads = await Promise.all(
-		items.map(async ({ uid, name, point, rank }) => {
-			const key = `${baseKey}:notify:${uid}`;
-			const notify = notifyMap[key]?.flat();
+		items.map(async ({ uid, name, point, rank }, idx) => {
+			const notify = notifyEntries.at(idx)?.flat();
 			if (!notify || notify.length === 0) return [];
 
 			const subscriptions = [...notify.entries()].filter(
@@ -257,6 +254,7 @@ const sendPushNotifications = async (
 			);
 			if (subscriptions.length === 0) return [];
 
+			const key = `${baseKey}:notify:${uid}`;
 			const deleteNotify = redis().multi();
 			for (const [idx] of [...subscriptions].reverse())
 				deleteNotify.json.del(key, `$[${idx}]`);
