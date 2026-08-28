@@ -6,9 +6,9 @@
 		"composite": false,
 		"jsx": "react-jsx",
 		"jsxImportSource": "preact",
-		"types": ["node", "./worker-configuration.d.ts"],
+		"types": ["node", "./worker-configuration.d.ts", "umami-browser"],
 		"paths": {
-			"~/*": ["./src/*"]
-		}
-	}
+			"~/*": ["./src/*"],
+		},
+	},
 }

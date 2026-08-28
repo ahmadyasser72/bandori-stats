@@ -142,8 +142,20 @@ const NotifyWhen = ({
 				on: { target: on, value },
 			});
 
-			if (error) setErrorText(error.message);
-			else setSubscribed(true);
+			if (error) {
+				setErrorText(error.message);
+				return;
+			}
+
+			setSubscribed(true);
+			if (import.meta.env.PROD) {
+				umami.track("tracker-notify-subscribe", {
+					kind: snapshot.trackingFor,
+					player: snapshot.name,
+					on,
+					value,
+				});
+			}
 		} catch (error) {
 			if (error instanceof Error) setErrorText(error.message);
 			throw error;
