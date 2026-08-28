@@ -8,7 +8,7 @@
 		"jsxImportSource": "preact",
 		"types": ["node", "./worker-configuration.d.ts", "umami-browser"],
 		"paths": {
-			"~/*": ["./src/*"],
-		},
-	},
+			"~/*": ["./src/*"]
+		}
+	}
 }
