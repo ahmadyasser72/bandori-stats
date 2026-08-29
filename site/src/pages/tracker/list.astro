@@ -5,7 +5,7 @@ import { capitalize, sum } from "es-toolkit";
 import z from "zod";
 
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
-import { formatNumber } from "@bandori-stats/bestdori/helpers";
+import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
 import { GBP, redis } from "@bandori-stats/database/redis";
 import GbpCardTooltip from "~/components/gbp-card-tooltip.astro";
@@ -299,14 +299,14 @@ if (Astro.cache.enabled)
 						)}
 
 						<span class="flex-1 truncate text-lg font-medium text-ellipsis">
-							{latest.name}
+							{stripBB(latest.name)}
 						</span>
 
 						<button
 							data-umami-event="tracker-profile"
 							data-umami-event-kind={params.kind}
 							data-umami-event-name={metadata.name}
-							data-umami-event-player={latest.name}
+							data-umami-event-player={stripBB(latest.name)}
 							class="btn btn-info btn-sm max-sm:hidden"
 							disabled={!profile}
 							popovertarget={`profile-${latest.uid}`}
@@ -372,7 +372,7 @@ if (Astro.cache.enabled)
 							data-umami-event="tracker-profile"
 							data-umami-event-kind={params.kind}
 							data-umami-event-name={metadata.name}
-							data-umami-event-player={latest.name}
+							data-umami-event-player={stripBB(latest.name)}
 							class="btn col-span-2 self-center btn-info btn-sm sm:hidden"
 							disabled={!profile}
 							popovertarget={`profile-${latest.uid}`}
@@ -404,7 +404,7 @@ if (Astro.cache.enabled)
 								data-umami-event="tracker-games"
 								data-umami-event-kind={params.kind}
 								data-umami-event-name={metadata.name}
-								data-umami-event-player={latest.name}
+								data-umami-event-player={stripBB(latest.name)}
 								class="btn btn-primary btn-xs sm:btn-sm"
 							>
 								<IconLoader class="max-sm:size-3" name="lucide--gamepad-2" />
@@ -423,7 +423,7 @@ if (Astro.cache.enabled)
 								data-umami-event="tracker-statistics"
 								data-umami-event-kind={params.kind}
 								data-umami-event-name={metadata.name}
-								data-umami-event-player={latest.name}
+								data-umami-event-player={stripBB(latest.name)}
 								class="btn btn-accent btn-xs max-sm:flex-1 sm:btn-sm"
 							>
 								<IconLoader class="max-sm:size-3" name="lucide--bar-chart-3" />
@@ -439,7 +439,7 @@ if (Astro.cache.enabled)
 									data-umami-event="tracker-notify"
 									data-umami-event-kind={params.kind}
 									data-umami-event-name={metadata.name}
-									data-umami-event-player={latest.name}
+									data-umami-event-player={stripBB(latest.name)}
 									class="btn btn-secondary btn-xs max-sm:flex-1 sm:btn-sm"
 								>
 									<IconLoader class="max-sm:size-3" name="lucide--bell" />
@@ -461,9 +461,11 @@ if (Astro.cache.enabled)
 								<h3 class="text-center">
 									<span class="text-xs">Level {profile.level}</span>
 									<br />
-									<span class="text-xl font-medium">{latest.name}</span>
+									<span class="text-xl font-medium">
+										{stripBB(latest.name)}
+									</span>
 								</h3>
-								<p class="mt-1">{profile.introduction}</p>
+								<p class="mt-1">{stripBB(profile.introduction)}</p>
 								<div class="mt-1 flex gap-1">
 									{profile.titles.map((id) => (
 										<img

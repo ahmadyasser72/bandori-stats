@@ -3,6 +3,7 @@ import { ActionError, defineAction } from "astro:actions";
 import { z } from "zod";
 
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
+import { stripBB } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
 import {
 	GBP,
@@ -75,18 +76,18 @@ export const notifyMe = defineAction({
 			if (sinceLastPlayed <= 60)
 				throw new ActionError({
 					code: "BAD_REQUEST",
-					message: `${latestSnapshot.name} recently played ${formatDuration({ from: latestSnapshot.timestamp })}!`,
+					message: `${stripBB(latestSnapshot.name)} recently played ${formatDuration({ from: latestSnapshot.timestamp })}!`,
 				});
 		}
 		if (on.target === "point" && latestSnapshot.point > on.value)
 			throw new ActionError({
 				code: "BAD_REQUEST",
-				message: `${latestSnapshot.name} points already above ${on.value}!`,
+				message: `${stripBB(latestSnapshot.name)} points already above ${on.value}!`,
 			});
 		if (on.target === "boated-from" && latestSnapshot.rank > on.value)
 			throw new ActionError({
 				code: "BAD_REQUEST",
-				message: `${latestSnapshot.name} already boated from rank #${on.value}!`,
+				message: `${stripBB(latestSnapshot.name)} already boated from rank #${on.value}!`,
 			});
 
 		const baseKey = GBP[target.trackingFor][target.trackingId];

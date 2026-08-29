@@ -3,7 +3,7 @@ import { allKeyed, omit } from "es-toolkit";
 import z from "zod";
 
 import dayjs from "@bandori-stats/bestdori/date";
-import { formatNumber } from "@bandori-stats/bestdori/helpers";
+import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
 import { db, desc, gt, min, sql, sum } from "@bandori-stats/database";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
@@ -192,7 +192,7 @@ if (Astro.cache.enabled)
 	<h2 class="text-center text-2xl font-medium">
 		{
 			profile
-				? `${profile.name}: Statistics (${params.duration})`
+				? `${stripBB(profile.name)}: Statistics (${params.duration})`
 				: "Player not found"
 		}
 	</h2>
@@ -221,7 +221,7 @@ if (Astro.cache.enabled)
 								data-umami-event="tracker-statistics-duration"
 								data-umami-event-duration={duration}
 								data-umami-event-kind={params.kind}
-								data-umami-event-player={profile?.name}
+								data-umami-event-player={stripBB(profile?.name)}
 								name="duration"
 								type="radio"
 								value={duration}

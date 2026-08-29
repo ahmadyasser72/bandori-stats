@@ -3,6 +3,7 @@ import { VAPID_PUBLIC_KEY } from "astro:env/client";
 
 import { useRef, useState } from "preact/hooks";
 
+import { stripBB } from "@bandori-stats/bestdori/helpers";
 import type { TrackerSnapshot } from "@bandori-stats/database/schema";
 
 interface NotifyWhenContainerProps {
@@ -34,7 +35,7 @@ const NotifyWhenPlayAgain = ({ snapshot }: NotifyWhenContainerProps) => {
 				<input
 					class="btn join-item flex-1 overflow-clip text-xs break-all not-checked:btn-outline"
 					type="checkbox"
-					aria-label={snapshot.name}
+					aria-label={stripBB(snapshot.name)}
 					onInput={(event) => setValue(event.currentTarget.checked ? 1 : 0)}
 					ref={inputRef}
 					required
@@ -151,7 +152,7 @@ const NotifyWhen = ({
 			if (import.meta.env.PROD) {
 				umami.track("tracker-notify-subscribe", {
 					kind: snapshot.trackingFor,
-					player: snapshot.name,
+					player: stripBB(snapshot.name),
 					on,
 					value,
 				});

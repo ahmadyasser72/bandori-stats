@@ -85,6 +85,8 @@ export const formatNumber = (
 	return positiveSign && n > 0 ? `+${formatted}` : formatted;
 };
 
+export const stripBB = (s?: string) => s?.replace(/\[[^\]]+\]/g, "") as string;
+
 export const unwrapRegionTuple = <T>(
 	tuple?: [T, T, T, T, T],
 	config: { primary: number; fallback: number | false } = {

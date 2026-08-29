@@ -5,6 +5,7 @@ import { scaleLinear, scaleUtc } from "d3-scale";
 import { curveLinear } from "d3-shape";
 import { useMemo, useRef } from "preact/hooks";
 
+import { stripBB } from "@bandori-stats/bestdori/helpers";
 import {
 	CHART_THEME,
 	formatTimestamp,
@@ -62,7 +63,7 @@ export const PointsChart = ({
 								id: "point-end-labels",
 								x: ({ timestamp }) => new Date(timestamp),
 								y: "point",
-								text: "name",
+								text: ({ name }) => stripBB(name),
 								color: "uid",
 								anchor: "start",
 								dx: 8,
@@ -114,8 +115,8 @@ export const PointsChart = ({
 						{points.map(({ datum }) => (
 							<div key={`${datum.uid}-${datum.timestamp}`}>
 								<b>
-									#{datum.rank} {datum.name} - {datum.point.toLocaleString()}{" "}
-									Pts
+									#{datum.rank} {stripBB(datum.name)} -{" "}
+									{datum.point.toLocaleString()} Pts
 								</b>
 								{datum.delta !== undefined && datum.delta > 0 && (
 									<div>+{datum.delta.toLocaleString()} Pts</div>

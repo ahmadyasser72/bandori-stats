@@ -1,6 +1,7 @@
 ---
 import z from "zod";
 
+import { stripBB } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
 import SheetModal from "~/layouts/sheet-modal.astro";
 import { NotifyWhenContainer } from "./_notify";
@@ -35,7 +36,11 @@ const snapshot = await db().query.trackerSnapshots.findFirst({
 
 <SheetModal class="mx-auto max-w-2xl">
 	<h2 class="text-center text-2xl font-medium">
-		{snapshot ? `Notify me when ${snapshot.name}...` : "Notify me when..."}
+		{
+			snapshot
+				? `Notify me when ${stripBB(snapshot.name)}...`
+				: "Notify me when..."
+		}
 	</h2>
 
 	{snapshot && <NotifyWhenContainer client:load {snapshot} />}
