@@ -237,4 +237,106 @@ const { title, page, containerClass } = Astro.props;
 			{ once: true },
 		);
 	});
+
+	{
+		interface Style {
+			bold?: boolean;
+			italic?: boolean;
+			sub?: boolean;
+			sup?: boolean;
+			color?: string;
+		}
+
+		interface Segment {
+			text: string;
+			style: Style;
+		}
+
+		const TAG_REGEX = /\[([a-z]+|#[0-9a-f]{6}|[0-9a-f]{6})\]/gi;
+		const parseBB = (input: string): Segment[] => {
+			const segments: Segment[] = [];
+
+			let style: Style = {};
+			let color = "#ffffff";
+			let colorMode = false;
+			let lastIndex = 0;
+
+			for (const match of input.matchAll(TAG_REGEX)) {
+				const index = match.index!;
+
+				if (index > lastIndex) {
+					segments.push({
+						text: input.slice(lastIndex, index),
+						style: { ...style, ...(colorMode && { color }) },
+					});
+				}
+
+				const tag = match[1].toLowerCase();
+
+				if (/^#?[0-9a-f]{6}$/i.test(tag)) {
+					color = tag.startsWith("#") ? tag : `#${tag}`;
+
+					if (colorMode) style = { ...style, color };
+				} else {
+					switch (tag) {
+						case "b":
+							style = { ...style, bold: true };
+							break;
+
+						case "i":
+							style = { ...style, italic: true };
+							break;
+
+						case "sub":
+							style = { ...style, sub: true, sup: false };
+							break;
+
+						case "sup":
+							style = { ...style, sup: true, sub: false };
+							break;
+
+						case "c":
+							colorMode = true;
+							style = { ...style, color };
+							break;
+					}
+				}
+
+				lastIndex = index + match[0].length;
+			}
+
+			if (lastIndex < input.length) {
+				segments.push({
+					text: input.slice(lastIndex),
+					style: { ...style, ...(colorMode && { color }) },
+				});
+			}
+
+			return segments;
+		};
+
+		htmx.onLoad((node) => {
+			if (!(node instanceof HTMLElement)) return;
+
+			node.querySelectorAll<HTMLElement>("[data-bb]").forEach((element) => {
+				const segments = parseBB(element.dataset.bb!);
+				element.innerHTML = segments
+					.map(({ text, style }) => {
+						const styles: string[] = [];
+						if (style.bold) styles.push("font-weight: bold");
+						if (style.italic) styles.push("font-style: italic");
+						if (style.sub)
+							styles.push("vertical-align: sub", "font-size: smaller");
+						if (style.sup)
+							styles.push("vertical-align: super", "font-size: smaller");
+						if (style.color) styles.push(`color: ${style.color}`);
+
+						return styles.length
+							? `<span style="${styles.join(";")}">${text}</span>`
+							: text;
+					})
+					.join("");
+			});
+		});
+	}
 </script>

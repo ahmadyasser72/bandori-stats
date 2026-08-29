@@ -298,7 +298,10 @@ if (Astro.cache.enabled)
 							<GbpCard class="scale-75" member={profile.avatar} />
 						)}
 
-						<span class="flex-1 truncate text-lg font-medium text-ellipsis">
+						<span
+							class="flex-1 truncate text-lg font-medium text-ellipsis"
+							data-bb={latest.name}
+						>
 							{stripBB(latest.name)}
 						</span>
 
@@ -461,11 +464,13 @@ if (Astro.cache.enabled)
 								<h3 class="text-center">
 									<span class="text-xs">Level {profile.level}</span>
 									<br />
-									<span class="text-xl font-medium">
+									<span class="text-xl font-medium" data-bb={latest.name}>
 										{stripBB(latest.name)}
 									</span>
 								</h3>
-								<p class="mt-1">{stripBB(profile.introduction)}</p>
+								<p class="mt-1" data-bb={profile.introduction}>
+									{stripBB(profile.introduction)}
+								</p>
 								<div class="mt-1 flex gap-1">
 									{profile.titles.map((id) => (
 										<img

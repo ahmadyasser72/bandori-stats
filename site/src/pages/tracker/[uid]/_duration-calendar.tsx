@@ -34,7 +34,6 @@ export const DurationCalendar = ({
 						target: "main",
 						swap: "after",
 					});
-					(ref.current!.closest("[popover]") as HTMLElement).hidePopover();
 				},
 			}),
 		);

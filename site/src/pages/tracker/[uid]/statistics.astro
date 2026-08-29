@@ -191,11 +191,19 @@ if (Astro.cache.enabled)
 <SheetModal class="mx-auto max-w-2xl">
 	<h2 class="text-center text-2xl font-medium">
 		{
-			profile
-				? `${stripBB(profile.name)}: Statistics (${params.duration})`
-				: "Player not found"
+			profile ? (
+				<>
+					<span data-bb={profile.name}>{stripBB(profile.name)}</span> &mdash;
+					Statistics
+				</>
+			) : (
+				"Player not found"
+			)
 		}
 	</h2>
+	<span class="text-center font-mono text-sm text-base-content/67"
+		>({params.duration})</span
+	>
 
 	<fieldset
 		hx-vals:inherited={JSON.stringify(omit(params, ["duration"]))}
@@ -236,15 +244,15 @@ if (Astro.cache.enabled)
 		}
 
 		<div
-			hx-preserve="true"
 			class="dropdown dropdown-center text-base-content"
-			id="duration-calendar"
 			popover
 			style="position-anchor: --anchor-duration-calendar"
 		>
 			<div
 				hx-indicator:inherited="#duration-calendar-loader"
+				hx-preserve="true"
 				class="relative flex min-h-70 min-w-75 justify-center"
+				id="duration-calendar"
 			>
 				<DurationCalendar
 					client:only="preact"
