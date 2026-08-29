@@ -20,7 +20,7 @@ import { BarChart } from "./_bar-chart";
 
 export const partial = true;
 
-const DURATIONS = ["1d", "3d", "all"] as const;
+const DURATIONS = ["1d", "3d", "7d", "all"] as const;
 
 const uid = Astro.params.uid!;
 const params = Astro.locals.parseQuery(
@@ -66,6 +66,7 @@ if (!metadata) return new Response(null, { status: 404 });
 let after: dayjs.Dayjs | null;
 if (params.duration === "1d") after = dayjs().subtract(1, "day");
 else if (params.duration === "3d") after = dayjs().subtract(3, "day");
+else if (params.duration === "7d") after = dayjs().subtract(7, "day");
 else after = null;
 
 const startAt = dayjs(metadata.startAt).startOf("hour");
