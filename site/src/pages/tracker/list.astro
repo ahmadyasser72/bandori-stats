@@ -158,6 +158,11 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 	});
 });
 
+Astro.response.headers.set(
+	"hx-replace-url",
+	`/tracker?id=${params.id}&tab=${params.kind}`,
+);
+
 if (Astro.cache.enabled)
 	Astro.cache.set(isPastData ? { maxAge: 60 * 60 } : { maxAge: 30, swr: 30 });
 ---
