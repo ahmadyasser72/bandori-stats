@@ -55,10 +55,12 @@ export const createGapsCte = (
 export const createCteFilter = (
 	kind: "event" | "monthly",
 	gapsCte: ReturnType<typeof createGapsCte>,
-	after: Date,
+	from: dayjs.Dayjs,
+	to: dayjs.Dayjs,
 ) =>
 	and(
-		gte(gapsCte.timestamp, after),
+		gte(gapsCte.timestamp, from.toDate()),
+		lte(gapsCte.timestamp, to.toDate()),
 		gt(gapsCte.delta, 0),
 		lte(gapsCte.delta, outlierCap(kind)),
 	);

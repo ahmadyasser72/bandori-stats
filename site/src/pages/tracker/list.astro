@@ -383,27 +383,33 @@ if (Astro.cache.enabled)
 						</button>
 
 						<div class="col-span-full flex gap-1 sm:justify-end">
-							{lastPlayed && (
-								<button
-									hx-get={`/tracker/${latest.uid}/recent-games`}
-									hx-vals={JSON.stringify({
-										kind: params.kind,
-										id: params.id,
-										duration:
-											dayjs().diff(lastPlayed.timestamp, "minutes") < 60
-												? "1h"
-												: "12h",
-									})}
-									data-umami-event="tracker-recent-games"
-									data-umami-event-kind={params.kind}
-									data-umami-event-name={metadata.name}
-									data-umami-event-player={latest.name}
-									class="btn btn-primary btn-xs sm:btn-sm"
-								>
-									<IconLoader class="max-sm:size-3" name="lucide--gamepad-2" />
-									Recent
-								</button>
-							)}
+							<button
+								hx-get={`/tracker/${latest.uid}/games`}
+								hx-swap="after"
+								hx-target="main"
+								hx-vals={JSON.stringify({
+									kind: params.kind,
+									id: params.id,
+									duration: lastPlayed
+										? dayjs().diff(lastPlayed.timestamp, "minutes") < 60
+											? "1h"
+											: "12h"
+										: [
+												dayjs(metadata.endAt).subtract(1, "day"),
+												dayjs(metadata.endAt),
+											]
+												.map((date) => date.format("YYYY-MM-DD"))
+												.join(":"),
+								})}
+								data-umami-event="tracker-games"
+								data-umami-event-kind={params.kind}
+								data-umami-event-name={metadata.name}
+								data-umami-event-player={latest.name}
+								class="btn btn-primary btn-xs sm:btn-sm"
+							>
+								<IconLoader class="max-sm:size-3" name="lucide--gamepad-2" />
+								Games
+							</button>
 
 							<button
 								hx-get={`/tracker/${latest.uid}/statistics`}

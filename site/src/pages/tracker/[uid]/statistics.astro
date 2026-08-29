@@ -1,5 +1,5 @@
 ---
-import { allKeyed, capitalize, omit } from "es-toolkit";
+import { allKeyed, omit } from "es-toolkit";
 import z from "zod";
 
 import dayjs from "@bandori-stats/bestdori/date";
@@ -17,17 +17,22 @@ import {
 	fetchStatistics,
 } from "./_aggregate";
 import { BarChart } from "./_bar-chart";
+import { DurationCalendar } from "./_duration-calendar";
 
 export const partial = true;
 
-const DURATIONS = ["1d", "3d", "7d", "all"] as const;
+const DURATIONS = ["1d", "3d", "7d"] as const;
 
 const uid = Astro.params.uid!;
 const params = Astro.locals.parseQuery(
 	z.object({
 		kind: z.enum(["event", "monthly"]),
 		id: z.coerce.number(),
-		duration: z.enum(DURATIONS),
+		duration: z.union([
+			z.enum(DURATIONS),
+			z.templateLiteral([z.iso.date(), ":", z.iso.date()]),
+			z.literal("all"),
+		]),
 	}),
 );
 
@@ -63,17 +68,17 @@ const { metadata, profile } = await Astro.locals.tracing.enterSpan(
 
 if (!metadata) return new Response(null, { status: 404 });
 
-let after: dayjs.Dayjs | null;
-if (params.duration === "1d") after = dayjs().subtract(1, "day");
-else if (params.duration === "3d") after = dayjs().subtract(3, "day");
-else if (params.duration === "7d") after = dayjs().subtract(7, "day");
-else after = null;
-
-const startAt = dayjs(metadata.startAt).startOf("hour");
-after = after && startAt.isBefore(after) ? after : startAt;
-const isPastData = dayjs().isAfter(metadata.endAt);
-
-const baseFilter = createBaseFilter(params.kind, params.id, uid);
+let from: dayjs.Dayjs;
+let to = dayjs(metadata.endAt);
+if (params.duration === "1d") from = dayjs().subtract(1, "day");
+else if (params.duration === "3d") from = dayjs().subtract(3, "day");
+else if (params.duration === "7d") from = dayjs().subtract(7, "day");
+else if (params.duration === "all") from = dayjs(metadata.startAt);
+else {
+	const [left, right] = params.duration.split(":");
+	from = dayjs(left).startOf("day");
+	to = dayjs(right).endOf("day");
+}
 
 const { gameStatistics, gameByHours, gameByPoints } =
 	await Astro.locals.tracing.enterSpan("fetch-statistics", (span) => {
@@ -81,11 +86,12 @@ const { gameStatistics, gameByHours, gameByPoints } =
 		span.setAttribute("kind", params.kind);
 		span.setAttribute("id", params.id);
 		span.setAttribute("duration", params.duration);
-		span.setAttribute("after", after.toISOString());
+		span.setAttribute("from", from.toISOString());
+		span.setAttribute("to", to.toISOString());
 
+		const baseFilter = createBaseFilter(params.kind, params.id, uid);
 		const gapsCte = createGapsCte(baseFilter);
-		const cteFilter = createCteFilter(params.kind, gapsCte, after.toDate());
-
+		const cteFilter = createCteFilter(params.kind, gapsCte, from, to);
 		return allKeyed({
 			gameStatistics: Astro.locals.tracing.enterSpan(
 				"fetch-game-statistics",
@@ -115,6 +121,7 @@ const { gameStatistics, gameByHours, gameByPoints } =
 								),
 						);
 
+					const startAt = dayjs(metadata.startAt).startOf("hour");
 					return Array.from(
 						{
 							length: dayjs(metadata.endAt)
@@ -175,6 +182,7 @@ const {
 	averageMinutesPerGame,
 	pointsPerHour,
 } = gameStatistics;
+const isPastData = dayjs().isAfter(metadata.endAt);
 
 if (Astro.cache.enabled)
 	Astro.cache.set(isPastData ? { maxAge: 60 * 60 } : { maxAge: 30, swr: 30 });
@@ -189,36 +197,73 @@ if (Astro.cache.enabled)
 		}
 	</h2>
 
-	{
-		!isPastData && (
-			<fieldset
-				hx-vals:inherited={JSON.stringify(omit(params, ["duration"]))}
-				class="tabs mt-4 w-full tabs-sm text-accent"
-				role="tablist"
-			>
-				{DURATIONS.map((duration) => (
-					<label class="tab h-16 flex-col hover:text-accent max-md:flex-1 md:px-12">
-						<input
-							hx-get={Astro.url.pathname}
-							hx-disable="closest .tabs"
-							hx-swap="after"
-							hx-target="main"
-							data-umami-event="tracker-statistics-duration"
-							data-umami-event-duration={duration}
-							data-umami-event-kind={params.kind}
-							data-umami-event-player={profile?.name}
-							name="duration"
-							type="radio"
-							value={duration}
-							checked={duration === params.duration}
-						/>
+	<fieldset
+		hx-vals:inherited={JSON.stringify(omit(params, ["duration"]))}
+		class="tabs mt-4 w-full tabs-sm text-accent"
+		role="tablist"
+	>
+		{
+			(isPastData ? ["?", "all"] : [...DURATIONS, "?", "all"]).map(
+				(duration) => (
+					<label
+						class="tab h-16 flex-col hover:text-accent max-md:flex-1 md:px-12"
+						{...(duration === "?" && {
+							onclick: "this.parentNode.lastElementChild.togglePopover()",
+							style: "anchor-name: --anchor-duration-calendar",
+						})}
+					>
+						{duration !== "?" && (
+							<input
+								hx-get={Astro.url.pathname}
+								hx-disable="closest .tabs"
+								hx-swap="after"
+								hx-target="main"
+								data-umami-event="tracker-statistics-duration"
+								data-umami-event-duration={duration}
+								data-umami-event-kind={params.kind}
+								data-umami-event-player={profile?.name}
+								name="duration"
+								type="radio"
+								value={duration}
+								checked={duration === params.duration}
+							/>
+						)}
 						<IconLoader class="size-5" name="lucide--clock" />
-						{capitalize(duration)}
+						{duration}
 					</label>
-				))}
-			</fieldset>
-		)
-	}
+				),
+			)
+		}
+
+		<div
+			hx-preserve="true"
+			class="dropdown dropdown-center text-base-content"
+			id="duration-calendar"
+			popover
+			style="position-anchor: --anchor-duration-calendar"
+		>
+			<div
+				hx-indicator:inherited="#duration-calendar-loader"
+				class="relative flex min-h-70 min-w-75 justify-center"
+			>
+				<DurationCalendar
+					client:only="preact"
+					dateMax={metadata.endAt}
+					dateMin={metadata.startAt}
+					url={Astro.url}
+				/>
+				<div
+					class="htmx-indicator absolute inset-0 bg-base-100/67"
+					id="duration-calendar-loader"
+				>
+					<Icon
+						class="absolute center size-32"
+						name="svg-spinners--bars-scale"
+					/>
+				</div>
+			</div>
+		</div>
+	</fieldset>
 
 	<div class="mt-4 flex flex-wrap justify-center gap-x-1 gap-y-0.5">
 		<div class="badge badge-soft badge-lg badge-primary">

@@ -15,40 +15,30 @@ import {
 	fetchStatistics,
 	outlierCap,
 } from "./_aggregate";
+import { DurationCalendar } from "./_duration-calendar";
 
 export const partial = true;
 
-const DURATIONS = ["1h", "3h", "6h", "12h", "1d"] as const;
+const DURATIONS = ["1h", "3h", "6h", "12h"] as const;
 
 const uid = Astro.params.uid!;
 const params = Astro.locals.parseQuery(
 	z.object({
 		kind: z.enum(["event", "monthly"]),
 		id: z.coerce.number(),
-		duration: z.enum(DURATIONS),
+		duration: z.union([
+			z.enum(DURATIONS),
+			z.templateLiteral([z.iso.date(), ":", z.iso.date()]),
+		]),
 	}),
 );
 
-let after: dayjs.Dayjs;
-if (params.duration === "1h") after = dayjs().subtract(1, "hour");
-else if (params.duration === "3h") after = dayjs().subtract(3, "hour");
-else if (params.duration === "6h") after = dayjs().subtract(6, "hour");
-else if (params.duration === "12h") after = dayjs().subtract(12, "hour");
-else after = dayjs().subtract(1, "day");
-
-const baseFilter = createBaseFilter(params.kind, params.id, uid);
-
-const { profile, statistics, games } = await Astro.locals.tracing.enterSpan(
-	"fetch-recent-games",
-	(span) => {
+const { metadata, profile } = await Astro.locals.tracing.enterSpan(
+	"fetch-metadata",
+	async (span) => {
 		span.setAttribute("uid", uid);
 		span.setAttribute("kind", params.kind);
 		span.setAttribute("id", params.id);
-		span.setAttribute("duration", params.duration);
-		span.setAttribute("after", after.toISOString());
-
-		const gapsCte = createGapsCte(baseFilter);
-		const cteFilter = createCteFilter(params.kind, gapsCte, after.toDate());
 
 		return allKeyed({
 			profile: db().query.trackerSnapshotProfiles.findFirst({
@@ -59,6 +49,48 @@ const { profile, statistics, games } = await Astro.locals.tracing.enterSpan(
 					uid,
 				},
 			}),
+			metadata:
+				params.kind === "event"
+					? db().query.gbpEvents.findFirst({
+							columns: { startAt: true, endAt: true },
+							where: { eventId: params.id },
+						})
+					: db().query.gbpMonthlyRankings.findFirst({
+							columns: { startAt: true, endAt: true },
+							where: { monthlyRankingId: params.id },
+						}),
+		});
+	},
+);
+
+if (!metadata) return new Response(null, { status: 404 });
+
+let from: dayjs.Dayjs;
+let to = dayjs(metadata.endAt);
+if (params.duration === "1h") from = dayjs().subtract(1, "hour");
+else if (params.duration === "3h") from = dayjs().subtract(3, "hour");
+else if (params.duration === "6h") from = dayjs().subtract(6, "hour");
+else if (params.duration === "12h") from = dayjs().subtract(12, "hour");
+else {
+	const [left, right] = params.duration.split(":");
+	from = dayjs(left).startOf("day");
+	to = dayjs(right).endOf("day");
+}
+
+const { statistics, games } = await Astro.locals.tracing.enterSpan(
+	"fetch-games",
+	(span) => {
+		span.setAttribute("uid", uid);
+		span.setAttribute("kind", params.kind);
+		span.setAttribute("id", params.id);
+		span.setAttribute("duration", params.duration);
+		span.setAttribute("from", from.toISOString());
+		span.setAttribute("to", to.toISOString());
+
+		const baseFilter = createBaseFilter(params.kind, params.id, uid);
+		const gapsCte = createGapsCte(baseFilter);
+		const cteFilter = createCteFilter(params.kind, gapsCte, from, to);
+		return allKeyed({
 			statistics: Astro.locals.tracing.enterSpan("fetch-game-statistics", () =>
 				fetchStatistics(gapsCte, cteFilter),
 			),
@@ -87,21 +119,17 @@ const {
 	averageMinutesPerGame,
 	pointsPerHour,
 } = statistics;
+const isPastData = dayjs().isAfter(metadata.endAt);
 
-if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
+if (Astro.cache.enabled)
+	Astro.cache.set(isPastData ? { maxAge: 60 * 60 } : { maxAge: 30, swr: 30 });
 ---
 
 <SheetModal>
 	<h2 class="text-center text-2xl font-medium">
-		<Icon
-			class="htmx-indicator mr-1 size-5 align-[-1px]"
-			id="recent-games-loader"
-			name="svg-spinners--90-ring-with-bg"
-		/>
-
 		{
 			profile
-				? `${profile.name}: Recent Games (${params.duration})`
+				? `${profile.name}: Games (${params.duration})`
 				: "Player not found"
 		}
 	</h2>
@@ -112,32 +140,74 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 		role="tablist"
 	>
 		{
-			DURATIONS.map((duration) => (
-				<label class="tab h-16 flex-col hover:text-accent max-md:flex-1 md:px-12">
-					<input
-						hx-get={Astro.url.pathname}
-						hx-disable="closest .tabs"
-						data-umami-event="tracker-recent-games-duration"
-						data-umami-event-duration={duration}
-						data-umami-event-kind={params.kind}
-						data-umami-event-player={profile?.name}
-						name="duration"
-						type="radio"
-						value={duration}
-						checked={duration === params.duration}
-					/>
+			(isPastData ? ["?"] : [...DURATIONS, "?"]).map((duration) => (
+				<label
+					class="tab h-16 flex-col hover:text-accent max-md:flex-1 md:px-12"
+					{...(duration === "?" && {
+						onclick: "this.parentNode.lastElementChild.togglePopover()",
+						style: "anchor-name: --anchor-duration-calendar",
+					})}
+				>
+					{duration !== "?" && (
+						<input
+							hx-get={Astro.url.pathname}
+							hx-disable="closest .tabs"
+							hx-swap="after"
+							hx-target="main"
+							data-umami-event="tracker-games-duration"
+							data-umami-event-duration={duration}
+							data-umami-event-kind={params.kind}
+							data-umami-event-player={profile?.name}
+							name="duration"
+							type="radio"
+							value={duration}
+							checked={duration === params.duration}
+						/>
+					)}
 					<IconLoader class="size-5" name="lucide--clock" />
 					{duration}
 				</label>
 			))
 		}
+
+		<div
+			hx-preserve="true"
+			class:list={[
+				"dropdown text-base-content",
+				isPastData ? "dropdown-center" : "dropdown-end",
+			]}
+			id="duration-calendar"
+			popover
+			style="position-anchor: --anchor-duration-calendar"
+		>
+			<div
+				hx-indicator:inherited="#duration-calendar-loader"
+				class="relative flex min-h-70 min-w-75 justify-center"
+			>
+				<DurationCalendar
+					client:only="preact"
+					dateMax={metadata.endAt}
+					dateMin={metadata.startAt}
+					url={Astro.url}
+				/>
+				<div
+					class="htmx-indicator absolute inset-0 bg-base-100/67"
+					id="duration-calendar-loader"
+				>
+					<Icon
+						class="absolute center size-32"
+						name="svg-spinners--bars-scale"
+					/>
+				</div>
+			</div>
+		</div>
 	</fieldset>
 
 	<div class="mt-4 flex max-w-4/5 flex-wrap justify-center gap-x-1 gap-y-0.5">
 		{
 			params.duration !== "1h" && (
 				<div class="badge badge-soft badge-md badge-primary">
-					{formatNumber(gamesTotal / dayjs().diff(after, "hours"))} Games/hour
+					{formatNumber(gamesTotal / dayjs().diff(from, "hours"))} Games/hour
 				</div>
 			)
 		}
@@ -212,7 +282,7 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 30, swr: 30 });
 		gamesTotal === 0 && (
 			<div class="flex items-center justify-center gap-2 py-16">
 				<Icon class="size-10" name="lucide--x" />
-				<span class="text-lg font-medium">No recent games found</span>
+				<span class="text-lg font-medium">No games found</span>
 			</div>
 		)
 	}
