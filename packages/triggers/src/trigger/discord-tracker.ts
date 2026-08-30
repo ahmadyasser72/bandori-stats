@@ -5,7 +5,6 @@ import {
 	Client,
 	ContainerBuilder,
 	MessageFlags,
-	SectionBuilder,
 	SeparatorBuilder,
 	SeparatorSpacingSize,
 	subtext,
@@ -107,27 +106,18 @@ const getSnapshots = async (now: dayjs.Dayjs, metadata: GbpMetadata) => {
 			where: { ...trackingReference, uid, timestamp: { lte: anHourAgo } },
 			orderBy: { id: "desc" },
 		});
-	const getProfile = (uid: string) =>
-		db().query.trackerSnapshotProfiles.findFirst({
-			columns: { avatar: true },
-			where: { ...trackingReference, uid, avatar: { isNotNull: true } },
-		});
 
 	const snapshots = await db().batch([
 		getCurrent(top10[0]),
 		getAnHourAgo(top10[0]),
-		getProfile(top10[0]),
-		...top10
-			.slice(1)
-			.flatMap((uid) => [getCurrent(uid), getAnHourAgo(uid), getProfile(uid)]),
+		...top10.slice(1).flatMap((uid) => [getCurrent(uid), getAnHourAgo(uid)]),
 	]);
 
 	return top10.map((_, idx) => ({
-		current: (snapshots[3 * idx] as Awaited<ReturnType<typeof getCurrent>>)!,
-		previous: snapshots[3 * idx + 1] as Awaited<
+		current: (snapshots[2 * idx] as Awaited<ReturnType<typeof getCurrent>>)!,
+		previous: snapshots[2 * idx + 1] as Awaited<
 			ReturnType<typeof getAnHourAgo>
 		>,
-		profile: snapshots[3 * idx + 2] as Awaited<ReturnType<typeof getProfile>>,
 	}));
 };
 
@@ -135,10 +125,8 @@ const generatePayloads = async (
 	snapshots: Awaited<ReturnType<typeof getSnapshots>>,
 ) => {
 	const components = await Promise.all(
-		snapshots.map(async ({ current, previous, profile }, idx) => {
-			const components = [] as (
-				TextDisplayBuilder | SectionBuilder | SeparatorBuilder
-			)[];
+		snapshots.map(async ({ current, previous }, idx) => {
+			const components = [] as (TextDisplayBuilder | SeparatorBuilder)[];
 			if (idx > 0) {
 				components.push(
 					new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small),
@@ -186,26 +174,7 @@ const generatePayloads = async (
 				),
 			);
 
-			const textComponent = new TextDisplayBuilder().setContent(
-				lines.join("\n"),
-			);
-			components.push(
-				profile
-					? new SectionBuilder()
-							.addTextDisplayComponents(textComponent)
-							.setThumbnailAccessory((thumbnail) =>
-								thumbnail
-									.setDescription(`${stripBB(current.name)} avatar`)
-									.setURL(
-										new URL(
-											`/assets/cards/${profile.avatar!.id}-${profile.avatar!.trained ? "trained" : "normal"}-icon.webp`,
-											"https://bs.hina.my.id",
-										).href,
-									),
-							)
-					: textComponent,
-			);
-
+			components.push(new TextDisplayBuilder().setContent(lines.join("\n")));
 			return components.map((component) => component.toJSON());
 		}),
 	);
