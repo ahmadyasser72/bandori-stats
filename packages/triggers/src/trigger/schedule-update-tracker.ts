@@ -117,7 +117,7 @@ export const scheduleUpdateTracker = schedules.task({
 			})(),
 		]);
 
-		if (now.get("minutes") === 58) await discordTracker.trigger();
+		if (now.get("minutes") === 59) await discordTracker.trigger();
 
 		const errors = results.filter((promise) => promise.status === "rejected");
 		for (const { reason } of errors) console.error(reason);
@@ -125,18 +125,22 @@ export const scheduleUpdateTracker = schedules.task({
 		const inserted = results
 			.filter((promise) => promise.status === "fulfilled")
 			.flatMap(({ value }) => value);
-		if (inserted.length === 0) return;
 
-		await updateTrackerProfile.triggerAndWait({
-			players: inserted.map(({ uid, metadata }) => ({
-				uid,
-				trackingReference: getTrackingReference(metadata),
-			})),
-		});
+		if (inserted.length > 0) {
+			await updateTrackerProfile.triggerAndWait({
+				players: inserted.map(({ uid, metadata }) => ({
+					uid,
+					trackingReference: getTrackingReference(metadata),
+				})),
+			});
+		}
+
+		const thisHour = dayjs().startOf("hours").unix();
 		await githubRedeploy.trigger(undefined, {
-			idempotencyKey: await idempotencyKeys.create(`redeploy:bandori`, {
-				scope: "global",
-			}),
+			idempotencyKey: await idempotencyKeys.create(
+				`redeploy:bandori:${thisHour}`,
+				{ scope: "global" },
+			),
 			idempotencyKeyTTL: "1h",
 		});
 	},

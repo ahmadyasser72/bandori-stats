@@ -2,6 +2,7 @@ import { idempotencyKeys, schemaTask, tags } from "@trigger.dev/sdk";
 import { allKeyed, capitalize, mapValues, pick, sumBy } from "es-toolkit";
 import z from "zod";
 
+import dayjs from "@bandori-stats/bestdori/date";
 import { unwrapRegionTuple } from "@bandori-stats/bestdori/helpers";
 import { Card } from "@bandori-stats/bestdori/schema/cards";
 import { Skills } from "@bandori-stats/bestdori/schema/skills";
@@ -37,12 +38,13 @@ export const updateTrackerProfile = schemaTask({
 		if (!version) return;
 
 		const profiles = new Map<string, UserProfile>();
+		const thisHour = dayjs().startOf("hours").unix();
 		for (const { uid } of players) {
 			const run = await bandoriProfile.triggerAndWait(
 				{ uid },
 				{
 					idempotencyKey: await idempotencyKeys.create(
-						`profile:bandori:${uid}`,
+						`profile:bandori:${uid}:${thisHour}`,
 						{ scope: "global" },
 					),
 					idempotencyKeyTTL: "1h",
