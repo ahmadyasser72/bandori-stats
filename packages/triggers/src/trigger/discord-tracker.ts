@@ -3,7 +3,9 @@ import {
 	bold,
 	ChannelType,
 	Client,
+	ContainerBuilder,
 	MessageFlags,
+	SectionBuilder,
 	SeparatorBuilder,
 	SeparatorSpacingSize,
 	subtext,
@@ -11,6 +13,7 @@ import {
 	ThreadAutoArchiveDuration,
 	time,
 	TimestampStyles,
+	type MessageCreateOptions,
 	type PublicThreadChannel,
 } from "discord.js";
 import { allKeyed } from "es-toolkit";
@@ -77,8 +80,7 @@ export const discordTracker = task({
 				),
 			);
 
-			for (const { payload, thread } of items)
-				await thread.send({ ...payload, flags: MessageFlags.IsComponentsV2 });
+			for (const { payload, thread } of items) await thread.send(payload);
 		} finally {
 			await client.destroy();
 		}
@@ -105,80 +107,114 @@ const getSnapshots = async (now: dayjs.Dayjs, metadata: GbpMetadata) => {
 			where: { ...trackingReference, uid, timestamp: { lte: anHourAgo } },
 			orderBy: { id: "desc" },
 		});
+	const getProfile = (uid: string) =>
+		db().query.trackerSnapshotProfiles.findFirst({
+			columns: { avatar: true },
+			where: { ...trackingReference, uid, avatar: { isNotNull: true } },
+		});
 
 	const snapshots = await db().batch([
 		getCurrent(top10[0]),
 		getAnHourAgo(top10[0]),
-		...top10.slice(1).flatMap((uid) => [getCurrent(uid), getAnHourAgo(uid)]),
+		getProfile(top10[0]),
+		...top10
+			.slice(1)
+			.flatMap((uid) => [getCurrent(uid), getAnHourAgo(uid), getProfile(uid)]),
 	]);
 
 	return top10.map((_, idx) => ({
-		current: (snapshots[2 * idx] as Awaited<ReturnType<typeof getCurrent>>)!,
-		previous: snapshots[2 * idx + 1] as Awaited<
+		current: (snapshots[3 * idx] as Awaited<ReturnType<typeof getCurrent>>)!,
+		previous: snapshots[3 * idx + 1] as Awaited<
 			ReturnType<typeof getAnHourAgo>
 		>,
+		profile: snapshots[3 * idx + 2] as Awaited<ReturnType<typeof getProfile>>,
 	}));
 };
 
 const generatePayloads = async (
 	snapshots: Awaited<ReturnType<typeof getSnapshots>>,
-) =>
-	allKeyed({
-		components: Promise.all(
-			snapshots.map(async ({ current, previous }, idx) => {
-				const components = [] as (TextDisplayBuilder | SeparatorBuilder)[];
-
-				if (idx > 0)
-					components.push(
-						new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small),
-					);
-
-				const lines: string[] = [
-					bold(`#${current.rank} ${stripBB(current.name)}`) +
-						` ‒ ${formatNumber(current.point)} Pts`,
-				];
-				if (previous) {
-					const pointsDelta = current.point - previous.point;
-					if (pointsDelta > 0) {
-						lines[0] += ` (${formatNumber(pointsDelta, { positiveSign: true })} Pts)`;
-					}
-
-					if (current.rank !== previous.rank) {
-						lines.push(`Rank #${previous.rank} -> #${current.rank}`);
-					}
-				}
-
-				let lastPlayed = current.timestamp;
-				if (
-					previous &&
-					current.point === previous.point &&
-					current.timestamp.valueOf() !== previous.timestamp.valueOf()
-				) {
-					const snapshot = await db().query.trackerSnapshots.findFirst({
-						columns: { timestamp: true },
-						where: {
-							trackingFor: current.trackingFor,
-							trackingId: current.trackingId,
-							uid: current.uid,
-							point: current.point,
-						},
-						orderBy: { id: "asc" },
-					});
-
-					if (snapshot) lastPlayed = snapshot.timestamp;
-				}
-
-				lines.push(
-					subtext(
-						`played ||${time(lastPlayed, TimestampStyles.RelativeTime)} @ ${time(lastPlayed, TimestampStyles.ShortDate)} ${time(lastPlayed, TimestampStyles.ShortTime)}||`,
-					),
+) => {
+	const components = await Promise.all(
+		snapshots.map(async ({ current, previous, profile }, idx) => {
+			const components = [] as (
+				TextDisplayBuilder | SectionBuilder | SeparatorBuilder
+			)[];
+			if (idx > 0) {
+				components.push(
+					new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small),
 				);
-				components.push(new TextDisplayBuilder({ content: lines.join("\n") }));
+			}
 
-				return components;
-			}),
-		).then((components) => components.flat()),
-	});
+			const lines: string[] = [
+				bold(`#${current.rank} ${stripBB(current.name)}`) +
+					` ‒ ${formatNumber(current.point)} Pts`,
+			];
+			if (previous) {
+				const pointsDelta = current.point - previous.point;
+				if (pointsDelta > 0) {
+					lines[0] += ` (${formatNumber(pointsDelta, { positiveSign: true })} Pts)`;
+				}
+
+				if (current.rank !== previous.rank) {
+					lines.push(`Rank #${previous.rank} -> #${current.rank}`);
+				}
+			}
+
+			let lastPlayed = current.timestamp;
+			if (
+				previous &&
+				current.point === previous.point &&
+				current.timestamp.valueOf() !== previous.timestamp.valueOf()
+			) {
+				const snapshot = await db().query.trackerSnapshots.findFirst({
+					columns: { timestamp: true },
+					where: {
+						trackingFor: current.trackingFor,
+						trackingId: current.trackingId,
+						uid: current.uid,
+						point: current.point,
+					},
+					orderBy: { id: "asc" },
+				});
+
+				if (snapshot) lastPlayed = snapshot.timestamp;
+			}
+
+			lines.push(
+				subtext(
+					`played ||${time(lastPlayed, TimestampStyles.RelativeTime)} @ ${time(lastPlayed, TimestampStyles.ShortDate)} ${time(lastPlayed, TimestampStyles.ShortTime)}||`,
+				),
+			);
+
+			const textComponent = new TextDisplayBuilder().setContent(
+				lines.join("\n"),
+			);
+			components.push(
+				profile
+					? new SectionBuilder()
+							.addTextDisplayComponents(textComponent)
+							.setThumbnailAccessory((thumbnail) =>
+								thumbnail
+									.setDescription(`${stripBB(current.name)} avatar`)
+									.setURL(
+										new URL(
+											`/assets/cards/${profile.avatar!.id}-${profile.avatar!.trained ? "trained" : "normal"}-icon.webp`,
+											"https://bs.hina.my.id",
+										).href,
+									),
+							)
+					: textComponent,
+			);
+
+			return components.map((component) => component.toJSON());
+		}),
+	);
+
+	return {
+		components: [new ContainerBuilder({ components: components.flat() })],
+		flags: MessageFlags.IsComponentsV2,
+	} satisfies MessageCreateOptions;
+};
 
 const getThread = async (client: Client, metadata: GbpMetadata) => {
 	const mainChannelName = `${metadata.kind}-tracker`;
