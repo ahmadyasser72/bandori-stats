@@ -3,15 +3,15 @@ import { AbortTaskRunError, queue, tags } from "@trigger.dev/sdk";
 import { limitAsync, memoize, retry } from "es-toolkit";
 import z from "zod";
 
-interface BestdoriOptions<S extends z.ZodType> {
+interface BestdoriOptions<S extends z.ZodType | false> {
 	path: string;
 	query?: Record<string, string>;
-	schema?: S;
+	schema: S;
 }
 
 type BestdoriFetch = <
-	S extends z.ZodType,
-	O = S extends z.ZodType ? z.infer<S> : unknown,
+	S extends z.ZodType | false,
+	O = S extends z.ZodType ? z.infer<S> : Response,
 >(
 	options: BestdoriOptions<S>,
 ) => Promise<O>;
@@ -34,9 +34,9 @@ export const bestdori = limitAsync<BestdoriFetch>(
 				{ delay: (attempt) => attempt * 2500, retries: 4 },
 			);
 
-			const json = await response.json();
-			if (!schema) return json as never;
+			if (!schema) return response as never;
 
+			const json = await response.json();
 			const { success, data, error } = schema.safeParse(json);
 			if (!success) {
 				await tags.add("schema_error");

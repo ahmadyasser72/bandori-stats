@@ -1,6 +1,8 @@
 import z from "zod";
 
 export const EventMetadata = z.object({
+	bannerAssetBundleName: z.string(),
+
 	attributes: z.array(
 		z.object({
 			attribute: z.enum(["powerful", "pure", "cool", "happy"]),

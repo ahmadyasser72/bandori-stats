@@ -87,6 +87,34 @@ export const formatNumber = (
 
 export const stripBB = (s?: string) => s?.replace(/\[[^\]]+\]/g, "") as string;
 
+export const formatEventType = (
+	t:
+		| "story"
+		| "versus"
+		| "mission_live"
+		| "challenge"
+		| "live_try"
+		| "medley"
+		| "festival",
+) => {
+	switch (t) {
+		case "story":
+			return "Normal";
+		case "versus":
+			return "VS Live";
+		case "mission_live":
+			return "Mission Live";
+		case "challenge":
+			return "Challenge Live";
+		case "live_try":
+			return "Live Goals";
+		case "medley":
+			return "Medley Live";
+		case "festival":
+			return "Team Live Festival";
+	}
+};
+
 export const unwrapRegionTuple = <T>(
 	tuple?: [T, T, T, T, T],
 	config: { primary: number; fallback: number | false } = {

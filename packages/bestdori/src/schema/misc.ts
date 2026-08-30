@@ -70,6 +70,9 @@ export const MasterDB = z.object({
 				),
 			),
 	}),
+	masterCharacterInfoMap: z.object({
+		entries: z.record(z.string(), z.object({ firstName: z.string() })),
+	}),
 
 	system: z.object({ serverDate: z.coerce.number() }),
 });
