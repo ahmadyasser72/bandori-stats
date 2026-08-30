@@ -98,6 +98,11 @@ export default defineConfig({
 				context: "server",
 				optional: true,
 			}),
+			DISCORD_INVITE_LINK: envField.string({
+				access: "public",
+				context: "server",
+				url: true,
+			}),
 		},
 	},
 

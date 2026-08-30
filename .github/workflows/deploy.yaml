@@ -62,6 +62,7 @@ jobs:
           TRIGGER_SECRET_KEY: ${{ secrets.TRIGGER_SECRET_KEY }}
           VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
           UMAMI_SITE_ID: ${{ vars.UMAMI_SITE_ID }}
+          DISCORD_INVITE_LINK: ${{ vars.DISCORD_INVITE_LINK }}
 
       - name: Upload site build artifact
         uses: actions/upload-artifact@v7.0.1

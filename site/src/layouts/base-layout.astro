@@ -1,5 +1,5 @@
 ---
-import { UMAMI_SITE_ID } from "astro:env/server";
+import { DISCORD_INVITE_LINK, UMAMI_SITE_ID } from "astro:env/server";
 
 import "~/styles/global.css";
 
@@ -103,8 +103,8 @@ export const LINKS = [
 	},
 	{
 		icon: "line-md--discord",
-		url: "/discord-bot/invite",
-		label: "Discord bot",
+		url: DISCORD_INVITE_LINK,
+		label: "Discord Server",
 	},
 ] satisfies Omit<PageMetadata, "items">[];
 
