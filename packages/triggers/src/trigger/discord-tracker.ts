@@ -34,7 +34,7 @@ import type { GbpMetadata } from "@bandori-stats/database/schema";
 export const discordTracker = task({
 	id: "discord-tracker",
 	run: async (_, { ctx }) => {
-		const now = dayjs(ctx.attempt.startedAt).endOf("hour");
+		const now = dayjs(ctx.attempt.startedAt).startOf("hour").add(1, "hour");
 
 		const [event, monthly] = await redis().mget<
 			[
