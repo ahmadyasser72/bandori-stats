@@ -1,10 +1,16 @@
 import { AbortTaskRunError, tags, task, wait } from "@trigger.dev/sdk";
 import {
+	bold,
 	ChannelType,
 	Client,
-	EmbedBuilder,
+	MessageFlags,
+	SeparatorBuilder,
+	SeparatorSpacingSize,
+	subtext,
+	TextDisplayBuilder,
 	ThreadAutoArchiveDuration,
-	type APIEmbedField,
+	time,
+	TimestampStyles,
 	type PublicThreadChannel,
 } from "discord.js";
 import { allKeyed } from "es-toolkit";
@@ -65,13 +71,14 @@ export const discordTracker = task({
 			const items = await Promise.all(
 				metadatas.map((metadata) =>
 					allKeyed({
-						embeds: getSnapshots(now, metadata).then(generateEmbeds),
+						payload: getSnapshots(now, metadata).then(generatePayloads),
 						thread: getThread(client, metadata),
 					}),
 				),
 			);
 
-			for (const { embeds, thread } of items) await thread.send({ embeds });
+			for (const { payload, thread } of items)
+				await thread.send({ ...payload, flags: MessageFlags.IsComponentsV2 });
 		} finally {
 			await client.destroy();
 		}
@@ -85,17 +92,13 @@ const getSnapshots = async (now: dayjs.Dayjs, metadata: GbpMetadata) => {
 		.then((uids) => uids.map((uid) => uid.toString()));
 
 	const trackingReference = getTrackingReference(metadata);
-	const anHourAgo = now.subtract(1, "hour").toDate();
-	const getLastHour = (uid: string) =>
-		db().query.trackerSnapshots.findMany({
-			columns: { name: true, point: true, rank: true, timestamp: true },
-			where: {
-				...trackingReference,
-				uid,
-				timestamp: { lte: now.toDate(), gte: anHourAgo },
-			},
-			orderBy: { id: "asc" },
+	const getCurrent = (uid: string) =>
+		db().query.trackerSnapshots.findFirst({
+			columns: { id: false },
+			where: { ...trackingReference, uid, timestamp: { lte: now.toDate() } },
+			orderBy: { id: "desc" },
 		});
+	const anHourAgo = now.subtract(1, "hour").toDate();
 	const getAnHourAgo = (uid: string) =>
 		db().query.trackerSnapshots.findFirst({
 			columns: { name: true, point: true, rank: true, timestamp: true },
@@ -104,71 +107,80 @@ const getSnapshots = async (now: dayjs.Dayjs, metadata: GbpMetadata) => {
 		});
 
 	const snapshots = await db().batch([
-		getLastHour(top10[0]),
+		getCurrent(top10[0]),
 		getAnHourAgo(top10[0]),
-		...top10.slice(1).flatMap((uid) => [getLastHour(uid), getAnHourAgo(uid)]),
+		...top10.slice(1).flatMap((uid) => [getCurrent(uid), getAnHourAgo(uid)]),
 	]);
 
-	return top10.map((_, idx) => {
-		const lastHour = snapshots[2 * idx] as Awaited<
-			ReturnType<typeof getLastHour>
-		>;
-		const previous = snapshots[2 * idx + 1] as Awaited<
+	return top10.map((_, idx) => ({
+		current: (snapshots[2 * idx] as Awaited<ReturnType<typeof getCurrent>>)!,
+		previous: snapshots[2 * idx + 1] as Awaited<
 			ReturnType<typeof getAnHourAgo>
-		>;
-
-		return {
-			count: lastHour.filter(
-				({ point }, idx) =>
-					point !== (idx === 0 ? previous?.point : lastHour[idx - 1].point),
-			).length,
-			current: lastHour.at(-1) ?? previous!,
-			previous: previous,
-		};
-	});
+		>,
+	}));
 };
 
-const generateEmbeds = (snapshots: Awaited<ReturnType<typeof getSnapshots>>) =>
-	snapshots.map(({ current, previous, count }) => {
-		const embed = new EmbedBuilder()
-			.setAuthor({
-				name: `#${current.rank} ${stripBB(current.name)} - ${formatNumber(current.point)} Pts`,
-			})
-			.setTimestamp(current.timestamp);
+const generatePayloads = async (
+	snapshots: Awaited<ReturnType<typeof getSnapshots>>,
+) =>
+	allKeyed({
+		components: Promise.all(
+			snapshots.map(async ({ current, previous }, idx) => {
+				const components = [] as (TextDisplayBuilder | SeparatorBuilder)[];
 
-		const fields = [] as APIEmbedField[];
-		if (previous) {
-			const pointsDelta = current.point - previous.point;
-			if (pointsDelta > 0) {
-				fields.push({
-					name: "Games",
-					value: `${count}× (${formatNumber(pointsDelta, { positiveSign: true })} Pts)`,
-					inline: true,
-				});
-			}
+				if (idx > 0)
+					components.push(
+						new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small),
+					);
 
-			if (current.rank !== previous.rank) {
-				fields.push({
-					name: "Rank",
-					value: `#${previous.rank} -> #${current.rank}`,
-					inline: true,
-				});
-			}
-		}
+				const lines: string[] = [
+					bold(`#${current.rank} ${stripBB(current.name)}`) +
+						` ‒ ${formatNumber(current.point)} Pts`,
+				];
+				if (previous) {
+					const pointsDelta = current.point - previous.point;
+					if (pointsDelta > 0) {
+						lines[0] += ` (${formatNumber(pointsDelta, { positiveSign: true })} Pts)`;
+					}
 
-		if (fields.length > 0) embed.addFields(fields);
-		return embed;
+					if (current.rank !== previous.rank) {
+						lines.push(`Rank #${previous.rank} -> #${current.rank}`);
+					}
+				}
+
+				let lastPlayed = current.timestamp;
+				if (
+					previous &&
+					current.point === previous.point &&
+					current.timestamp.valueOf() !== previous.timestamp.valueOf()
+				) {
+					const snapshot = await db().query.trackerSnapshots.findFirst({
+						columns: { timestamp: true },
+						where: {
+							trackingFor: current.trackingFor,
+							trackingId: current.trackingId,
+							uid: current.uid,
+							point: current.point,
+						},
+						orderBy: { id: "asc" },
+					});
+
+					if (snapshot) lastPlayed = snapshot.timestamp;
+				}
+
+				lines.push(
+					subtext(
+						`played ||${time(lastPlayed, TimestampStyles.RelativeTime)} @ ${time(lastPlayed, TimestampStyles.ShortDate)} ${time(lastPlayed, TimestampStyles.ShortTime)}||`,
+					),
+				);
+				components.push(new TextDisplayBuilder({ content: lines.join("\n") }));
+
+				return components;
+			}),
+		).then((components) => components.flat()),
 	});
 
 const getThread = async (client: Client, metadata: GbpMetadata) => {
-	const key = getRedisKey(metadata) + ":discord";
-	const fromRedis = await redis().get<number>(key);
-	if (fromRedis) {
-		const maybeThread = await client.channels.fetch(fromRedis.toString());
-		if (maybeThread && maybeThread.type === ChannelType.PublicThread)
-			return maybeThread;
-	}
-
 	const mainChannelName = `${metadata.kind}-tracker`;
 	const mainChannel = client.channels.cache.find(
 		(channel) =>
@@ -177,6 +189,13 @@ const getThread = async (client: Client, metadata: GbpMetadata) => {
 	);
 	if (!mainChannel || mainChannel.type !== ChannelType.GuildText)
 		throw new AbortTaskRunError(`${mainChannelName} channel doesn't exists.`);
+
+	const key = getRedisKey(metadata) + ":discord";
+	const fromRedis = await redis().get<number>(key);
+	if (fromRedis) {
+		const thread = await mainChannel.threads.fetch(fromRedis.toString());
+		if (thread && thread.type === ChannelType.PublicThread) return thread;
+	}
 
 	const id =
 		metadata.kind === "event" ? metadata.eventId : metadata.monthlyRankingId;
