@@ -109,9 +109,3 @@ jobs:
           UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
           UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
           TRIGGER_SECRET_KEY: ${{ secrets.TRIGGER_SECRET_KEY }}
-
-      - name: Register Discord commands
-        run: bun run packages/discord-bot/src/register.ts
-        env:
-          DISCORD_APPLICATION_ID: ${{ secrets.DISCORD_APPLICATION_ID }}
-          DISCORD_APPLICATION_TOKEN: ${{ secrets.DISCORD_APPLICATION_TOKEN }}

@@ -12,6 +12,8 @@ import type {
 import { db } from "@bandori-stats/database";
 import {
 	GBP,
+	getRedisKey,
+	getTrackingReference,
 	redis,
 	type NotifyWhenPlayer,
 } from "@bandori-stats/database/redis";
@@ -21,6 +23,7 @@ import {
 } from "@bandori-stats/database/schema";
 import { bangDream } from "~/bang-dream-gbp/fetch";
 import type { RankingUser } from "~/bang-dream-gbp/gen/common_pb";
+import { discordTracker } from "./discord-tracker";
 import { githubRedeploy } from "./github-redeploy";
 import { updateTrackerProfile } from "./update-tracker-profile";
 
@@ -113,6 +116,8 @@ export const scheduleUpdateTracker = schedules.task({
 				return inserted.map(({ uid }) => ({ uid, metadata }));
 			})(),
 		]);
+
+		if (now.get("minutes") === 58) await discordTracker.trigger();
 
 		const errors = results.filter((promise) => promise.status === "rejected");
 		for (const { reason } of errors) console.error(reason);
@@ -319,14 +324,3 @@ const sendPushNotifications = async (
 	);
 	if (notificationSent > 0) await tags.add(`notified_${notificationSent}`);
 };
-
-const getRedisKey = (metadata: GbpMetadata) =>
-	GBP[metadata.kind][
-		metadata.kind === "event" ? metadata.eventId : metadata.monthlyRankingId
-	];
-
-const getTrackingReference = (metadata: GbpMetadata) => ({
-	trackingFor: metadata.kind,
-	trackingId:
-		metadata.kind === "event" ? metadata.eventId : metadata.monthlyRankingId,
-});

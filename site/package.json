@@ -14,7 +14,6 @@
 		"@astrojs/preact": "6.0.4",
 		"@bandori-stats/bestdori": "workspace:*",
 		"@bandori-stats/database": "workspace:*",
-		"@bandori-stats/discord-bot": "workspace:*",
 		"@catppuccin/daisyui": "2.1.1",
 		"@iconify-json/line-md": "1.2.16",
 		"@iconify-json/lucide": "1.2.126",
