@@ -51,7 +51,7 @@
         "@bandori-stats/database": "workspace:*",
         "@bufbuild/protobuf": "2.14.0",
         "@isaacs/ttlcache": "2.1.5",
-        "@trigger.dev/sdk": "4.5.14",
+        "@trigger.dev/sdk": "4.5.15",
         "discord.js": "14.27.0",
         "es-toolkit": "1.52.0",
         "random": "5.5.1",
@@ -61,10 +61,10 @@
       "devDependencies": {
         "@bufbuild/buf": "1.72.0",
         "@bufbuild/protoc-gen-es": "2.14.0",
-        "@trigger.dev/build": "4.5.14",
+        "@trigger.dev/build": "4.5.15",
         "@types/node": "26.4.0",
         "@types/web-push": "3.6.4",
-        "trigger.dev": "4.5.14",
+        "trigger.dev": "4.5.15",
         "typescript": "5.9.3",
       },
     },
@@ -78,13 +78,13 @@
         "@bandori-stats/database": "workspace:*",
         "@catppuccin/daisyui": "2.1.1",
         "@iconify-json/line-md": "1.2.16",
-        "@iconify-json/lucide": "1.2.127",
+        "@iconify-json/lucide": "1.2.128",
         "@iconify-json/svg-spinners": "1.2.4",
         "@iconify/tailwind4": "1.2.3",
         "@tailwindcss/typography": "0.5.20",
         "@tailwindcss/vite": "4.3.3",
         "@tanstack/charts": "0.16.0",
-        "@trigger.dev/sdk": "4.5.14",
+        "@trigger.dev/sdk": "4.5.15",
         "@zumer/snapdom": "2.24.15",
         "astro": "7.2.9",
         "clsx": "2.1.1",
@@ -422,7 +422,7 @@
 
     "@iconify-json/line-md": ["@iconify-json/line-md@1.2.16", "", { "dependencies": { "@iconify/types": "*" } }, "sha512-esHPUQUp30NyqJWa7MNu6ExdG8z/aEFC5r56rVyRGhtJ7acOme6YtYPnDOgVu6p+kk24rM8602xkFuBC6g6x+w=="],
 
-    "@iconify-json/lucide": ["@iconify-json/lucide@1.2.127", "", { "dependencies": { "@iconify/types": "*" } }, "sha512-7KuCCpkly00kefna4wEnCr8l2HFRkbn4mD4zRib8wCSbrBmnR/l57ExpU6j5jv/Bo+qHpWuHpDtcqceQ0ptArw=="],
+    "@iconify-json/lucide": ["@iconify-json/lucide@1.2.128", "", { "dependencies": { "@iconify/types": "*" } }, "sha512-s8tZ6BIQfkwl6INcdHMri3bokShU/MwOVM8cyFUgE7QJ3EuwmIhXFsrqtA0WD8YrhoII1K+KA5EEIJ4x0JWIdw=="],
 
     "@iconify-json/svg-spinners": ["@iconify-json/svg-spinners@1.2.4", "", { "dependencies": { "@iconify/types": "*" } }, "sha512-ayn0pogFPwJA1WFZpDnoq9/hjDxN+keeCMyThaX4d3gSJ3y0mdKUxIA/b1YXWGtY9wVtZmxwcvOIeEieG4+JNg=="],
 
@@ -732,13 +732,13 @@
 
     "@tanstack/charts": ["@tanstack/charts@0.16.0", "", { "dependencies": { "@types/d3-force": "^3.0.10", "@types/d3-geo": "^3.1.0", "@types/d3-hierarchy": "^3.1.7", "@types/d3-sankey": "^0.12.5", "@types/d3-shape": "^3.1.8", "d3-array": "3.2.4", "d3-brush": "3.0.0", "d3-contour": "4.0.2", "d3-delaunay": "6.0.4", "d3-force": "3.0.0", "d3-geo": "3.1.1", "d3-hexbin": "0.2.2", "d3-hierarchy": "3.1.2", "d3-sankey": "0.12.3", "d3-scale": "4.0.2", "d3-selection": "3.0.0", "d3-shape": "3.2.0", "d3-zoom": "3.0.0", "tslib": "^2.8.1" }, "peerDependencies": { "@angular/core": ">=19", "@angular/platform-browser": ">=19", "alpinejs": ">=3.15", "lit": ">=3.1.3", "octane": "^0.1.13", "preact": ">=10", "react": "^19.0.0", "react-dom": "^19.0.0", "react-native": "^0.86.0", "react-native-svg": ">=15.15.4 <16", "solid-js": ">=1.8", "svelte": "^5.20.0", "vue": ">=3.5" }, "optionalPeers": ["@angular/core", "@angular/platform-browser", "alpinejs", "lit", "octane", "preact", "react", "react-dom", "react-native", "react-native-svg", "solid-js", "svelte", "vue"] }, "sha512-adG4sVaWjSqGsp/8YU5q7AjoYoPaivVseDjWWcV4osKemfTHnGFlPqlymxbhWxk1BF3p5Rewgqs4BlgZAXve8g=="],
 
-    "@trigger.dev/build": ["@trigger.dev/build@4.5.14", "", { "dependencies": { "@prisma/config": "^6.10.0", "@trigger.dev/core": "4.5.14", "mlly": "^1.7.1", "pkg-types": "^1.1.3", "tinyglobby": "^0.2.2", "tsconfck": "3.1.3" }, "peerDependencies": { "@typescript/typescript6": "^6.0.0", "typescript": ">=5.0.0" }, "optionalPeers": ["@typescript/typescript6", "typescript"] }, "sha512-2DBO2uTRQ8SBrJ02UY8TC+X8T4ecyjxOCSrazkJIHq206G3VkeShOCLSQ8tMQG5KFJncn71mNLXwFV9XP/J2IA=="],
+    "@trigger.dev/build": ["@trigger.dev/build@4.5.15", "", { "dependencies": { "@prisma/config": "^6.10.0", "@trigger.dev/core": "4.5.15", "mlly": "^1.7.1", "pkg-types": "^1.1.3", "tinyglobby": "^0.2.2", "tsconfck": "3.1.3" }, "peerDependencies": { "@typescript/typescript6": "^6.0.0", "typescript": ">=5.0.0" }, "optionalPeers": ["@typescript/typescript6", "typescript"] }, "sha512-J4kScB5mgt/Mg2TKkVLgHHf6PudQxS7TT1Ts9FIs5Be/O/3+6d+P/VwTyAe+QEy0U1Rdb1hjROsf7kOW8FK5Pw=="],
 
-    "@trigger.dev/core": ["@trigger.dev/core@4.5.14", "", { "dependencies": { "@bugsnag/cuid": "^3.1.1", "@electric-sql/client": "1.0.14", "@google-cloud/precise-date": "^4.0.0", "@jsonhero/path": "^1.0.21", "@opentelemetry/api": "1.9.1", "@opentelemetry/api-logs": "0.218.0", "@opentelemetry/core": "2.7.1", "@opentelemetry/exporter-logs-otlp-http": "0.218.0", "@opentelemetry/exporter-metrics-otlp-http": "0.218.0", "@opentelemetry/exporter-trace-otlp-http": "0.218.0", "@opentelemetry/host-metrics": "^0.38.3", "@opentelemetry/instrumentation": "0.218.0", "@opentelemetry/resources": "2.7.1", "@opentelemetry/sdk-logs": "0.218.0", "@opentelemetry/sdk-metrics": "2.7.1", "@opentelemetry/sdk-trace-base": "2.7.1", "@opentelemetry/sdk-trace-node": "2.7.1", "@s2-dev/streamstore": "0.25.0", "dequal": "^2.0.3", "eventsource": "^3.0.5", "eventsource-parser": "^3.0.0", "humanize-duration": "^3.27.3", "jose": "^5.4.0", "nanoid": "3.3.18", "prom-client": "^15.1.0", "socket.io-client": "4.7.5", "std-env": "^3.8.1", "tinyexec": "^0.3.2", "uncrypto": "^0.1.3", "zod": "3.25.76", "zod-validation-error": "^1.5.0" } }, "sha512-855mo+7BgD59jkm+/hbvvuN5Wyrd3lSSbD4/jNzzMI31gNYNRzSGSMiwR1vvT5iuHQhnv/1vjjR1ITy2WIDsWA=="],
+    "@trigger.dev/core": ["@trigger.dev/core@4.5.15", "", { "dependencies": { "@bugsnag/cuid": "^3.1.1", "@electric-sql/client": "1.0.14", "@google-cloud/precise-date": "^4.0.0", "@jsonhero/path": "^1.0.21", "@opentelemetry/api": "1.9.1", "@opentelemetry/api-logs": "0.218.0", "@opentelemetry/core": "2.7.1", "@opentelemetry/exporter-logs-otlp-http": "0.218.0", "@opentelemetry/exporter-metrics-otlp-http": "0.218.0", "@opentelemetry/exporter-trace-otlp-http": "0.218.0", "@opentelemetry/host-metrics": "^0.38.3", "@opentelemetry/instrumentation": "0.218.0", "@opentelemetry/resources": "2.7.1", "@opentelemetry/sdk-logs": "0.218.0", "@opentelemetry/sdk-metrics": "2.7.1", "@opentelemetry/sdk-trace-base": "2.7.1", "@opentelemetry/sdk-trace-node": "2.7.1", "@s2-dev/streamstore": "0.25.0", "dequal": "^2.0.3", "eventsource": "^3.0.5", "eventsource-parser": "^3.0.0", "humanize-duration": "^3.27.3", "jose": "^5.4.0", "nanoid": "3.3.18", "prom-client": "^15.1.0", "socket.io-client": "4.7.5", "std-env": "^3.8.1", "tinyexec": "^0.3.2", "uncrypto": "^0.1.3", "zod": "3.25.76", "zod-validation-error": "^1.5.0" } }, "sha512-ejwc3J1VdzNhUfB16gmdis3iu6G9kx4Xlp4W/GKbiZGPzMXFKP9dVqdYxTrtqde0cnmjwo/9ASGQp5taMBfXKA=="],
 
-    "@trigger.dev/schema-to-json": ["@trigger.dev/schema-to-json@4.5.14", "", { "dependencies": { "@sodaru/yup-to-json-schema": "^2", "@trigger.dev/core": "4.5.14", "effect": "^3", "zod": "3.25.76", "zod-to-json-schema": "^3.24.0" }, "peerDependencies": { "@sinclair/typebox": ">=0.34.30", "arktype": ">=2.0.0", "runtypes": ">=5.0.0", "superstruct": ">=0.14.2", "valibot": ">=0.41.0" }, "optionalPeers": ["@sinclair/typebox", "arktype", "runtypes", "superstruct", "valibot"] }, "sha512-NS2kF/WVkjr45A/gyU0Ec7cvt6Kee6u9pApfkIw7vdqyE5k3qHcWAHTqJ+/W86AzGl3MVHEgNWiYed/DySCFSQ=="],
+    "@trigger.dev/schema-to-json": ["@trigger.dev/schema-to-json@4.5.15", "", { "dependencies": { "@sodaru/yup-to-json-schema": "^2", "@trigger.dev/core": "4.5.15", "effect": "^3", "zod": "3.25.76", "zod-to-json-schema": "^3.24.0" }, "peerDependencies": { "@sinclair/typebox": ">=0.34.30", "arktype": ">=2.0.0", "runtypes": ">=5.0.0", "superstruct": ">=0.14.2", "valibot": ">=0.41.0" }, "optionalPeers": ["@sinclair/typebox", "arktype", "runtypes", "superstruct", "valibot"] }, "sha512-qTclJTq5sUMaBZcJfVa0YO9/C3eHqCALP+/KzW4KtawOMnU68ZoMBK3gmRS/musSPBGVvUYcrTJXzXtADnzT1Q=="],
 
-    "@trigger.dev/sdk": ["@trigger.dev/sdk@4.5.14", "", { "dependencies": { "@opentelemetry/api": "1.9.1", "@opentelemetry/semantic-conventions": "1.41.1", "@trigger.dev/core": "4.5.14", "uncrypto": "^0.1.3" }, "peerDependencies": { "@ai-sdk/otel": ">=1.0.0-0 <2", "ai": "^5.0.0 || ^6.0.0 || >=7.0.0-canary <8", "react": "^18.0 || ^19.0", "zod": "^3.0.0 || ^4.0.0" }, "optionalPeers": ["@ai-sdk/otel", "ai", "react"] }, "sha512-/bgozBglZkP+2oee7WFLhHD3ITx3dQUr1Ftyrjhq2y1d94lxxsOjk7+59CKnYwnPiz0NpcHlLnlnrFdg6x9zAA=="],
+    "@trigger.dev/sdk": ["@trigger.dev/sdk@4.5.15", "", { "dependencies": { "@opentelemetry/api": "1.9.1", "@opentelemetry/semantic-conventions": "1.41.1", "@trigger.dev/core": "4.5.15", "uncrypto": "^0.1.3" }, "peerDependencies": { "@ai-sdk/otel": ">=1.0.0-0 <2", "ai": "^5.0.0 || ^6.0.0 || >=7.0.0-canary <8", "react": "^18.0 || ^19.0", "zod": "^3.0.0 || ^4.0.0" }, "optionalPeers": ["@ai-sdk/otel", "ai", "react"] }, "sha512-6ZwL6bZEfmO2aW8ye6JLS43yimC3likqjHymgf/abHWSBjsp6xaHdsicma9yxRbxOEWAesHNrzoR6e+YPIgXpg=="],
 
     "@tybys/wasm-util": ["@tybys/wasm-util@0.10.3", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-F3fo1MYrRJYL3zER0OUOmkutjr1Vp23m7OsSgp7nq4SP6OqX6C/56XFIPAl5bt3zaBRjmW7SGz3u/6LwFpYcOg=="],
 
@@ -1722,7 +1722,7 @@
 
     "totalist": ["totalist@3.0.1", "", {}, "sha512-sf4i37nQ2LBx4m3wB74y+ubopq6W/dIzXg0FDGjsYnZHVa1Da8FH853wlL2gtUhg+xJXjfk3kUZS3BRoQeoQBQ=="],
 
-    "trigger.dev": ["trigger.dev@4.5.14", "", { "dependencies": { "@clack/prompts": "0.11.0", "@depot/cli": "0.0.1-cli.2.80.0", "@modelcontextprotocol/sdk": "^1.25.2", "@opentelemetry/api": "1.9.1", "@opentelemetry/api-logs": "0.218.0", "@opentelemetry/instrumentation": "0.218.0", "@s2-dev/streamstore": "^0.25.0", "@trigger.dev/build": "4.5.14", "@trigger.dev/core": "4.5.14", "@trigger.dev/schema-to-json": "4.5.14", "ansi-escapes": "^7.0.0", "braces": "^3.0.3", "c12": "^1.11.1", "chalk": "^5.2.0", "chokidar": "^3.6.0", "cli-table3": "^0.6.3", "commander": "^9.4.1", "confbox": "^0.2.2", "defu": "^6.1.4", "dotenv": "^16.4.5", "esbuild": "^0.23.0", "eventsource": "^3.0.2", "evt": "^2.4.13", "fast-npm-meta": "^0.2.2", "git-last-commit": "^1.0.1", "has-flag": "^5.0.1", "ignore": "^7.0.5", "import-in-the-middle": "3.0.1", "ini": "^5.0.0", "json-stable-stringify": "^1.3.0", "jsonc-parser": "3.2.1", "magicast": "^0.3.4", "minimatch": "^10.0.1", "mlly": "^1.7.1", "nypm": "^0.5.4", "open": "^10.0.3", "p-limit": "^6.2.0", "p-retry": "^6.1.0", "pkg-types": "^1.1.3", "resolve": "^1.22.8", "semver": "^7.5.0", "signal-exit": "^4.1.0", "socket.io-client": "4.7.5", "source-map-support": "0.5.21", "std-env": "^3.7.0", "strip-ansi": "^7.1.0", "supports-color": "^10.0.0", "tar": "^7.5.13", "tinyexec": "^0.3.1", "tinyglobby": "^0.2.10", "xdg-app-paths": "^8.3.0", "zod": "3.25.76", "zod-validation-error": "^1.5.0" }, "bin": { "trigger": "dist/esm/index.js" } }, "sha512-4iY5l4a1X0ar69CoRwUbwdo3RJEiImo7gpJo3Yroplb51Q26IeJfseqUfoY5Qit//9jS4gt06SaZF1mVaMzNrw=="],
+    "trigger.dev": ["trigger.dev@4.5.15", "", { "dependencies": { "@clack/prompts": "0.11.0", "@depot/cli": "0.0.1-cli.2.80.0", "@modelcontextprotocol/sdk": "^1.25.2", "@opentelemetry/api": "1.9.1", "@opentelemetry/api-logs": "0.218.0", "@opentelemetry/instrumentation": "0.218.0", "@s2-dev/streamstore": "^0.25.0", "@trigger.dev/build": "4.5.15", "@trigger.dev/core": "4.5.15", "@trigger.dev/schema-to-json": "4.5.15", "ansi-escapes": "^7.0.0", "braces": "^3.0.3", "c12": "^1.11.1", "chalk": "^5.2.0", "chokidar": "^3.6.0", "cli-table3": "^0.6.3", "commander": "^9.4.1", "confbox": "^0.2.2", "defu": "^6.1.4", "dotenv": "^16.4.5", "esbuild": "^0.23.0", "eventsource": "^3.0.2", "evt": "^2.4.13", "fast-npm-meta": "^0.2.2", "git-last-commit": "^1.0.1", "has-flag": "^5.0.1", "ignore": "^7.0.5", "import-in-the-middle": "3.0.1", "ini": "^5.0.0", "json-stable-stringify": "^1.3.0", "jsonc-parser": "3.2.1", "magicast": "^0.3.4", "minimatch": "^10.0.1", "mlly": "^1.7.1", "nypm": "^0.5.4", "open": "^10.0.3", "p-limit": "^6.2.0", "p-retry": "^6.1.0", "pkg-types": "^1.1.3", "resolve": "^1.22.8", "semver": "^7.5.0", "signal-exit": "^4.1.0", "socket.io-client": "4.7.5", "source-map-support": "0.5.21", "std-env": "^3.7.0", "strip-ansi": "^7.1.0", "supports-color": "^10.0.0", "tar": "^7.5.13", "tinyexec": "^0.3.1", "tinyglobby": "^0.2.10", "xdg-app-paths": "^8.3.0", "zod": "3.25.76", "zod-validation-error": "^1.5.0" }, "bin": { "trigger": "dist/esm/index.js" } }, "sha512-fpUD9+XS/1ARJNVdrf73lBan3QxVdCrC08ceIhHY1UW69wo0LxIQDbmgXzL5i9Pt3amBJTC2pAciluM9r7FoJA=="],
 
     "trim-lines": ["trim-lines@3.0.1", "", {}, "sha512-kRj8B+YHZCc9kQYdWfJB2/oUl9rA99qbowYYBtr4ui4mZyAQ2JpvVBd/6U2YloATfqBhBTSMhTpgBHtU0Mf3Rg=="],
 
