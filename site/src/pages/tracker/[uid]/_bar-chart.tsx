@@ -39,26 +39,26 @@ export const BarChart = ({ data, label, color, hourly }: BarChartProps) => {
 		() =>
 			defineChart(
 				{
-				marks: [
-					barX(chartData, {
-						id: "bars",
-						x: "count",
-						y: "key",
-						fill: color,
-						radius: 4,
-					}),
-				],
-				scales: {
-					x: {
-						scale: () => scaleLinear().domain([0, maxCount]),
-						axis: false,
+					marks: [
+						barX(chartData, {
+							id: "bars",
+							x: "count",
+							y: "key",
+							fill: color,
+							radius: 4,
+						}),
+					],
+					scales: {
+						x: {
+							scale: () => scaleLinear().domain([0, maxCount]),
+							axis: false,
+						},
+						y: {
+							scale: () => scaleBand().paddingInner(0.2).paddingOuter(0.1),
+							axis: { line: false, ticks: { size: 0 } },
+						},
 					},
-					y: {
-						scale: () => scaleBand().paddingInner(0.2).paddingOuter(0.1),
-						axis: { line: false, ticks: { size: 0 } },
-					},
-				},
-				theme: CHART_THEME,
+					theme: CHART_THEME,
 				},
 				{ tooltip },
 			),
