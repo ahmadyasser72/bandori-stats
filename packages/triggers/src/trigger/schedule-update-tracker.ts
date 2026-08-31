@@ -32,9 +32,6 @@ export const scheduleUpdateTracker = schedules.task({
 	ttl: "1m",
 	cron: { pattern: "* * * * *" },
 	run: async (context) => {
-		const now = dayjs(context.timestamp).startOf("minute").add(1, "minute");
-		await wait.until({ date: now.toDate() });
-
 		const [version, event, monthly] = await redis().mget<
 			[
 				string | null,
@@ -49,6 +46,9 @@ export const scheduleUpdateTracker = schedules.task({
 			`monthly_${monthly?.assetBundleName ?? "n/a"}`,
 		]);
 		if (!version) return;
+
+		const now = dayjs(context.timestamp).startOf("minute").add(1, "minute");
+		await wait.until({ date: now.toDate() });
 
 		const results = await Promise.allSettled([
 			(async () => {
