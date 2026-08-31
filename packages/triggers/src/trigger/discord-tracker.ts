@@ -4,6 +4,7 @@ import {
 	ChannelType,
 	Client,
 	ContainerBuilder,
+	heading,
 	MessageFlags,
 	SeparatorBuilder,
 	SeparatorSpacingSize,
@@ -58,19 +59,16 @@ export const discordTracker = schemaTask({
 				.fetch(DISCORD_GUILD_ID)
 				.then((guild) => guild.channels.fetch());
 
+			const anHourAgo = now.subtract(1, "hour");
+			const yesterday = now.subtract(1, "day");
 			const items = await Promise.all(
 				metadatas.map((metadata) =>
 					allKeyed({
-						hourly: getSnapshots(metadata, {
-							now: now.toDate(),
-							since: now.subtract(1, "hour").toDate(),
-						}),
+						hourly: getSnapshots(metadata, { now, since: anHourAgo }),
 						daily:
-							now.get("hour") === 0 &&
-							getSnapshots(metadata, {
-								now: now.toDate(),
-								since: now.subtract(1, "day").toDate(),
-							}),
+							now.get("hour") === 0
+								? getSnapshots(metadata, { now, since: yesterday })
+								: [],
 
 						thread: getThread(client, metadata),
 					}),
@@ -78,12 +76,33 @@ export const discordTracker = schemaTask({
 			);
 
 			for (const { hourly, daily, thread } of items) {
-				if (daily) {
-					const message = await thread.send(generatePayload(daily));
-					await message.pin();
+				if (daily.length > 0) {
+					const payload = generatePayload(daily);
+					const timestamp = [yesterday, now]
+						.map((date) =>
+							time(date.toDate(), TimestampStyles.ShortDateShortTime),
+						)
+						.join(" — ");
+					await thread
+						.send({
+							...payload,
+							content: heading(`Daily tracker -> ${timestamp}`),
+						})
+						.then((message) => message.pin());
 				}
 
-				await thread.send(generatePayload(hourly));
+				if (hourly.length > 0) {
+					const payload = generatePayload(hourly);
+					const timestamp = [anHourAgo, now]
+						.map((date) =>
+							time(date.toDate(), TimestampStyles.ShortDateShortTime),
+						)
+						.join(" — ");
+					await thread.send({
+						...payload,
+						content: heading(`Hourly tracker -> ${timestamp}`),
+					});
+				}
 			}
 		} finally {
 			await client.destroy();
@@ -92,8 +111,8 @@ export const discordTracker = schemaTask({
 });
 
 interface GetSnapshotsOptions {
-	since: Date;
-	now: Date;
+	since: dayjs.Dayjs;
+	now: dayjs.Dayjs;
 }
 
 const getSnapshots = async (
@@ -109,13 +128,13 @@ const getSnapshots = async (
 	const getCurrent = (uid: string) =>
 		db().query.trackerSnapshots.findFirst({
 			columns: { name: true, point: true, rank: true, timestamp: true },
-			where: { ...trackingReference, uid, timestamp: { lte: now } },
+			where: { ...trackingReference, uid, timestamp: { lte: now.toDate() } },
 			orderBy: { id: "desc" },
 		});
 	const getPrevious = (uid: string) =>
 		db().query.trackerSnapshots.findFirst({
 			columns: { name: true, point: true, rank: true, timestamp: true },
-			where: { ...trackingReference, uid, timestamp: { lte: since } },
+			where: { ...trackingReference, uid, timestamp: { lte: since.toDate() } },
 			orderBy: { id: "desc" },
 		});
 
@@ -182,7 +201,7 @@ const generatePayload = (
 
 		lines.push(
 			subtext(
-				`played ||${time(lastPlayed, TimestampStyles.RelativeTime)} @ ${time(lastPlayed, TimestampStyles.ShortDate)} ${time(lastPlayed, TimestampStyles.ShortTime)}||`,
+				`played ||${time(lastPlayed, TimestampStyles.RelativeTime)} @ ${time(lastPlayed, TimestampStyles.ShortDateShortTime)}||`,
 			),
 		);
 
