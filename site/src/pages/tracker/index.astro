@@ -24,12 +24,12 @@ if (!params.id) {
 			return params.tab === "event"
 				? db().query.gbpEvents.findFirst({
 						columns: { id: true },
-						where: { startAt: { lt: new Date() } },
+						where: { snapshots: true },
 						orderBy: { id: "desc" },
 					})
 				: db().query.gbpMonthlyRankings.findFirst({
 						columns: { id: true },
-						where: { startAt: { lt: new Date() } },
+						where: { snapshots: true },
 						orderBy: { id: "desc" },
 					});
 		},
