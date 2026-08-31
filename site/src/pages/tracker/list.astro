@@ -53,6 +53,7 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 				.then((uids) => uids.map((uid) => uid.toString()));
 		},
 	);
+	if (top10.length === 0) return [];
 
 	const trackingReference = getTrackingReference(params);
 	const getSnapshots = (uid: string) =>
@@ -226,6 +227,17 @@ if (Astro.cache.enabled)
 	class="list mt-4 py-1"
 	id="tracker-list"
 >
+	{
+		players.length === 0 && (
+			<div class="list-row items-center">
+				<div class="flex items-center justify-center gap-2 list-col-grow">
+					<Icon class="size-10" name="lucide--x" />
+					<span class="text-lg font-medium">No data at the moment</span>
+				</div>
+			</div>
+		)
+	}
+
 	{
 		players.map(({ latest, previous, lastPlayed, boatHistory, profile }) => (
 			<div
