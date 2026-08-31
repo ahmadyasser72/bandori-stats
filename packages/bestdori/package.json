@@ -11,13 +11,13 @@
 	"dependencies": {
 		"@bandori-stats/database": "workspace:*",
 		"dayjs": "1.11.23",
-		"es-toolkit": "1.51.0",
+		"es-toolkit": "1.52.0",
 		"wasm-vips": "0.0.18",
-		"zod": "4.4.3"
+		"zod": "4.5.4"
 	},
 	"devDependencies": {
 		"@types/bun": "1.4.0",
-		"@types/node": "26.3.0",
+		"@types/node": "26.4.0",
 		"typescript": "5.9.3"
 	}
 }

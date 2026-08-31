@@ -48,13 +48,15 @@ export const BarChart = ({ data, label, color, hourly }: BarChartProps) => {
 							radius: 4,
 						}),
 					],
-					x: {
-						scale: () => scaleLinear().domain([0, maxCount]),
-						axis: false,
-					},
-					y: {
-						scale: () => scaleBand().paddingInner(0.2).paddingOuter(0.1),
-						axis: { line: false, ticks: { size: 0 } },
+					scales: {
+						x: {
+							scale: () => scaleLinear().domain([0, maxCount]),
+							axis: false,
+						},
+						y: {
+							scale: () => scaleBand().paddingInner(0.2).paddingOuter(0.1),
+							axis: { line: false, ticks: { size: 0 } },
+						},
 					},
 					theme: CHART_THEME,
 				},
