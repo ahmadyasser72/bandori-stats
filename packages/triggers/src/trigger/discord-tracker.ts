@@ -80,13 +80,13 @@ export const discordTracker = task({
 						hourly: getSnapshots(metadata, {
 							now: now.toDate(),
 							since: now.subtract(1, "hour").toDate(),
-						}).then(generatePayloads),
+						}),
 						daily:
 							now.get("hour") === 0 &&
 							getSnapshots(metadata, {
 								now: now.toDate(),
 								since: now.subtract(1, "day").toDate(),
-							}).then(generatePayloads),
+							}),
 
 						thread: getThread(client, metadata),
 					}),
@@ -95,11 +95,11 @@ export const discordTracker = task({
 
 			for (const { hourly, daily, thread } of items) {
 				if (daily) {
-					const message = await thread.send(daily);
+					const message = await thread.send(generatePayload(daily));
 					await message.pin();
 				}
 
-				await thread.send(hourly);
+				await thread.send(generatePayload(hourly));
 			}
 		} finally {
 			await client.destroy();
@@ -124,7 +124,7 @@ const getSnapshots = async (
 	const trackingReference = getTrackingReference(metadata);
 	const getCurrent = (uid: string) =>
 		db().query.trackerSnapshots.findFirst({
-			columns: { id: false },
+			columns: { name: true, point: true, rank: true, timestamp: true },
 			where: { ...trackingReference, uid, timestamp: { lte: now } },
 			orderBy: { id: "desc" },
 		});
@@ -141,69 +141,70 @@ const getSnapshots = async (
 		...top10.slice(1).flatMap((uid) => [getCurrent(uid), getPrevious(uid)]),
 	]);
 
-	return top10.map((_, idx) => ({
-		current: (snapshots[2 * idx] as Awaited<ReturnType<typeof getCurrent>>)!,
-		previous: snapshots[2 * idx + 1] as Awaited<ReturnType<typeof getPrevious>>,
-	}));
-};
-
-const generatePayloads = async (
-	snapshots: Awaited<ReturnType<typeof getSnapshots>>,
-) => {
-	const components = await Promise.all(
-		snapshots.map(async ({ current, previous }, idx) => {
-			const components = [] as (TextDisplayBuilder | SeparatorBuilder)[];
-			if (idx > 0) {
-				components.push(
-					new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small),
-				);
-			}
-
-			const lines: string[] = [
-				bold(`#${current.rank} ${stripBB(current.name)}`) +
-					` ‒ ${formatNumber(current.point)} Pts`,
-			];
-			if (previous) {
-				const pointsDelta = current.point - previous.point;
-				if (pointsDelta > 0) {
-					lines[0] += ` (${formatNumber(pointsDelta, { positiveSign: true })} Pts)`;
-				}
-
-				if (current.rank !== previous.rank) {
-					lines.push(`Rank #${previous.rank} -> #${current.rank}`);
-				}
-			}
+	return Promise.all(
+		top10.map(async (uid, idx) => {
+			const current = (snapshots[2 * idx] as Awaited<
+				ReturnType<typeof getCurrent>
+			>)!;
+			const previous = snapshots[2 * idx + 1] as Awaited<
+				ReturnType<typeof getPrevious>
+			>;
 
 			let lastPlayed = current.timestamp;
 			if (
 				previous &&
 				current.point === previous.point &&
-				current.timestamp.valueOf() !== previous.timestamp.valueOf()
+				current.timestamp.getTime() !== previous.timestamp.getTime()
 			) {
 				const snapshot = await db().query.trackerSnapshots.findFirst({
 					columns: { timestamp: true },
-					where: {
-						trackingFor: current.trackingFor,
-						trackingId: current.trackingId,
-						uid: current.uid,
-						point: current.point,
-					},
+					where: { ...trackingReference, uid, point: current.point },
 					orderBy: { id: "asc" },
 				});
 
 				if (snapshot) lastPlayed = snapshot.timestamp;
 			}
 
-			lines.push(
-				subtext(
-					`played ||${time(lastPlayed, TimestampStyles.RelativeTime)} @ ${time(lastPlayed, TimestampStyles.ShortDate)} ${time(lastPlayed, TimestampStyles.ShortTime)}||`,
-				),
-			);
-
-			components.push(new TextDisplayBuilder().setContent(lines.join("\n")));
-			return components.map((component) => component.toJSON());
+			return { current, previous, lastPlayed };
 		}),
 	);
+};
+
+const generatePayload = (
+	snapshots: Awaited<ReturnType<typeof getSnapshots>>,
+) => {
+	const components = snapshots.map(({ current, previous, lastPlayed }, idx) => {
+		const components = [] as (TextDisplayBuilder | SeparatorBuilder)[];
+		if (idx > 0) {
+			components.push(
+				new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small),
+			);
+		}
+
+		const lines: string[] = [
+			bold(`#${current.rank} ${stripBB(current.name)}`) +
+				` ‒ ${formatNumber(current.point)} Pts`,
+		];
+		if (previous) {
+			const pointsDelta = current.point - previous.point;
+			if (pointsDelta > 0) {
+				lines[0] += ` (${formatNumber(pointsDelta, { positiveSign: true })} Pts)`;
+			}
+
+			if (current.rank !== previous.rank) {
+				lines.push(`Rank #${previous.rank} -> #${current.rank}`);
+			}
+		}
+
+		lines.push(
+			subtext(
+				`played ||${time(lastPlayed, TimestampStyles.RelativeTime)} @ ${time(lastPlayed, TimestampStyles.ShortDate)} ${time(lastPlayed, TimestampStyles.ShortTime)}||`,
+			),
+		);
+
+		components.push(new TextDisplayBuilder().setContent(lines.join("\n")));
+		return components.map((component) => component.toJSON());
+	});
 
 	return {
 		components: [new ContainerBuilder({ components: components.flat() })],
