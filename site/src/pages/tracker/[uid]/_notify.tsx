@@ -4,13 +4,14 @@ import { VAPID_PUBLIC_KEY } from "astro:env/client";
 import { useRef, useState } from "preact/hooks";
 
 import { stripBB } from "@bandori-stats/bestdori/helpers";
-import type { TrackerSnapshot } from "@bandori-stats/database/schema";
+import type {
+	GbpMetadata,
+	TrackerSnapshot,
+} from "@bandori-stats/database/schema";
 
 interface NotifyWhenContainerProps {
-	snapshot: Pick<
-		TrackerSnapshot,
-		"uid" | "name" | "trackingFor" | "trackingId" | "point" | "rank"
-	>;
+	target: Pick<GbpMetadata, "kind" | "id">;
+	snapshot: Pick<TrackerSnapshot, "uid" | "name" | "point" | "rank">;
 }
 
 export const NotifyWhenContainer = (props: NotifyWhenContainerProps) => (
@@ -21,7 +22,10 @@ export const NotifyWhenContainer = (props: NotifyWhenContainerProps) => (
 	</div>
 );
 
-const NotifyWhenPlayAgain = ({ snapshot }: NotifyWhenContainerProps) => {
+const NotifyWhenPlayAgain = ({
+	target,
+	snapshot,
+}: NotifyWhenContainerProps) => {
 	const inputRef = useRef<HTMLInputElement>(null);
 
 	return (
@@ -30,6 +34,7 @@ const NotifyWhenPlayAgain = ({ snapshot }: NotifyWhenContainerProps) => {
 			label="Plays again"
 			on="play-again"
 			snapshot={snapshot}
+			target={target}
 		>
 			{(setValue) => (
 				<input
@@ -45,7 +50,10 @@ const NotifyWhenPlayAgain = ({ snapshot }: NotifyWhenContainerProps) => {
 	);
 };
 
-const NotifyWhenPointAbove = ({ snapshot }: NotifyWhenContainerProps) => {
+const NotifyWhenPointAbove = ({
+	target,
+	snapshot,
+}: NotifyWhenContainerProps) => {
 	const inputRef = useRef<HTMLInputElement>(null);
 
 	return (
@@ -54,6 +62,7 @@ const NotifyWhenPointAbove = ({ snapshot }: NotifyWhenContainerProps) => {
 			label="Points go above"
 			on="point"
 			snapshot={snapshot}
+			target={target}
 		>
 			{(setValue) => (
 				<input
@@ -70,7 +79,7 @@ const NotifyWhenPointAbove = ({ snapshot }: NotifyWhenContainerProps) => {
 	);
 };
 
-const NotifyWhenBoated = ({ snapshot }: NotifyWhenContainerProps) => {
+const NotifyWhenBoated = ({ target, snapshot }: NotifyWhenContainerProps) => {
 	const inputRef = useRef<HTMLSelectElement>(null);
 
 	return (
@@ -79,6 +88,7 @@ const NotifyWhenBoated = ({ snapshot }: NotifyWhenContainerProps) => {
 			label="Is boated from"
 			on="boated-from"
 			snapshot={snapshot}
+			target={target}
 		>
 			{(setValue) => (
 				<select
@@ -111,6 +121,7 @@ interface NotifyWhenProps extends NotifyWhenContainerProps {
 }
 
 const NotifyWhen = ({
+	target,
 	snapshot,
 	label,
 	on,
@@ -139,7 +150,7 @@ const NotifyWhen = ({
 			const subscription = await getSubscription();
 			const { error } = await actions.tracker.notifyMe({
 				subscription: subscription as never,
-				target: snapshot,
+				target: { ...target, uid: snapshot.uid },
 				on: { target: on, value },
 			});
 
@@ -151,7 +162,7 @@ const NotifyWhen = ({
 			setSubscribed(true);
 			if (import.meta.env.PROD) {
 				umami.track("tracker-notify-subscribe", {
-					kind: snapshot.trackingFor,
+					kind: target.kind,
 					player: stripBB(snapshot.name),
 					on,
 					value,

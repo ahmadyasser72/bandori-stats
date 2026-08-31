@@ -56,7 +56,9 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 				for (const event of events) {
 					if (dayjs().isAfter(event.endAt)) continue;
 
-					pipe.set(GBP.event.current, event, { pxat: event.endAt });
+					pipe.set(GBP.event.current, event.eventId, {
+						pxat: event.endAt.getTime(),
+					});
 
 					const metadata = await bestdori({
 						path: `/api/events/${event.eventId}.json`,
@@ -65,9 +67,10 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 					await db()
 						.insert(gbpEvents)
 						.values({
-							...event,
-							startAt: new Date(event.startAt),
-							endAt: new Date(event.endAt),
+							id: event.eventId,
+							name: event.eventName,
+							type: event.eventType,
+							...omit(event, ["eventId", "eventName", "eventType"]),
 							metadata: omit(metadata, ["bannerAssetBundleName"]),
 						});
 
@@ -118,20 +121,22 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 			}
 
 			if (!currentMonthly) {
-				const active = data.masterMonthlyRankingList.entries.find(
+				const monthly = data.masterMonthlyRankingList.entries.find(
 					({ startAt, endAt }) => dayjs().isBetween(startAt, endAt),
 				);
-				if (active) {
-					pipe.set(GBP.event.current, active, { pxat: active.endAt });
+				if (monthly) {
+					pipe.set(GBP.event.current, monthly.monthlyRankingId, {
+						pxat: monthly.endAt.getTime(),
+					});
 					await db()
 						.insert(gbpMonthlyRankings)
 						.values({
-							...active,
-							startAt: new Date(active.startAt),
-							endAt: new Date(active.endAt),
+							id: monthly.monthlyRankingId,
+							name: monthly.monthlyRankingName,
+							...omit(monthly, ["monthlyRankingId", "monthlyRankingName"]),
 						});
 
-					await tags.add(`monthly_${active.assetBundleName}`);
+					await tags.add(`monthly_${monthly.assetBundleName}`);
 				}
 			}
 

@@ -1,17 +1,18 @@
-import { pick } from "es-toolkit";
+import { allKeyed, pick } from "es-toolkit";
 
 import dayjs from "@bandori-stats/bestdori/date";
 import { and, asc, db, eq, inArray, max, sql } from "@bandori-stats/database";
 import { GBP, redis } from "@bandori-stats/database/redis";
 import { trackerSnapshots } from "@bandori-stats/database/schema";
+import { getTrackingMetadata } from "@bandori-stats/database/tracker";
 
 export const fetchTrackerData = async (params: {
 	kind: "event" | "monthly";
 	id: number;
 }) => {
-	const key = GBP[params.kind][params.id];
+	const key = GBP.fromMetadata(params, "leaderboard");
 	const players = await redis()
-		.zrange<number[]>(`${key}:leaderboard`, 0, -1)
+		.zrange<number[]>(key, 0, -1)
 		.then((uids) => uids.map((uid) => uid.toString()));
 
 	const hourBucket =
@@ -19,59 +20,41 @@ export const fetchTrackerData = async (params: {
 			"hour",
 		);
 
-	const snapshots =
-		players.length > 0
-			? await (() => {
-					const latestPerHour = db()
-						.$with("latest_per_hour")
-						.as(
-							db()
-								.select({
-									uid: trackerSnapshots.uid,
-									hour: hourBucket,
-									maxId: max(trackerSnapshots.id).as("max_id"),
-								})
-								.from(trackerSnapshots)
-								.where(
-									and(
-										eq(trackerSnapshots.trackingFor, params.kind),
-										eq(trackerSnapshots.trackingId, params.id),
-										inArray(trackerSnapshots.uid, players),
-									),
-								)
-								.groupBy(trackerSnapshots.uid, hourBucket),
-						);
-
-					return db()
-						.with(latestPerHour)
-						.select({
-							uid: trackerSnapshots.uid,
-							name: trackerSnapshots.name,
-							rank: trackerSnapshots.rank,
-							point: trackerSnapshots.point,
-							timestamp: latestPerHour.hour,
-						})
-						.from(trackerSnapshots)
-						.innerJoin(
-							latestPerHour,
-							eq(trackerSnapshots.id, latestPerHour.maxId),
-						)
-						.orderBy(asc(latestPerHour.hour));
-				})()
-			: [];
-
-	const metadata =
-		params.kind === "event"
-			? db().query.gbpEvents.findFirst({
-					columns: { startAt: true, endAt: true },
-					where: { eventId: params.id },
+	const latestPerHour = db()
+		.$with("latest_per_hour")
+		.as(
+			db()
+				.select({
+					uid: trackerSnapshots.uid,
+					hour: hourBucket,
+					maxId: max(trackerSnapshots.id).as("max_id"),
 				})
-			: db().query.gbpMonthlyRankings.findFirst({
-					columns: { startAt: true, endAt: true },
-					where: { monthlyRankingId: params.id },
-				});
+				.from(trackerSnapshots)
+				.where(
+					and(
+						eq(trackerSnapshots.trackingFor, params.kind),
+						eq(trackerSnapshots.trackingId, params.id),
+						inArray(trackerSnapshots.uid, players),
+					),
+				)
+				.groupBy(trackerSnapshots.uid, hourBucket),
+		);
 
-	return Promise.all([snapshots, metadata]);
+	return allKeyed({
+		snapshots: db()
+			.with(latestPerHour)
+			.select({
+				uid: trackerSnapshots.uid,
+				name: trackerSnapshots.name,
+				rank: trackerSnapshots.rank,
+				point: trackerSnapshots.point,
+				timestamp: latestPerHour.hour,
+			})
+			.from(trackerSnapshots)
+			.innerJoin(latestPerHour, eq(trackerSnapshots.id, latestPerHour.maxId))
+			.orderBy(asc(latestPerHour.hour)),
+		metadata: getTrackingMetadata(params),
+	});
 };
 
 type Snapshot = {

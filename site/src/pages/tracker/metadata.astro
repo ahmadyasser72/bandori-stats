@@ -3,7 +3,7 @@ import z from "zod";
 
 import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
-import { db } from "@bandori-stats/database";
+import { getTrackingMetadata } from "@bandori-stats/database/tracker";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import {
@@ -25,23 +25,10 @@ const data = await Astro.locals.tracing.enterSpan(
 		span.setAttribute("kind", params.kind);
 		span.setAttribute("id", params.id);
 
-		if (params.kind === "event") {
-			const event = await db().query.gbpEvents.findFirst({
-				where: { eventId: params.id },
-			});
-			return { ...event!, name: event?.eventName!, id: event?.eventId! };
-		} else {
-			const monthly = await db().query.gbpMonthlyRankings.findFirst({
-				where: { monthlyRankingId: params.id },
-			});
-			return {
-				...monthly!,
-				name: monthly?.monthlyRankingName!,
-				id: monthly?.monthlyRankingId!,
-			};
-		}
+		return getTrackingMetadata(params);
 	},
 );
+if (!data) return new Response(null, { status: 404 });
 
 const clientTimezone =
 	Astro.request.headers.get("client-timezone") ?? GBP_TIMEZONE;

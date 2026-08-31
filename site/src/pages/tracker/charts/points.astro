@@ -15,7 +15,7 @@ const params = Astro.locals.parseQuery(
 	}),
 );
 
-const [snapshots, metadata] = await Astro.locals.tracing.enterSpan(
+const { snapshots, metadata } = await Astro.locals.tracing.enterSpan(
 	"fetch-tracker-data",
 	(span) => {
 		span.setAttribute("kind", params.kind);

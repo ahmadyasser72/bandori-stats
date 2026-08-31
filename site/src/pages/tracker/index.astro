@@ -21,29 +21,23 @@ if (!params.id) {
 		async (span) => {
 			span.setAttribute("kind", params.tab);
 
-			if (params.tab === "event") {
-				const event = await db().query.gbpEvents.findFirst({
-					columns: { eventId: true },
-					where: { startAt: { lt: new Date() } },
-					orderBy: { eventId: "desc" },
-				});
-
-				return event?.eventId;
-			} else {
-				const monthly = await db().query.gbpMonthlyRankings.findFirst({
-					columns: { monthlyRankingId: true },
-					where: { startAt: { lt: new Date() } },
-					orderBy: { monthlyRankingId: "desc" },
-				});
-
-				return monthly?.monthlyRankingId;
-			}
+			return params.tab === "event"
+				? db().query.gbpEvents.findFirst({
+						columns: { id: true },
+						where: { startAt: { lt: new Date() } },
+						orderBy: { id: "desc" },
+					})
+				: db().query.gbpMonthlyRankings.findFirst({
+						columns: { id: true },
+						where: { startAt: { lt: new Date() } },
+						orderBy: { id: "desc" },
+					});
 		},
 	);
 
 	if (latest)
 		return Astro.redirect(
-			`${Astro.url.pathname}?tab=${params.tab}&id=${latest}`,
+			`${Astro.url.pathname}?id=${latest.id}&tab=${params.tab}`,
 		);
 
 	return new Response(null, { status: 404 });
@@ -55,32 +49,12 @@ const choices = await Astro.locals.tracing.enterSpan(
 		span.setAttribute("kind", params.tab);
 
 		return params.tab === "event"
-			? db()
-					.query.gbpEvents.findMany({
-						columns: { assetBundleName: true, eventId: true, eventName: true },
-					})
-					.then((events) =>
-						events.map(({ assetBundleName, ...it }) => ({
-							assetBundleName,
-							id: it.eventId,
-							name: it.eventName,
-						})),
-					)
-			: db()
-					.query.gbpMonthlyRankings.findMany({
-						columns: {
-							assetBundleName: true,
-							monthlyRankingId: true,
-							monthlyRankingName: true,
-						},
-					})
-					.then((monthlies) =>
-						monthlies.map(({ assetBundleName, ...it }) => ({
-							assetBundleName,
-							id: it.monthlyRankingId,
-							name: it.monthlyRankingName,
-						})),
-					);
+			? db().query.gbpEvents.findMany({
+					columns: { id: true, name: true, assetBundleName: true },
+				})
+			: db().query.gbpMonthlyRankings.findMany({
+					columns: { id: true, name: true, assetBundleName: true },
+				});
 	},
 );
 

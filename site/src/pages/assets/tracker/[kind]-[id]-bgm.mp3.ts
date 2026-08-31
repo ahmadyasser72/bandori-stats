@@ -1,12 +1,7 @@
-import type {
-	APIRoute,
-	GetStaticPaths,
-	InferGetStaticParamsType,
-	InferGetStaticPropsType,
-} from "astro";
+import type { APIRoute } from "astro";
 
 import { fetchBestdori } from "@bandori-stats/bestdori/fetch";
-import { db } from "@bandori-stats/database";
+import type { Params, Props } from "./_data";
 
 export const prerender = true;
 
@@ -22,30 +17,4 @@ export const GET: APIRoute<Props, Params> = async ({ props }) => {
 
 	return fetchBestdori(bgmPath, true);
 };
-
-export const getStaticPaths = (async () => {
-	const events = await db().query.gbpEvents.findMany({
-		columns: { eventId: true, bgmAssetBundleName: true, bgmFileName: true },
-	});
-	const monthlies = await db().query.gbpMonthlyRankings.findMany({
-		columns: {
-			monthlyRankingId: true,
-			bgmAssetBundleName: true,
-			bgmFileName: true,
-		},
-	});
-
-	return [
-		...events.map(({ eventId, ...rest }) => ({
-			params: { kind: "event", id: eventId.toString() },
-			props: { id: eventId, ...rest },
-		})),
-		...monthlies.map(({ monthlyRankingId, ...rest }) => ({
-			params: { kind: "monthly", id: monthlyRankingId.toString() },
-			props: { id: monthlyRankingId, ...rest },
-		})),
-	];
-}) satisfies GetStaticPaths;
-
-type Props = InferGetStaticPropsType<typeof getStaticPaths>;
-type Params = InferGetStaticParamsType<typeof getStaticPaths>;
+export { getStaticPaths } from "./_data";

@@ -16,16 +16,14 @@ const snapshot = await db().query.accountSnapshots.findFirst({
 });
 
 const snapshotTitles = snapshot?.stats.titles ?? [];
-const isNotFound = !snapshot || snapshotTitles.length === 0;
-if (isNotFound) Astro.response.status = 404;
+if (!snapshot || snapshotTitles.length === 0)
+	return new Response(null, { status: 404 });
 
-const previous = isNotFound
-	? undefined
-	: await db().query.accountSnapshots.findFirst({
-			columns: { stats: true },
-			where: { id: { lt: id }, accountId: snapshot.accountId },
-			orderBy: { id: "desc" },
-		});
+const previous = await db().query.accountSnapshots.findFirst({
+	columns: { stats: true },
+	where: { id: { lt: id }, accountId: snapshot.accountId },
+	orderBy: { id: "desc" },
+});
 
 const { grouped, categorized } = categorize(snapshotTitles, {
 	categories: ["new", ...Object.keys(titles)],

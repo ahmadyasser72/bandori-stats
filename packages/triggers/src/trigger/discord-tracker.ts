@@ -1,4 +1,4 @@
-import { AbortTaskRunError, tags, task, wait } from "@trigger.dev/sdk";
+import { AbortTaskRunError, schemaTask, wait } from "@trigger.dev/sdk";
 import {
 	bold,
 	ChannelType,
@@ -16,50 +16,34 @@ import {
 	type PublicThreadChannel,
 } from "discord.js";
 import { allKeyed } from "es-toolkit";
-import type z from "zod";
+import z from "zod";
 
 import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
 import dayjs from "@bandori-stats/bestdori/date";
 import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
-import type {
-	GameEvent,
-	GameMonthlyRanking,
-} from "@bandori-stats/bestdori/schema/misc";
 import { db } from "@bandori-stats/database";
-import {
-	GBP,
-	getRedisKey,
-	getTrackingReference,
-	redis,
-} from "@bandori-stats/database/redis";
+import { GBP, redis } from "@bandori-stats/database/redis";
 import type { GbpMetadata } from "@bandori-stats/database/schema";
+import { getTrackingReference } from "@bandori-stats/database/tracker";
 
-export const discordTracker = task({
+export const discordTracker = schemaTask({
 	id: "discord-tracker",
-	run: async (_, { ctx }) => {
+	schema: z.object({
+		metadatas: z
+			.array(
+				z.object({
+					kind: z.enum(["event", "monthly"]),
+					id: z.number(),
+					name: z.string(),
+				}),
+			)
+			.nonempty(),
+	}),
+	run: async ({ metadatas }, { ctx }) => {
 		const now = dayjs
 			.tz(ctx.attempt.startedAt, GBP_TIMEZONE)
 			.startOf("hour")
 			.add(1, "hour");
-
-		const [event, monthly] = await redis().mget<
-			[
-				z.infer<typeof GameEvent> | null,
-				z.infer<typeof GameMonthlyRanking> | null,
-			]
-		>(GBP.event.current, GBP.monthly.current);
-
-		await tags.add([
-			`event_${event?.assetBundleName ?? "n/a"}`,
-			`monthly_${monthly?.assetBundleName ?? "n/a"}`,
-		]);
-
-		const metadatas = [] as GbpMetadata[];
-		if (event)
-			metadatas.push({ kind: "event", ...event } as unknown as GbpMetadata);
-		if (monthly)
-			metadatas.push({ kind: "monthly", ...monthly } as unknown as GbpMetadata);
-		if (metadatas.length === 0) return;
 
 		const { DISCORD_BOT_TOKEN, DISCORD_GUILD_ID } = process.env;
 		if (!DISCORD_BOT_TOKEN || !DISCORD_GUILD_ID)
@@ -113,12 +97,12 @@ interface GetSnapshotsOptions {
 }
 
 const getSnapshots = async (
-	metadata: GbpMetadata,
+	metadata: Pick<GbpMetadata, "kind" | "id">,
 	{ since, now }: GetSnapshotsOptions,
 ) => {
-	const key = getRedisKey(metadata);
+	const key = GBP.fromMetadata(metadata, "leaderboard");
 	const top10 = await redis()
-		.zrange<number[]>(`${key}:leaderboard`, 0, 9, { rev: true })
+		.zrange<number[]>(key, 0, 9, { rev: true })
 		.then((uids) => uids.map((uid) => uid.toString()));
 
 	const trackingReference = getTrackingReference(metadata);
@@ -212,7 +196,10 @@ const generatePayload = (
 	} satisfies MessageCreateOptions;
 };
 
-const getThread = async (client: Client, metadata: GbpMetadata) => {
+const getThread = async (
+	client: Client,
+	metadata: Pick<GbpMetadata, "kind" | "id" | "name">,
+) => {
 	const mainChannelName = `${metadata.kind}-tracker`;
 	const mainChannel = client.channels.cache.find(
 		(channel) =>
@@ -222,21 +209,15 @@ const getThread = async (client: Client, metadata: GbpMetadata) => {
 	if (!mainChannel || mainChannel.type !== ChannelType.GuildText)
 		throw new AbortTaskRunError(`${mainChannelName} channel doesn't exists.`);
 
-	const key = getRedisKey(metadata) + ":discord";
+	const key = GBP.fromMetadata(metadata, "discord");
 	const fromRedis = await redis().get<number>(key);
 	if (fromRedis) {
 		const thread = await mainChannel.threads.fetch(fromRedis.toString());
 		if (thread && thread.type === ChannelType.PublicThread) return thread;
 	}
 
-	const id =
-		metadata.kind === "event" ? metadata.eventId : metadata.monthlyRankingId;
-	const name =
-		metadata.kind === "event"
-			? metadata.eventName
-			: metadata.monthlyRankingName;
 	const thread = await mainChannel.threads.create({
-		name: `#${id} ${name}`,
+		name: `#${metadata.id} ${metadata.name}`,
 		autoArchiveDuration: ThreadAutoArchiveDuration.ThreeDays,
 		type: ChannelType.PublicThread,
 	});

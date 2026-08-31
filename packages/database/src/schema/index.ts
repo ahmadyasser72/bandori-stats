@@ -11,12 +11,11 @@ import type z from "zod";
 import type { Stats } from "@bandori-stats/bestdori/constants";
 import type { GameEventType } from "@bandori-stats/bestdori/schema/misc";
 import type {
+	EventMetadata,
 	PlayerAvatar,
 	PlayerBand,
 	PlayerBandMemberStateless,
-} from "./tracker-snapshot-profile";
-
-export * from "./tracker-snapshot-profile";
+} from "./tracker";
 
 export const accounts = sqliteTable(
 	"accounts",
@@ -59,54 +58,26 @@ export const accountSnapshots = sqliteTable(
 export type Account = typeof accounts.$inferSelect;
 export type Snapshot = typeof accountSnapshots.$inferSelect;
 
-export const gbpEvents = sqliteTable("gbp_events", {
-	eventId: integer().primaryKey({ autoIncrement: false }),
-	eventType: text().notNull().$type<z.infer<typeof GameEventType>>(),
-	eventName: text().notNull().unique(),
-	assetBundleName: text().notNull(),
-	bgmAssetBundleName: text().notNull(),
-	bgmFileName: text().notNull(),
+export const { gbpEvents, gbpMonthlyRankings } = (() => {
+	const fields = {
+		id: integer().primaryKey({ autoIncrement: false }),
+		name: text().notNull().unique(),
+		assetBundleName: text().notNull(),
+		bgmAssetBundleName: text().notNull(),
+		bgmFileName: text().notNull(),
+		startAt: integer({ mode: "timestamp_ms" }).notNull(),
+		endAt: integer({ mode: "timestamp_ms" }).notNull(),
+	};
 
-	metadata: text({ mode: "json" }).$type<{
-		attributes: {
-			attribute: "powerful" | "pure" | "cool" | "happy";
-			percent: number;
-		}[];
-		characters: { characterId: number; percent: number }[];
-		eventAttributeAndCharacterBonus: {
-			pointPercent: number;
-			parameterPercent: number;
-		};
-		eventCharacterParameterBonus?: {
-			performance: number;
-			technique: number;
-			visual: number;
-		};
-		members: {
-			situationId: number;
-			percent: number;
-		}[];
-		limitBreaks: {
-			rarity: number;
-			rank: number;
-			percent: number;
-		}[];
-	}>(),
-
-	startAt: integer({ mode: "timestamp_ms" }).notNull(),
-	endAt: integer({ mode: "timestamp_ms" }).notNull(),
-});
-
-export const gbpMonthlyRankings = sqliteTable("gbp_monthly_rankings", {
-	monthlyRankingId: integer().primaryKey({ autoIncrement: false }),
-	monthlyRankingName: text().notNull().unique(),
-	assetBundleName: text().notNull(),
-	bgmAssetBundleName: text().notNull(),
-	bgmFileName: text().notNull(),
-
-	startAt: integer({ mode: "timestamp_ms" }).notNull(),
-	endAt: integer({ mode: "timestamp_ms" }).notNull(),
-});
+	return {
+		gbpEvents: sqliteTable("gbp_events", {
+			...fields,
+			type: text().notNull().$type<z.infer<typeof GameEventType>>(),
+			metadata: text({ mode: "json" }).$type<EventMetadata>(),
+		}),
+		gbpMonthlyRankings: sqliteTable("gbp_monthly_rankings", fields),
+	};
+})();
 
 export const trackerSnapshots = sqliteTable(
 	"tracker_snapshots",

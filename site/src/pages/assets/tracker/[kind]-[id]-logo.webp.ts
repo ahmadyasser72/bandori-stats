@@ -1,12 +1,7 @@
 import { openAsBlob } from "node:fs";
 import { writeFile } from "node:fs/promises";
 
-import type {
-	APIRoute,
-	GetStaticPaths,
-	InferGetStaticParamsType,
-	InferGetStaticPropsType,
-} from "astro";
+import type { APIRoute } from "astro";
 
 import {
 	exists,
@@ -14,7 +9,7 @@ import {
 	getCachePath,
 } from "@bandori-stats/bestdori/fetch";
 import { imageConfig, vips } from "@bandori-stats/bestdori/image";
-import { db } from "@bandori-stats/database";
+import type { Params, Props } from "./_data";
 
 export const prerender = true;
 
@@ -45,25 +40,4 @@ export const GET: APIRoute<Props, Params> = async ({ params, props }) => {
 	return new Response(out as Uint8Array<ArrayBuffer>);
 };
 
-export const getStaticPaths = (async () => {
-	const events = await db().query.gbpEvents.findMany({
-		columns: { eventId: true, assetBundleName: true },
-	});
-	const monthlies = await db().query.gbpMonthlyRankings.findMany({
-		columns: { monthlyRankingId: true, assetBundleName: true },
-	});
-
-	return [
-		...events.map(({ eventId, assetBundleName }) => ({
-			params: { kind: "event", id: eventId.toString() },
-			props: { id: eventId, assetBundleName },
-		})),
-		...monthlies.map(({ monthlyRankingId, assetBundleName }) => ({
-			params: { kind: "monthly", id: monthlyRankingId.toString() },
-			props: { id: monthlyRankingId, assetBundleName },
-		})),
-	];
-}) satisfies GetStaticPaths;
-
-type Props = InferGetStaticPropsType<typeof getStaticPaths>;
-type Params = InferGetStaticParamsType<typeof getStaticPaths>;
+export { getStaticPaths } from "./_data";

@@ -8,12 +8,12 @@ import { Card } from "@bandori-stats/bestdori/schema/cards";
 import { Skills } from "@bandori-stats/bestdori/schema/skills";
 import { db, sql } from "@bandori-stats/database";
 import { GBP, getAreaItems, redis } from "@bandori-stats/database/redis";
+import { trackerSnapshotProfiles } from "@bandori-stats/database/schema";
 import {
 	STAT_TYPES,
-	trackerSnapshotProfiles,
 	type PlayerBandMember,
 	type PlayerBandMemberStateless,
-} from "@bandori-stats/database/schema";
+} from "@bandori-stats/database/tracker";
 import type { UserSituation } from "~/bang-dream-gbp/gen/common_pb";
 import type { UserProfile } from "~/bang-dream-gbp/gen/profile_pb";
 import { bestdori } from "~/bestdori";

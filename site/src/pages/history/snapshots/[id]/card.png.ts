@@ -24,7 +24,7 @@ export const GET: APIRoute = async (context) => {
 		},
 	});
 
-	if (snapshots.length === 0) return new Response("not found", { status: 404 });
+	if (snapshots.length === 0) return new Response(null, { status: 404 });
 
 	const [data, previous] = snapshots;
 	return context.locals.tracing.enterSpan("render", (span) => {

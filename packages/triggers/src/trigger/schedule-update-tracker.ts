@@ -1,19 +1,12 @@
 import { idempotencyKeys, schedules, tags, wait } from "@trigger.dev/sdk";
-import { sumBy, uniqBy } from "es-toolkit";
+import { allKeyed, sumBy, uniqBy } from "es-toolkit";
 import webPush from "web-push";
-import type z from "zod";
 
 import dayjs from "@bandori-stats/bestdori/date";
 import { formatNumber } from "@bandori-stats/bestdori/helpers";
-import type {
-	GameEvent,
-	GameMonthlyRanking,
-} from "@bandori-stats/bestdori/schema/misc";
 import { db } from "@bandori-stats/database";
 import {
 	GBP,
-	getRedisKey,
-	getTrackingReference,
 	redis,
 	type NotifyWhenPlayer,
 } from "@bandori-stats/database/redis";
@@ -21,6 +14,7 @@ import {
 	trackerSnapshots,
 	type GbpMetadata,
 } from "@bandori-stats/database/schema";
+import { getTrackingReference } from "@bandori-stats/database/tracker";
 import { bangDream } from "~/bang-dream-gbp/fetch";
 import type { RankingUser } from "~/bang-dream-gbp/gen/common_pb";
 import { discordTracker } from "./discord-tracker";
@@ -32,20 +26,20 @@ export const scheduleUpdateTracker = schedules.task({
 	ttl: "1m",
 	cron: { pattern: "* * * * *" },
 	run: async (context) => {
-		const [version, event, monthly] = await redis().mget<
-			[
-				string | null,
-				z.infer<typeof GameEvent> | null,
-				z.infer<typeof GameMonthlyRanking> | null,
-			]
+		const [version, eventId, monthlyId] = await redis().mget<
+			[string | null, number | null, number | null]
 		>(GBP.version, GBP.event.current, GBP.monthly.current);
 
-		await tags.add([
-			`version_${version ?? "n/a"}`,
-			`event_${event?.assetBundleName ?? "n/a"}`,
-			`monthly_${monthly?.assetBundleName ?? "n/a"}`,
-		]);
+		await tags.add(`version_${version ?? "n/a"}`);
 		if (!version) return;
+
+		const { event, monthly } = await allKeyed({
+			event:
+				eventId && db().query.gbpEvents.findFirst({ where: { id: eventId } }),
+			monthly:
+				monthlyId &&
+				db().query.gbpMonthlyRankings.findFirst({ where: { id: monthlyId } }),
+		});
 
 		const now = dayjs(context.timestamp).startOf("minute").add(1, "minute");
 		await wait.until({ date: now.toDate() });
@@ -54,24 +48,23 @@ export const scheduleUpdateTracker = schedules.task({
 			(async () => {
 				if (!event || now.isBefore(event.startAt)) return [];
 
-				const { eventId, eventType } = event;
 				const top = await (async () => {
 					if (
-						eventType === "versus" ||
-						eventType === "challenge" ||
-						eventType === "medley"
+						event.type === "versus" ||
+						event.type === "challenge" ||
+						event.type === "medley"
 					) {
-						const data = await bangDream(version, eventType, eventId);
+						const data = await bangDream(version, event.type, event.id);
 						return data.eventPointTopUsers?.entries ?? [];
 					} else if (
-						eventType === "mission_live" ||
-						eventType === "live_try" ||
-						eventType === "festival"
+						event.type === "mission_live" ||
+						event.type === "live_try" ||
+						event.type === "festival"
 					) {
-						const data = await bangDream(version, eventType, eventId);
+						const data = await bangDream(version, event.type, event.id);
 						return data.topUsers?.entries ?? [];
 					}
-					// } else if (eventType === "story") {
+					// } else if (event.type === "story") {
 					// 	// legacy events, skip
 					// 	return [];
 					// }
@@ -80,7 +73,7 @@ export const scheduleUpdateTracker = schedules.task({
 				})();
 				if (top.length === 0) return [];
 
-				const metadata = { kind: "event", ...event } as unknown as GbpMetadata;
+				const metadata: GbpMetadata = { kind: "event", ...event };
 				const inserted = await insertSnapshots(top, { now, metadata });
 				if (inserted.length === 0) return [];
 
@@ -95,15 +88,11 @@ export const scheduleUpdateTracker = schedules.task({
 			(async () => {
 				if (!monthly || now.isBefore(monthly.startAt)) return [];
 
-				const { monthlyRankingId } = monthly;
-				const data = await bangDream(version, "monthly", monthlyRankingId);
+				const data = await bangDream(version, "monthly", monthly.id);
 				const top = data.monthlyRankingPointTopUsers?.entries ?? [];
 				if (top.length === 0) return [];
 
-				const metadata = {
-					kind: "monthly",
-					...monthly,
-				} as unknown as GbpMetadata;
+				const metadata: GbpMetadata = { kind: "monthly", ...monthly };
 				const inserted = await insertSnapshots(top, { now, metadata });
 				if (inserted.length === 0) return [];
 
@@ -117,14 +106,20 @@ export const scheduleUpdateTracker = schedules.task({
 			})(),
 		]);
 
-		if (now.get("minutes") === 59) await discordTracker.trigger();
+		if (now.get("minutes") === 59) {
+			const metadatas = [] as GbpMetadata[];
+			if (event) metadatas.push({ kind: "event", ...event });
+			if (monthly) metadatas.push({ kind: "monthly", ...monthly });
+
+			if (metadatas.length > 0) await discordTracker.trigger({ metadatas });
+		}
 
 		const errors = results.filter((promise) => promise.status === "rejected");
 		for (const { reason } of errors) console.error(reason);
 
 		const inserted = results
 			.filter((promise) => promise.status === "fulfilled")
-			.flatMap(({ value }) => value);
+			.flatMap<{ uid: string; metadata: GbpMetadata }>(({ value }) => value);
 
 		if (inserted.length > 0) {
 			await updateTrackerProfile.triggerAndWait({
@@ -188,9 +183,9 @@ const updateRedisLeaderboard = async (
 	top10: RankingUser[],
 	{ metadata }: UpdateRedisLeaderboardOptions,
 ) => {
-	const key = getRedisKey(metadata);
+	const key = GBP.fromMetadata(metadata, "leaderboard");
 	await redis().zadd(
-		`${key}:leaderboard`,
+		key,
 		{ gt: true },
 		{ member: top10[0].userId.toString(), score: Number(top10[0].point) },
 		...top10.slice(1).map(({ userId, point }) => ({
@@ -215,7 +210,6 @@ const sendPushNotifications = async (
 
 	const trackingReference = getTrackingReference(metadata);
 
-	const baseKey = getRedisKey(metadata);
 	const top10ByUid = new Map(
 		top10.map((data) => [data.userId.toString(), data]),
 	);
@@ -223,8 +217,9 @@ const sendPushNotifications = async (
 	const formerTop10 = [] as typeof inserted;
 	const updatedTop10 = !!inserted.find(({ rank }) => rank === 10);
 	if (updatedTop10) {
+		const key = GBP.fromMetadata(metadata, "leaderboard");
 		const outsideTop10 = await redis()
-			.zrange<number[]>(`${baseKey}:leaderboard`, 10, -1, { rev: true })
+			.zrange<number[]>(key, 10, -1, { rev: true })
 			.then((uids) => uids.map((uid) => uid.toString()));
 		if (outsideTop10.length > 0) {
 			const latestSnapshots = await Promise.all(
@@ -243,14 +238,17 @@ const sendPushNotifications = async (
 		}
 	}
 
-	const items = [...inserted, ...formerTop10];
+	const items = [...inserted, ...formerTop10].map((item) => ({
+		...item,
+		key: GBP.fromMetadata(metadata, "notify", item.uid),
+	}));
 	const notifyEntries = await redis().json.mget<NotifyWhenPlayer[][][]>(
-		items.map(({ uid }) => `${baseKey}:notify:${uid}`),
+		items.map(({ key }) => key),
 		"$",
 	);
 
 	const payloads = await Promise.all(
-		items.map(async ({ uid, name, point, rank }, idx) => {
+		items.map(async ({ key, uid, name, point, rank }, idx) => {
 			const notify = notifyEntries.at(idx)?.flat();
 			if (!notify || notify.length === 0) return [];
 
@@ -263,7 +261,6 @@ const sendPushNotifications = async (
 			);
 			if (subscriptions.length === 0) return [];
 
-			const key = `${baseKey}:notify:${uid}`;
 			const deleteNotify = redis().multi();
 			for (const [idx] of [...subscriptions].reverse())
 				deleteNotify.json.del(key, `$[${idx}]`);
@@ -274,10 +271,6 @@ const sendPushNotifications = async (
 				where: { ...trackingReference, uid },
 			});
 
-			const title =
-				metadata.kind === "event"
-					? metadata.eventName
-					: metadata.monthlyRankingName;
 			return uniqBy(
 				subscriptions.map(([, it]) => it),
 				({ on, subscription }) =>
@@ -293,7 +286,7 @@ const sendPushNotifications = async (
 				return {
 					subscription,
 					tag: `${key}-${on.target}-${on.value}`,
-					title,
+					title: metadata.name,
 					body,
 					icon: profile?.avatar
 						? `/assets/cards/${profile.avatar.id}-${profile.avatar.trained ? "trained" : "normal"}-icon.webp`

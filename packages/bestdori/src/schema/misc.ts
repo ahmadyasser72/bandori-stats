@@ -22,8 +22,8 @@ export const GameEvent = z.object({
 	assetBundleName: z.string(),
 	bgmAssetBundleName: z.string(),
 	bgmFileName: z.string(),
-	startAt: z.coerce.number(),
-	endAt: z.coerce.number(),
+	startAt: z.coerce.number().transform((n) => new Date(n)),
+	endAt: z.coerce.number().transform((n) => new Date(n)),
 });
 
 export const GameMonthlyRanking = z.object({
@@ -32,8 +32,8 @@ export const GameMonthlyRanking = z.object({
 	assetBundleName: z.string(),
 	bgmAssetBundleName: z.string(),
 	bgmFileName: z.string(),
-	startAt: z.coerce.number(),
-	endAt: z.coerce.number(),
+	startAt: z.coerce.number().transform((n) => new Date(n)),
+	endAt: z.coerce.number().transform((n) => new Date(n)),
 });
 
 export const GameAreaItem = z.object({

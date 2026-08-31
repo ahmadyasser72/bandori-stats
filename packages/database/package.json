@@ -5,7 +5,8 @@
 	"exports": {
 		".": "./src/db.ts",
 		"./redis": "./src/redis.ts",
-		"./schema": "./src/schema/index.ts"
+		"./schema": "./src/schema/index.ts",
+		"./tracker": "./src/schema/tracker.ts"
 	},
 	"scripts": {
 		"check": "tsc --noEmit",

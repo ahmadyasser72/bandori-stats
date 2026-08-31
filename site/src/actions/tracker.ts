@@ -10,6 +10,7 @@ import {
 	redis,
 	type NotifyWhenPlayer,
 } from "@bandori-stats/database/redis";
+import { getTrackingMetadata } from "@bandori-stats/database/tracker";
 
 export const notifyMe = defineAction({
 	accept: "json",
@@ -20,9 +21,9 @@ export const notifyMe = defineAction({
 			keys: z.object({ p256dh: z.string(), auth: z.string() }),
 		}),
 		target: z.object({
-			trackingFor: z.enum(["event", "monthly"]),
-			trackingId: z.number(),
 			uid: z.string(),
+			kind: z.enum(["event", "monthly"]),
+			id: z.number(),
 		}),
 		on: z.discriminatedUnion("target", [
 			z.object({
@@ -40,24 +41,16 @@ export const notifyMe = defineAction({
 		]),
 	}),
 	handler: async ({ subscription, target, on }) => {
-		const metadata = await (target.trackingFor === "event"
-			? db().query.gbpEvents.findFirst({
-					columns: { endAt: true },
-					where: { eventId: target.trackingId },
-				})
-			: db().query.gbpMonthlyRankings.findFirst({
-					columns: { endAt: true },
-					where: { monthlyRankingId: target.trackingId },
-				}));
+		const metadata = await getTrackingMetadata(target);
 		if (!metadata)
 			throw new ActionError({
 				code: "NOT_FOUND",
-				message: `${target.trackingFor}:${target.trackingId} doesn't exists!`,
+				message: `${target.kind}:${target.id} doesn't exists!`,
 			});
 		else if (dayjs().isAfter(metadata.endAt))
 			throw new ActionError({
 				code: "BAD_GATEWAY",
-				message: `${target.trackingFor}:${target.trackingId} already ended!`,
+				message: `${target.kind}:${target.id} already ended!`,
 			});
 
 		const latestSnapshot = await db().query.trackerSnapshots.findFirst({
@@ -68,7 +61,7 @@ export const notifyMe = defineAction({
 		if (!latestSnapshot)
 			throw new ActionError({
 				code: "NOT_FOUND",
-				message: `${target.uid} is not tracked in ${target.trackingFor}:${target.trackingId}!`,
+				message: `${target.uid} is not tracked in ${target.kind}:${target.id}!`,
 			});
 
 		if (on.target === "play-again") {
@@ -90,9 +83,7 @@ export const notifyMe = defineAction({
 				message: `${stripBB(latestSnapshot.name)} already boated from rank #${on.value}!`,
 			});
 
-		const baseKey = GBP[target.trackingFor][target.trackingId];
-		const key = `${baseKey}:notify:${target.uid}`;
-
+		const key = GBP.fromMetadata(target, "notify", target.uid);
 		const payload = {
 			on,
 			subscription,

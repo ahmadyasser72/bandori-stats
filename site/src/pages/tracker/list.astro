@@ -8,6 +8,10 @@ import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
 import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
 import { GBP, redis } from "@bandori-stats/database/redis";
+import {
+	getTrackingMetadata,
+	getTrackingReference,
+} from "@bandori-stats/database/tracker";
 import GbpCardTooltip from "~/components/gbp-card-tooltip.astro";
 import GbpCard from "~/components/gbp-card.astro";
 import IconLoader from "~/components/icon-loader.astro";
@@ -30,25 +34,7 @@ const metadata = await Astro.locals.tracing.enterSpan(
 		span.setAttribute("kind", params.kind);
 		span.setAttribute("id", params.id);
 
-		return params.kind === "event"
-			? db()
-					.query.gbpEvents.findFirst({
-						columns: { eventName: true, startAt: true, endAt: true },
-						where: { eventId: params.id },
-					})
-					.then((event) =>
-						event ? { ...event, name: event.eventName } : undefined,
-					)
-			: db()
-					.query.gbpMonthlyRankings.findFirst({
-						columns: { monthlyRankingName: true, startAt: true, endAt: true },
-						where: { monthlyRankingId: params.id },
-					})
-					.then((monthly) =>
-						monthly
-							? { ...monthly, name: monthly.monthlyRankingName }
-							: undefined,
-					);
+		return getTrackingMetadata(params);
 	},
 );
 if (!metadata) return new Response(null, { status: 404 });
@@ -59,20 +45,16 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 	const top10 = await Astro.locals.tracing.enterSpan(
 		"fetch-t10",
 		async (span) => {
-			const key = GBP[params.kind][params.id!];
+			const key = GBP.fromMetadata(params, "leaderboard");
 			span.setAttribute("key", key);
 
 			return redis()
-				.zrange<number[]>(`${key}:leaderboard`, 0, 9, { rev: true })
+				.zrange<number[]>(key, 0, 9, { rev: true })
 				.then((uids) => uids.map((uid) => uid.toString()));
 		},
 	);
 
-	const trackingReference = {
-		trackingFor: params.kind,
-		trackingId: params.id,
-	};
-
+	const trackingReference = getTrackingReference(params);
 	const getSnapshots = (uid: string) =>
 		db().query.trackerSnapshots.findMany({
 			columns: { trackingFor: false, trackingId: false },

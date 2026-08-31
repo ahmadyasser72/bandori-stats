@@ -3,6 +3,7 @@ import z from "zod";
 
 import { stripBB } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
+import { getTrackingReference } from "@bandori-stats/database/tracker";
 import SheetModal from "~/layouts/sheet-modal.astro";
 import { NotifyWhenContainer } from "./_notify";
 
@@ -17,19 +18,8 @@ const params = Astro.locals.parseQuery(
 );
 
 const snapshot = await db().query.trackerSnapshots.findFirst({
-	columns: {
-		uid: true,
-		trackingFor: true,
-		trackingId: true,
-		name: true,
-		point: true,
-		rank: true,
-	},
-	where: {
-		trackingFor: params.kind,
-		trackingId: params.id,
-		uid,
-	},
+	columns: { uid: true, name: true, point: true, rank: true },
+	where: { ...getTrackingReference(params), uid },
 	orderBy: { id: "desc" },
 });
 ---
@@ -43,5 +33,5 @@ const snapshot = await db().query.trackerSnapshots.findFirst({
 		}
 	</h2>
 
-	{snapshot && <NotifyWhenContainer client:load {snapshot} />}
+	{snapshot && <NotifyWhenContainer client:load {snapshot} target={params} />}
 </SheetModal>

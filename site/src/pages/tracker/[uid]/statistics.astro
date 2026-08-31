@@ -5,6 +5,10 @@ import z from "zod";
 import dayjs from "@bandori-stats/bestdori/date";
 import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
 import { db, desc, gt, min, sql, sum } from "@bandori-stats/database";
+import {
+	getTrackingMetadata,
+	getTrackingReference,
+} from "@bandori-stats/database/tracker";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import SheetModal from "~/layouts/sheet-modal.astro";
@@ -46,22 +50,9 @@ const { metadata, profile } = await Astro.locals.tracing.enterSpan(
 		return allKeyed({
 			profile: db().query.trackerSnapshotProfiles.findFirst({
 				columns: { name: true },
-				where: {
-					trackingFor: params.kind,
-					trackingId: params.id,
-					uid,
-				},
+				where: { ...getTrackingReference(params), uid },
 			}),
-			metadata:
-				params.kind === "event"
-					? db().query.gbpEvents.findFirst({
-							columns: { startAt: true, endAt: true },
-							where: { eventId: params.id },
-						})
-					: db().query.gbpMonthlyRankings.findFirst({
-							columns: { startAt: true, endAt: true },
-							where: { monthlyRankingId: params.id },
-						}),
+			metadata: getTrackingMetadata(params),
 		});
 	},
 );

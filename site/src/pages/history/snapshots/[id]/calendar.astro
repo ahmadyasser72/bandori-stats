@@ -21,44 +21,41 @@ const snapshot = await db().query.accountSnapshots.findFirst({
 	where: { id },
 });
 
-const isNotFound = !snapshot;
-if (isNotFound) Astro.response.status = 404;
+if (!snapshot) return new Response(null, { status: 404 });
 
 const monthStart = date.startOf("month").format("YYYY-MM-DD");
 const monthEnd = date.endOf("month").format("YYYY-MM-DD");
-const [oldest, latest, snapshots, firstPreviousSnapshot] = isNotFound
-	? []
-	: await db().batch([
-			db().query.accountSnapshots.findFirst({
-				columns: { snapshotDate: true },
-				orderBy: { snapshotDate: "asc" },
-				where: { accountId: snapshot.accountId },
-			}),
-			db().query.accountSnapshots.findFirst({
-				columns: { snapshotDate: true },
-				orderBy: { snapshotDate: "desc" },
-				where: {
-					accountId: snapshot.accountId,
-					snapshotDate: { lte: snapshot.snapshotDate },
-				},
-			}),
-			db().query.accountSnapshots.findMany({
-				columns: { snapshotDate: true, stats: true },
-				where: {
-					id: { lte: id },
-					accountId: snapshot.accountId,
-					snapshotDate: { gte: monthStart, lte: monthEnd },
-				},
-			}),
-			db().query.accountSnapshots.findFirst({
-				columns: { stats: true },
-				where: {
-					accountId: snapshot.accountId,
-					snapshotDate: { lt: monthStart },
-				},
-				orderBy: { snapshotDate: "desc" },
-			}),
-		]);
+const [oldest, latest, snapshots, firstPreviousSnapshot] = await db().batch([
+	db().query.accountSnapshots.findFirst({
+		columns: { snapshotDate: true },
+		orderBy: { snapshotDate: "asc" },
+		where: { accountId: snapshot.accountId },
+	}),
+	db().query.accountSnapshots.findFirst({
+		columns: { snapshotDate: true },
+		orderBy: { snapshotDate: "desc" },
+		where: {
+			accountId: snapshot.accountId,
+			snapshotDate: { lte: snapshot.snapshotDate },
+		},
+	}),
+	db().query.accountSnapshots.findMany({
+		columns: { snapshotDate: true, stats: true },
+		where: {
+			id: { lte: id },
+			accountId: snapshot.accountId,
+			snapshotDate: { gte: monthStart, lte: monthEnd },
+		},
+	}),
+	db().query.accountSnapshots.findFirst({
+		columns: { stats: true },
+		where: {
+			accountId: snapshot.accountId,
+			snapshotDate: { lt: monthStart },
+		},
+		orderBy: { snapshotDate: "desc" },
+	}),
+]);
 
 const data = {
 	date: date?.format("YYYY-MM-DD"),

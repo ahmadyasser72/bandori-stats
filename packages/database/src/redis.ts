@@ -1,7 +1,8 @@
 import { Redis } from "@upstash/redis";
 import { once } from "es-toolkit";
 
-import type { GbpMetadata, PlayerBandMemberStat } from "./schema";
+import type { GbpMetadata } from "./schema";
+import type { PlayerBandMemberStat } from "./schema/tracker";
 
 export const redis = once(() => {
 	const { UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN } = process.env;
@@ -35,18 +36,15 @@ export const GBP = {
 	areaItems: "gbp:area-items",
 	event: idPrefixed("gbp:event"),
 	monthly: idPrefixed("gbp:monthly"),
+
+	fromMetadata: (
+		{ kind, id }: Pick<GbpMetadata, "kind" | "id">,
+		...suffix: string[]
+	) => {
+		const key = GBP[kind][id];
+		return suffix.length > 0 ? [key, ...suffix].join(":") : key;
+	},
 } as const;
-
-export const getRedisKey = (metadata: GbpMetadata) =>
-	GBP[metadata.kind][
-		metadata.kind === "event" ? metadata.eventId : metadata.monthlyRankingId
-	];
-
-export const getTrackingReference = (metadata: GbpMetadata) => ({
-	trackingFor: metadata.kind,
-	trackingId:
-		metadata.kind === "event" ? metadata.eventId : metadata.monthlyRankingId,
-});
 
 export interface BangDreamCredentials {
 	uid: number;
