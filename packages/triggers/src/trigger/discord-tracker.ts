@@ -6,10 +6,9 @@ import {
 	ContainerBuilder,
 	heading,
 	MessageFlags,
-	SeparatorBuilder,
 	SeparatorSpacingSize,
+	spoiler,
 	subtext,
-	TextDisplayBuilder,
 	ThreadAutoArchiveDuration,
 	time,
 	TimestampStyles,
@@ -177,13 +176,12 @@ const getSnapshots = async (
 const generatePayload = (
 	snapshots: Awaited<ReturnType<typeof getSnapshots>>,
 ) => {
-	const components = snapshots.map(({ current, previous, lastPlayed }, idx) => {
-		const components = [] as (TextDisplayBuilder | SeparatorBuilder)[];
-		if (idx > 0) {
-			components.push(
-				new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small),
+	const container = new ContainerBuilder();
+	for (const [idx, { current, previous, lastPlayed }] of snapshots.entries()) {
+		if (idx > 0)
+			container.addSeparatorComponents((separator) =>
+				separator.setSpacing(SeparatorSpacingSize.Small),
 			);
-		}
 
 		const lines: string[] = [
 			bold(`#${current.rank} ${stripBB(current.name)}`) +
@@ -196,22 +194,26 @@ const generatePayload = (
 			}
 
 			if (current.rank !== previous.rank) {
-				lines.push(`Rank #${previous.rank} -> #${current.rank}`);
+				const isBoat = current.rank > previous.rank;
+				lines.push(
+					`#${previous.rank} -> #${current.rank}${isBoat ? "⬇️" : "⬆️"}`,
+				);
 			}
 		}
 
-		lines.push(
-			subtext(
-				`played ||${time(lastPlayed, TimestampStyles.RelativeTime)} @ ${time(lastPlayed, TimestampStyles.ShortDateShortTime)}||`,
-			),
-		);
+		const timestamp = [
+			time(lastPlayed, TimestampStyles.RelativeTime),
+			time(lastPlayed, TimestampStyles.ShortDateShortTime),
+		].join(" @ ");
+		lines.push(subtext(`last played ${spoiler(timestamp)}`));
 
-		components.push(new TextDisplayBuilder().setContent(lines.join("\n")));
-		return components.map((component) => component.toJSON());
-	});
+		container.addTextDisplayComponents((text) =>
+			text.setContent(lines.join("\n")),
+		);
+	}
 
 	return {
-		components: [new ContainerBuilder({ components: components.flat() })],
+		components: [container],
 		flags: MessageFlags.IsComponentsV2,
 	} satisfies MessageCreateOptions;
 };
