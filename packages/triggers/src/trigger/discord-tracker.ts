@@ -123,6 +123,7 @@ const getSnapshots = async (
 	const top10 = await redis()
 		.zrange<number[]>(key, 0, 9, { rev: true })
 		.then((uids) => uids.map((uid) => uid.toString()));
+	if (top10.length === 0) return [];
 
 	const trackingReference = getTrackingReference(metadata);
 	const getCurrent = (uid: string) =>
