@@ -26,10 +26,13 @@ export const bestdori = limitAsync<BestdoriFetch>(
 				async () => {
 					const response = await fetch(url);
 					const contentType = response.headers.get("content-type") ?? "";
-					if (!response.ok || !contentType.startsWith("application/json"))
-						throw new Error(`Error fetching ${url.href} (${response.status})`);
+					if (
+						response.ok &&
+						(contentType.startsWith("application/json") || !schema)
+					)
+						return response;
 
-					return response;
+					throw new Error(`Error fetching ${url.href} (${response.status})`);
 				},
 				{ delay: (attempt) => attempt * 2500, retries: 4 },
 			);
