@@ -18,6 +18,7 @@ import {
 import { allKeyed } from "es-toolkit";
 import type z from "zod";
 
+import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
 import dayjs from "@bandori-stats/bestdori/date";
 import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
 import type {
@@ -36,7 +37,10 @@ import type { GbpMetadata } from "@bandori-stats/database/schema";
 export const discordTracker = task({
 	id: "discord-tracker",
 	run: async (_, { ctx }) => {
-		const now = dayjs(ctx.attempt.startedAt).startOf("hour").add(1, "hour");
+		const now = dayjs
+			.tz(ctx.attempt.startedAt, GBP_TIMEZONE)
+			.startOf("hour")
+			.add(1, "hour");
 
 		const [event, monthly] = await redis().mget<
 			[
@@ -73,20 +77,45 @@ export const discordTracker = task({
 			const items = await Promise.all(
 				metadatas.map((metadata) =>
 					allKeyed({
-						payload: getSnapshots(now, metadata).then(generatePayloads),
+						hourly: getSnapshots(metadata, {
+							now: now.toDate(),
+							since: now.subtract(1, "hour").toDate(),
+						}).then(generatePayloads),
+						daily:
+							now.get("hour") === 0 &&
+							getSnapshots(metadata, {
+								now: now.toDate(),
+								since: now.subtract(1, "day").toDate(),
+							}).then(generatePayloads),
+
 						thread: getThread(client, metadata),
 					}),
 				),
 			);
 
-			for (const { payload, thread } of items) await thread.send(payload);
+			for (const { hourly, daily, thread } of items) {
+				if (daily) {
+					const message = await thread.send(daily);
+					await message.pin();
+				}
+
+				await thread.send(hourly);
+			}
 		} finally {
 			await client.destroy();
 		}
 	},
 });
 
-const getSnapshots = async (now: dayjs.Dayjs, metadata: GbpMetadata) => {
+interface GetSnapshotsOptions {
+	since: Date;
+	now: Date;
+}
+
+const getSnapshots = async (
+	metadata: GbpMetadata,
+	{ since, now }: GetSnapshotsOptions,
+) => {
 	const key = getRedisKey(metadata);
 	const top10 = await redis()
 		.zrange<number[]>(`${key}:leaderboard`, 0, 9, { rev: true })
@@ -96,28 +125,25 @@ const getSnapshots = async (now: dayjs.Dayjs, metadata: GbpMetadata) => {
 	const getCurrent = (uid: string) =>
 		db().query.trackerSnapshots.findFirst({
 			columns: { id: false },
-			where: { ...trackingReference, uid, timestamp: { lte: now.toDate() } },
+			where: { ...trackingReference, uid, timestamp: { lte: now } },
 			orderBy: { id: "desc" },
 		});
-	const anHourAgo = now.subtract(1, "hour").toDate();
-	const getAnHourAgo = (uid: string) =>
+	const getPrevious = (uid: string) =>
 		db().query.trackerSnapshots.findFirst({
 			columns: { name: true, point: true, rank: true, timestamp: true },
-			where: { ...trackingReference, uid, timestamp: { lte: anHourAgo } },
+			where: { ...trackingReference, uid, timestamp: { lte: since } },
 			orderBy: { id: "desc" },
 		});
 
 	const snapshots = await db().batch([
 		getCurrent(top10[0]),
-		getAnHourAgo(top10[0]),
-		...top10.slice(1).flatMap((uid) => [getCurrent(uid), getAnHourAgo(uid)]),
+		getPrevious(top10[0]),
+		...top10.slice(1).flatMap((uid) => [getCurrent(uid), getPrevious(uid)]),
 	]);
 
 	return top10.map((_, idx) => ({
 		current: (snapshots[2 * idx] as Awaited<ReturnType<typeof getCurrent>>)!,
-		previous: snapshots[2 * idx + 1] as Awaited<
-			ReturnType<typeof getAnHourAgo>
-		>,
+		previous: snapshots[2 * idx + 1] as Awaited<ReturnType<typeof getPrevious>>,
 	}));
 };
 
