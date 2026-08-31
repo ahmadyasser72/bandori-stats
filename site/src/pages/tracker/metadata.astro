@@ -160,7 +160,7 @@ if (Astro.cache.enabled)
 					class:
 						"tooltip tooltip-start tooltip-primary underline decoration-dotted",
 					"data-tip": formatDuration({
-						[isNotStarted ? "to" : "from"]: data.startAt,
+						[isNotStarted ? "from" : "to"]: data.startAt,
 					}),
 				}}
 				>{
