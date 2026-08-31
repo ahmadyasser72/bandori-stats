@@ -70,26 +70,28 @@ export const PointsChart = ({
 							},
 						),
 					],
-					x: {
-						scale: scaleUtc().domain([startAt, endAt]),
-						axis: {
-							ticks: {
-								count: Math.max(
-									2,
-									Math.ceil(
-										(endAt.valueOf() - startAt.valueOf()) /
-											(60 * 60 * 1000 * 6),
+					scales: {
+						x: {
+							scale: scaleUtc().domain([startAt, endAt]),
+							axis: {
+								ticks: {
+									count: Math.max(
+										2,
+										Math.ceil(
+											(endAt.valueOf() - startAt.valueOf()) /
+												(60 * 60 * 1000 * 6),
+										),
 									),
-								),
-								format: (date) => formatTimestamp(date),
+									format: (date) => formatTimestamp(date),
+								},
+								label: "Timestamp",
 							},
-							label: "Timestamp",
 						},
-					},
-					y: {
-						scale: scaleLinear,
-						grid: true,
-						axis: { label: "Points" },
+						y: {
+							scale: scaleLinear,
+							grid: true,
+							axis: { label: "Points" },
+						},
 					},
 					theme: CHART_THEME,
 					margin: { right: 120 },

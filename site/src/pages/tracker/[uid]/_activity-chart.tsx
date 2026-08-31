@@ -60,13 +60,15 @@ export const ActivityChart = ({ data }: ActivityChartProps) => {
 							radius: 2,
 						}),
 					],
-					x: {
-						scale: scaleBand<number>().domain(HOURS).paddingInner(0.08),
-						axis: { line: false, ticks: false },
-					},
-					y: {
-						scale: scaleBand<string>().domain(days).paddingInner(0.08),
-						axis: { line: false, ticks: { size: 0 } },
+					scales: {
+						x: {
+							scale: scaleBand<number>().domain(HOURS).paddingInner(0.08),
+							axis: { line: false, ticks: false },
+						},
+						y: {
+							scale: scaleBand<string>().domain(days).paddingInner(0.08),
+							axis: { line: false, ticks: { size: 0 } },
+						},
 					},
 					color: {
 						scale: scaleLinear<string>()
