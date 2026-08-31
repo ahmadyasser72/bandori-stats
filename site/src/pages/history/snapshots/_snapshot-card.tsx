@@ -26,8 +26,6 @@ const STAT_NAMES = [
 	"clearCount",
 ] as const;
 
-type RenderContext = "site" | "takumi";
-
 export interface SnapshotCardProps extends Pick<
 	Snapshot,
 	"snapshotDate" | "stats"
@@ -35,7 +33,6 @@ export interface SnapshotCardProps extends Pick<
 	account: Pick<Account, "id" | "nickname" | "username" | "profileArt">;
 	previous?: Pick<Snapshot, "snapshotDate" | "stats">;
 	ratio: z.infer<typeof RatioSchema>;
-	context?: RenderContext;
 	children?: ComponentChildren;
 }
 
@@ -45,7 +42,6 @@ export const SnapshotCard = ({
 	stats,
 	previous,
 	ratio,
-	context = "site",
 	children,
 	...props
 }: SnapshotCardProps) => (
@@ -55,21 +51,13 @@ export const SnapshotCard = ({
 				{account.profileArt && (
 					<div class="avatar">
 						<div class="size-12 rounded-box">
-							<img
-								src={context === "site" ? getProfileIcon(account) : "icon"}
-								loading="lazy"
-							/>
+							<img src={getProfileIcon(account)} loading="lazy" />
 						</div>
 					</div>
 				)}
 
 				{accountHasNickname(account) ? (
-					<div
-						class={clsx(
-							"flex flex-col self-center",
-							context === "takumi" && "gap-0.5",
-						)}
-					>
+					<div class="flex flex-col self-center">
 						<h2 class="card-title line-clamp-1">{account.nickname}</h2>
 						<p class="text-xs text-base-content/67">@{account.username}</p>
 					</div>
@@ -79,14 +67,11 @@ export const SnapshotCard = ({
 
 				<div
 					class={clsx([
-						"ml-auto self-start text-end text-base-content/67",
+						"tooltip tooltip-bottom tooltip-end ml-auto self-start text-end text-base-content/67 decoration-dotted decoration-2",
 						previous && "underline",
-						context === "site"
-							? "tooltip tooltip-bottom tooltip-end decoration-dotted decoration-2"
-							: previous && "border-b",
 					])}
 				>
-					{context === "site" && previous && (
+					{previous && (
 						<div class="tooltip-content whitespace-pre">
 							{[
 								"previous update:",
@@ -121,7 +106,6 @@ export const SnapshotCard = ({
 						<StatCell
 							name={name}
 							value={stats[name]}
-							context={context}
 							previousRatio={previousRatio}
 							previousValue={previous?.stats[name]}
 							ratio={ratioValue}
@@ -141,7 +125,6 @@ interface StatCellProps {
 	previousValue: StatValue;
 	ratio?: number;
 	previousRatio?: number;
-	context: RenderContext;
 }
 
 const StatCell = ({
@@ -150,7 +133,6 @@ const StatCell = ({
 	previousValue,
 	ratio,
 	previousRatio,
-	context,
 }: StatCellProps) => {
 	const delta = compareValue(value, previousValue);
 	const ratioDelta = ratio ? compareValue(ratio, previousRatio) : undefined;
@@ -175,7 +157,7 @@ const StatCell = ({
 					<span
 						class={clsx([
 							"text-sm",
-							context === "site" && ratio && "tooltip",
+							ratio && "tooltip",
 							STAT_TOOLTIPS[name],
 							name === "allPerfectCount" ? "tooltip-start" : "tooltip-end",
 						])}
@@ -193,7 +175,6 @@ const StatCell = ({
 						<StatCellDeltaBadge
 							class="badge-xs"
 							name={name}
-							context={context}
 							delta={delta}
 							previousRatio={previousRatio}
 							previousValue={previousValue}
@@ -206,7 +187,6 @@ const StatCell = ({
 			{wideColumn && showDelta && (
 				<StatCellDeltaBadge
 					name={name}
-					context={context}
 					delta={delta}
 					previousRatio={previousRatio}
 					previousValue={previousValue}
@@ -223,7 +203,6 @@ interface StatCellDeltaBadgeProps {
 	delta: number;
 	previousRatio?: number;
 	ratioDelta?: number;
-	context: RenderContext;
 	class?: string;
 }
 
@@ -233,15 +212,13 @@ const StatCellDeltaBadge = ({
 	previousValue,
 	ratioDelta,
 	previousRatio,
-	context,
 	class: className,
 }: StatCellDeltaBadgeProps) => {
 	const displayDelta = ratioDelta || delta;
 	return (
 		<span
 			class={clsx([
-				"tooltip-bottom badge badge-soft font-bold",
-				context === "site" && "tooltip",
+				"tooltip tooltip-bottom badge badge-soft font-bold",
 				displayDelta > 0 ? STAT_BADGES[name] : "badge-error",
 				displayDelta > 0 ? STAT_TOOLTIPS[name] : "tooltip-error",
 				name === "allPerfectCount" ? "tooltip-start" : "tooltip-end",

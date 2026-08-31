@@ -74,16 +74,12 @@ export const onRequest = defineMiddleware(
 		if (import.meta.env.DEV || !cache.enabled) return next();
 
 		const isHtmxPartial = request.headers.get("hx-request-type") === "partial";
-		const isTakumiRender = url.pathname.endsWith(".png");
-		if (isHtmxPartial || isTakumiRender) {
-			const tags = [] as string[];
-			if (isHtmxPartial) tags.push("htmx-partial");
-			if (isTakumiRender) tags.push("takumi-render");
-			cache.set({ maxAge: 60 * 5, swr: 60 * 60, tags });
+		if (isHtmxPartial) {
+			cache.set({ maxAge: 60 * 5, swr: 60 * 60, tags: ["htmx-partial"] });
 		}
 
 		const response = await next();
-		if (!isTakumiRender) response.headers.append("vary", "hx-request-type");
+		response.headers.append("vary", "hx-request-type");
 		return response;
 	},
 );
