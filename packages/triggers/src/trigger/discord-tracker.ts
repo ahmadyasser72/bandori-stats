@@ -85,27 +85,29 @@ export const discordTracker = schemaTask({
 				),
 			);
 
-			for (const { hourly, daily, thread, metadata } of items) {
-				const options = { metadata, now };
-				if (hourly.length > 0) {
-					const title = "Hourly Tracker";
-					await thread.send({
-						embeds: [
-							generateEmbed(hourly, { title, since: anHourAgo, ...options }),
-						],
-					});
-				}
+			await Promise.all(
+				items.map(async ({ hourly, daily, thread, metadata }) => {
+					const options = { metadata, now };
+					if (hourly.length > 0) {
+						const title = "Hourly Tracker";
+						await thread.send({
+							embeds: [
+								generateEmbed(hourly, { title, since: anHourAgo, ...options }),
+							],
+						});
+					}
 
-				if (daily.length > 0) {
-					const title = "Daily Tracker";
-					const message = await thread.send({
-						embeds: [
-							generateEmbed(daily, { title, since: yesterday, ...options }),
-						],
-					});
-					await message.pin();
-				}
-			}
+					if (daily.length > 0) {
+						const title = "Daily Tracker";
+						const message = await thread.send({
+							embeds: [
+								generateEmbed(daily, { title, since: yesterday, ...options }),
+							],
+						});
+						await message.pin();
+					}
+				}),
+			);
 		} finally {
 			await client.destroy();
 		}
