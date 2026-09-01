@@ -9,7 +9,6 @@ import {
 	SeparatorSpacingSize,
 	spoiler,
 	subtext,
-	TextDisplayBuilder,
 	ThreadAutoArchiveDuration,
 	time,
 	TimestampStyles,
@@ -77,42 +76,35 @@ export const discordTracker = schemaTask({
 
 			for (const { hourly, daily, thread } of items) {
 				if (daily.length > 0) {
-					const { components, ...payload } = generatePayload(daily);
-					const timestamp = [yesterday, now]
-						.map((date) =>
-							time(date.toDate(), TimestampStyles.ShortDateShortTime),
-						)
-						.join(" — ");
+					const timestamp = subtext(
+						[yesterday, now]
+							.map((date) =>
+								time(date.toDate(), TimestampStyles.ShortDateShortTime),
+							)
+							.join(" — "),
+					);
 					await thread
-						.send({
-							components: [
-								new TextDisplayBuilder().setContent(
-									heading(`Daily tracker -> ${timestamp}`),
-								),
-								...components,
-							],
-							...payload,
-						})
+						.send({ content: [heading("Daily tracker"), timestamp].join("\n") })
 						.then((message) => message.pin());
+
+					const payload = generatePayload(daily);
+					await thread.send(payload);
 				}
 
 				if (hourly.length > 0) {
-					const { components, ...payload } = generatePayload(hourly);
-					const timestamp = [anHourAgo, now]
-						.map((date) =>
-							time(date.toDate(), TimestampStyles.ShortDateShortTime),
-						)
-						.join(" — ");
-
+					const timestamp = subtext(
+						[anHourAgo, now]
+							.map((date) =>
+								time(date.toDate(), TimestampStyles.ShortDateShortTime),
+							)
+							.join(" — "),
+					);
 					await thread.send({
-						components: [
-							new TextDisplayBuilder().setContent(
-								heading(`Hourly tracker -> ${timestamp}`),
-							),
-							...components,
-						],
-						...payload,
+						content: [heading("Hourly tracker"), timestamp].join("\n"),
 					});
+
+					const payload = generatePayload(hourly);
+					await thread.send(payload);
 				}
 			}
 		} finally {
@@ -208,7 +200,7 @@ const generatePayload = (
 			if (current.rank !== previous.rank) {
 				const isBoat = current.rank > previous.rank;
 				lines.push(
-					`#${previous.rank} -> #${current.rank}${isBoat ? "⬇️" : "⬆️"}`,
+					`#${previous.rank} -> #${current.rank} ${isBoat ? "⬇️" : "⬆️"}`,
 				);
 			}
 		}
