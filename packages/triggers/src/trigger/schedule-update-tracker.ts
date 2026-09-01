@@ -40,6 +40,10 @@ export const scheduleUpdateTracker = schedules.task({
 				monthlyId &&
 				db().query.gbpMonthlyRankings.findFirst({ where: { id: monthlyId } }),
 		});
+		await tags.add([
+			`event_${event ? event.assetBundleName : (eventId ?? "n/a")}`,
+			`monthly_${monthly ? monthly.assetBundleName : (monthlyId ?? "n/a")}`,
+		]);
 
 		const now = dayjs(context.timestamp).startOf("minute").add(1, "minute");
 		await wait.until({ date: now.toDate() });
