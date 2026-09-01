@@ -12,57 +12,34 @@ import {
 	redis,
 	type BangDreamCredentials,
 } from "@bandori-stats/database/redis";
+import { UserChallengeEventRankingResponseSchema } from "./gen/event-challenge_pb";
+import { UserTeamLiveFestivalEventRankingResponseSchema } from "./gen/event-festival_pb";
+import { UserLiveTryEventRankingResponseSchema } from "./gen/event-live_try_pb";
+import { UserMedleyEventRankingResponseSchema } from "./gen/event-medley_pb";
+import { UserMissionLiveEventRankingResponseSchema } from "./gen/event-mission_live_pb";
+import { UserStoryEventRankingResponseSchema } from "./gen/event-story_pb";
+import { UserVersusEventRankingResponseSchema } from "./gen/event-versus_pb";
+import { UserMonthlyRankingRankingResponseSchema } from "./gen/monthly-ranking_pb";
+import { UserProfileSchema } from "./gen/profile_pb";
 
 const USER_AGENT =
 	"UnityPlayer/2022.3.62f2 (UnityWebRequest/1.0, libcurl/8.10.1-DEV)";
 const UNITY_VERSION = "2022.3.62f2";
 
 type MetadataType = "monthly" | z.infer<typeof GameEventType>;
-const METADATA_PROTOBUF = {
-	monthly: () =>
-		import("./gen/monthly-ranking_pb").then(
-			(it) => it.UserMonthlyRankingRankingResponseSchema,
-		),
-	story: () =>
-		import("./gen/event-story_pb").then(
-			(it) => it.UserStoryEventRankingResponseSchema,
-		),
-	versus: () =>
-		import("./gen/event-versus_pb").then(
-			(it) => it.UserVersusEventRankingResponseSchema,
-		),
-	mission_live: () =>
-		import("./gen/event-mission_live_pb").then(
-			(it) => it.UserMissionLiveEventRankingResponseSchema,
-		),
-	challenge: () =>
-		import("./gen/event-challenge_pb").then(
-			(it) => it.UserChallengeEventRankingResponseSchema,
-		),
-	live_try: () =>
-		import("./gen/event-live_try_pb").then(
-			(it) => it.UserLiveTryEventRankingResponseSchema,
-		),
-	medley: () =>
-		import("./gen/event-medley_pb").then(
-			(it) => it.UserMedleyEventRankingResponseSchema,
-		),
-	festival: () =>
-		import("./gen/event-festival_pb").then(
-			(it) => it.UserTeamLiveFestivalEventRankingResponseSchema,
-		),
-} satisfies Record<MetadataType, () => Promise<GenMessage<Message>>>;
+const PROTOBUF = {
+	monthly: UserMonthlyRankingRankingResponseSchema,
+	story: UserStoryEventRankingResponseSchema,
+	versus: UserVersusEventRankingResponseSchema,
+	mission_live: UserMissionLiveEventRankingResponseSchema,
+	challenge: UserChallengeEventRankingResponseSchema,
+	live_try: UserLiveTryEventRankingResponseSchema,
+	medley: UserMedleyEventRankingResponseSchema,
+	festival: UserTeamLiveFestivalEventRankingResponseSchema,
+} satisfies Record<MetadataType, GenMessage<Message>>;
 
-interface MetadataProtobufOutput {
-	monthly: import("./gen/monthly-ranking_pb").UserMonthlyRankingRankingResponse;
-	story: import("./gen/event-story_pb").UserStoryEventRankingResponse;
-	versus: import("./gen/event-versus_pb").UserVersusEventRankingResponse;
-	mission_live: import("./gen/event-mission_live_pb").UserMissionLiveEventRankingResponse;
-	challenge: import("./gen/event-challenge_pb").UserChallengeEventRankingResponse;
-	live_try: import("./gen/event-live_try_pb").UserLiveTryEventRankingResponse;
-	medley: import("./gen/event-medley_pb").UserMedleyEventRankingResponse;
-	festival: import("./gen/event-festival_pb").UserTeamLiveFestivalEventRankingResponse;
-}
+type ProtobufOutput<T extends MetadataType> =
+	(typeof PROTOBUF)[T] extends GenMessage<infer O> ? O : never;
 
 export const bangDream = limitAsync(
 	async <T extends MetadataType>(version: string, type: T, id: number) => {
@@ -116,15 +93,15 @@ export const bangDream = limitAsync(
 			);
 
 		const bytes = await response.arrayBuffer().then(decrypt);
-		const schema = await METADATA_PROTOBUF[type]();
 
-		const output = fromBinary(schema, bytes) as MetadataProtobufOutput[T];
+		const schema = PROTOBUF[type];
+		const output = fromBinary(schema, bytes);
 		metadata.root.set(`${type}:${id}`, {
 			path,
 			output: toJson(schema, output),
 		});
 
-		return output;
+		return output as unknown as ProtobufOutput<typeof type>;
 	},
 	1,
 );
@@ -175,11 +152,10 @@ export const bangDreamProfile = limitAsync(
 		await redis().json.set(GBP.credentials, "$.token", `"${newToken}"`);
 
 		const bytes = await response.arrayBuffer().then(decrypt);
-		const proto = await import("./gen/profile_pb");
 
-		const output = fromBinary(proto.UserProfileSchema, bytes);
+		const output = fromBinary(UserProfileSchema, bytes);
 		metadata.root.set(`profile:${uid}`, {
-			output: toJson(proto.UserProfileSchema, output),
+			output: toJson(UserProfileSchema, output),
 		});
 
 		return output;
