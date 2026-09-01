@@ -11,16 +11,30 @@ import {
 	TimestampStyles,
 	type PublicThreadChannel,
 } from "discord.js";
-import { allKeyed } from "es-toolkit";
+import { allKeyed, pick } from "es-toolkit";
 import z from "zod";
 
 import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
 import dayjs from "@bandori-stats/bestdori/date";
 import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
-import { db } from "@bandori-stats/database";
+import {
+	and,
+	asc,
+	db,
+	desc,
+	eq,
+	getColumns,
+	gt,
+	gte,
+	lte,
+	sql,
+	sum,
+} from "@bandori-stats/database";
 import { GBP, redis } from "@bandori-stats/database/redis";
-import type { GbpMetadata } from "@bandori-stats/database/schema";
-import { getTrackingReference } from "@bandori-stats/database/tracker";
+import {
+	trackerSnapshots,
+	type GbpMetadata,
+} from "@bandori-stats/database/schema";
 
 export const discordTracker = schemaTask({
 	id: "discord-tracker",
@@ -117,75 +131,123 @@ const getSnapshots = async (
 		.then((uids) => uids.map((uid) => uid.toString()));
 	if (top10.length === 0) return [];
 
-	const trackingReference = getTrackingReference(metadata);
-	const getCurrent = (uid: string) =>
-		db().query.trackerSnapshots.findFirst({
-			columns: { name: true, point: true, rank: true, timestamp: true },
-			where: { ...trackingReference, uid, timestamp: { lte: now.toDate() } },
-			orderBy: { id: "desc" },
-		});
-	const getPrevious = (uid: string) =>
-		db().query.trackerSnapshots.findFirst({
-			columns: { name: true, point: true, rank: true, timestamp: true },
-			where: { ...trackingReference, uid, timestamp: { lte: since.toDate() } },
-			orderBy: { id: "desc" },
-		});
+	const deltaSql = sql<number>`${trackerSnapshots.point} - LAG(${trackerSnapshots.point}, 1, ${trackerSnapshots.point}) OVER (ORDER BY ${asc(trackerSnapshots.id)})`;
+	const gapMinutesSql = sql<number>`(${trackerSnapshots.timestamp} - LAG(${trackerSnapshots.timestamp}) OVER (ORDER BY ${asc(trackerSnapshots.id)})) / 60000.0`;
+	const getSnapshot = (uid: string) => {
+		const deltaCte = db()
+			.$with("delta_cte")
+			.as(
+				db()
+					.select({
+						delta: deltaSql.as("delta"),
+						gapMinutes: gapMinutesSql.as("gap_minutes"),
+						...pick(getColumns(trackerSnapshots), [
+							"id",
+							"name",
+							"point",
+							"timestamp",
+							"rank",
+						]),
+					})
+					.from(trackerSnapshots)
+					.where(
+						and(
+							eq(trackerSnapshots.trackingFor, metadata.kind),
+							eq(trackerSnapshots.trackingId, metadata.id),
+							eq(trackerSnapshots.uid, uid),
+						),
+					),
+			);
 
-	const snapshots = await db().batch([
-		getCurrent(top10[0]),
-		getPrevious(top10[0]),
-		...top10.slice(1).flatMap((uid) => [getCurrent(uid), getPrevious(uid)]),
+		return [
+			db()
+				.with(deltaCte)
+				.select({
+					points: sum(
+						sql`CASE WHEN ${deltaCte.gapMinutes} <= 60 THEN ${deltaCte.delta} ELSE NULL END`,
+					)
+						.mapWith(Number)
+						.as("points"),
+				})
+				.from(deltaCte)
+				.where(
+					and(
+						gte(deltaCte.timestamp, since.toDate()),
+						lte(deltaCte.timestamp, now.toDate()),
+					),
+				),
+			db()
+				.with(deltaCte)
+				.select({
+					name: deltaCte.name,
+					rank: deltaCte.rank,
+					point: deltaCte.point,
+				})
+				.from(deltaCte)
+				.where(lte(deltaCte.timestamp, now.toDate()))
+				.orderBy(desc(deltaCte.id))
+				.limit(1),
+			db()
+				.with(deltaCte)
+				.select({ rank: deltaCte.rank })
+				.from(deltaCte)
+				.where(lte(deltaCte.timestamp, since.toDate()))
+				.orderBy(desc(deltaCte.id))
+				.limit(1),
+			db()
+				.with(deltaCte)
+				.select({ lastPlayed: deltaCte.timestamp })
+				.from(deltaCte)
+				.where(
+					and(lte(deltaCte.timestamp, now.toDate()), gt(deltaCte.delta, 0)),
+				)
+				.orderBy(desc(deltaCte.id))
+				.limit(1),
+		] as const;
+	};
+
+	const first = getSnapshot(top10[0]);
+	const results = await db().batch([
+		first[0],
+		first[1],
+		first[2],
+		first[3],
+		...top10.slice(1).flatMap((uid) => getSnapshot(uid)),
 	]);
 
-	return Promise.all(
-		top10.map(async (uid, idx) => {
-			const current = (snapshots[2 * idx] as Awaited<
-				ReturnType<typeof getCurrent>
-			>)!;
-			const previous = snapshots[2 * idx + 1] as Awaited<
-				ReturnType<typeof getPrevious>
-			>;
+	return top10.map((_, idx) => {
+		type Output<N extends 0 | 1 | 2 | 3> = Awaited<(typeof first)[N]>;
+		const [{ points }] = results[idx * 4] as Output<0>;
+		const [current] = results[idx * 4 + 1] as Output<1>;
+		const [previous] = results[idx * 4 + 2] as Output<2>;
+		const [{ lastPlayed }] = results[idx * 4 + 3] as Output<3>;
 
-			let lastPlayed = current.timestamp;
-			if (
-				previous &&
-				current.point === previous.point &&
-				current.timestamp.getTime() !== previous.timestamp.getTime()
-			) {
-				const snapshot = await db().query.trackerSnapshots.findFirst({
-					columns: { timestamp: true },
-					where: { ...trackingReference, uid, point: current.point },
-					orderBy: { id: "asc" },
-				});
-
-				if (snapshot) lastPlayed = snapshot.timestamp;
-			}
-
-			return { current, previous, lastPlayed };
-		}),
-	);
+		return {
+			current,
+			previous,
+			lastPlayed,
+			delta: { points: points ?? 0, rank: current.rank - previous.rank },
+		};
+	});
 };
 
 const generateEmbed = (snapshots: Awaited<ReturnType<typeof getSnapshots>>) => {
 	const embed = new EmbedBuilder().setColor(0x55ddee);
-	for (const { current, previous, lastPlayed } of snapshots) {
+	for (const { current, previous, lastPlayed, delta } of snapshots) {
 		embed.addFields({
 			name: bold(`#${current.rank} ${stripBB(current.name)}`),
 			value: (() => {
 				const lines = [`${formatNumber(current.point)} Pts`];
-				if (previous) {
-					const pointsDelta = current.point - previous.point;
-					if (pointsDelta > 0) {
-						lines[0] += ` (${formatNumber(pointsDelta, { positiveSign: true })} Pts)`;
-					}
+				if (delta.points > 0) {
+					lines[0] += ` (${formatNumber(delta.points, { positiveSign: true })} Pts)`;
+				}
 
-					if (current.rank !== previous.rank) {
-						const difference = Math.abs(current.rank - previous.rank);
-						const arrow = current.rank > previous.rank ? "⬇️" : "⬆️";
-						lines.push(
-							`#${previous.rank} -> #${current.rank} ${arrow.repeat(difference)}`,
-						);
-					}
+				if (delta.rank !== 0) {
+					const difference = Math.abs(delta.rank);
+					const arrow = delta.rank < 0 ? "⬇️" : "⬆️";
+					lines.push(
+						`#${previous.rank} -> #${current.rank} ${arrow.repeat(difference)}`,
+					);
 				}
 
 				const timestamp = [
