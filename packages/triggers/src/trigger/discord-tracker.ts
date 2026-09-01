@@ -9,6 +9,7 @@ import {
 	SeparatorSpacingSize,
 	spoiler,
 	subtext,
+	TextDisplayBuilder,
 	ThreadAutoArchiveDuration,
 	time,
 	TimestampStyles,
@@ -76,7 +77,7 @@ export const discordTracker = schemaTask({
 
 			for (const { hourly, daily, thread } of items) {
 				if (daily.length > 0) {
-					const payload = generatePayload(daily);
+					const { components, ...payload } = generatePayload(daily);
 					const timestamp = [yesterday, now]
 						.map((date) =>
 							time(date.toDate(), TimestampStyles.ShortDateShortTime),
@@ -84,22 +85,33 @@ export const discordTracker = schemaTask({
 						.join(" — ");
 					await thread
 						.send({
+							components: [
+								new TextDisplayBuilder().setContent(
+									heading(`Daily tracker -> ${timestamp}`),
+								),
+								...components,
+							],
 							...payload,
-							content: heading(`Daily tracker -> ${timestamp}`),
 						})
 						.then((message) => message.pin());
 				}
 
 				if (hourly.length > 0) {
-					const payload = generatePayload(hourly);
+					const { components, ...payload } = generatePayload(hourly);
 					const timestamp = [anHourAgo, now]
 						.map((date) =>
 							time(date.toDate(), TimestampStyles.ShortDateShortTime),
 						)
 						.join(" — ");
+
 					await thread.send({
+						components: [
+							new TextDisplayBuilder().setContent(
+								heading(`Hourly tracker -> ${timestamp}`),
+							),
+							...components,
+						],
 						...payload,
-						content: heading(`Hourly tracker -> ${timestamp}`),
 					});
 				}
 			}
