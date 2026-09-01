@@ -236,30 +236,24 @@ const getSnapshots = async (
 const generateEmbed = (snapshots: Awaited<ReturnType<typeof getSnapshots>>) => {
 	const embed = new EmbedBuilder().setColor(0x55ddee);
 	for (const { current, previous, lastPlayed, delta } of snapshots) {
+		let points = `${formatNumber(current.point)} Pts`;
+		if (delta.points > 0)
+			points += ` (${formatNumber(delta.points, { positiveSign: true })} Pts)`;
+
 		embed.addFields({
-			name: [
-				bold(`#${current.rank} ${stripBB(current.name)}`),
-				`${formatNumber(current.point)} Pts`,
-			].join(" — "),
+			name: [bold(`#${current.rank} ${stripBB(current.name)}`), points].join(
+				" — ",
+			),
 			value: (() => {
 				const lines = [] as string[];
 
-				const changes = [] as string[];
-				{
-					if (delta.points > 0) {
-						changes.push(
-							`${formatNumber(delta.points, { positiveSign: true })} Pts`,
-						);
-					}
-					if (delta.rank !== 0) {
-						const difference = Math.abs(delta.rank);
-						const arrow = delta.rank < 0 ? "⬇️" : "⬆️";
-						changes.push(
-							`#${previous.rank} → #${current.rank} ${arrow.repeat(difference)}`,
-						);
-					}
+				if (delta.rank !== 0) {
+					const difference = Math.abs(delta.rank);
+					const arrow = delta.rank < 0 ? "⬇️" : "⬆️";
+					lines.push(
+						`#${previous.rank} → #${current.rank} ${arrow.repeat(difference)}`,
+					);
 				}
-				if (changes.length > 0) lines.push(changes.join(" ~ "));
 
 				const timestamp = [
 					time(lastPlayed, TimestampStyles.RelativeTime),
