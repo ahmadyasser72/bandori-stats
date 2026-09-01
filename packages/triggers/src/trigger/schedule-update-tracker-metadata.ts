@@ -29,34 +29,32 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 				GBP.areaItems,
 			);
 
-		const pipe = redis().pipeline();
-		pipe.get(GBP.version);
-
 		{
 			const versions = await bestdori({
 				path: "api/Versions_en.json",
 				schema: Versions,
 			});
 			if (currentVersion !== versions.app) {
-				pipe.set(GBP.version, versions.app);
+				await redis().set(GBP.version, versions.app);
 				await tags.add(`version_${versions.app}`);
 			}
 		}
 
-		if (!currentEvent || !currentMonthly || !areaItems) {
-			const data = await bestdori({
-				path: "api/MasterDB_en.json",
-				schema: MasterDB,
-			});
+		if (currentEvent && currentMonthly && areaItems) return;
 
-			const events = Object.values(data.masterEventMap.entries);
-			if (!currentEvent && events.length > 0) {
-				for (const event of events) {
-					if (dayjs().isAfter(event.endAt)) continue;
+		const data = await bestdori({
+			path: "api/MasterDB_en.json",
+			schema: MasterDB,
+		});
 
-					pipe.set(GBP.event.current, event.eventId, {
-						pxat: event.endAt.getTime(),
-					});
+		const results = await Promise.allSettled([
+			!currentEvent &&
+				(async () => {
+					const events = Object.values(data.masterEventMap.entries);
+					if (events.length === 0) return;
+
+					const event = events.find(({ startAt }) => dayjs().isBefore(startAt));
+					if (!event) return;
 
 					const { bannerAssetBundleName, ...metadata } = await bestdori({
 						path: `/api/events/${event.eventId}.json`,
@@ -72,61 +70,57 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 							bannerAssetBundleName,
 							metadata,
 						});
-
+					await redis().set(GBP.event.current, event.eventId, {
+						pxat: event.endAt.getTime(),
+					});
 					await tags.add(`event_${event.assetBundleName}`);
 
-					await (async () => {
-						const { DISCORD_BOT_TOKEN, DISCORD_GUILD_ID } = process.env;
-						if (!DISCORD_BOT_TOKEN || !DISCORD_GUILD_ID) return;
+					const { DISCORD_BOT_TOKEN, DISCORD_GUILD_ID } = process.env;
+					if (!DISCORD_BOT_TOKEN || !DISCORD_GUILD_ID) return;
 
-						const client = new Client({ intents: [] });
-						try {
-							await client.login(DISCORD_BOT_TOKEN);
+					const client = new Client({ intents: [] });
+					try {
+						await client.login(DISCORD_BOT_TOKEN);
 
-							const attribute =
-								metadata.attributes.at(0)?.attribute ?? "unknown";
-							const characters = metadata.characters.map(
-								({ characterId }) =>
-									data.masterCharacterInfoMap.entries[characterId].firstName,
-							);
-							const banner = await bestdori({
-								path: `/assets/en/homebanner_rip/${bannerAssetBundleName}.png`,
-								schema: false,
-							}).then((response) => response.arrayBuffer());
+						const attribute = metadata.attributes.at(0)?.attribute ?? "unknown";
+						const characters = metadata.characters.map(
+							({ characterId }) =>
+								data.masterCharacterInfoMap.entries[characterId].firstName,
+						);
+						const banner = await bestdori({
+							path: `/assets/en/homebanner_rip/${bannerAssetBundleName}.png`,
+							schema: false,
+						}).then((response) => response.arrayBuffer());
 
-							const guild = await client.guilds.fetch(DISCORD_GUILD_ID);
-							await guild.scheduledEvents.create({
-								name: `#${event.eventId} ${event.eventName}`,
-								entityType: GuildScheduledEventEntityType.External,
-								privacyLevel: GuildScheduledEventPrivacyLevel.GuildOnly,
-								scheduledStartTime: event.startAt,
-								scheduledEndTime: event.endAt,
+						const guild = await client.guilds.fetch(DISCORD_GUILD_ID);
+						await guild.scheduledEvents.create({
+							name: `#${event.eventId} ${event.eventName}`,
+							entityType: GuildScheduledEventEntityType.External,
+							privacyLevel: GuildScheduledEventPrivacyLevel.GuildOnly,
+							scheduledStartTime: event.startAt,
+							scheduledEndTime: event.endAt,
 
-								image: Buffer.from(banner),
-								entityMetadata: { location: "BanG Dream" },
-								description: [
-									`Type: ${formatEventType(event.eventType)}`,
-									`Attribute: ${capitalize(attribute)}`,
-									`Characters: ${characters.join(", ")}`,
-									"",
-									`https://bestdori.com/info/events/${event.eventId}`,
-								].join("\n"),
-							});
-						} finally {
-							await client.destroy();
-						}
-					})();
-				}
-			}
+							image: Buffer.from(banner),
+							entityMetadata: { location: "BanG Dream" },
+							description: [
+								`Type: ${formatEventType(event.eventType)}`,
+								`Attribute: ${capitalize(attribute)}`,
+								`Characters: ${characters.join(", ")}`,
+								"",
+								`https://bestdori.com/info/events/${event.eventId}`,
+							].join("\n"),
+						});
+					} finally {
+						await client.destroy();
+					}
+				})(),
+			!currentMonthly &&
+				(async () => {
+					const monthly = data.masterMonthlyRankingList.entries.find(
+						({ startAt, endAt }) => dayjs().isBetween(startAt, endAt),
+					);
+					if (!monthly) return;
 
-			if (!currentMonthly) {
-				const monthly = data.masterMonthlyRankingList.entries.find(
-					({ startAt, endAt }) => dayjs().isBetween(startAt, endAt),
-				);
-				if (monthly) {
-					pipe.set(GBP.event.current, monthly.monthlyRankingId, {
-						pxat: monthly.endAt.getTime(),
-					});
 					await db()
 						.insert(gbpMonthlyRankings)
 						.values({
@@ -134,15 +128,16 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 							name: monthly.monthlyRankingName,
 							...omit(monthly, ["monthlyRankingId", "monthlyRankingName"]),
 						});
-
+					await redis().set(GBP.event.current, monthly.monthlyRankingId, {
+						pxat: monthly.endAt.getTime(),
+					});
 					await tags.add(`monthly_${monthly.assetBundleName}`);
-				}
-			}
+				})(),
+			!areaItems &&
+				redis().json.set(GBP.areaItems, "$", data.masterAreaItemMap.entries),
+		]);
 
-			if (!areaItems)
-				pipe.json.set(GBP.areaItems, "$", data.masterAreaItemMap.entries);
-		}
-
-		await pipe.exec();
+		const errors = results.filter((promise) => promise.status === "rejected");
+		for (const { reason } of errors) console.error(reason);
 	},
 });
