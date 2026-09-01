@@ -249,7 +249,7 @@ const generateEmbed = (snapshots: Awaited<ReturnType<typeof getSnapshots>>) => {
 
 				if (delta.rank !== 0) {
 					const difference = Math.abs(delta.rank);
-					const arrow = delta.rank < 0 ? "⬇️" : "⬆️";
+					const arrow = delta.rank > 0 ? "⬇️" : "⬆️";
 					lines.push(
 						`#${previous.rank} → #${current.rank} ${arrow.repeat(difference)}`,
 					);
