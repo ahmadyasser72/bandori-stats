@@ -1,8 +1,8 @@
 import { createDecipheriv } from "node:crypto";
 
-import { fromBinary, type Message } from "@bufbuild/protobuf";
+import { fromBinary, toJson, type Message } from "@bufbuild/protobuf";
 import type { GenMessage } from "@bufbuild/protobuf/codegenv2";
-import { AbortTaskRunError } from "@trigger.dev/sdk";
+import { AbortTaskRunError, metadata } from "@trigger.dev/sdk";
 import { limitAsync } from "es-toolkit";
 import type z from "zod";
 
@@ -117,7 +117,11 @@ export const bangDream = limitAsync(
 
 		const bytes = await response.arrayBuffer().then(decrypt);
 		const schema = await METADATA_PROTOBUF[type]();
-		return fromBinary(schema, bytes) as MetadataProtobufOutput[T];
+
+		const output = fromBinary(schema, bytes) as MetadataProtobufOutput[T];
+		metadata.set(`${type}-${id}`, { path, output: toJson(schema, output) });
+
+		return output;
 	},
 	1,
 );
@@ -169,7 +173,13 @@ export const bangDreamProfile = limitAsync(
 
 		const bytes = await response.arrayBuffer().then(decrypt);
 		const proto = await import("./gen/profile_pb");
-		return fromBinary(proto.UserProfileSchema, bytes);
+
+		const output = fromBinary(proto.UserProfileSchema, bytes);
+		metadata.set(`profile-${uid}`, {
+			output: toJson(proto.UserProfileSchema, output),
+		});
+
+		return output;
 	},
 	1,
 );
