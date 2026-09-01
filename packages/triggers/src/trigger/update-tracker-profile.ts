@@ -79,7 +79,7 @@ export const updateTrackerProfile = schemaTask({
 					return allKeyed({
 						...trackingReference,
 
-						uid: profile.userId.toString(),
+						uid,
 						name: profile.userName,
 						level: profile.rank,
 						introduction: profile.introduction,
