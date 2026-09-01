@@ -80,36 +80,30 @@ export const discordTracker = schemaTask({
 								: [],
 
 						thread: getThread(client, metadata),
+						metadata,
 					}),
 				),
 			);
 
-			const formatTimestamp = (since: dayjs.Dayjs) =>
-				[since, now]
-					.map((date) =>
-						time(date.toDate(), TimestampStyles.ShortDateShortTime),
-					)
-					.join(" — ");
-
-			for (const { hourly, daily, thread } of items) {
+			for (const { hourly, daily, thread, metadata } of items) {
+				const options = { metadata, now };
 				if (hourly.length > 0) {
-					const embed = generateEmbed(hourly)
-						.setTitle("Hourly tracker")
-						.setDescription(formatTimestamp(anHourAgo))
-						.setTimestamp(now.toDate());
-
-					await thread.send({ embeds: [embed] });
+					const title = "Hourly Tracker";
+					await thread.send({
+						embeds: [
+							generateEmbed(hourly, { title, since: anHourAgo, ...options }),
+						],
+					});
 				}
 
 				if (daily.length > 0) {
-					const embed = generateEmbed(daily)
-						.setTitle("Daily tracker")
-						.setDescription(formatTimestamp(yesterday))
-						.setTimestamp(now.toDate());
-
-					await thread
-						.send({ embeds: [embed] })
-						.then((message) => message.pin());
+					const title = "Daily Tracker";
+					const message = await thread.send({
+						embeds: [
+							generateEmbed(daily, { title, since: yesterday, ...options }),
+						],
+					});
+					await message.pin();
 				}
 			}
 		} finally {
@@ -233,8 +227,26 @@ const getSnapshots = async (
 	});
 };
 
-const generateEmbed = (snapshots: Awaited<ReturnType<typeof getSnapshots>>) => {
-	const embed = new EmbedBuilder().setColor(0x55ddee);
+interface GenerateEmbedOptions extends GetSnapshotsOptions {
+	metadata: Pick<GbpMetadata, "name">;
+	title: string;
+}
+
+const generateEmbed = (
+	snapshots: Awaited<ReturnType<typeof getSnapshots>>,
+	{ metadata, title, since, now }: GenerateEmbedOptions,
+) => {
+	const embed = new EmbedBuilder()
+		.setTitle(title)
+		.setDescription(
+			[since, now]
+				.map((date) => time(date.toDate(), TimestampStyles.ShortDateShortTime))
+				.join(" — "),
+		)
+		.setColor(0x55ddee)
+		.setFooter({ text: metadata.name })
+		.setTimestamp(now.toDate());
+
 	for (const { current, previous, lastPlayed, delta } of snapshots) {
 		let points = `${formatNumber(current.point)} Pts`;
 		if (delta.points > 0)
