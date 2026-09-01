@@ -119,7 +119,10 @@ export const bangDream = limitAsync(
 		const schema = await METADATA_PROTOBUF[type]();
 
 		const output = fromBinary(schema, bytes) as MetadataProtobufOutput[T];
-		metadata.set(`${type}-${id}`, { path, output: toJson(schema, output) });
+		metadata.root.set(`${type}:${id}`, {
+			path,
+			output: toJson(schema, output),
+		});
 
 		return output;
 	},
@@ -175,7 +178,7 @@ export const bangDreamProfile = limitAsync(
 		const proto = await import("./gen/profile_pb");
 
 		const output = fromBinary(proto.UserProfileSchema, bytes);
-		metadata.set(`profile-${uid}`, {
+		metadata.root.set(`profile:${uid}`, {
 			output: toJson(proto.UserProfileSchema, output),
 		});
 
