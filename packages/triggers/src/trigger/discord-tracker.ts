@@ -95,7 +95,8 @@ export const discordTracker = schemaTask({
 				if (hourly.length > 0) {
 					const embed = generateEmbed(hourly)
 						.setTitle("Hourly tracker")
-						.setDescription(formatTimestamp(anHourAgo));
+						.setDescription(formatTimestamp(anHourAgo))
+						.setTimestamp(now.toDate());
 
 					await thread.send({ embeds: [embed] });
 				}
@@ -103,7 +104,8 @@ export const discordTracker = schemaTask({
 				if (daily.length > 0) {
 					const embed = generateEmbed(daily)
 						.setTitle("Daily tracker")
-						.setDescription(formatTimestamp(yesterday));
+						.setDescription(formatTimestamp(yesterday))
+						.setTimestamp(now.toDate());
 
 					await thread
 						.send({ embeds: [embed] })
