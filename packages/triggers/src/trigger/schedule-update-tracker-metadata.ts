@@ -18,10 +18,8 @@ import { bestdori } from "~/bestdori";
 
 export const scheduleUpdateTrackerMetadata = schedules.task({
 	id: "schedule-update-tracker-metadata",
-	cron: {
-		pattern: "0 */12 * * *",
-		timezone: GBP_TIMEZONE,
-	},
+	cron: { pattern: "0 */12 * * *", timezone: GBP_TIMEZONE },
+	machine: "small-2x",
 	run: async () => {
 		const [currentVersion, currentEvent, currentMonthly, areaItems] =
 			await redis().mget<(unknown | null)[]>(
