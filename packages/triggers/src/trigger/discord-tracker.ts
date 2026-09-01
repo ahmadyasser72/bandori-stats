@@ -3,16 +3,12 @@ import {
 	bold,
 	ChannelType,
 	Client,
-	ContainerBuilder,
-	heading,
-	MessageFlags,
-	SeparatorSpacingSize,
+	EmbedBuilder,
 	spoiler,
 	subtext,
 	ThreadAutoArchiveDuration,
 	time,
 	TimestampStyles,
-	type MessageCreateOptions,
 	type PublicThreadChannel,
 } from "discord.js";
 import { allKeyed } from "es-toolkit";
@@ -74,37 +70,30 @@ export const discordTracker = schemaTask({
 				),
 			);
 
-			for (const { hourly, daily, thread } of items) {
-				if (daily.length > 0) {
-					const timestamp = subtext(
-						[yesterday, now]
-							.map((date) =>
-								time(date.toDate(), TimestampStyles.ShortDateShortTime),
-							)
-							.join(" — "),
-					);
-					await thread
-						.send({ content: [heading("Daily tracker"), timestamp].join("\n") })
-						.then((message) => message.pin());
+			const formatTimestamp = (since: dayjs.Dayjs) =>
+				[since, now]
+					.map((date) =>
+						time(date.toDate(), TimestampStyles.ShortDateShortTime),
+					)
+					.join(" — ");
 
-					const payload = generatePayload(daily);
-					await thread.send(payload);
+			for (const { hourly, daily, thread } of items) {
+				if (hourly.length > 0) {
+					const embed = generateEmbed(hourly)
+						.setTitle("Hourly tracker")
+						.setDescription(formatTimestamp(anHourAgo));
+
+					await thread.send({ embeds: [embed] });
 				}
 
-				if (hourly.length > 0) {
-					const timestamp = subtext(
-						[anHourAgo, now]
-							.map((date) =>
-								time(date.toDate(), TimestampStyles.ShortDateShortTime),
-							)
-							.join(" — "),
-					);
-					await thread.send({
-						content: [heading("Hourly tracker"), timestamp].join("\n"),
-					});
+				if (daily.length > 0) {
+					const embed = generateEmbed(daily)
+						.setTitle("Daily tracker")
+						.setDescription(formatTimestamp(yesterday));
 
-					const payload = generatePayload(hourly);
-					await thread.send(payload);
+					await thread
+						.send({ embeds: [embed] })
+						.then((message) => message.pin());
 				}
 			}
 		} finally {
@@ -177,50 +166,40 @@ const getSnapshots = async (
 	);
 };
 
-const generatePayload = (
-	snapshots: Awaited<ReturnType<typeof getSnapshots>>,
-) => {
-	const container = new ContainerBuilder();
-	for (const [idx, { current, previous, lastPlayed }] of snapshots.entries()) {
-		if (idx > 0)
-			container.addSeparatorComponents((separator) =>
-				separator.setSpacing(SeparatorSpacingSize.Small),
-			);
+const generateEmbed = (snapshots: Awaited<ReturnType<typeof getSnapshots>>) => {
+	const embed = new EmbedBuilder().setColor(0x55ddee);
+	for (const { current, previous, lastPlayed } of snapshots) {
+		embed.addFields({
+			name: bold(`#${current.rank} ${stripBB(current.name)}`),
+			value: (() => {
+				const lines = [`${formatNumber(current.point)} Pts`];
+				if (previous) {
+					const pointsDelta = current.point - previous.point;
+					if (pointsDelta > 0) {
+						lines[0] += ` (${formatNumber(pointsDelta, { positiveSign: true })} Pts)`;
+					}
 
-		const lines: string[] = [
-			bold(`#${current.rank} ${stripBB(current.name)}`) +
-				` ‒ ${formatNumber(current.point)} Pts`,
-		];
-		if (previous) {
-			const pointsDelta = current.point - previous.point;
-			if (pointsDelta > 0) {
-				lines[0] += ` (${formatNumber(pointsDelta, { positiveSign: true })} Pts)`;
-			}
+					if (current.rank !== previous.rank) {
+						const difference = Math.abs(current.rank - previous.rank);
+						const arrow = current.rank > previous.rank ? "⬇️" : "⬆️";
+						lines.push(
+							`#${previous.rank} -> #${current.rank} ${arrow.repeat(difference)}`,
+						);
+					}
+				}
 
-			if (current.rank !== previous.rank) {
-				const difference = Math.abs(current.rank - previous.rank);
-				const arrow = current.rank > previous.rank ? "⬇️" : "⬆️";
-				lines.push(
-					`#${previous.rank} -> #${current.rank} ${arrow.repeat(difference)}`,
-				);
-			}
-		}
-
-		const timestamp = [
-			time(lastPlayed, TimestampStyles.RelativeTime),
-			time(lastPlayed, TimestampStyles.ShortDateShortTime),
-		].join(" @ ");
-		lines.push(subtext(`last played ${spoiler(timestamp)}`));
-
-		container.addTextDisplayComponents((text) =>
-			text.setContent(lines.join("\n")),
-		);
+				const timestamp = [
+					time(lastPlayed, TimestampStyles.RelativeTime),
+					time(lastPlayed, TimestampStyles.ShortDateShortTime),
+				].join(" @ ");
+				lines.push(subtext(`last played ${spoiler(timestamp)}`));
+				return lines.join("\n");
+			})(),
+			inline: false,
+		});
 	}
 
-	return {
-		components: [container],
-		flags: MessageFlags.IsComponentsV2,
-	} satisfies MessageCreateOptions;
+	return embed;
 };
 
 const getThread = async (
