@@ -3,7 +3,7 @@ import { createDecipheriv } from "node:crypto";
 import { fromBinary, toJson, type Message } from "@bufbuild/protobuf";
 import type { GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { AbortTaskRunError, metadata } from "@trigger.dev/sdk";
-import { limitAsync } from "es-toolkit";
+import { limitAsync, omit } from "es-toolkit";
 import type z from "zod";
 
 import type { GameEventType } from "@bandori-stats/bestdori/schema/misc";
@@ -67,6 +67,7 @@ export const bangDream = limitAsync(
 			if (type === "mission_live") typ = "mission";
 			path = `event/${id}/${typ}/ranking`;
 		}
+		metadata.root.set(`${type}:${id}`, { path });
 
 		const url = new URL(
 			path,
@@ -98,6 +99,7 @@ export const bangDream = limitAsync(
 		const output = fromBinary(schema, bytes);
 		metadata.root.set(`${type}:${id}`, {
 			path,
+			headers: Object.fromEntries(response.headers.entries()),
 			output: toJson(schema, output),
 		});
 
@@ -155,6 +157,9 @@ export const bangDreamProfile = limitAsync(
 
 		const output = fromBinary(UserProfileSchema, bytes);
 		metadata.root.set(`profile:${uid}`, {
+			headers: omit(Object.fromEntries(response.headers.entries()), [
+				"x-token",
+			]),
 			output: toJson(UserProfileSchema, output),
 		});
 
