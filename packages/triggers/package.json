@@ -9,7 +9,7 @@
 	"dependencies": {
 		"@bandori-stats/bestdori": "workspace:*",
 		"@bandori-stats/database": "workspace:*",
-		"@bufbuild/protobuf": "2.14.0",
+		"@bufbuild/protobuf": "2.14.1",
 		"@isaacs/ttlcache": "2.1.5",
 		"@trigger.dev/sdk": "4.5.15",
 		"discord.js": "14.27.0",
@@ -20,7 +20,7 @@
 	},
 	"devDependencies": {
 		"@bufbuild/buf": "1.72.0",
-		"@bufbuild/protoc-gen-es": "2.14.0",
+		"@bufbuild/protoc-gen-es": "2.14.1",
 		"@trigger.dev/build": "4.5.15",
 		"@types/node": "26.4.0",
 		"@types/web-push": "3.6.4",
