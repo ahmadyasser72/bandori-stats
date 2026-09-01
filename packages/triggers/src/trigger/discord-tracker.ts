@@ -240,26 +240,26 @@ const generateEmbed = (snapshots: Awaited<ReturnType<typeof getSnapshots>>) => {
 			name: [
 				bold(`#${current.rank} ${stripBB(current.name)}`),
 				`${formatNumber(current.point)} Pts`,
-			].join(" - "),
+			].join(" — "),
 			value: (() => {
 				const lines = [] as string[];
 
 				const changes = [] as string[];
 				{
-					if (delta.rank !== 0) {
-						const difference = Math.abs(delta.rank);
-						const arrow = delta.rank < 0 ? "⬇️" : "⬆️";
-						changes.push(
-							`#${previous.rank} -> #${current.rank} ${arrow.repeat(difference)}`,
-						);
-					}
 					if (delta.points > 0) {
 						changes.push(
 							`${formatNumber(delta.points, { positiveSign: true })} Pts`,
 						);
 					}
+					if (delta.rank !== 0) {
+						const difference = Math.abs(delta.rank);
+						const arrow = delta.rank < 0 ? "⬇️" : "⬆️";
+						changes.push(
+							`#${previous.rank} → #${current.rank} ${arrow.repeat(difference)}`,
+						);
+					}
 				}
-				if (changes.length > 0) lines.push(changes.join(" | "));
+				if (changes.length > 0) lines.push(changes.join(" ~ "));
 
 				const timestamp = [
 					time(lastPlayed, TimestampStyles.RelativeTime),
