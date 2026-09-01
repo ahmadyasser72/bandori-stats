@@ -14,6 +14,7 @@ import {
 	getCachePath,
 } from "@bandori-stats/bestdori/fetch";
 import { imageConfig, vips } from "@bandori-stats/bestdori/image";
+import { db } from "@bandori-stats/database";
 import { leaderboards } from "virtual:bandori-leaderboard";
 
 export const prerender = true;
@@ -46,12 +47,17 @@ export const GET: APIRoute<Props, Params> = async ({ params, props }) => {
 };
 
 export const getStaticPaths = (async () => {
-	const events = Object.values(leaderboards.events);
+	const leaderboardEvents = Object.values(leaderboards.events);
+	const trackerEvents = await db().query.gbpEvents.findMany({
+		columns: { id: true, bannerAssetBundleName: true },
+	});
 
-	return events.map(({ id, bannerAssetBundleName }) => ({
-		params: { id: id.toString() },
-		props: { event: { bannerAssetBundleName } },
-	}));
+	return [...leaderboardEvents, ...trackerEvents].map(
+		({ id, bannerAssetBundleName }) => ({
+			params: { id: id.toString() },
+			props: { event: { bannerAssetBundleName } },
+		}),
+	);
 }) satisfies GetStaticPaths;
 
 type Props = InferGetStaticPropsType<typeof getStaticPaths>;

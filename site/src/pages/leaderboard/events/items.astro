@@ -11,6 +11,7 @@ import {
 } from "virtual:bandori-leaderboard";
 import Icon from "~/components/icon.astro";
 import InfiniteGridLoader from "~/components/infinite-grid-loader.astro";
+import { getEventBanner } from "~/lib/assets";
 import { filterTerms, highlight } from "~/lib/highlight";
 import { paginate } from "~/lib/paginate";
 import { QuerySchema } from "~/lib/schema";
@@ -159,7 +160,7 @@ const page = await paginate<(typeof events)[number]>({
 			<figure>
 				<img
 					class="aspect-3/1 w-full max-w-100 sm:mt-8"
-					src={`/assets/events/${event.id}-banner.webp`}
+					src={getEventBanner(event)}
 					loading="lazy"
 				/>
 			</figure>

@@ -60,7 +60,7 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 						pxat: event.endAt.getTime(),
 					});
 
-					const metadata = await bestdori({
+					const { bannerAssetBundleName, ...metadata } = await bestdori({
 						path: `/api/events/${event.eventId}.json`,
 						schema: EventMetadata,
 					});
@@ -71,7 +71,8 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 							name: event.eventName,
 							type: event.eventType,
 							...omit(event, ["eventId", "eventName", "eventType"]),
-							metadata: omit(metadata, ["bannerAssetBundleName"]),
+							bannerAssetBundleName,
+							metadata,
 						});
 
 					await tags.add(`event_${event.assetBundleName}`);
@@ -91,7 +92,7 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 									data.masterCharacterInfoMap.entries[characterId].firstName,
 							);
 							const banner = await bestdori({
-								path: `/assets/en/homebanner_rip/${metadata.bannerAssetBundleName}.png`,
+								path: `/assets/en/homebanner_rip/${bannerAssetBundleName}.png`,
 								schema: false,
 							}).then((response) => response.arrayBuffer());
 

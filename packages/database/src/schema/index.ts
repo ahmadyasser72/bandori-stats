@@ -72,6 +72,7 @@ export const { gbpEvents, gbpMonthlyRankings } = (() => {
 	return {
 		gbpEvents: sqliteTable("gbp_events", {
 			...fields,
+			bannerAssetBundleName: text().notNull(),
 			type: text().notNull().$type<z.infer<typeof GameEventType>>(),
 			metadata: text({ mode: "json" }).$type<EventMetadata>(),
 		}),

@@ -5,6 +5,7 @@ import z from "zod";
 import { db } from "@bandori-stats/database";
 import IconLoader from "~/components/icon-loader.astro";
 import BaseLayout from "~/layouts/base-layout.astro";
+import { getEventBanner, getTrackerLogo } from "~/lib/assets";
 
 const TABS = ["event", "monthly"] as const;
 
@@ -112,14 +113,20 @@ const TAB_ICON = {
 						value={id}
 						selected={params.id === id}
 					>
-						<div class="flex w-full flex-col items-center">
+						<div class="flex flex-col items-center">
 							<img
-								class="aspect-9/4 w-48"
-								src={`/assets/tracker/${params.tab}-${id}-logo.webp`}
+								class={
+									params.tab === "event" ? "aspect-3/1 w-64" : "aspect-9/4 w-48"
+								}
+								src={
+									params.tab === "event"
+										? getEventBanner({ id })
+										: getTrackerLogo(id, params.tab)
+								}
 								alt={assetBundleName}
 								loading="lazy"
 							/>
-							<span class="max-w-64 text-center text-sm">{name}</span>
+							<span class="text-center text-sm">{name}</span>
 						</div>
 					</option>
 				))
