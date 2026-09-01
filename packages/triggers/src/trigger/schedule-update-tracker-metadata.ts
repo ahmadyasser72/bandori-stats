@@ -128,7 +128,7 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 							name: monthly.monthlyRankingName,
 							...omit(monthly, ["monthlyRankingId", "monthlyRankingName"]),
 						});
-					await redis().set(GBP.event.current, monthly.monthlyRankingId, {
+					await redis().set(GBP.monthly.current, monthly.monthlyRankingId, {
 						pxat: monthly.endAt.getTime(),
 					});
 					await tags.add(`monthly_${monthly.assetBundleName}`);
