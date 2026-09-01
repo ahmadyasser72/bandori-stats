@@ -198,9 +198,10 @@ const generatePayload = (
 			}
 
 			if (current.rank !== previous.rank) {
-				const isBoat = current.rank > previous.rank;
+				const difference = Math.abs(current.rank - previous.rank);
+				const arrow = current.rank > previous.rank ? "⬇️" : "⬆️";
 				lines.push(
-					`#${previous.rank} -> #${current.rank} ${isBoat ? "⬇️" : "⬆️"}`,
+					`#${previous.rank} -> #${current.rank} ${arrow.repeat(difference)}`,
 				);
 			}
 		}
