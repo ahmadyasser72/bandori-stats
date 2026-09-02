@@ -243,7 +243,10 @@ const getSnapshots = async (
 			current,
 			previous,
 			lastPlayed,
-			delta: { points: points ?? 0, rank: current.rank - previous.rank },
+			delta: {
+				points: points ?? 0,
+				rank: previous ? current.rank - previous.rank : 0,
+			},
 		};
 	});
 };
