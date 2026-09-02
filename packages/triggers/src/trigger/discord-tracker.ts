@@ -134,7 +134,10 @@ export const discordTracker = schemaTask({
 							...options,
 						});
 
-						await Promise.all([thread.send(payload), sendWebhooks(payload)]);
+						await Promise.all([
+							thread.send(payload).then((message) => message.pin()),
+							sendWebhooks(payload),
+						]);
 					}
 				}),
 			);
