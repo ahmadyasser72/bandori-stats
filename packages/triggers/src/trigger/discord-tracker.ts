@@ -10,8 +10,8 @@ import {
 	time,
 	TimestampStyles,
 	WebhookClient,
+	type MessageCreateOptions,
 	type PublicThreadChannel,
-	type WebhookMessageCreateOptions,
 } from "discord.js";
 import { allKeyed, pick } from "es-toolkit";
 import z from "zod";
@@ -91,7 +91,7 @@ export const discordTracker = schemaTask({
 				),
 			);
 
-			const sendWebhook = (url: string, payload: WebhookMessageCreateOptions) =>
+			const sendWebhook = (url: string, payload: MessageCreateOptions) =>
 				new WebhookClient({ url }).send({
 					...payload,
 					username: client.user?.username,
@@ -102,24 +102,22 @@ export const discordTracker = schemaTask({
 				items.map(async ({ hourly, daily, thread, webhooks, metadata }) => {
 					const options = { metadata, now };
 					if (hourly.length > 0) {
-						const title = "Hourly Tracker";
-						const payload = {
-							embeds: [
-								generateEmbed(hourly, { title, since: anHourAgo, ...options }),
-							],
-						};
+						const payload = generatePayload(hourly, {
+							title: "Hourly Tracker",
+							since: anHourAgo,
+							...options,
+						});
 
 						await thread.send(payload);
 						await Promise.all(webhooks.map((url) => sendWebhook(url, payload)));
 					}
 
 					if (daily.length > 0) {
-						const title = "Daily Tracker";
-						const payload = {
-							embeds: [
-								generateEmbed(daily, { title, since: yesterday, ...options }),
-							],
-						};
+						const payload = generatePayload(daily, {
+							title: "Daily Tracker",
+							since: yesterday,
+							...options,
+						});
 
 						await thread.send(payload).then((message) => message.pin());
 						await Promise.all(webhooks.map((url) => sendWebhook(url, payload)));
@@ -250,14 +248,14 @@ const getSnapshots = async (
 	});
 };
 
-interface GenerateEmbedOptions extends GetSnapshotsOptions {
+interface GeneratePayloadOptions extends GetSnapshotsOptions {
 	metadata: Pick<GbpMetadata, "name">;
 	title: string;
 }
 
-const generateEmbed = (
+const generatePayload = (
 	snapshots: Awaited<ReturnType<typeof getSnapshots>>,
-	{ metadata, title, since, now }: GenerateEmbedOptions,
+	{ metadata, title, since, now }: GeneratePayloadOptions,
 ) => {
 	const embed = new EmbedBuilder()
 		.setTitle(title)
@@ -302,7 +300,7 @@ const generateEmbed = (
 		});
 	}
 
-	return embed;
+	return { embeds: [embed] } satisfies MessageCreateOptions;
 };
 
 const getThread = async (
