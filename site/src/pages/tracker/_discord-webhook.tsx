@@ -74,7 +74,7 @@ export const DiscordWebhook = ({ target }: DiscordWebhookProps) => {
 				<label class="floating-label join-item w-full">
 					<input
 						class="input"
-						type="text"
+						type="url"
 						onInput={(event) => setValue(event.currentTarget.value)}
 						placeholder="https://discord.com/api/webhooks..."
 						ref={inputRef}
