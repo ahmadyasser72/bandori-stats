@@ -98,7 +98,7 @@ export const discordTracker = schemaTask({
 					avatarURL: client.user?.avatarURL() ?? undefined,
 				});
 
-			await Promise.all(
+			const results = await Promise.allSettled(
 				items.map(async ({ hourly, daily, thread, webhooks, metadata }) => {
 					const options = { metadata, now };
 					if (hourly.length > 0) {
@@ -126,6 +126,9 @@ export const discordTracker = schemaTask({
 					}
 				}),
 			);
+
+			const errors = results.filter((promise) => promise.status === "rejected");
+			for (const { reason } of errors) console.error(reason);
 		} finally {
 			await client.destroy();
 		}
