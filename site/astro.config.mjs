@@ -100,7 +100,7 @@ export default defineConfig({
 			}),
 			DISCORD_INVITE_LINK: envField.string({
 				access: "public",
-				context: "server",
+				context: "client",
 				url: true,
 			}),
 		},

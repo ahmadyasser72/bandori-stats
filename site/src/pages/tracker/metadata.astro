@@ -1,4 +1,5 @@
 ---
+import { pick } from "es-toolkit";
 import z from "zod";
 
 import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
@@ -11,6 +12,7 @@ import {
 	getTrackerBgm,
 	getTrackerLogo,
 } from "~/lib/assets";
+import { DiscordWebhook } from "./_discord-webhook";
 
 const params = Astro.locals.parseQuery(
 	z.object({
@@ -65,7 +67,6 @@ if (Astro.cache.enabled)
 >
 	<div class="flex gap-1">
 		<div class="flex flex-col justify-evenly">
-			<div class="size-10"></div>
 			<button
 				hx-get="/tracker/charts/points"
 				hx-swap="after"
@@ -79,6 +80,33 @@ if (Astro.cache.enabled)
 			>
 				<IconLoader class="size-5" name="lucide--chart-no-axes-combined" />
 			</button>
+
+			<button
+				data-umami-event="tracker-discord-webhook"
+				data-umami-event-kind={params.kind}
+				data-umami-event-name={data.name}
+				class="tooltip btn tooltip-bottom tooltip-start btn-square size-10 tooltip-secondary btn-secondary"
+				data-tip="Subscribe to Discord Webhook"
+				disabled={isPastData}
+				popovertarget="tracker-discord-webhook"
+			>
+				<Icon class="size-5" name="lucide--megaphone" />
+			</button>
+			{
+				!isPastData && (
+					<div
+						class="dropdown dropdown-center px-6 py-4"
+						id="tracker-discord-webhook"
+						popover
+						style="position-anchor: --anchor-tracker-info"
+					>
+						<DiscordWebhook
+							client:only="preact"
+							target={pick(data, ["kind", "id"])}
+						/>
+					</div>
+				)
+			}
 		</div>
 
 		<img

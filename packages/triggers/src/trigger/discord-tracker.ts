@@ -9,7 +9,9 @@ import {
 	ThreadAutoArchiveDuration,
 	time,
 	TimestampStyles,
+	WebhookClient,
 	type PublicThreadChannel,
+	type WebhookMessageCreateOptions,
 } from "discord.js";
 import { allKeyed, pick } from "es-toolkit";
 import z from "zod";
@@ -80,31 +82,47 @@ export const discordTracker = schemaTask({
 								: [],
 
 						thread: getThread(client, metadata),
+						webhooks: redis().smembers(
+							GBP.fromMetadata(metadata, "discord-webhook"),
+						),
+
 						metadata,
 					}),
 				),
 			);
 
+			const sendWebhook = (url: string, payload: WebhookMessageCreateOptions) =>
+				new WebhookClient({ url }).send({
+					...payload,
+					username: client.user?.username,
+					avatarURL: client.user?.avatarURL() ?? undefined,
+				});
+
 			await Promise.all(
-				items.map(async ({ hourly, daily, thread, metadata }) => {
+				items.map(async ({ hourly, daily, thread, webhooks, metadata }) => {
 					const options = { metadata, now };
 					if (hourly.length > 0) {
 						const title = "Hourly Tracker";
-						await thread.send({
+						const payload = {
 							embeds: [
 								generateEmbed(hourly, { title, since: anHourAgo, ...options }),
 							],
-						});
+						};
+
+						await thread.send(payload);
+						await Promise.all(webhooks.map((url) => sendWebhook(url, payload)));
 					}
 
 					if (daily.length > 0) {
 						const title = "Daily Tracker";
-						const message = await thread.send({
+						const payload = {
 							embeds: [
 								generateEmbed(daily, { title, since: yesterday, ...options }),
 							],
-						});
-						await message.pin();
+						};
+
+						await thread.send(payload).then((message) => message.pin());
+						await Promise.all(webhooks.map((url) => sendWebhook(url, payload)));
 					}
 				}),
 			);
