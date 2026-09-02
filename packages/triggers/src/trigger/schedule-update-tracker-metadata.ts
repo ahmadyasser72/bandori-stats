@@ -144,6 +144,7 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 
 		const errors = results.filter((promise) => promise.status === "rejected");
 		for (const { reason } of errors) console.error(reason);
+		if (errors.length > 0) await tags.add("error_settled");
 
 		if (
 			results.some(

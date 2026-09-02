@@ -1,4 +1,4 @@
-import { AbortTaskRunError, schemaTask, wait } from "@trigger.dev/sdk";
+import { AbortTaskRunError, schemaTask, tags, wait } from "@trigger.dev/sdk";
 import {
 	bold,
 	ChannelType,
@@ -140,6 +140,7 @@ export const discordTracker = schemaTask({
 
 			const errors = results.filter((promise) => promise.status === "rejected");
 			for (const { reason } of errors) console.error(reason);
+			if (errors.length > 0) await tags.add("error_settled");
 		} finally {
 			await client.destroy();
 		}
