@@ -83,9 +83,10 @@ export const discordTracker = schemaTask({
 								: [],
 
 						thread: getThread(client, metadata),
-						webhooks: redis().smembers(
-							GBP.fromMetadata(metadata, "discord-webhook"),
-						),
+						webhook: (() => {
+							const key = GBP.fromMetadata(metadata, "discord-webhook");
+							return allKeyed({ key, urls: redis().smembers(key) });
+						})(),
 
 						metadata,
 					}),
@@ -93,10 +94,10 @@ export const discordTracker = schemaTask({
 			);
 
 			const results = await Promise.allSettled(
-				items.map(async ({ hourly, daily, thread, webhooks, metadata }) => {
+				items.map(async ({ hourly, daily, thread, webhook, metadata }) => {
 					const sendWebhooks = (payload: MessageCreateOptions) =>
 						Promise.all(
-							webhooks.map((url) =>
+							webhook.urls.map((url) =>
 								new WebhookClient({ url })
 									.send({
 										...payload,
@@ -108,7 +109,7 @@ export const discordTracker = schemaTask({
 											error instanceof DiscordAPIError &&
 											error.status === 404
 										)
-											return redis().srem(GBP.fromMetadata(metadata), url);
+											return redis().srem(webhook.key, url);
 
 										throw error;
 									}),
