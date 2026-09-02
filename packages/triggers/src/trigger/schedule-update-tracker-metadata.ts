@@ -15,6 +15,7 @@ import { db } from "@bandori-stats/database";
 import { GBP, redis } from "@bandori-stats/database/redis";
 import { gbpEvents, gbpMonthlyRankings } from "@bandori-stats/database/schema";
 import { bestdori } from "~/bestdori";
+import { githubRedeploy } from "./github-redeploy";
 
 export const scheduleUpdateTrackerMetadata = schedules.task({
 	id: "schedule-update-tracker-metadata",
@@ -113,6 +114,8 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 					} finally {
 						await client.destroy();
 					}
+
+					return true;
 				})(),
 			!currentMonthly &&
 				(async () => {
@@ -132,6 +135,8 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 						pxat: monthly.endAt.getTime(),
 					});
 					await tags.add(`monthly_${monthly.assetBundleName}`);
+
+					return true;
 				})(),
 			!areaItems &&
 				redis().json.set(GBP.areaItems, "$", data.masterAreaItemMap.entries),
@@ -139,5 +144,12 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 
 		const errors = results.filter((promise) => promise.status === "rejected");
 		for (const { reason } of errors) console.error(reason);
+
+		if (
+			results.some(
+				(promise) => promise.status === "fulfilled" && promise.value === true,
+			)
+		)
+			await githubRedeploy.trigger();
 	},
 });
