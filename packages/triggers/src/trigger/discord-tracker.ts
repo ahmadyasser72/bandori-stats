@@ -53,7 +53,7 @@ export const discordTracker = schemaTask({
 	}),
 	run: async ({ metadatas }, { ctx }) => {
 		const now = dayjs
-			.tz(ctx.attempt.startedAt, GBP_TIMEZONE)
+			.tz(ctx.run.createdAt, GBP_TIMEZONE)
 			.startOf("hour")
 			.add(1, "hour");
 
