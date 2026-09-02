@@ -109,7 +109,7 @@ export const discordTracker = schemaTask({
 											error instanceof DiscordAPIError &&
 											error.status === 404
 										)
-											return redis().srem(webhook.key, url);
+											return redis().srem(webhook.key, `"${url}"`);
 
 										throw error;
 									}),
