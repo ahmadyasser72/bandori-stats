@@ -3,6 +3,7 @@ import {
 	bold,
 	ChannelType,
 	Client,
+	DiscordAPIError,
 	EmbedBuilder,
 	spoiler,
 	subtext,
@@ -91,15 +92,29 @@ export const discordTracker = schemaTask({
 				),
 			);
 
-			const sendWebhook = (url: string, payload: MessageCreateOptions) =>
-				new WebhookClient({ url }).send({
-					...payload,
-					username: client.user?.username,
-					avatarURL: client.user?.avatarURL() ?? undefined,
-				});
-
 			const results = await Promise.allSettled(
 				items.map(async ({ hourly, daily, thread, webhooks, metadata }) => {
+					const sendWebhooks = (payload: MessageCreateOptions) =>
+						Promise.all(
+							webhooks.map((url) =>
+								new WebhookClient({ url })
+									.send({
+										...payload,
+										username: client.user?.username,
+										avatarURL: client.user?.avatarURL() ?? undefined,
+									})
+									.catch((error) => {
+										if (
+											error instanceof DiscordAPIError &&
+											error.status === 404
+										)
+											return redis().srem(GBP.fromMetadata(metadata), url);
+
+										throw error;
+									}),
+							),
+						);
+
 					const options = { metadata, now };
 					if (hourly.length > 0) {
 						const payload = generatePayload(hourly, {
@@ -108,8 +123,7 @@ export const discordTracker = schemaTask({
 							...options,
 						});
 
-						await thread.send(payload);
-						await Promise.all(webhooks.map((url) => sendWebhook(url, payload)));
+						await Promise.all([thread.send(payload), sendWebhooks(payload)]);
 					}
 
 					if (daily.length > 0) {
@@ -119,8 +133,7 @@ export const discordTracker = schemaTask({
 							...options,
 						});
 
-						await thread.send(payload).then((message) => message.pin());
-						await Promise.all(webhooks.map((url) => sendWebhook(url, payload)));
+						await Promise.all([thread.send(payload), sendWebhooks(payload)]);
 					}
 				}),
 			);
