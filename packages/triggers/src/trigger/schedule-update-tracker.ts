@@ -169,7 +169,7 @@ export const scheduleUpdateTracker = schedules.task({
 			})(),
 		]);
 
-		if (now.get("minutes") === 59) {
+		if (now.get("minutes") === 0) {
 			const metadatas = [] as GbpMetadata[];
 			if (event) metadatas.push({ kind: "event", ...event });
 			if (monthly) metadatas.push({ kind: "monthly", ...monthly });

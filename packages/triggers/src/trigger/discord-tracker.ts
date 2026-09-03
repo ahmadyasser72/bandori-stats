@@ -1,4 +1,4 @@
-import { AbortTaskRunError, schemaTask, tags, wait } from "@trigger.dev/sdk";
+import { AbortTaskRunError, schemaTask, tags } from "@trigger.dev/sdk";
 import {
 	bold,
 	ChannelType,
@@ -17,7 +17,6 @@ import {
 import { allKeyed, pick } from "es-toolkit";
 import z from "zod";
 
-import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
 import dayjs from "@bandori-stats/bestdori/date";
 import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
 import {
@@ -54,12 +53,7 @@ export const discordTracker = schemaTask({
 			.nonempty(),
 	}),
 	run: async ({ metadatas }, { ctx }) => {
-		const now = dayjs
-			.tz(ctx.run.createdAt, GBP_TIMEZONE)
-			.startOf("hour")
-			.add(1, "hour");
-
-		await wait.until({ date: now.toDate() });
+		const now = dayjs(ctx.run.startedAt).startOf("hour");
 
 		await useDiscordBot(async ({ client, guild }) => {
 			await guild.channels.fetch();
