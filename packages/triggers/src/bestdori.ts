@@ -1,5 +1,5 @@
 import { TTLCache } from "@isaacs/ttlcache";
-import { AbortTaskRunError, queue, tags } from "@trigger.dev/sdk";
+import { AbortTaskRunError, logger, queue, tags } from "@trigger.dev/sdk";
 import { limitAsync, memoize, retry } from "es-toolkit";
 import z from "zod";
 
@@ -22,31 +22,37 @@ export const bestdori = limitAsync<BestdoriFetch>(
 			const url = new URL(path, "https://bestdori.com/");
 			url.search = new URLSearchParams(query).toString();
 
-			const response = await retry(
-				async () => {
-					const response = await fetch(url);
-					const contentType = response.headers.get("content-type") ?? "";
-					if (
-						response.ok &&
-						(contentType.startsWith("application/json") || !schema)
-					)
-						return response;
+			const response = await logger.trace("fetch-bestdori", (span) => {
+				span.setAttribute?.("url", url.href);
 
-					throw new Error(`Error fetching ${url.href} (${response.status})`);
-				},
-				{ delay: (attempt) => attempt * 2500, retries: 4 },
-			);
+				return retry(
+					async () => {
+						const response = await fetch(url);
+						const contentType = response.headers.get("content-type") ?? "";
+						if (
+							response.ok &&
+							(contentType.startsWith("application/json") || !schema)
+						)
+							return response;
+
+						throw new Error(`Error fetching ${url.href} (${response.status})`);
+					},
+					{ delay: (attempt) => attempt * 2500, retries: 4 },
+				);
+			});
 
 			if (!schema) return response as never;
 
-			const json = await response.json();
-			const { success, data, error } = schema.safeParse(json);
-			if (!success) {
-				await tags.add("schema_error");
-				throw new AbortTaskRunError(error.message);
-			}
+			return logger.trace("parse-bestdori-response", async () => {
+				const json = await response.json();
+				const { success, data, error } = schema.safeParse(json);
+				if (!success) {
+					await tags.add("schema_error");
+					throw new AbortTaskRunError(error.message);
+				}
 
-			return data as never;
+				return data as never;
+			});
 		},
 		{
 			getCacheKey: ({ path, query }) =>

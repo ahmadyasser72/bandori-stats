@@ -1,10 +1,5 @@
-import {
-	schedules,
-	tags,
-	metadata as triggerMetadata,
-	wait,
-} from "@trigger.dev/sdk";
-import { allKeyed, countBy, curry, pick, sumBy, uniqBy } from "es-toolkit";
+import { logger, schedules, tags, wait } from "@trigger.dev/sdk";
+import { allKeyed, countBy, curry, pick, uniqBy } from "es-toolkit";
 import webPush from "web-push";
 
 import dayjs from "@bandori-stats/bestdori/date";
@@ -62,10 +57,14 @@ export const scheduleUpdateTracker = schedules.task({
 		await wait.until({ date: now.toDate() });
 
 		const results = await Promise.allSettled([
-			(async () => {
-				if (!event || now.isBefore(event.startAt)) return [];
-				// @ts-ignore Date is parse-able
-				triggerMetadata.set(`event:${event.assetBundleName}`, event);
+			logger.trace("event-tracker", async (span) => {
+				if (!event) return [];
+				span.setAttributes?.({
+					id: event.id,
+					startAt: event.startAt.toISOString(),
+					endAt: event.endAt.toISOString(),
+				});
+				if (now.isBefore(event.startAt)) return [];
 
 				const {
 					points = [],
@@ -145,11 +144,16 @@ export const scheduleUpdateTracker = schedules.task({
 				await sendPushNotifications(top, { now, inserted, metadata });
 
 				return inserted;
-			})(),
-			(async () => {
-				if (!monthly || now.isBefore(monthly.startAt)) return [];
-				// @ts-ignore Date is parse-able
-				triggerMetadata.set(`monthly:${monthly.assetBundleName}`, monthly);
+			}),
+
+			logger.trace("monthly-tracker", async (span) => {
+				if (!monthly) return [];
+				span.setAttributes?.({
+					id: monthly.id,
+					startAt: monthly.startAt.toISOString(),
+					endAt: monthly.endAt.toISOString(),
+				});
+				if (now.isBefore(monthly.startAt)) return [];
 
 				const data = await bangDream(version, "monthly", monthly.id);
 				const points = data.monthlyRankingPointTopUsers?.entries ?? [];
@@ -165,7 +169,7 @@ export const scheduleUpdateTracker = schedules.task({
 				await sendPushNotifications(top, { now, inserted, metadata });
 
 				return inserted;
-			})(),
+			}),
 		]);
 
 		if (now.get("minutes") === 0) {
@@ -236,7 +240,7 @@ const insertSnapshots = async (
 				"trackingFor" | "trackingId"
 			>,
 			{ name, rank, point, userProfileSituation }: RankingUser,
-		) =>
+		): Promise<typeof trackerCutoffs.$inferInsert> =>
 			allKeyed({
 				...trackingReference,
 
@@ -249,88 +253,88 @@ const insertSnapshots = async (
 	);
 
 	const { points, musics } = await allKeyed({
-		points: (async () => {
-			const trackingReference = getTrackingReference(metadata);
-			return {
-				values: ranking.t10.map(toTrackerSnapshot(trackingReference)),
-				cutoffs: await Promise.all(
-					ranking.cutoffs.map(toTrackerCutoff(trackingReference)),
-				),
-			};
-		})(),
-		musics: (async () => {
-			if (
-				metadata.kind !== "event" ||
-				metadata.musics.length === 0 ||
-				!ranking.musics
-			)
-				return { values: [], cutoffs: [] };
-
-			const trackingReference = (id: number) => ({
-				trackingFor: "music" as const,
-				trackingId: id,
-			});
-
-			return {
-				values: ranking.musics.flatMap(({ id, t10 }) =>
-					t10.map(toTrackerSnapshot(trackingReference(id))),
-				),
-				cutoffs: await Promise.all(
-					ranking.musics.flatMap(({ id, cutoffs }) =>
-						cutoffs.map(toTrackerCutoff(trackingReference(id))),
+		points: logger.trace(
+			`generate-${metadata.kind}-points-values`,
+			async () => {
+				const trackingReference = getTrackingReference(metadata);
+				return {
+					values: ranking.t10.map(toTrackerSnapshot(trackingReference)),
+					cutoffs: await Promise.all(
+						ranking.cutoffs.map(toTrackerCutoff(trackingReference)),
 					),
+				};
+			},
+		),
+		musics: logger.trace(
+			`generate-${metadata.kind}-musics-values`,
+			async () => {
+				if (
+					metadata.kind !== "event" ||
+					metadata.musics.length === 0 ||
+					!ranking.musics
+				)
+					return { values: [], cutoffs: [] };
+
+				const values = [] as (typeof trackerSnapshots.$inferInsert)[];
+				const cutoffs = [] as Promise<typeof trackerCutoffs.$inferInsert>[];
+				for (const music of ranking.musics) {
+					const trackingReference = {
+						trackingFor: "music" as const,
+						trackingId: music.id,
+					};
+
+					values.push(...music.t10.map(toTrackerSnapshot(trackingReference)));
+					cutoffs.push(
+						...music.cutoffs.map(toTrackerCutoff(trackingReference)),
+					);
+				}
+
+				return { values, cutoffs: await Promise.all(cutoffs) };
+			},
+		),
+	});
+
+	return logger.trace(`insert-${metadata.kind}-values`, async () => {
+		const [inserted] = await db().batch([
+			db()
+				.insert(trackerSnapshots)
+				.values([...points.values, ...musics.values])
+				.onConflictDoNothing()
+				.returning({
+					uid: trackerSnapshots.uid,
+					name: trackerSnapshots.name,
+					point: trackerSnapshots.point,
+					rank: trackerSnapshots.rank,
+					trackingFor: trackerSnapshots.trackingFor,
+					trackingId: trackerSnapshots.trackingId,
+				}),
+			db()
+				.insert(trackerCutoffs)
+				.values([...points.cutoffs, ...musics.cutoffs])
+				.onConflictDoUpdate({
+					target: [
+						trackerCutoffs.trackingFor,
+						trackerCutoffs.trackingId,
+						trackerCutoffs.rank,
+						trackerCutoffs.point,
+					],
+					set: {
+						name: sql.raw(`excluded.${trackerCutoffs.name.name}`),
+						avatar: sql.raw(`excluded.${trackerCutoffs.avatar.name}`),
+					},
+				}),
+		]);
+
+		if (inserted.length > 0) {
+			await tags.add(
+				Object.entries(countBy(inserted, ({ trackingFor }) => trackingFor)).map(
+					([kind, count]) => `${kind}_+${count}`,
 				),
-			};
-		})(),
+			);
+		}
+
+		return inserted;
 	});
-
-	const snapshots = [...points.values, ...musics.values];
-	const cutoffs = [...points.cutoffs, ...musics.cutoffs];
-	// @ts-ignore Date is parse-able
-	triggerMetadata.set(`insert:${metadata.kind}:${metadata.assetBundleName}`, {
-		snapshots,
-		cutoffs,
-	});
-
-	const [inserted] = await db().batch([
-		db()
-			.insert(trackerSnapshots)
-			.values(snapshots)
-			.onConflictDoNothing()
-			.returning({
-				uid: trackerSnapshots.uid,
-				name: trackerSnapshots.name,
-				point: trackerSnapshots.point,
-				rank: trackerSnapshots.rank,
-				trackingFor: trackerSnapshots.trackingFor,
-				trackingId: trackerSnapshots.trackingId,
-			}),
-		db()
-			.insert(trackerCutoffs)
-			.values(cutoffs)
-			.onConflictDoUpdate({
-				target: [
-					trackerCutoffs.trackingFor,
-					trackerCutoffs.trackingId,
-					trackerCutoffs.rank,
-					trackerCutoffs.point,
-				],
-				set: {
-					name: sql.raw(`excluded.${trackerCutoffs.name.name}`),
-					avatar: sql.raw(`excluded.${trackerCutoffs.avatar.name}`),
-				},
-			}),
-	]);
-
-	if (inserted.length > 0) {
-		await tags.add(
-			Object.entries(countBy(inserted, ({ trackingFor }) => trackingFor)).map(
-				([kind, count]) => `${kind}_+${count}`,
-			),
-		);
-	}
-
-	return inserted;
 };
 
 interface UpdateRedisLeaderboardOptions {
@@ -341,39 +345,46 @@ const updateRedisLeaderboard = async (
 	ranking: Ranking,
 	{ metadata }: UpdateRedisLeaderboardOptions,
 ) => {
-	const pipe = redis().pipeline();
-	const add = (
-		key: string | string[],
-		[first, ...rest]: RankingUser[],
-		memberKey: "rank" | "userId",
-	) => {
-		if (!first) return;
+	const pipe = await logger.trace(
+		`create-${metadata.kind}-redis-leaderboard-pipeline`,
+		async () => {
+			const pipe = redis().pipeline();
+			const add = (
+				key: string | string[],
+				[first, ...rest]: RankingUser[],
+				memberKey: "rank" | "userId",
+			) => {
+				if (!first) return;
 
-		pipe.zadd(
-			GBP.fromMetadata(metadata, ...(Array.isArray(key) ? key : [key])),
-			{ gt: true },
-			{ member: first[memberKey].toString(), score: Number(first.point) },
-			...rest.map((it) => ({
-				member: it[memberKey].toString(),
-				score: Number(it.point),
-			})),
-		);
-	};
+				pipe.zadd(
+					GBP.fromMetadata(metadata, ...(Array.isArray(key) ? key : [key])),
+					{ gt: true },
+					{ member: first[memberKey].toString(), score: Number(first.point) },
+					...rest.map((it) => ({
+						member: it[memberKey].toString(),
+						score: Number(it.point),
+					})),
+				);
+			};
 
-	add("leaderboard", ranking.t10, "userId");
-	add("cutoffs", ranking.cutoffs, "rank");
+			add("leaderboard", ranking.t10, "userId");
+			add("cutoffs", ranking.cutoffs, "rank");
 
-	if (
-		metadata.kind === "event" &&
-		metadata.musics.length > 0 &&
-		ranking.musics
-	) {
-		for (const { id, t10, cutoffs } of ranking.musics) {
-			const musicId = metadata.type === "medley" ? "medley" : id.toString();
-			add(["leaderboard-music", musicId], t10, "userId");
-			add(["cutoffs-music", musicId], cutoffs, "rank");
-		}
-	}
+			if (
+				metadata.kind === "event" &&
+				metadata.musics.length > 0 &&
+				ranking.musics
+			) {
+				for (const { id, t10, cutoffs } of ranking.musics) {
+					const musicId = metadata.type === "medley" ? "medley" : id.toString();
+					add(["leaderboard-music", musicId], t10, "userId");
+					add(["cutoffs-music", musicId], cutoffs, "rank");
+				}
+			}
+
+			return pipe;
+		},
+	);
 
 	await pipe.exec();
 };
@@ -392,7 +403,6 @@ const sendPushNotifications = async (
 	if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return;
 
 	const trackingReference = getTrackingReference(metadata);
-
 	const top10ByUid = new Map(
 		ranking.t10.map((data) => [data.userId.toString(), data]),
 	);
@@ -401,12 +411,12 @@ const sendPushNotifications = async (
 	const updatedTop10 = !!inserted.find(({ rank }) => rank === 10);
 	if (updatedTop10) {
 		const key = GBP.fromMetadata(metadata, "leaderboard");
-		const outsideTop10 = await redis()
-			.zrange<number[]>(key, 10, -1, { rev: true })
+		const top10toTop15 = await redis()
+			.zrange<number[]>(key, 10, 14, { rev: true })
 			.then((uids) => uids.map((uid) => uid.toString()));
-		if (outsideTop10.length > 0) {
+		if (top10toTop15.length > 0) {
 			const latestSnapshots = await Promise.all(
-				outsideTop10.map((uid) =>
+				top10toTop15.map((uid) =>
 					db().query.trackerSnapshots.findFirst({
 						columns: { uid: true, name: true, point: true, rank: true },
 						where: { ...trackingReference, uid },
@@ -430,77 +440,84 @@ const sendPushNotifications = async (
 		"$",
 	);
 
-	const payloads = await Promise.all(
-		items.map(async ({ key, uid, name, point, rank }, idx) => {
-			const notify = notifyEntries.at(idx)?.flat();
-			if (!notify || notify.length === 0) return [];
+	const payloads = await logger.trace(
+		`generate-${metadata.kind}-webpush-payload`,
+		async () => {
+			const results = await Promise.all(
+				items.map(async ({ key, uid, name, point, rank }, idx) => {
+					const notify = notifyEntries.at(idx)?.flat();
+					if (!notify || notify.length === 0) return [];
 
-			const subscriptions = [...notify.entries()].filter(
-				([, { on }]) =>
-					on.target === "play-again" ||
-					(on.target === "point" && point > on.value) ||
-					(on.target === "boated-from" &&
-						(rank > on.value || !top10ByUid.has(uid))),
+					const subscriptions = [...notify.entries()].filter(
+						([, { on }]) =>
+							on.target === "play-again" ||
+							(on.target === "point" && point > on.value) ||
+							(on.target === "boated-from" &&
+								(rank > on.value || !top10ByUid.has(uid))),
+					);
+					if (subscriptions.length === 0) return [];
+
+					const deleteNotify = redis().multi();
+					for (const [idx] of [...subscriptions].reverse())
+						deleteNotify.json.del(key, `$[${idx}]`);
+					await deleteNotify.exec();
+
+					const profile = await db().query.trackerSnapshotProfiles.findFirst({
+						columns: { avatar: true },
+						where: { ...trackingReference, uid },
+					});
+
+					return uniqBy(
+						subscriptions.map(([, it]) => it),
+						({ on, subscription }) =>
+							`${subscription.endpoint}:${on.target}:${on.value}`,
+					).map(({ on, subscription }) => {
+						let body = `notify me: ${name}`;
+						if (on.target === "play-again") body = `${name} just plays again!`;
+						else if (on.target === "point")
+							body = `${name} just hit ${formatNumber(point)} Pts!`;
+						else if (on.target === "boated-from")
+							body = `${name} just got boated from rank #${on.value}!`;
+
+						return {
+							subscription,
+							tag: `${key}-${on.target}-${on.value}`,
+							title: metadata.name,
+							body,
+							icon: profile?.avatar
+								? `/assets/cards/${profile.avatar.id}-${profile.avatar.trained ? "trained" : "normal"}-icon.webp`
+								: undefined,
+							image: `/assets/tracker/${trackingReference.trackingFor}-${trackingReference.trackingId}-logo.webp`,
+							timestamp: now.valueOf(),
+							navigate: `/tracker?tab=${trackingReference.trackingFor}&id=${trackingReference.trackingId}`,
+						};
+					});
+				}),
 			);
-			if (subscriptions.length === 0) return [];
 
-			const deleteNotify = redis().multi();
-			for (const [idx] of [...subscriptions].reverse())
-				deleteNotify.json.del(key, `$[${idx}]`);
-			await deleteNotify.exec();
-
-			const profile = await db().query.trackerSnapshotProfiles.findFirst({
-				columns: { avatar: true },
-				where: { ...trackingReference, uid },
-			});
-
-			return uniqBy(
-				subscriptions.map(([, it]) => it),
-				({ on, subscription }) =>
-					`${subscription.endpoint}:${on.target}:${on.value}`,
-			).map(({ on, subscription }) => {
-				let body = `notify me: ${name}`;
-				if (on.target === "play-again") body = `${name} just plays again!`;
-				else if (on.target === "point")
-					body = `${name} just hit ${formatNumber(point)} Pts!`;
-				else if (on.target === "boated-from")
-					body = `${name} just got boated from rank #${on.value}!`;
-
-				return {
-					subscription,
-					tag: `${key}-${on.target}-${on.value}`,
-					title: metadata.name,
-					body,
-					icon: profile?.avatar
-						? `/assets/cards/${profile.avatar.id}-${profile.avatar.trained ? "trained" : "normal"}-icon.webp`
-						: undefined,
-					image: `/assets/tracker/${trackingReference.trackingFor}-${trackingReference.trackingId}-logo.webp`,
-					timestamp: now.valueOf(),
-					navigate: `/tracker?tab=${trackingReference.trackingFor}&id=${trackingReference.trackingId}`,
-				};
-			});
-		}),
-	).then((payloads) => payloads.flat());
+			return results.flat();
+		},
+	);
 	if (payloads.length === 0) return;
 
-	const results = await Promise.allSettled(
-		payloads.map(({ subscription, ...data }) =>
-			webPush.sendNotification(subscription, JSON.stringify(data), {
-				TTL: Math.max(
-					60 * 60 * 12,
-					dayjs(metadata.endAt).diff(dayjs(), "seconds"),
-				),
-				vapidDetails: {
-					publicKey: VAPID_PUBLIC_KEY,
-					privateKey: VAPID_PRIVATE_KEY,
-					subject: "mailto:eh@example.com",
-				},
-			}),
+	const results = await logger.trace(`send-${metadata.kind}-webpush`, () =>
+		Promise.allSettled(
+			payloads.map(({ subscription, ...data }) =>
+				webPush.sendNotification(subscription, JSON.stringify(data), {
+					TTL: Math.max(
+						60 * 60 * 12,
+						dayjs(metadata.endAt).diff(dayjs(), "seconds"),
+					),
+					vapidDetails: {
+						publicKey: VAPID_PUBLIC_KEY,
+						privateKey: VAPID_PRIVATE_KEY,
+						subject: "mailto:eh@example.com",
+					},
+				}),
+			),
 		),
 	);
 
-	const notificationSent = sumBy(results, ({ status }) =>
-		status === "fulfilled" ? 1 : 0,
-	);
-	if (notificationSent > 0) await tags.add(`notified_${notificationSent}`);
+	const { fulfilled = 0 } = countBy(results, ({ status }) => status);
+	if (fulfilled > 0) await tags.add(`notified_${fulfilled}`);
 };

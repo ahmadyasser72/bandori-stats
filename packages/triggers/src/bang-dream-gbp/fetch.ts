@@ -2,7 +2,7 @@ import { createDecipheriv } from "node:crypto";
 
 import { fromBinary, toJson, type Message } from "@bufbuild/protobuf";
 import type { GenMessage } from "@bufbuild/protobuf/codegenv2";
-import { AbortTaskRunError, metadata } from "@trigger.dev/sdk";
+import { AbortTaskRunError, logger, metadata } from "@trigger.dev/sdk";
 import { limitAsync } from "es-toolkit";
 import type z from "zod";
 
@@ -71,7 +71,6 @@ export const bangDream = limitAsync(
 			if (type === "mission_live") typ = "mission";
 			path = `event/${id}/${typ}/ranking`;
 		}
-		metadata.root.set(`${type}:${id}`, { path });
 
 		const url = new URL(
 			path,
@@ -91,22 +90,32 @@ export const bangDream = limitAsync(
 			"x-unity-version": UNITY_VERSION,
 		};
 
-		const response = await fetch(url, { headers });
-		if (!response.ok)
-			throw new AbortTaskRunError(
-				`Request to ${url.pathname} failed (${response.status})`,
-			);
+		const bytes = await logger.trace(`fetch-gbp-ranking`, async (span) => {
+			span.setAttribute?.("path", path);
 
-		const bytes = await response.arrayBuffer().then(decrypt);
+			const response = await fetch(url, { headers });
+			if (!response.ok)
+				throw new AbortTaskRunError(
+					`Request to ${url.pathname} failed (${response.status})`,
+				);
 
-		const schema = PROTOBUF[type];
-		const output = fromBinary(schema, bytes);
-		const json = toJson(schema, output);
-		metadata.root.set(`${type}:${id}`, { path, output: json });
+			return response.arrayBuffer().then(decrypt);
+		});
 
-		return { ...output, json } as unknown as ProtobufOutput<typeof type> & {
-			json: ProtobufOutputJson<typeof type>;
-		};
+		return logger.trace("parse-gbp-ranking", async (span) => {
+			span.setAttribute?.("path", path);
+
+			const schema = PROTOBUF[type];
+			span.setAttribute?.("typeName", schema.typeName);
+
+			const output = fromBinary(schema, bytes);
+			const json = toJson(schema, output);
+			metadata.root.set(`${type}:${id}`, { path, output: json });
+
+			return { ...output, json } as unknown as ProtobufOutput<typeof type> & {
+				json: ProtobufOutputJson<typeof type>;
+			};
+		});
 	},
 	1,
 );
@@ -141,33 +150,42 @@ export const bangDreamProfile = limitAsync(
 			"x-unity-version": UNITY_VERSION,
 		};
 
-		await redis().json.del(GBP.credentials, "$.token");
-		const response = await fetch(url, { method: "PUT", headers });
-		if (!response.ok)
-			throw new AbortTaskRunError(
-				`Request to ${url.pathname} failed (${response.status})`,
-			);
+		const bytes = await logger.trace("fetch-gbp-profile", async (span) => {
+			span.setAttribute?.("uid", uid);
 
-		const newToken = response.headers.get("x-token");
-		if (!newToken)
-			throw new AbortTaskRunError(
-				`Request to ${url.pathname} not returning new token`,
-			);
+			await redis().json.del(GBP.credentials, "$.token");
+			const response = await fetch(url, { method: "PUT", headers });
+			if (!response.ok)
+				throw new AbortTaskRunError(
+					`Request to ${url.pathname} failed (${response.status})`,
+				);
 
-		await redis().json.set(GBP.credentials, "$.token", `"${newToken}"`);
+			const newToken = response.headers.get("x-token");
+			if (!newToken)
+				throw new AbortTaskRunError(
+					`Request to ${url.pathname} not returning new token`,
+				);
 
-		const bytes = await response.arrayBuffer().then(decrypt);
+			await redis().json.set(GBP.credentials, "$.token", `"${newToken}"`);
 
-		const output = fromBinary(UserProfileSchema, bytes);
-		const json = toJson(UserProfileSchema, output);
-		metadata.root.set(`profile:${uid}`, { output: json });
+			return response.arrayBuffer().then(decrypt);
+		});
 
-		return { ...output, json };
+		return logger.trace("parse-gbp-profile", async (span) => {
+			span.setAttribute?.("uid", uid);
+			span.setAttribute?.("typeName", UserProfileSchema.typeName);
+
+			const output = fromBinary(UserProfileSchema, bytes);
+			const json = toJson(UserProfileSchema, output);
+			metadata.root.set(`profile:${uid}`, { output: json });
+
+			return { ...output, json };
+		});
 	},
 	1,
 );
 
-const decrypt = async (data: ArrayBuffer) => {
+const decrypt = (() => {
 	const { BANG_DREAM_AES_KEY, BANG_DREAM_AES_IV } = process.env;
 	if (!BANG_DREAM_AES_KEY || !BANG_DREAM_AES_IV)
 		throw new AbortTaskRunError("BanG Dream decryption keys are missing.");
@@ -175,14 +193,19 @@ const decrypt = async (data: ArrayBuffer) => {
 	const key = Buffer.from(BANG_DREAM_AES_KEY);
 	const iv = Buffer.from(BANG_DREAM_AES_IV);
 
-	const decipher = createDecipheriv("aes-128-cbc", key, iv);
-	decipher.setAutoPadding(false);
+	return async (data: ArrayBuffer) =>
+		logger.trace("decrypt-gbp-response", async () => {
+			{
+				const decipher = createDecipheriv("aes-128-cbc", key, iv);
+				decipher.setAutoPadding(false);
 
-	const plain = Buffer.concat([
-		decipher.update(Buffer.from(data)),
-		decipher.final(),
-	]);
+				const plain = Buffer.concat([
+					decipher.update(Buffer.from(data)),
+					decipher.final(),
+				]);
 
-	const paddingLength = plain[plain.length - 1];
-	return plain.subarray(0, plain.length - paddingLength);
-};
+				const paddingLength = plain[plain.length - 1];
+				return plain.subarray(0, plain.length - paddingLength);
+			}
+		});
+})();

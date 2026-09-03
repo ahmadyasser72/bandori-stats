@@ -1,4 +1,4 @@
-import { metadata, schemaTask, tags } from "@trigger.dev/sdk";
+import { logger, schemaTask, tags } from "@trigger.dev/sdk";
 import { allKeyed, capitalize, mapValues, pick, sumBy } from "es-toolkit";
 import z from "zod";
 
@@ -45,12 +45,12 @@ export const updateTrackerProfile = schemaTask({
 		await tags.add(`version_${version ?? "n/a"}`);
 		if (!version) return;
 
-		const profiles = await (async () => {
+		const profiles = await logger.trace("fetch-profiles", async (span) => {
 			const getFromCache = new Set<string>();
 			for (const { uid, trackingReference } of players) {
 				if (trackingReference.trackingFor === "music") {
 					getFromCache.delete(uid);
-					metadata.append("profile-cache-skip", uid);
+					span.setAttribute?.(uid, "no-cache");
 				} else {
 					getFromCache.add(uid);
 				}
@@ -68,9 +68,9 @@ export const updateTrackerProfile = schemaTask({
 				const uid = uids[idx];
 				if (profile) {
 					profiles.set(uid, profile);
-					metadata.append("profile-cache-hit", uid);
+					span.setAttribute?.(uid, "cache-hit");
 				} else {
-					metadata.append("profile-cache-miss", uid);
+					span.setAttribute?.(uid, "cache-miss");
 				}
 			}
 
@@ -91,22 +91,27 @@ export const updateTrackerProfile = schemaTask({
 			}
 
 			return profiles;
-		})();
+		});
 		if (profiles.size === 0) return;
 
-		const { areaItems, skills } = await allKeyed({
-			areaItems: getAreaItems(
-				[...profiles.values()].flatMap(
-					({ enabledUserAreaItems }) =>
-						enabledUserAreaItems?.entries.map(({ areaItemId }) => areaItemId) ??
-						[],
-				),
-			),
-			skills: bestdori({
-				path: "api/skills/all.10.json",
-				schema: Skills,
-			}),
-		});
+		const { areaItems, skills } = await logger.trace(
+			"fetch-area-items-skills",
+			() =>
+				allKeyed({
+					areaItems: getAreaItems(
+						[...profiles.values()].flatMap(
+							({ enabledUserAreaItems }) =>
+								enabledUserAreaItems?.entries.map(
+									({ areaItemId }) => areaItemId,
+								) ?? [],
+						),
+					),
+					skills: bestdori({
+						path: "api/skills/all.10.json",
+						schema: Skills,
+					}),
+				}),
+		);
 
 		const values: (typeof trackerSnapshotProfiles.$inferInsert | null)[] =
 			await Promise.all(
@@ -114,61 +119,67 @@ export const updateTrackerProfile = schemaTask({
 					const profile = profiles.get(uid);
 					if (!profile) return null;
 
-					const bandMembers = await Promise.all(
-						(profile.mainDeckUserSituations?.entries ?? []).map((data) =>
-							getBandMember(data, skills),
-						),
-					);
+					return logger.trace("generate-value", async (span) => {
+						span.setAttributes?.({ uid, ...trackingReference });
 
-					return allKeyed({
-						...trackingReference,
+						const bandMembers = await Promise.all(
+							(profile.mainDeckUserSituations?.entries ?? []).map((data) =>
+								getBandMember(data, skills),
+							),
+						);
 
-						uid,
-						name: profile.userName,
-						level: profile.rank,
-						introduction: profile.introduction,
-						avatar: getAvatar(profile),
+						return allKeyed({
+							...trackingReference,
 
-						band: {
-							name: profile.mainUserDeck?.deckName!,
-							totalStats: profile.publishBandRankFlg
-								? calculateTotalBandStats(
-										bandMembers,
-										(profile.enabledUserAreaItems?.entries ?? []).map(
-											({ areaItemId }) => areaItems[areaItemId],
-										),
-									)
-								: null,
-							members: bandMembers,
-						},
+							uid,
+							name: profile.userName,
+							level: profile.rank,
+							introduction: profile.introduction,
+							avatar: getAvatar(profile),
 
-						titles: Object.values(
-							profile.userProfileDegreeMap?.entries ?? {},
-						).map(({ degreeId }) => degreeId),
+							band: {
+								name: profile.mainUserDeck?.deckName!,
+								totalStats: profile.publishBandRankFlg
+									? calculateTotalBandStats(
+											bandMembers,
+											(profile.enabledUserAreaItems?.entries ?? []).map(
+												({ areaItemId }) => areaItems[areaItemId],
+											),
+										)
+									: null,
+								members: bandMembers,
+							},
+
+							titles: Object.values(
+								profile.userProfileDegreeMap?.entries ?? {},
+							).map(({ degreeId }) => degreeId),
+						});
 					});
 				}),
 			);
 
-		await db()
-			.insert(trackerSnapshotProfiles)
-			.values(values.filter((value) => value !== null))
-			.onConflictDoUpdate({
-				target: [
-					trackerSnapshotProfiles.uid,
-					trackerSnapshotProfiles.trackingFor,
-					trackerSnapshotProfiles.trackingId,
-				],
-				set: {
-					name: sql.raw(`excluded.${trackerSnapshotProfiles.name.name}`),
-					level: sql.raw(`excluded.${trackerSnapshotProfiles.level.name}`),
-					introduction: sql.raw(
-						`excluded.${trackerSnapshotProfiles.introduction.name}`,
-					),
-					avatar: sql.raw(`excluded.${trackerSnapshotProfiles.avatar.name}`),
-					band: sql.raw(`excluded.${trackerSnapshotProfiles.band.name}`),
-					titles: sql.raw(`excluded.${trackerSnapshotProfiles.titles.name}`),
-				},
-			});
+		await logger.trace("insert-profiles", () =>
+			db()
+				.insert(trackerSnapshotProfiles)
+				.values(values.filter((value) => value !== null))
+				.onConflictDoUpdate({
+					target: [
+						trackerSnapshotProfiles.uid,
+						trackerSnapshotProfiles.trackingFor,
+						trackerSnapshotProfiles.trackingId,
+					],
+					set: {
+						name: sql.raw(`excluded.${trackerSnapshotProfiles.name.name}`),
+						level: sql.raw(`excluded.${trackerSnapshotProfiles.level.name}`),
+						introduction: sql.raw(
+							`excluded.${trackerSnapshotProfiles.introduction.name}`,
+						),
+						avatar: sql.raw(`excluded.${trackerSnapshotProfiles.avatar.name}`),
+						band: sql.raw(`excluded.${trackerSnapshotProfiles.band.name}`),
+						titles: sql.raw(`excluded.${trackerSnapshotProfiles.titles.name}`),
+					},
+				}),
+		);
 	},
 });
 
