@@ -66,7 +66,7 @@ export const scheduleUpdateTracker = schedules.task({
 			(async () => {
 				if (!event || now.isBefore(event.startAt)) return [];
 				// @ts-ignore Date is parse-able
-				triggerMetadata.set("event", event);
+				triggerMetadata.set(`event:${event.assetBundleName}`, event);
 
 				const {
 					points = [],
@@ -150,7 +150,7 @@ export const scheduleUpdateTracker = schedules.task({
 			(async () => {
 				if (!monthly || now.isBefore(monthly.startAt)) return [];
 				// @ts-ignore Date is parse-able
-				triggerMetadata.set("monthly", monthly);
+				triggerMetadata.set(`monthly:${monthly.assetBundleName}`, monthly);
 
 				const data = await bangDream(version, "monthly", monthly.id);
 				const points = data.monthlyRankingPointTopUsers?.entries ?? [];
@@ -292,10 +292,18 @@ const insertSnapshots = async (
 		})(),
 	});
 
+	const snapshots = [...musics.values, ...points.values];
+	const cutoffs = [...musics.cutoffs, ...points.cutoffs];
+	// @ts-ignore Date is parse-able
+	triggerMetadata.set(`insert:${metadata.kind}:${metadata.assetBundleName}`, {
+		snapshots,
+		cutoffs,
+	});
+
 	const [inserted] = await db().batch([
 		db()
 			.insert(trackerSnapshots)
-			.values([...musics.values, ...points.values])
+			.values(snapshots)
 			.onConflictDoNothing()
 			.returning({
 				uid: trackerSnapshots.uid,
@@ -307,7 +315,7 @@ const insertSnapshots = async (
 			}),
 		db()
 			.insert(trackerCutoffs)
-			.values([...musics.cutoffs, ...points.cutoffs])
+			.values(cutoffs)
 			.onConflictDoUpdate({
 				target: [
 					trackerCutoffs.trackingFor,
