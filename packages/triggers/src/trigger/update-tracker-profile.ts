@@ -153,11 +153,7 @@ const getCardById = async (id: number) =>
 export const getAvatar = async ({
 	userProfileSituation,
 }: Pick<UserProfile, "userProfileSituation">) => {
-	if (
-		!userProfileSituation ||
-		!("situationId" in userProfileSituation && "illust" in userProfileSituation)
-	)
-		return null;
+	if (!userProfileSituation || !userProfileSituation.situationId) return null;
 
 	const card = await getCardById(userProfileSituation.situationId);
 	return {
