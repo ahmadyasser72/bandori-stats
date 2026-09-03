@@ -25,6 +25,11 @@ export const relations = defineRelations(schema, (r) => ({
 			to: r.trackerSnapshots.trackingId,
 			where: { trackingFor: "event" },
 		}),
+		cutoffs: r.many.trackerCutoffs({
+			from: r.gbpEvents.id,
+			to: r.trackerCutoffs.trackingId,
+			where: { trackingFor: "event" },
+		}),
 		musics: r.many.gbpEventMusics({
 			from: r.gbpEvents.id,
 			to: r.gbpEventMusics.eventId,
@@ -34,6 +39,11 @@ export const relations = defineRelations(schema, (r) => ({
 		snapshots: r.many.trackerSnapshots({
 			from: r.gbpMonthlyRankings.id,
 			to: r.trackerSnapshots.trackingId,
+			where: { trackingFor: "monthly" },
+		}),
+		cutoffs: r.many.trackerCutoffs({
+			from: r.gbpMonthlyRankings.id,
+			to: r.trackerCutoffs.trackingId,
 			where: { trackingFor: "monthly" },
 		}),
 	},

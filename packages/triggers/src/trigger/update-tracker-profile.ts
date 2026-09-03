@@ -129,7 +129,9 @@ export const updateTrackerProfile = schemaTask({
 const getCardById = async (id: number) =>
 	bestdori({ path: `api/cards/${id}.json`, schema: Card });
 
-const getAvatar = async ({ userProfileSituation }: UserProfile) => {
+export const getAvatar = async ({
+	userProfileSituation,
+}: Pick<UserProfile, "userProfileSituation">) => {
 	if (
 		!userProfileSituation ||
 		!("situationId" in userProfileSituation && "illust" in userProfileSituation)

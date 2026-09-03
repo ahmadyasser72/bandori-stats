@@ -7,6 +7,7 @@ import {
 	text,
 	unique,
 } from "drizzle-orm/sqlite-core";
+import { omit } from "es-toolkit";
 import type z from "zod";
 
 import type { Stats } from "@bandori-stats/bestdori/constants";
@@ -61,7 +62,7 @@ export type Account = typeof accounts.$inferSelect;
 export type Snapshot = typeof accountSnapshots.$inferSelect;
 
 export const { gbpEvents, gbpMonthlyRankings } = (() => {
-	const fields = {
+	const shared = {
 		id: integer().primaryKey({ autoIncrement: false }),
 		name: text().notNull().unique(),
 		assetBundleName: text().notNull(),
@@ -73,12 +74,12 @@ export const { gbpEvents, gbpMonthlyRankings } = (() => {
 
 	return {
 		gbpEvents: sqliteTable("gbp_events", {
-			...fields,
+			...shared,
 			bannerAssetBundleName: text().notNull(),
 			type: text().notNull().$type<z.infer<typeof GameEventType>>(),
 			metadata: text({ mode: "json" }).notNull().$type<EventMetadata>(),
 		}),
-		gbpMonthlyRankings: sqliteTable("gbp_monthly_rankings", fields),
+		gbpMonthlyRankings: sqliteTable("gbp_monthly_rankings", shared),
 	};
 })();
 
@@ -100,9 +101,8 @@ export const gbpEventMusics = sqliteTable(
 	(t) => [primaryKey({ columns: [t.eventId, t.id] })],
 );
 
-export const trackerSnapshots = sqliteTable(
-	"tracker_snapshots",
-	{
+export const { trackerSnapshots, trackerCutoffs } = (() => {
+	const shared = {
 		id: integer().primaryKey({ autoIncrement: true }),
 		trackingFor: text().$type<TrackerKind>().notNull(),
 		trackingId: integer().notNull(),
@@ -112,33 +112,51 @@ export const trackerSnapshots = sqliteTable(
 		rank: integer().notNull(),
 		point: integer().notNull(),
 		timestamp: integer({ mode: "timestamp_ms" }).notNull(),
-	},
-	(t) => [
-		index("idx_tracker_1").on(t.trackingFor, t.trackingId, t.uid, t.id),
-		index("idx_tracker_2").on(
-			t.trackingFor,
-			t.trackingId,
-			t.uid,
-			t.timestamp,
-			t.id,
+	} as const;
+
+	return {
+		trackerSnapshots: sqliteTable("tracker_snapshots", shared, (t) => [
+			index("idx_tracker_1").on(t.trackingFor, t.trackingId, t.uid, t.id),
+			index("idx_tracker_2").on(
+				t.trackingFor,
+				t.trackingId,
+				t.uid,
+				t.timestamp,
+				t.id,
+			),
+			index("idx_tracker_3").on(
+				t.trackingFor,
+				t.trackingId,
+				t.uid,
+				t.point,
+				t.id,
+			),
+			unique("idx_tracker_data").on(
+				t.uid,
+				t.trackingFor,
+				t.trackingId,
+				t.name,
+				t.rank,
+				t.point,
+			),
+		]),
+		trackerCutoffs: sqliteTable(
+			"tracker_cutoffs",
+			{
+				...omit(shared, ["uid"]),
+				avatar: text({ mode: "json" }).$type<PlayerBandMemberStateless>(),
+			},
+			(t) => [
+				unique("idx_cutoff_data").on(
+					t.trackingFor,
+					t.trackingId,
+					t.rank,
+					t.point,
+				),
+			],
 		),
-		index("idx_tracker_3").on(
-			t.trackingFor,
-			t.trackingId,
-			t.uid,
-			t.point,
-			t.id,
-		),
-		unique("idx_tracker_data").on(
-			t.uid,
-			t.trackingFor,
-			t.trackingId,
-			t.name,
-			t.rank,
-			t.point,
-		),
-	],
-);
+	};
+})();
 
 export const trackerSnapshotProfiles = sqliteTable(
 	"tracker_snapshot_profiles",
@@ -166,5 +184,6 @@ export type GbpMetadata =
 	| ({ kind: "monthly" } & GbpMonthlyRanking);
 
 export type TrackerSnapshot = typeof trackerSnapshots.$inferSelect;
+export type TrackerCutoff = typeof trackerCutoffs.$inferSelect;
 export type TrackerSnapshotProfile =
 	typeof trackerSnapshotProfiles.$inferSelect;
