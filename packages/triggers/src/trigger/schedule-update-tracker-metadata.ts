@@ -1,6 +1,5 @@
 import { schedules, tags } from "@trigger.dev/sdk";
 import {
-	Client,
 	GuildScheduledEventEntityType,
 	GuildScheduledEventPrivacyLevel,
 } from "discord.js";
@@ -19,6 +18,7 @@ import {
 	gbpMonthlyRankings,
 } from "@bandori-stats/database/schema";
 import { bestdori } from "~/bestdori";
+import { useDiscordBot } from "~/discord";
 import { githubRedeploy } from "./github-redeploy";
 
 export const scheduleUpdateTrackerMetadata = schedules.task({
@@ -122,13 +122,7 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 						}
 					}
 
-					const { DISCORD_BOT_TOKEN, DISCORD_GUILD_ID } = process.env;
-					if (!DISCORD_BOT_TOKEN || !DISCORD_GUILD_ID) return;
-
-					const client = new Client({ intents: [] });
-					try {
-						await client.login(DISCORD_BOT_TOKEN);
-
+					await useDiscordBot(async ({ guild }) => {
 						const attribute = metadata.attributes.at(0)?.attribute ?? "unknown";
 						const characters = metadata.characters.map(
 							({ characterId }) =>
@@ -139,7 +133,6 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 							schema: false,
 						}).then((response) => response.arrayBuffer());
 
-						const guild = await client.guilds.fetch(DISCORD_GUILD_ID);
 						await guild.scheduledEvents.create({
 							name: `#${event.eventId} ${event.eventName}`,
 							entityType: GuildScheduledEventEntityType.External,
@@ -157,9 +150,7 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 								`https://bestdori.com/info/events/${event.eventId}`,
 							].join("\n"),
 						});
-					} finally {
-						await client.destroy();
-					}
+					});
 
 					return true;
 				})(),

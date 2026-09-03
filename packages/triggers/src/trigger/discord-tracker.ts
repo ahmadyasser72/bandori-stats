@@ -38,6 +38,7 @@ import {
 	trackerSnapshots,
 	type GbpMetadata,
 } from "@bandori-stats/database/schema";
+import { useDiscordBot } from "~/discord";
 
 export const discordTracker = schemaTask({
 	id: "discord-tracker",
@@ -58,18 +59,10 @@ export const discordTracker = schemaTask({
 			.startOf("hour")
 			.add(1, "hour");
 
-		const { DISCORD_BOT_TOKEN, DISCORD_GUILD_ID } = process.env;
-		if (!DISCORD_BOT_TOKEN || !DISCORD_GUILD_ID)
-			throw new AbortTaskRunError("Discord credentials are missing.");
-
 		await wait.until({ date: now.toDate() });
 
-		const client = new Client({ intents: [] });
-		try {
-			await client.login(DISCORD_BOT_TOKEN);
-			await client.guilds
-				.fetch(DISCORD_GUILD_ID)
-				.then((guild) => guild.channels.fetch());
+		await useDiscordBot(async ({ client, guild }) => {
+			await guild.channels.fetch();
 
 			const anHourAgo = now.subtract(1, "hour");
 			const yesterday = now.subtract(1, "day");
@@ -145,9 +138,7 @@ export const discordTracker = schemaTask({
 			const errors = results.filter((promise) => promise.status === "rejected");
 			for (const { reason } of errors) console.error(reason);
 			if (errors.length > 0) await tags.add("error_settled");
-		} finally {
-			await client.destroy();
-		}
+		});
 	},
 });
 
