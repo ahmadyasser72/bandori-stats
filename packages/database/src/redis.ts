@@ -1,5 +1,5 @@
 import { Redis } from "@upstash/redis";
-import { once } from "es-toolkit";
+import { once, uniq } from "es-toolkit";
 
 import type { GbpMetadata } from "./schema";
 import type { PlayerBandMemberStat } from "./schema/tracker";
@@ -64,19 +64,23 @@ const emptyAreaItem = {
 	targetAttributes: [],
 	targetBandIds: [],
 };
-export const getAreaItems = async (
-	ids: number[],
-): Promise<BangDreamAreaItem[]> => {
-	if (ids.length === 0) return [];
+export const getAreaItems = async (ids: number[]) => {
+	if (ids.length === 0) return {};
 
-	const paths = ids.map((id) => `$.${id}`);
+	const uniqueIds = uniq(ids);
+	const paths = uniqueIds.map((id) => `$.${id}`);
 	const results = await redis().json.get<Record<string, [BangDreamAreaItem]>>(
 		GBP.areaItems,
 		...paths,
 	);
-	if (!results) return ids.map(() => emptyAreaItem);
+	if (!results) return Object.fromEntries(ids.map((id) => [id, emptyAreaItem]));
 
-	return paths.map((path) => results[path].pop() ?? emptyAreaItem);
+	return Object.fromEntries(
+		paths.map((path, idx) => [
+			uniqueIds[idx],
+			results[path].pop() ?? emptyAreaItem,
+		]),
+	);
 };
 
 export interface NotifyWhenPlayer {

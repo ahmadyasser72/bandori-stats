@@ -7,7 +7,12 @@ import { unwrapRegionTuple } from "@bandori-stats/bestdori/helpers";
 import { Card } from "@bandori-stats/bestdori/schema/cards";
 import { Skills } from "@bandori-stats/bestdori/schema/skills";
 import { db, sql } from "@bandori-stats/database";
-import { GBP, getAreaItems, redis } from "@bandori-stats/database/redis";
+import {
+	GBP,
+	getAreaItems,
+	redis,
+	type BangDreamAreaItem,
+} from "@bandori-stats/database/redis";
 import { trackerSnapshotProfiles } from "@bandori-stats/database/schema";
 import {
 	STAT_TYPES,
@@ -64,9 +69,18 @@ export const updateTrackerProfile = schemaTask({
 		}
 		if (profiles.size === 0) return;
 
-		const skills = await bestdori({
-			path: "api/skills/all.10.json",
-			schema: Skills,
+		const { areaItems, skills } = await allKeyed({
+			areaItems: getAreaItems(
+				[...profiles.values()].flatMap(
+					({ enabledUserAreaItems }) =>
+						enabledUserAreaItems?.entries.map(({ areaItemId }) => areaItemId) ??
+						[],
+				),
+			),
+			skills: bestdori({
+				path: "api/skills/all.10.json",
+				schema: Skills,
+			}),
 		});
 
 		const values: (typeof trackerSnapshotProfiles.$inferInsert | null)[] =
@@ -90,11 +104,18 @@ export const updateTrackerProfile = schemaTask({
 						introduction: profile.introduction,
 						avatar: getAvatar(profile),
 
-						band: allKeyed({
+						band: {
 							name: profile.mainUserDeck?.deckName!,
-							totalStats: calculateTotalBandStats(profile, bandMembers),
+							totalStats: profile.publishBandRankFlg
+								? calculateTotalBandStats(
+										bandMembers,
+										(profile.enabledUserAreaItems?.entries ?? []).map(
+											({ areaItemId }) => areaItems[areaItemId],
+										),
+									)
+								: null,
 							members: bandMembers,
-						}),
+						},
 
 						titles: Object.values(
 							profile.userProfileDegreeMap?.entries ?? {},
@@ -226,16 +247,11 @@ const getBandMember = async (
 	} satisfies PlayerBandMember;
 };
 
-const calculateTotalBandStats = async (
-	{ publishTotalDeckPowerFlg, enabledUserAreaItems }: UserProfile,
+const calculateTotalBandStats = (
 	bandMembers: Awaited<ReturnType<typeof getBandMember>>[],
-) => {
-	if (!publishTotalDeckPowerFlg) return null;
-
-	const areaItems = await getAreaItems(
-		(enabledUserAreaItems?.entries ?? []).map(({ areaItemId }) => areaItemId),
-	);
-	return Object.fromEntries(
+	areaItems: BangDreamAreaItem[],
+) =>
+	Object.fromEntries(
 		STAT_TYPES.map((type) => [
 			type,
 			sumBy(bandMembers, ({ attribute, band, stat }) => {
@@ -251,7 +267,6 @@ const calculateTotalBandStats = async (
 			}),
 		]),
 	);
-};
 
 const ZERO_STAT = { performance: 0, technique: 0, visual: 0 };
 
