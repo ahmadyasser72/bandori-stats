@@ -74,7 +74,7 @@ export const { gbpEvents, gbpMonthlyRankings } = (() => {
 			...fields,
 			bannerAssetBundleName: text().notNull(),
 			type: text().notNull().$type<z.infer<typeof GameEventType>>(),
-			metadata: text({ mode: "json" }).$type<EventMetadata>(),
+			metadata: text({ mode: "json" }).notNull().$type<EventMetadata>(),
 		}),
 		gbpMonthlyRankings: sqliteTable("gbp_monthly_rankings", fields),
 	};
