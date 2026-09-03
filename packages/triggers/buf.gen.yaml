@@ -2,4 +2,6 @@ version: v2
 plugins:
   - local: ../../node_modules/.bin/protoc-gen-es
     out: src/bang-dream-gbp/gen
-    opt: target=ts
+    opt:
+      - target=ts
+      - json_types=true

@@ -3,7 +3,7 @@ import { createDecipheriv } from "node:crypto";
 import { fromBinary, toJson, type Message } from "@bufbuild/protobuf";
 import type { GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { AbortTaskRunError, metadata } from "@trigger.dev/sdk";
-import { limitAsync, omit } from "es-toolkit";
+import { limitAsync } from "es-toolkit";
 import type z from "zod";
 
 import type { GameEventType } from "@bandori-stats/bestdori/schema/misc";
@@ -40,6 +40,10 @@ const PROTOBUF = {
 
 type ProtobufOutput<T extends MetadataType> =
 	(typeof PROTOBUF)[T] extends GenMessage<infer O> ? O : never;
+type ProtobufOutputJson<T extends MetadataType> =
+	(typeof PROTOBUF)[T] extends GenMessage<any, { jsonType: infer O }>
+		? O
+		: never;
 
 export const bangDream = limitAsync(
 	async <T extends MetadataType>(version: string, type: T, id: number) => {
@@ -97,13 +101,12 @@ export const bangDream = limitAsync(
 
 		const schema = PROTOBUF[type];
 		const output = fromBinary(schema, bytes);
-		metadata.root.set(`${type}:${id}`, {
-			path,
-			headers: Object.fromEntries(response.headers.entries()),
-			output: toJson(schema, output),
-		});
+		const json = toJson(schema, output);
+		metadata.root.set(`${type}:${id}`, { path, output: json });
 
-		return output as unknown as ProtobufOutput<typeof type>;
+		return { ...output, json } as unknown as ProtobufOutput<typeof type> & {
+			json: ProtobufOutputJson<typeof type>;
+		};
 	},
 	1,
 );
@@ -156,14 +159,10 @@ export const bangDreamProfile = limitAsync(
 		const bytes = await response.arrayBuffer().then(decrypt);
 
 		const output = fromBinary(UserProfileSchema, bytes);
-		metadata.root.set(`profile:${uid}`, {
-			headers: omit(Object.fromEntries(response.headers.entries()), [
-				"x-token",
-			]),
-			output: toJson(UserProfileSchema, output),
-		});
+		const json = toJson(UserProfileSchema, output);
+		metadata.root.set(`profile:${uid}`, { output: json });
 
-		return output;
+		return { ...output, json };
 	},
 	1,
 );

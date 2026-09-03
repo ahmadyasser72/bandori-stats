@@ -21,7 +21,10 @@ import {
 } from "@bandori-stats/database/tracker";
 import { bangDreamProfile } from "~/bang-dream-gbp/fetch";
 import type { UserSituation } from "~/bang-dream-gbp/gen/common_pb";
-import type { UserProfile } from "~/bang-dream-gbp/gen/profile_pb";
+import type {
+	UserProfile,
+	UserProfileJson,
+} from "~/bang-dream-gbp/gen/profile_pb";
 import { bestdori } from "~/bestdori";
 
 export const updateTrackerProfile = schemaTask({
@@ -71,13 +74,13 @@ export const updateTrackerProfile = schemaTask({
 				}
 			}
 
-			const profilesToCache = [] as [string, UserProfile][];
+			const profilesToCache = [] as [string, UserProfileJson][];
 			for (const { uid } of players) {
 				if (profiles.has(uid)) continue;
 
 				const profile = await bangDreamProfile(version, uid);
 				profiles.set(uid, profile);
-				profilesToCache.push([getProfileCacheKey(uid), profile]);
+				profilesToCache.push([getProfileCacheKey(uid), profile.json]);
 			}
 
 			if (profilesToCache.length > 0) {
