@@ -1,8 +1,7 @@
-import { idempotencyKeys, schemaTask, tags } from "@trigger.dev/sdk";
+import { metadata, schemaTask, tags } from "@trigger.dev/sdk";
 import { allKeyed, capitalize, mapValues, pick, sumBy } from "es-toolkit";
 import z from "zod";
 
-import dayjs from "@bandori-stats/bestdori/date";
 import { unwrapRegionTuple } from "@bandori-stats/bestdori/helpers";
 import { Card } from "@bandori-stats/bestdori/schema/cards";
 import { Skills } from "@bandori-stats/bestdori/schema/skills";
@@ -20,10 +19,10 @@ import {
 	type PlayerBandMember,
 	type PlayerBandMemberStateless,
 } from "@bandori-stats/database/tracker";
+import { bangDreamProfile } from "~/bang-dream-gbp/fetch";
 import type { UserSituation } from "~/bang-dream-gbp/gen/common_pb";
 import type { UserProfile } from "~/bang-dream-gbp/gen/profile_pb";
 import { bestdori } from "~/bestdori";
-import { bandoriProfile } from "./bandori-profile";
 
 export const updateTrackerProfile = schemaTask({
 	id: "update-tracker-profile",
@@ -43,30 +42,53 @@ export const updateTrackerProfile = schemaTask({
 		await tags.add(`version_${version ?? "n/a"}`);
 		if (!version) return;
 
-		const profiles = new Map<string, UserProfile>();
-		const thisHour = dayjs().startOf("hours").unix();
-		for (const { uid, trackingReference } of players) {
-			const idempotencyKey = await idempotencyKeys.create(
-				`profile:bandori:${uid}:${thisHour}`,
-				{ scope: "global" },
-			);
-			if (trackingReference.trackingFor === "music") {
-				await idempotencyKeys.reset(bandoriProfile.id, idempotencyKey, {
-					scope: "global",
-				});
+		const profiles = await (async () => {
+			const getFromCache = new Set<string>();
+			for (const { uid, trackingReference } of players) {
+				if (trackingReference.trackingFor === "music") {
+					getFromCache.delete(uid);
+					metadata.append("profile-cache-skip", uid);
+				} else {
+					getFromCache.add(uid);
+				}
 			}
 
-			const run = await bandoriProfile.triggerAndWait(
-				{ uid },
-				{ idempotencyKey, idempotencyKeyTTL: "1h" },
+			const getProfileCacheKey = (uid: string) => `gbp:profile:${uid}`;
+
+			const uids = [...getFromCache];
+			const fromRedis = await redis().mget<(UserProfile | null)[]>(
+				...uids.map(getProfileCacheKey),
 			);
-			if (!run.ok) {
-				console.error(run.error);
-				continue;
+
+			const profiles = new Map<string, UserProfile>();
+			for (const [idx, profile] of fromRedis.entries()) {
+				const uid = uids[idx];
+				if (profile) {
+					profiles.set(uid, profile);
+					metadata.append("profile-cache-hit", uid);
+				} else {
+					metadata.append("profile-cache-miss", uid);
+				}
 			}
 
-			profiles.set(uid, run.output!);
-		}
+			const profilesToCache = [] as [string, UserProfile][];
+			for (const { uid } of players) {
+				if (profiles.has(uid)) continue;
+
+				const profile = await bangDreamProfile(version, uid);
+				profiles.set(uid, profile);
+				profilesToCache.push([getProfileCacheKey(uid), profile]);
+			}
+
+			if (profilesToCache.length > 0) {
+				const pipe = redis().pipeline();
+				for (const [key, profile] of profilesToCache)
+					pipe.set(key, profile, { ex: 60 * 60 });
+				await pipe.exec();
+			}
+
+			return profiles;
+		})();
 		if (profiles.size === 0) return;
 
 		const { areaItems, skills } = await allKeyed({

@@ -292,8 +292,8 @@ const insertSnapshots = async (
 		})(),
 	});
 
-	const snapshots = [...musics.values, ...points.values];
-	const cutoffs = [...musics.cutoffs, ...points.cutoffs];
+	const snapshots = [...points.values, ...musics.values];
+	const cutoffs = [...points.cutoffs, ...musics.cutoffs];
 	// @ts-ignore Date is parse-able
 	triggerMetadata.set(`insert:${metadata.kind}:${metadata.assetBundleName}`, {
 		snapshots,
