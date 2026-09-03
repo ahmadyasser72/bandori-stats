@@ -19,13 +19,13 @@ import {
 } from "@bandori-stats/database/schema";
 import { bestdori } from "~/bestdori";
 import { useDiscordBot } from "~/discord";
-import { githubRedeploy } from "./github-redeploy";
+import { githubRedeploy } from "~/github";
 
 export const scheduleUpdateTrackerMetadata = schedules.task({
 	id: "schedule-update-tracker-metadata",
 	cron: { pattern: "0 */12 * * *", timezone: GBP_TIMEZONE },
 	machine: "small-2x",
-	run: async () => {
+	run: async (_, { ctx }) => {
 		const [currentVersion, currentEvent, currentMonthly, areaItems] =
 			await redis().mget<(unknown | null)[]>(
 				GBP.version,
@@ -188,6 +188,6 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 				(promise) => promise.status === "fulfilled" && promise.value === true,
 			)
 		)
-			await githubRedeploy.trigger();
+			await githubRedeploy(ctx);
 	},
 });

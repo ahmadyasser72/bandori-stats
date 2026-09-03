@@ -1,10 +1,41 @@
-import { AbortTaskRunError, schedules, tags } from "@trigger.dev/sdk";
+import { schedules, wait } from "@trigger.dev/sdk";
 
-import { GBP_TIMEZONE, STAT_NAMES } from "@bandori-stats/bestdori/constants";
-import dayjs from "@bandori-stats/bestdori/date";
-import { db, eq } from "@bandori-stats/database";
+import {
+	GBP_TIMEZONE,
+	STAT_NAMES,
+	type RawStatName,
+	type StatName,
+} from "@bandori-stats/bestdori/constants";
+import { PlayerLeaderboard } from "@bandori-stats/bestdori/schema/player/leaderboard";
+import { db } from "@bandori-stats/database";
 import { accounts } from "@bandori-stats/database/schema";
-import { bestdoriLeaderboard } from "./bestdori-leaderboard";
+import { bestdori } from "~/bestdori";
+
+const fetchLeaderboard = (() => {
+	const leaderboardTypeMap: Record<StatName, RawStatName> = {
+		highScoreRating: "hsr",
+		bandRating: "dtr",
+		allPerfectCount: "allPerfectCount",
+		fullComboCount: "fullComboCount",
+		clearCount: "clearCount",
+		rank: "rank",
+	};
+
+	return async (type: StatName, limit: number, offset: number) => {
+		const data = await bestdori({
+			path: "api/sync/list/player",
+			schema: PlayerLeaderboard,
+			query: {
+				server: "1",
+				stats: leaderboardTypeMap[type],
+				limit: limit.toString(),
+				offset: offset.toString(),
+			},
+		});
+
+		return data.rows.map((row) => row.user);
+	};
+})();
 
 export const scheduleUpdateAccounts = schedules.task({
 	id: "schedule-update-accounts",
@@ -12,46 +43,32 @@ export const scheduleUpdateAccounts = schedules.task({
 		pattern: "0 0 1 * *",
 		timezone: GBP_TIMEZONE,
 	},
-	run: async (context) => {
-		const now = dayjs.tz(context.timestamp, GBP_TIMEZONE);
-		const untilNextSnapshotUpdate = now.add(4.5, "minutes").diff(now);
-		const { runs } = await bestdoriLeaderboard.batchTriggerAndWait(
-			Array.from({ length: 4 }).flatMap((_, page) =>
-				STAT_NAMES.map((type) => ({
-					payload: { type, limit: 50, offset: page * 50 },
-					options: {
-						delay: now.add(Math.random() * untilNextSnapshotUpdate).toDate(),
-						tags: `leaderboard_${type}`,
-					},
-				})),
-			),
+	run: async () => {
+		const parameters = Array.from({ length: 4 }).flatMap((_, page) =>
+			STAT_NAMES.map((type) => [type, 50, page * 50] as const),
 		);
 
-		const usernameToNickname = new Map<string, string | null>();
-		for (const run of runs) {
-			if (!run.ok) throw new AbortTaskRunError(`Run #${run.id} failed`);
-			for (const { username, nickname } of run.output)
-				usernameToNickname.set(username, nickname);
+		const waitDuration = (4.5 * 60) / parameters.length;
+		const values = [] as { username: string; nickname: string | null }[];
+		for (const params of parameters) {
+			await wait.for({ seconds: waitDuration });
+			const results = await fetchLeaderboard(...params);
+			values.push(...results);
 		}
+		if (values.length === 0) return;
 
-		const existingAccounts = await db().query.accounts.findMany();
-		const rowsAffected = await Promise.all(
-			[...usernameToNickname.entries()].map(([username, nickname]) => {
-				const existing = existingAccounts.find(
-					(it) => it.username === username,
-				);
+		const upsertAccount = ({
+			username,
+			nickname,
+		}: Awaited<ReturnType<typeof fetchLeaderboard>>[number]) =>
+			db()
+				.insert(accounts)
+				.values({ username, nickname })
+				.onConflictDoUpdate({ target: accounts.username, set: { nickname } });
 
-				return existing !== undefined
-					? db()
-							.update(accounts)
-							.set({ nickname })
-							.where(eq(accounts.id, existing.id))
-					: db().insert(accounts).values({ username, nickname });
-			}),
-		).then((results) =>
-			results.reduce((acc, { rowsAffected }) => acc + rowsAffected, 0),
-		);
-
-		await tags.add(`accounts_~${rowsAffected}`);
+		await db().batch([
+			upsertAccount(values[0]),
+			...values.slice(1).map(upsertAccount),
+		]);
 	},
 });

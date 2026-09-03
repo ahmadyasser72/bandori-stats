@@ -4,8 +4,7 @@ import { Random } from "random";
 import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
 import dayjs from "@bandori-stats/bestdori/date";
 import { db } from "@bandori-stats/database";
-import { updateProfile } from "./update-profile";
-import { updateStats } from "./update-stats";
+import { updateSnapshot } from "./update-snapshot";
 
 export const scheduleUpdateSnapshots = schedules.task({
 	id: "schedule-update-snapshots",
@@ -64,8 +63,7 @@ export const scheduleUpdateSnapshots = schedules.task({
 		const maxBatchSize = 1000;
 		for (let idx = 0; idx < payloads.length; idx += maxBatchSize) {
 			const chunk = payloads.slice(idx, idx + maxBatchSize);
-			await updateStats.batchTrigger(chunk.map(([payload]) => payload));
-			await updateProfile.batchTrigger(chunk.map(([, payload]) => payload));
+			await updateSnapshot.batchTrigger(chunk.map(([payload]) => payload));
 		}
 	},
 });

@@ -1,5 +1,4 @@
 import {
-	idempotencyKeys,
 	schedules,
 	tags,
 	metadata as triggerMetadata,
@@ -27,15 +26,15 @@ import type {
 	MusicRankingResponse,
 	RankingUser,
 } from "~/bang-dream-gbp/gen/common_pb";
+import { githubRedeploy } from "~/github";
 import { discordTracker } from "./discord-tracker";
-import { githubRedeploy } from "./github-redeploy";
 import { getAvatar, updateTrackerProfile } from "./update-tracker-profile";
 
 export const scheduleUpdateTracker = schedules.task({
 	id: "schedule-update-tracker",
 	ttl: "1m",
 	cron: { pattern: "* * * * *" },
-	run: async (context) => {
+	run: async ({ timestamp }, { ctx }) => {
 		const [version, eventId, monthlyId] = await redis().mget<
 			[string | null, number | null, number | null]
 		>(GBP.version, GBP.event.current, GBP.monthly.current);
@@ -59,7 +58,7 @@ export const scheduleUpdateTracker = schedules.task({
 			`monthly_${monthly ? monthly.assetBundleName : (monthlyId ?? "n/a")}`,
 		]);
 
-		const now = dayjs(context.timestamp).startOf("minute").add(1, "minute");
+		const now = dayjs(timestamp).startOf("minute").add(1, "minute");
 		await wait.until({ date: now.toDate() });
 
 		const results = await Promise.allSettled([
@@ -194,14 +193,7 @@ export const scheduleUpdateTracker = schedules.task({
 			});
 		}
 
-		const thisHour = dayjs().startOf("hours").unix();
-		await githubRedeploy.trigger(undefined, {
-			idempotencyKey: await idempotencyKeys.create(
-				`redeploy:bandori:${thisHour}`,
-				{ scope: "global" },
-			),
-			idempotencyKeyTTL: "1h",
-		});
+		await githubRedeploy(ctx);
 	},
 });
 

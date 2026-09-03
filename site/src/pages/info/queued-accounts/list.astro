@@ -15,7 +15,7 @@ const page = await paginate({
 		get: async (limit, offset) => {
 			const tasks = [] as Awaited<ReturnType<typeof runs.list>>["data"];
 			for await (const run of await runs.list({
-				taskIdentifier: "update-stats",
+				taskIdentifier: "update-snapshot",
 				status: "DELAYED",
 				limit: 100,
 			})) {
