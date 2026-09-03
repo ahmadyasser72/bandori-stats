@@ -141,7 +141,7 @@ export const scheduleUpdateTracker = schedules.task({
 				if (inserted.length === 0) return [];
 
 				await updateRedisLeaderboard(top, { now, metadata });
-				await sendPushNotifications(top, { now, inserted, metadata });
+				await sendPushNotifications(top, { now, metadata });
 
 				return inserted;
 			}),
@@ -166,7 +166,7 @@ export const scheduleUpdateTracker = schedules.task({
 				if (inserted.length === 0) return [];
 
 				await updateRedisLeaderboard(top, { now, metadata });
-				await sendPushNotifications(top, { now, inserted, metadata });
+				await sendPushNotifications(top, { now, metadata });
 
 				return inserted;
 			}),
@@ -398,47 +398,34 @@ const updateRedisLeaderboard = async (
 	await pipe.exec();
 };
 
-interface SendPushNotificationOptions extends InsertSnapshotOptions {
-	inserted: Awaited<ReturnType<typeof insertSnapshots>>;
-}
-
 const sendPushNotifications = async (
 	ranking: Ranking,
-	{ now, inserted, metadata }: SendPushNotificationOptions,
+	{ now, metadata }: InsertSnapshotOptions,
 ) => {
+	if (now.get("minutes") % 10 !== 0) return;
+
 	const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY } = process.env;
 	if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return;
 
+	const key = GBP.fromMetadata(metadata, "leaderboard");
+	const t15 = await redis()
+		.zrange<number[]>(key, 0, 14, { rev: true })
+		.then((uids) => uids.map((uid) => uid.toString()));
+
 	const trackingReference = getTrackingReference(metadata);
-	const top10ByUid = new Map(
-		ranking.t10.map((data) => [data.userId.toString(), data]),
-	);
+	const snapshots = await db().query.trackerSnapshots.findMany({
+		columns: { uid: true, name: true, point: true, rank: true },
+		where: { ...trackingReference, uid: { in: t15 } },
+		orderBy: { id: "desc" },
+		with: {
+			profile: {
+				columns: { avatar: true },
+				where: { ...trackingReference, avatar: { isNotNull: true } },
+			},
+		},
+	});
 
-	const formerTop10 = [] as typeof inserted;
-	const updatedTop10 = !!inserted.find(({ rank }) => rank === 10);
-	if (updatedTop10) {
-		const key = GBP.fromMetadata(metadata, "leaderboard");
-		const top10toTop15 = await redis()
-			.zrange<number[]>(key, 10, 14, { rev: true })
-			.then((uids) => uids.map((uid) => uid.toString()));
-		if (top10toTop15.length > 0) {
-			const latestSnapshots = await Promise.all(
-				top10toTop15.map((uid) =>
-					db().query.trackerSnapshots.findFirst({
-						columns: { uid: true, name: true, point: true, rank: true },
-						where: { ...trackingReference, uid },
-						orderBy: { id: "desc" },
-					}),
-				),
-			);
-
-			for (const snapshot of latestSnapshots) {
-				if (snapshot) formerTop10.push({ ...snapshot, ...trackingReference });
-			}
-		}
-	}
-
-	const items = [...inserted, ...formerTop10].map((item) => ({
+	const items = snapshots.map((item) => ({
 		...item,
 		key: GBP.fromMetadata(metadata, "notify", item.uid),
 	}));
@@ -447,6 +434,7 @@ const sendPushNotifications = async (
 		"$",
 	);
 
+	const t10 = new Set(ranking.t10.map(({ userId }) => userId.toString()));
 	const payloads = await logger.trace(
 		`generate-${metadata.kind}-webpush-payload`,
 		async () => {
@@ -460,7 +448,7 @@ const sendPushNotifications = async (
 							on.target === "play-again" ||
 							(on.target === "point" && point > on.value) ||
 							(on.target === "boated-from" &&
-								(rank > on.value || !top10ByUid.has(uid))),
+								(rank > on.value || !t10.has(uid))),
 					);
 					if (subscriptions.length === 0) return [];
 
