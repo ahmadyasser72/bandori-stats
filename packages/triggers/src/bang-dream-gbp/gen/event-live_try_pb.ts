@@ -12,17 +12,12 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file event-live_try.proto.
  */
 export const file_event_live_try: GenFile = /*@__PURE__*/
-  fileDesc("ChRldmVudC1saXZlX3RyeS5wcm90byKbAQofVXNlckxpdmVUcnlFdmVudFJhbmtpbmdSZXNwb25zZRIjCgluZWFyVXNlcnMYASABKAsyEC5SYW5raW5nVXNlckxpc3QSIgoIdG9wVXNlcnMYAiABKAsyEC5SYW5raW5nVXNlckxpc3QSLwoVZXZlbnRQb2ludEJvcmRlclVzZXJzGAMgASgLMhAuUmFua2luZ1VzZXJMaXN0YgZwcm90bzM", [file_common]);
+  fileDesc("ChRldmVudC1saXZlX3RyeS5wcm90byJ2Ch9Vc2VyTGl2ZVRyeUV2ZW50UmFua2luZ1Jlc3BvbnNlEiIKCHRvcFVzZXJzGAIgASgLMhAuUmFua2luZ1VzZXJMaXN0Ei8KFWV2ZW50UG9pbnRCb3JkZXJVc2VycxgDIAEoCzIQLlJhbmtpbmdVc2VyTGlzdEIVQhFFdmVudExpdmVUcnlQcm90b1ABYgZwcm90bzM", [file_common]);
 
 /**
  * @generated from message UserLiveTryEventRankingResponse
  */
 export type UserLiveTryEventRankingResponse = Message<"UserLiveTryEventRankingResponse"> & {
-  /**
-   * @generated from field: RankingUserList nearUsers = 1;
-   */
-  nearUsers?: RankingUserList | undefined;
-
   /**
    * @generated from field: RankingUserList topUsers = 2;
    */
@@ -38,11 +33,6 @@ export type UserLiveTryEventRankingResponse = Message<"UserLiveTryEventRankingRe
  * @generated from message UserLiveTryEventRankingResponse
  */
 export type UserLiveTryEventRankingResponseJson = {
-  /**
-   * @generated from field: RankingUserList nearUsers = 1;
-   */
-  nearUsers?: RankingUserListJson;
-
   /**
    * @generated from field: RankingUserList topUsers = 2;
    */

@@ -12,26 +12,16 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file event-medley.proto.
  */
 export const file_event_medley: GenFile = /*@__PURE__*/
-  fileDesc("ChJldmVudC1tZWRsZXkucHJvdG8irQIKHlVzZXJNZWRsZXlFdmVudFJhbmtpbmdSZXNwb25zZRItChNldmVudFBvaW50TmVhclVzZXJzGAEgASgLMhAuUmFua2luZ1VzZXJMaXN0EiwKEmV2ZW50UG9pbnRUb3BVc2VycxgCIAEoCzIQLlJhbmtpbmdVc2VyTGlzdBIoCg5zY29yZU5lYXJVc2VycxgDIAEoCzIQLlJhbmtpbmdVc2VyTGlzdBInCg1zY29yZVRvcFVzZXJzGAQgASgLMhAuUmFua2luZ1VzZXJMaXN0Ei8KFWV2ZW50UG9pbnRCb3JkZXJVc2VycxgFIAEoCzIQLlJhbmtpbmdVc2VyTGlzdBIqChBzY29yZUJvcmRlclVzZXJzGAYgASgLMhAuUmFua2luZ1VzZXJMaXN0YgZwcm90bzM", [file_common]);
+  fileDesc("ChJldmVudC1tZWRsZXkucHJvdG8i1AEKHlVzZXJNZWRsZXlFdmVudFJhbmtpbmdSZXNwb25zZRIsChJldmVudFBvaW50VG9wVXNlcnMYAiABKAsyEC5SYW5raW5nVXNlckxpc3QSJwoNc2NvcmVUb3BVc2VycxgEIAEoCzIQLlJhbmtpbmdVc2VyTGlzdBIvChVldmVudFBvaW50Qm9yZGVyVXNlcnMYBSABKAsyEC5SYW5raW5nVXNlckxpc3QSKgoQc2NvcmVCb3JkZXJVc2VycxgGIAEoCzIQLlJhbmtpbmdVc2VyTGlzdEIUQhBFdmVudE1lZGxleVByb3RvUAFiBnByb3RvMw", [file_common]);
 
 /**
  * @generated from message UserMedleyEventRankingResponse
  */
 export type UserMedleyEventRankingResponse = Message<"UserMedleyEventRankingResponse"> & {
   /**
-   * @generated from field: RankingUserList eventPointNearUsers = 1;
-   */
-  eventPointNearUsers?: RankingUserList | undefined;
-
-  /**
    * @generated from field: RankingUserList eventPointTopUsers = 2;
    */
   eventPointTopUsers?: RankingUserList | undefined;
-
-  /**
-   * @generated from field: RankingUserList scoreNearUsers = 3;
-   */
-  scoreNearUsers?: RankingUserList | undefined;
 
   /**
    * @generated from field: RankingUserList scoreTopUsers = 4;
@@ -54,19 +44,9 @@ export type UserMedleyEventRankingResponse = Message<"UserMedleyEventRankingResp
  */
 export type UserMedleyEventRankingResponseJson = {
   /**
-   * @generated from field: RankingUserList eventPointNearUsers = 1;
-   */
-  eventPointNearUsers?: RankingUserListJson;
-
-  /**
    * @generated from field: RankingUserList eventPointTopUsers = 2;
    */
   eventPointTopUsers?: RankingUserListJson;
-
-  /**
-   * @generated from field: RankingUserList scoreNearUsers = 3;
-   */
-  scoreNearUsers?: RankingUserListJson;
 
   /**
    * @generated from field: RankingUserList scoreTopUsers = 4;

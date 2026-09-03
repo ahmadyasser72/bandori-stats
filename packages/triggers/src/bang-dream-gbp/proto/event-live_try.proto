@@ -3,7 +3,6 @@ syntax = "proto3";
 import "common.proto";
 
 message UserLiveTryEventRankingResponse {
-    RankingUserList nearUsers = 1;
-    RankingUserList topUsers = 2;
-    RankingUserList eventPointBorderUsers = 3;
+  RankingUserList topUsers = 2;
+  RankingUserList eventPointBorderUsers = 3;
 }

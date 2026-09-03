@@ -5,3 +5,8 @@ plugins:
     opt:
       - target=ts
       - json_types=true
+managed:
+  enabled: true
+  override:
+    - field_option: jstype
+      value: JS_STRING

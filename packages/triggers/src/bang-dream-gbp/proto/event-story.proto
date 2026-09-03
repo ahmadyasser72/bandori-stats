@@ -3,6 +3,5 @@ syntax = "proto3";
 import "common.proto";
 
 message UserStoryEventRankingResponse {
-    RankingUserList nearUsers = 1;
-    RankingUserList topUsers = 2;
+  RankingUserList topUsers = 2;
 }

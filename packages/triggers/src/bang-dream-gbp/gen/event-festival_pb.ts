@@ -12,17 +12,12 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file event-festival.proto.
  */
 export const file_event_festival: GenFile = /*@__PURE__*/
-  fileDesc("ChRldmVudC1mZXN0aXZhbC5wcm90byKkAQooVXNlclRlYW1MaXZlRmVzdGl2YWxFdmVudFJhbmtpbmdSZXNwb25zZRIjCgluZWFyVXNlcnMYASABKAsyEC5SYW5raW5nVXNlckxpc3QSIgoIdG9wVXNlcnMYAiABKAsyEC5SYW5raW5nVXNlckxpc3QSLwoVZXZlbnRQb2ludEJvcmRlclVzZXJzGAMgASgLMhAuUmFua2luZ1VzZXJMaXN0YgZwcm90bzM", [file_common]);
+  fileDesc("ChRldmVudC1mZXN0aXZhbC5wcm90byJ/CihVc2VyVGVhbUxpdmVGZXN0aXZhbEV2ZW50UmFua2luZ1Jlc3BvbnNlEiIKCHRvcFVzZXJzGAIgASgLMhAuUmFua2luZ1VzZXJMaXN0Ei8KFWV2ZW50UG9pbnRCb3JkZXJVc2VycxgDIAEoCzIQLlJhbmtpbmdVc2VyTGlzdEIWQhJFdmVudEZlc3RpdmFsUHJvdG9QAWIGcHJvdG8z", [file_common]);
 
 /**
  * @generated from message UserTeamLiveFestivalEventRankingResponse
  */
 export type UserTeamLiveFestivalEventRankingResponse = Message<"UserTeamLiveFestivalEventRankingResponse"> & {
-  /**
-   * @generated from field: RankingUserList nearUsers = 1;
-   */
-  nearUsers?: RankingUserList | undefined;
-
   /**
    * @generated from field: RankingUserList topUsers = 2;
    */
@@ -38,11 +33,6 @@ export type UserTeamLiveFestivalEventRankingResponse = Message<"UserTeamLiveFest
  * @generated from message UserTeamLiveFestivalEventRankingResponse
  */
 export type UserTeamLiveFestivalEventRankingResponseJson = {
-  /**
-   * @generated from field: RankingUserList nearUsers = 1;
-   */
-  nearUsers?: RankingUserListJson;
-
   /**
    * @generated from field: RankingUserList topUsers = 2;
    */

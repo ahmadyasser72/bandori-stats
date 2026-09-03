@@ -12,17 +12,12 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file event-challenge.proto.
  */
 export const file_event_challenge: GenFile = /*@__PURE__*/
-  fileDesc("ChVldmVudC1jaGFsbGVuZ2UucHJvdG8i6AEKIVVzZXJDaGFsbGVuZ2VFdmVudFJhbmtpbmdSZXNwb25zZRItChNldmVudFBvaW50TmVhclVzZXJzGAEgASgLMhAuUmFua2luZ1VzZXJMaXN0EiwKEmV2ZW50UG9pbnRUb3BVc2VycxgCIAEoCzIQLlJhbmtpbmdVc2VyTGlzdBIvChVldmVudFBvaW50Qm9yZGVyVXNlcnMYAyABKAsyEC5SYW5raW5nVXNlckxpc3QSNQoWY2hhbGxlbmdlTXVzaWNSYW5raW5ncxhlIAMoCzIVLk11c2ljUmFua2luZ1Jlc3BvbnNlYgZwcm90bzM", [file_common]);
+  fileDesc("ChVldmVudC1jaGFsbGVuZ2UucHJvdG8iuQEKIVVzZXJDaGFsbGVuZ2VFdmVudFJhbmtpbmdSZXNwb25zZRIsChJldmVudFBvaW50VG9wVXNlcnMYAiABKAsyEC5SYW5raW5nVXNlckxpc3QSLwoVZXZlbnRQb2ludEJvcmRlclVzZXJzGAMgASgLMhAuUmFua2luZ1VzZXJMaXN0EjUKFmNoYWxsZW5nZU11c2ljUmFua2luZ3MYZSADKAsyFS5NdXNpY1JhbmtpbmdSZXNwb25zZUIXQhNFdmVudENoYWxsZW5nZVByb3RvUAFiBnByb3RvMw", [file_common]);
 
 /**
  * @generated from message UserChallengeEventRankingResponse
  */
 export type UserChallengeEventRankingResponse = Message<"UserChallengeEventRankingResponse"> & {
-  /**
-   * @generated from field: RankingUserList eventPointNearUsers = 1;
-   */
-  eventPointNearUsers?: RankingUserList | undefined;
-
   /**
    * @generated from field: RankingUserList eventPointTopUsers = 2;
    */
@@ -43,11 +38,6 @@ export type UserChallengeEventRankingResponse = Message<"UserChallengeEventRanki
  * @generated from message UserChallengeEventRankingResponse
  */
 export type UserChallengeEventRankingResponseJson = {
-  /**
-   * @generated from field: RankingUserList eventPointNearUsers = 1;
-   */
-  eventPointNearUsers?: RankingUserListJson;
-
   /**
    * @generated from field: RankingUserList eventPointTopUsers = 2;
    */

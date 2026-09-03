@@ -3,8 +3,7 @@ syntax = "proto3";
 import "common.proto";
 
 message UserChallengeEventRankingResponse {
-    RankingUserList eventPointNearUsers = 1;
-    RankingUserList eventPointTopUsers = 2;
-    RankingUserList eventPointBorderUsers = 3;
-    repeated MusicRankingResponse challengeMusicRankings = 101;
+  RankingUserList eventPointTopUsers = 2;
+  RankingUserList eventPointBorderUsers = 3;
+  repeated MusicRankingResponse challengeMusicRankings = 101;
 }

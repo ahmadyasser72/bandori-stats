@@ -12,17 +12,12 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file monthly-ranking.proto.
  */
 export const file_monthly_ranking: GenFile = /*@__PURE__*/
-  fileDesc("ChVtb250aGx5LXJhbmtpbmcucHJvdG8izAEKIVVzZXJNb250aGx5UmFua2luZ1JhbmtpbmdSZXNwb25zZRI2Chxtb250aGx5UmFua2luZ1BvaW50TmVhclVzZXJzGAEgASgLMhAuUmFua2luZ1VzZXJMaXN0EjUKG21vbnRobHlSYW5raW5nUG9pbnRUb3BVc2VycxgCIAEoCzIQLlJhbmtpbmdVc2VyTGlzdBI4Ch5tb250aGx5UmFua2luZ1BvaW50Qm9yZGVyVXNlcnMYAyABKAsyEC5SYW5raW5nVXNlckxpc3RiBnByb3RvMw", [file_common]);
+  fileDesc("ChVtb250aGx5LXJhbmtpbmcucHJvdG8ilAEKIVVzZXJNb250aGx5UmFua2luZ1JhbmtpbmdSZXNwb25zZRI1Chttb250aGx5UmFua2luZ1BvaW50VG9wVXNlcnMYAiABKAsyEC5SYW5raW5nVXNlckxpc3QSOAoebW9udGhseVJhbmtpbmdQb2ludEJvcmRlclVzZXJzGAMgASgLMhAuUmFua2luZ1VzZXJMaXN0QhdCE01vbnRobHlSYW5raW5nUHJvdG9QAWIGcHJvdG8z", [file_common]);
 
 /**
  * @generated from message UserMonthlyRankingRankingResponse
  */
 export type UserMonthlyRankingRankingResponse = Message<"UserMonthlyRankingRankingResponse"> & {
-  /**
-   * @generated from field: RankingUserList monthlyRankingPointNearUsers = 1;
-   */
-  monthlyRankingPointNearUsers?: RankingUserList | undefined;
-
   /**
    * @generated from field: RankingUserList monthlyRankingPointTopUsers = 2;
    */
@@ -38,11 +33,6 @@ export type UserMonthlyRankingRankingResponse = Message<"UserMonthlyRankingRanki
  * @generated from message UserMonthlyRankingRankingResponse
  */
 export type UserMonthlyRankingRankingResponseJson = {
-  /**
-   * @generated from field: RankingUserList monthlyRankingPointNearUsers = 1;
-   */
-  monthlyRankingPointNearUsers?: RankingUserListJson;
-
   /**
    * @generated from field: RankingUserList monthlyRankingPointTopUsers = 2;
    */

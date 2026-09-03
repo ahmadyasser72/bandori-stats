@@ -10,22 +10,12 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file common.proto.
  */
 export const file_common: GenFile = /*@__PURE__*/
-  fileDesc("Cgxjb21tb24ucHJvdG8iwgIKE1VzZXJBcHBlbmRQYXJhbWV0ZXISDgoGdXNlcklkGAEgASgEEhMKC3NpdHVhdGlvbklkGAIgASgNEhMKC3BlcmZvcm1hbmNlGAMgASgNEhEKCXRlY2huaXF1ZRgEIAEoDRIOCgZ2aXN1YWwYBSABKA0SJQodY2hhcmFjdGVyUG90ZW50aWFsUGVyZm9ybWFuY2UYBiABKA0SIwobY2hhcmFjdGVyUG90ZW50aWFsVGVjaG5pcXVlGAcgASgNEiAKGGNoYXJhY3RlclBvdGVudGlhbFZpc3VhbBgIIAEoDRIhChljaGFyYWN0ZXJCb251c1BlcmZvcm1hbmNlGAkgASgNEh8KF2NoYXJhY3RlckJvbnVzVGVjaG5pcXVlGAogASgNEhwKFGNoYXJhY3RlckJvbnVzVmlzdWFsGAsgASgNIqoBCghVc2VyRGVjaxIOCgZkZWNrSWQYASABKA0SEAoIZGVja05hbWUYAiABKAkSDgoGbGVhZGVyGAMgASgNEg8KB21lbWJlcjEYBCABKA0SDwoHbWVtYmVyMhgFIAEoDRIPCgdtZW1iZXIzGAYgASgNEg8KB21lbWJlcjQYByABKA0SFgoOYm9uZHNFZmZlY3RJZHMYCCADKA0SEAoIZGVja1R5cGUYCiABKAkiUAoRVXNlclByb2ZpbGVEZWdyZWUSDgoGdXNlcklkGAEgASgEEhkKEXByb2ZpbGVEZWdyZWVUeXBlGAIgASgJEhAKCGRlZ3JlZUlkGAMgASgNIo8BChRVc2VyUHJvZmlsZURlZ3JlZU1hcBIzCgdlbnRyaWVzGAEgAygLMiIuVXNlclByb2ZpbGVEZWdyZWVNYXAuRW50cmllc0VudHJ5GkIKDEVudHJpZXNFbnRyeRILCgNrZXkYASABKAkSIQoFdmFsdWUYAiABKAsyEi5Vc2VyUHJvZmlsZURlZ3JlZToCOAEibwoUVXNlclByb2ZpbGVTaXR1YXRpb24SDgoGdXNlcklkGAEgASgEEhMKC3NpdHVhdGlvbklkGAIgASgNEg4KBmlsbHVzdBgDIAEoCRIiChp2aWV3UHJvZmlsZVNpdHVhdGlvblN0YXR1cxgEIAEoCSKkAgoNVXNlclNpdHVhdGlvbhIOCgZ1c2VySWQYASABKAQSEwoLc2l0dWF0aW9uSWQYAiABKA0SDQoFbGV2ZWwYAyABKA0SCwoDZXhwGAQgASgNEhEKCWNyZWF0ZWRBdBgFIAEoBBIOCgZhZGRFeHAYBiABKA0SFgoOdHJhaW5pbmdTdGF0dXMYByABKAkSFgoOZHVwbGljYXRlQ291bnQYCCABKA0SDgoGaWxsdXN0GAkgASgJEhAKCHNraWxsRXhwGAogASgNEhIKCnNraWxsTGV2ZWwYCyABKA0SMQoTdXNlckFwcGVuZFBhcmFtZXRlchgMIAEoCzIULlVzZXJBcHBlbmRQYXJhbWV0ZXISFgoObGltaXRCcmVha1JhbmsYDSABKA0iNAoRVXNlclNpdHVhdGlvbkxpc3QSHwoHZW50cmllcxgBIAMoCzIOLlVzZXJTaXR1YXRpb24iyQIKC1JhbmtpbmdVc2VyEgwKBG5hbWUYASABKAkSDgoGb3duRmxnGAIgASgIEhEKCXJhbmtMZXZlbBgDIAEoDRIUCgxpbnRyb2R1Y3Rpb24YBCABKAkSDAoEcmFuaxgFIAEoDRINCgVwb2ludBgGIAEoBBIOCgZ1c2VySWQYByABKAQSEAoIZGVncmVlSWQYCCABKA0SGwoIdXNlckRlY2sYCSABKAsyCS5Vc2VyRGVjaxItChF1c2VyU2l0dWF0aW9uTGlzdBgKIAEoCzISLlVzZXJTaXR1YXRpb25MaXN0EjMKFHVzZXJQcm9maWxlU2l0dWF0aW9uGAsgASgLMhUuVXNlclByb2ZpbGVTaXR1YXRpb24SMwoUdXNlclByb2ZpbGVEZWdyZWVNYXAYDCABKAsyFS5Vc2VyUHJvZmlsZURlZ3JlZU1hcCIwCg9SYW5raW5nVXNlckxpc3QSHQoHZW50cmllcxgBIAMoCzIMLlJhbmtpbmdVc2VyIqYBChRNdXNpY1JhbmtpbmdSZXNwb25zZRIPCgdtdXNpY0lkGAEgASgNEigKDnNjb3JlTmVhclVzZXJzGAIgASgLMhAuUmFua2luZ1VzZXJMaXN0EicKDXNjb3JlVG9wVXNlcnMYAyABKAsyEC5SYW5raW5nVXNlckxpc3QSKgoQc2NvcmVCb3JkZXJVc2VycxgEIAEoCzIQLlJhbmtpbmdVc2VyTGlzdGIGcHJvdG8z");
+  fileDesc("Cgxjb21tb24ucHJvdG8inQIKE1VzZXJBcHBlbmRQYXJhbWV0ZXISEwoLcGVyZm9ybWFuY2UYAyABKA0SEQoJdGVjaG5pcXVlGAQgASgNEg4KBnZpc3VhbBgFIAEoDRIlCh1jaGFyYWN0ZXJQb3RlbnRpYWxQZXJmb3JtYW5jZRgGIAEoDRIjChtjaGFyYWN0ZXJQb3RlbnRpYWxUZWNobmlxdWUYByABKA0SIAoYY2hhcmFjdGVyUG90ZW50aWFsVmlzdWFsGAggASgNEiEKGWNoYXJhY3RlckJvbnVzUGVyZm9ybWFuY2UYCSABKA0SHwoXY2hhcmFjdGVyQm9udXNUZWNobmlxdWUYCiABKA0SHAoUY2hhcmFjdGVyQm9udXNWaXN1YWwYCyABKA0iHAoIVXNlckRlY2sSEAoIZGVja05hbWUYAiABKAkiJQoRVXNlclByb2ZpbGVEZWdyZWUSEAoIZGVncmVlSWQYAyABKA0ijwEKFFVzZXJQcm9maWxlRGVncmVlTWFwEjMKB2VudHJpZXMYASADKAsyIi5Vc2VyUHJvZmlsZURlZ3JlZU1hcC5FbnRyaWVzRW50cnkaQgoMRW50cmllc0VudHJ5EgsKA2tleRgBIAEoCRIhCgV2YWx1ZRgCIAEoCzISLlVzZXJQcm9maWxlRGVncmVlOgI4ASI7ChRVc2VyUHJvZmlsZVNpdHVhdGlvbhITCgtzaXR1YXRpb25JZBgCIAEoDRIOCgZpbGx1c3QYAyABKAkiugEKDVVzZXJTaXR1YXRpb24SEwoLc2l0dWF0aW9uSWQYAiABKA0SDQoFbGV2ZWwYAyABKA0SFgoOdHJhaW5pbmdTdGF0dXMYByABKAkSDgoGaWxsdXN0GAkgASgJEhIKCnNraWxsTGV2ZWwYCyABKA0SMQoTdXNlckFwcGVuZFBhcmFtZXRlchgMIAEoCzIULlVzZXJBcHBlbmRQYXJhbWV0ZXISFgoObGltaXRCcmVha1JhbmsYDSABKA0iNAoRVXNlclNpdHVhdGlvbkxpc3QSHwoHZW50cmllcxgBIAMoCzIOLlVzZXJTaXR1YXRpb24ihgIKC1JhbmtpbmdVc2VyEgwKBG5hbWUYASABKAkSDAoEcmFuaxgFIAEoDRIRCgVwb2ludBgGIAEoBEICMAESEgoGdXNlcklkGAcgASgEQgIwARIbCgh1c2VyRGVjaxgJIAEoCzIJLlVzZXJEZWNrEi0KEXVzZXJTaXR1YXRpb25MaXN0GAogASgLMhIuVXNlclNpdHVhdGlvbkxpc3QSMwoUdXNlclByb2ZpbGVTaXR1YXRpb24YCyABKAsyFS5Vc2VyUHJvZmlsZVNpdHVhdGlvbhIzChR1c2VyUHJvZmlsZURlZ3JlZU1hcBgMIAEoCzIVLlVzZXJQcm9maWxlRGVncmVlTWFwIjAKD1JhbmtpbmdVc2VyTGlzdBIdCgdlbnRyaWVzGAEgAygLMgwuUmFua2luZ1VzZXIifAoUTXVzaWNSYW5raW5nUmVzcG9uc2USDwoHbXVzaWNJZBgBIAEoDRInCg1zY29yZVRvcFVzZXJzGAMgASgLMhAuUmFua2luZ1VzZXJMaXN0EioKEHNjb3JlQm9yZGVyVXNlcnMYBCABKAsyEC5SYW5raW5nVXNlckxpc3RCD0ILQ29tbW9uUHJvdG9QAWIGcHJvdG8z");
 
 /**
  * @generated from message UserAppendParameter
  */
 export type UserAppendParameter = Message<"UserAppendParameter"> & {
-  /**
-   * @generated from field: uint64 userId = 1;
-   */
-  userId: bigint;
-
-  /**
-   * @generated from field: uint32 situationId = 2;
-   */
-  situationId: number;
-
   /**
    * @generated from field: uint32 performance = 3;
    */
@@ -76,16 +66,6 @@ export type UserAppendParameter = Message<"UserAppendParameter"> & {
  * @generated from message UserAppendParameter
  */
 export type UserAppendParameterJson = {
-  /**
-   * @generated from field: uint64 userId = 1;
-   */
-  userId?: string;
-
-  /**
-   * @generated from field: uint32 situationId = 2;
-   */
-  situationId?: number;
-
   /**
    * @generated from field: uint32 performance = 3;
    */
@@ -144,49 +124,9 @@ export const UserAppendParameterSchema: GenMessage<UserAppendParameter, {jsonTyp
  */
 export type UserDeck = Message<"UserDeck"> & {
   /**
-   * @generated from field: uint32 deckId = 1;
-   */
-  deckId: number;
-
-  /**
    * @generated from field: string deckName = 2;
    */
   deckName: string;
-
-  /**
-   * @generated from field: uint32 leader = 3;
-   */
-  leader: number;
-
-  /**
-   * @generated from field: uint32 member1 = 4;
-   */
-  member1: number;
-
-  /**
-   * @generated from field: uint32 member2 = 5;
-   */
-  member2: number;
-
-  /**
-   * @generated from field: uint32 member3 = 6;
-   */
-  member3: number;
-
-  /**
-   * @generated from field: uint32 member4 = 7;
-   */
-  member4: number;
-
-  /**
-   * @generated from field: repeated uint32 bondsEffectIds = 8;
-   */
-  bondsEffectIds: number[];
-
-  /**
-   * @generated from field: string deckType = 10;
-   */
-  deckType: string;
 };
 
 /**
@@ -194,49 +134,9 @@ export type UserDeck = Message<"UserDeck"> & {
  */
 export type UserDeckJson = {
   /**
-   * @generated from field: uint32 deckId = 1;
-   */
-  deckId?: number;
-
-  /**
    * @generated from field: string deckName = 2;
    */
   deckName?: string;
-
-  /**
-   * @generated from field: uint32 leader = 3;
-   */
-  leader?: number;
-
-  /**
-   * @generated from field: uint32 member1 = 4;
-   */
-  member1?: number;
-
-  /**
-   * @generated from field: uint32 member2 = 5;
-   */
-  member2?: number;
-
-  /**
-   * @generated from field: uint32 member3 = 6;
-   */
-  member3?: number;
-
-  /**
-   * @generated from field: uint32 member4 = 7;
-   */
-  member4?: number;
-
-  /**
-   * @generated from field: repeated uint32 bondsEffectIds = 8;
-   */
-  bondsEffectIds?: number[];
-
-  /**
-   * @generated from field: string deckType = 10;
-   */
-  deckType?: string;
 };
 
 /**
@@ -251,16 +151,6 @@ export const UserDeckSchema: GenMessage<UserDeck, {jsonType: UserDeckJson}> = /*
  */
 export type UserProfileDegree = Message<"UserProfileDegree"> & {
   /**
-   * @generated from field: uint64 userId = 1;
-   */
-  userId: bigint;
-
-  /**
-   * @generated from field: string profileDegreeType = 2;
-   */
-  profileDegreeType: string;
-
-  /**
    * @generated from field: uint32 degreeId = 3;
    */
   degreeId: number;
@@ -270,16 +160,6 @@ export type UserProfileDegree = Message<"UserProfileDegree"> & {
  * @generated from message UserProfileDegree
  */
 export type UserProfileDegreeJson = {
-  /**
-   * @generated from field: uint64 userId = 1;
-   */
-  userId?: string;
-
-  /**
-   * @generated from field: string profileDegreeType = 2;
-   */
-  profileDegreeType?: string;
-
   /**
    * @generated from field: uint32 degreeId = 3;
    */
@@ -325,11 +205,6 @@ export const UserProfileDegreeMapSchema: GenMessage<UserProfileDegreeMap, {jsonT
  */
 export type UserProfileSituation = Message<"UserProfileSituation"> & {
   /**
-   * @generated from field: uint64 userId = 1;
-   */
-  userId: bigint;
-
-  /**
    * @generated from field: uint32 situationId = 2;
    */
   situationId: number;
@@ -338,22 +213,12 @@ export type UserProfileSituation = Message<"UserProfileSituation"> & {
    * @generated from field: string illust = 3;
    */
   illust: string;
-
-  /**
-   * @generated from field: string viewProfileSituationStatus = 4;
-   */
-  viewProfileSituationStatus: string;
 };
 
 /**
  * @generated from message UserProfileSituation
  */
 export type UserProfileSituationJson = {
-  /**
-   * @generated from field: uint64 userId = 1;
-   */
-  userId?: string;
-
   /**
    * @generated from field: uint32 situationId = 2;
    */
@@ -363,11 +228,6 @@ export type UserProfileSituationJson = {
    * @generated from field: string illust = 3;
    */
   illust?: string;
-
-  /**
-   * @generated from field: string viewProfileSituationStatus = 4;
-   */
-  viewProfileSituationStatus?: string;
 };
 
 /**
@@ -382,11 +242,6 @@ export const UserProfileSituationSchema: GenMessage<UserProfileSituation, {jsonT
  */
 export type UserSituation = Message<"UserSituation"> & {
   /**
-   * @generated from field: uint64 userId = 1;
-   */
-  userId: bigint;
-
-  /**
    * @generated from field: uint32 situationId = 2;
    */
   situationId: number;
@@ -397,39 +252,14 @@ export type UserSituation = Message<"UserSituation"> & {
   level: number;
 
   /**
-   * @generated from field: uint32 exp = 4;
-   */
-  exp: number;
-
-  /**
-   * @generated from field: uint64 createdAt = 5;
-   */
-  createdAt: bigint;
-
-  /**
-   * @generated from field: uint32 addExp = 6;
-   */
-  addExp: number;
-
-  /**
    * @generated from field: string trainingStatus = 7;
    */
   trainingStatus: string;
 
   /**
-   * @generated from field: uint32 duplicateCount = 8;
-   */
-  duplicateCount: number;
-
-  /**
    * @generated from field: string illust = 9;
    */
   illust: string;
-
-  /**
-   * @generated from field: uint32 skillExp = 10;
-   */
-  skillExp: number;
 
   /**
    * @generated from field: uint32 skillLevel = 11;
@@ -452,11 +282,6 @@ export type UserSituation = Message<"UserSituation"> & {
  */
 export type UserSituationJson = {
   /**
-   * @generated from field: uint64 userId = 1;
-   */
-  userId?: string;
-
-  /**
    * @generated from field: uint32 situationId = 2;
    */
   situationId?: number;
@@ -467,39 +292,14 @@ export type UserSituationJson = {
   level?: number;
 
   /**
-   * @generated from field: uint32 exp = 4;
-   */
-  exp?: number;
-
-  /**
-   * @generated from field: uint64 createdAt = 5;
-   */
-  createdAt?: string;
-
-  /**
-   * @generated from field: uint32 addExp = 6;
-   */
-  addExp?: number;
-
-  /**
    * @generated from field: string trainingStatus = 7;
    */
   trainingStatus?: string;
 
   /**
-   * @generated from field: uint32 duplicateCount = 8;
-   */
-  duplicateCount?: number;
-
-  /**
    * @generated from field: string illust = 9;
    */
   illust?: string;
-
-  /**
-   * @generated from field: uint32 skillExp = 10;
-   */
-  skillExp?: number;
 
   /**
    * @generated from field: uint32 skillLevel = 11;
@@ -561,39 +361,19 @@ export type RankingUser = Message<"RankingUser"> & {
   name: string;
 
   /**
-   * @generated from field: bool ownFlg = 2;
-   */
-  ownFlg: boolean;
-
-  /**
-   * @generated from field: uint32 rankLevel = 3;
-   */
-  rankLevel: number;
-
-  /**
-   * @generated from field: string introduction = 4;
-   */
-  introduction: string;
-
-  /**
    * @generated from field: uint32 rank = 5;
    */
   rank: number;
 
   /**
-   * @generated from field: uint64 point = 6;
+   * @generated from field: uint64 point = 6 [jstype = JS_STRING];
    */
-  point: bigint;
+  point: string;
 
   /**
-   * @generated from field: uint64 userId = 7;
+   * @generated from field: uint64 userId = 7 [jstype = JS_STRING];
    */
-  userId: bigint;
-
-  /**
-   * @generated from field: uint32 degreeId = 8;
-   */
-  degreeId: number;
+  userId: string;
 
   /**
    * @generated from field: UserDeck userDeck = 9;
@@ -626,39 +406,19 @@ export type RankingUserJson = {
   name?: string;
 
   /**
-   * @generated from field: bool ownFlg = 2;
-   */
-  ownFlg?: boolean;
-
-  /**
-   * @generated from field: uint32 rankLevel = 3;
-   */
-  rankLevel?: number;
-
-  /**
-   * @generated from field: string introduction = 4;
-   */
-  introduction?: string;
-
-  /**
    * @generated from field: uint32 rank = 5;
    */
   rank?: number;
 
   /**
-   * @generated from field: uint64 point = 6;
+   * @generated from field: uint64 point = 6 [jstype = JS_STRING];
    */
   point?: string;
 
   /**
-   * @generated from field: uint64 userId = 7;
+   * @generated from field: uint64 userId = 7 [jstype = JS_STRING];
    */
   userId?: string;
-
-  /**
-   * @generated from field: uint32 degreeId = 8;
-   */
-  degreeId?: number;
 
   /**
    * @generated from field: UserDeck userDeck = 9;
@@ -725,11 +485,6 @@ export type MusicRankingResponse = Message<"MusicRankingResponse"> & {
   musicId: number;
 
   /**
-   * @generated from field: RankingUserList scoreNearUsers = 2;
-   */
-  scoreNearUsers?: RankingUserList | undefined;
-
-  /**
    * @generated from field: RankingUserList scoreTopUsers = 3;
    */
   scoreTopUsers?: RankingUserList | undefined;
@@ -748,11 +503,6 @@ export type MusicRankingResponseJson = {
    * @generated from field: uint32 musicId = 1;
    */
   musicId?: number;
-
-  /**
-   * @generated from field: RankingUserList scoreNearUsers = 2;
-   */
-  scoreNearUsers?: RankingUserListJson;
 
   /**
    * @generated from field: RankingUserList scoreTopUsers = 3;

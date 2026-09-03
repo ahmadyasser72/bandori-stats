@@ -12,17 +12,12 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file profile.proto.
  */
 export const file_profile: GenFile = /*@__PURE__*/
-  fileDesc("Cg1wcm9maWxlLnByb3RvIrYJCgtVc2VyUHJvZmlsZRIOCgZ1c2VySWQYASABKAQSEAoIdXNlck5hbWUYAiABKAkSDAoEcmFuaxgDIAEoDRIOCgZkZWdyZWUYBCABKA0SFAoMaW50cm9kdWN0aW9uGAUgASgJEiAKGHB1Ymxpc2hUb3RhbERlY2tQb3dlckZsZxgLIAEoCBIaChJwdWJsaXNoQmFuZFJhbmtGbGcYDCABKAgSHgoWcHVibGlzaE11c2ljQ2xlYXJlZEZsZxgNIAEoCBIgChhwdWJsaXNoTXVzaWNGdWxsQ29tYm9GbGcYDiABKAgSIQoZcHVibGlzaEhpZ2hTY29yZVJhdGluZ0ZsZxgPIAEoCBIYChBwdWJsaXNoVXNlcklkRmxnGBAgASgIEhUKDXNlYXJjaGFibGVGbGcYESABKAgSGwoTcHVibGlzaFVwZGF0ZWRBdEZsZxgSIAEoCBIbChNmcmllbmRBcHBsaWNhYmxlRmxnGBMgASgIEiEKGXB1Ymxpc2hNdXNpY0FsbFBlcmZlY3RGbGcYFCABKAgSGgoScHVibGlzaERlY2tSYW5rRmxnGBUgASgIEjUKLXB1Ymxpc2hTdGFnZUNoYWxsZW5nZUFjaGlldmVtZW50Q29uZGl0aW9uc0ZsZxgWIAEoCBItCiVwdWJsaXNoU3RhZ2VDaGFsbGVuZ2VGcmllbmRSYW5raW5nRmxnGBcgASgIEh8KF3B1Ymxpc2hDaGFyYWN0ZXJSYW5rRmxnGBggASgIEjIKFm1haW5EZWNrVXNlclNpdHVhdGlvbnMYZSABKAsyEi5Vc2VyU2l0dWF0aW9uTGlzdBIvChRlbmFibGVkVXNlckFyZWFJdGVtcxhmIAEoCzIRLlVzZXJBcmVhSXRlbUxpc3QSLQoLYmFuZFJhbmtNYXAYZyABKAsyGC5NYXBLZXlVaW50MzJWYWx1ZVVpbnQzMhIxChN1c2VySGlnaFNjb3JlUmF0aW5nGGogASgLMhQuVXNlckhpZ2hTY29yZVJhdGluZxIfCgxtYWluVXNlckRlY2sYayABKAsyCS5Vc2VyRGVjaxIzChR1c2VyUHJvZmlsZVNpdHVhdGlvbhhsIAEoCzIVLlVzZXJQcm9maWxlU2l0dWF0aW9uEjMKFHVzZXJQcm9maWxlRGVncmVlTWFwGG0gASgLMhUuVXNlclByb2ZpbGVEZWdyZWVNYXASIQoLdXNlclR3aXR0ZXIYbiABKAsyDC5Vc2VyVHdpdHRlchI3ChZ1c2VyRGVja1RvdGFsUmF0aW5nTWFwGHAgASgLMhcuVXNlckRlY2tUb3RhbFJhdGluZ01hcBJICiZzdGFnZUNoYWxsZW5nZUFjaGlldmVtZW50Q29uZGl0aW9uc01hcBhxIAEoCzIYLk1hcEtleVVpbnQzMlZhbHVlVWludDMyEjUKFXVzZXJNdXNpY0NsZWFySW5mb01hcBhyIAEoCzIWLlVzZXJNdXNpY0NsZWFySW5mb01hcBIzChR1c2VyQ2hhcmFjdGVyUmFua01hcBhzIAEoCzIVLlVzZXJDaGFyYWN0ZXJSYW5rTWFwEhkKEHNlYXJjaFN1Y2Nlc3NGbGcYyAEgASgIIoEBChdNYXBLZXlVaW50MzJWYWx1ZVVpbnQzMhI2CgdlbnRyaWVzGAEgAygLMiUuTWFwS2V5VWludDMyVmFsdWVVaW50MzIuRW50cmllc0VudHJ5Gi4KDEVudHJpZXNFbnRyeRILCgNrZXkYASABKA0SDQoFdmFsdWUYAiABKA06AjgBIlsKDFVzZXJBcmVhSXRlbRIOCgZ1c2VySWQYASABKAQSEgoKYXJlYUl0ZW1JZBgCIAEoDRIYChBhcmVhSXRlbUNhdGVnb3J5GAMgASgNEg0KBWxldmVsGAQgASgNIjIKEFVzZXJBcmVhSXRlbUxpc3QSHgoHZW50cmllcxgBIAMoCzINLlVzZXJBcmVhSXRlbSKBAQoRVXNlckNoYXJhY3RlclJhbmsSDAoEcmFuaxgBIAEoDRILCgNleHAYAiABKAQSDgoGYWRkRXhwGAMgASgEEg8KB25leHRFeHAYBCABKAQSEAoIdG90YWxFeHAYBSABKAQSHgoWcmVsZWFzZWRQb3RlbnRpYWxMZXZlbBgGIAEoBCKPAQoUVXNlckNoYXJhY3RlclJhbmtNYXASMwoHZW50cmllcxgBIAMoCzIiLlVzZXJDaGFyYWN0ZXJSYW5rTWFwLkVudHJpZXNFbnRyeRpCCgxFbnRyaWVzRW50cnkSCwoDa2V5GAEgASgNEiEKBXZhbHVlGAIgASgLMhIuVXNlckNoYXJhY3RlclJhbms6AjgBImsKE1VzZXJEZWNrVG90YWxSYXRpbmcSDAoEcmFuaxgBIAEoCRINCgVzY29yZRgCIAEoDRINCgVsZXZlbBgDIAEoDRITCgtsb3dlclJhdGluZxgEIAEoDRITCgt1cHBlclJhdGluZxgFIAEoDSKVAQoWVXNlckRlY2tUb3RhbFJhdGluZ01hcBI1CgdlbnRyaWVzGAEgAygLMiQuVXNlckRlY2tUb3RhbFJhdGluZ01hcC5FbnRyaWVzRW50cnkaRAoMRW50cmllc0VudHJ5EgsKA2tleRgBIAEoDRIjCgV2YWx1ZRgCIAEoCzIULlVzZXJEZWNrVG90YWxSYXRpbmc6AjgBIk8KGFVzZXJIaWdoU2NvcmVNdXNpY1JhdGluZxIPCgdtdXNpY0lkGAEgASgNEhIKCmRpZmZpY3VsdHkYAiABKAkSDgoGcmF0aW5nGAMgASgNIkoKHFVzZXJIaWdoU2NvcmVNdXNpY1JhdGluZ0xpc3QSKgoHZW50cmllcxgBIAMoCzIZLlVzZXJIaWdoU2NvcmVNdXNpY1JhdGluZyKeBQoTVXNlckhpZ2hTY29yZVJhdGluZxJICiF1c2VyUG9wcGluUGFydHlIaWdoU2NvcmVNdXNpY0xpc3QYASABKAsyHS5Vc2VySGlnaFNjb3JlTXVzaWNSYXRpbmdMaXN0EkYKH3VzZXJBZnRlcmdsb3dIaWdoU2NvcmVNdXNpY0xpc3QYAiABKAsyHS5Vc2VySGlnaFNjb3JlTXVzaWNSYXRpbmdMaXN0EksKJHVzZXJQYXN0ZWxQYWxldHRlc0hpZ2hTY29yZU11c2ljTGlzdBgDIAEoCzIdLlVzZXJIaWdoU2NvcmVNdXNpY1JhdGluZ0xpc3QSTAoldXNlckhlbGxvSGFwcHlXb3JsZEhpZ2hTY29yZU11c2ljTGlzdBgEIAEoCzIdLlVzZXJIaWdoU2NvcmVNdXNpY1JhdGluZ0xpc3QSRAoddXNlclJvc2VsaWFIaWdoU2NvcmVNdXNpY0xpc3QYBSABKAsyHS5Vc2VySGlnaFNjb3JlTXVzaWNSYXRpbmdMaXN0EkIKG3VzZXJPdGhlckhpZ2hTY29yZU11c2ljTGlzdBgGIAEoCzIdLlVzZXJIaWdoU2NvcmVNdXNpY1JhdGluZ0xpc3QSRgofdXNlck1vcmZvbmljYUhpZ2hTY29yZU11c2ljTGlzdBgHIAEoCzIdLlVzZXJIaWdoU2NvcmVNdXNpY1JhdGluZ0xpc3QSSQoidXNlclJhaXNlQVN1aWxlbkhpZ2hTY29yZU11c2ljTGlzdBgIIAEoCzIdLlVzZXJIaWdoU2NvcmVNdXNpY1JhdGluZ0xpc3QSPQoWdXNlck15R09TY29yZU11c2ljTGlzdBgJIAEoCzIdLlVzZXJIaWdoU2NvcmVNdXNpY1JhdGluZ0xpc3QiagoSVXNlck11c2ljQ2xlYXJJbmZvEhkKEWNsZWFyZWRNdXNpY0NvdW50GAEgASgNEhsKE2Z1bGxDb21ib011c2ljQ291bnQYAiABKA0SHAoUYWxsUGVyZmVjdE11c2ljQ291bnQYAyABKA0ikgEKFVVzZXJNdXNpY0NsZWFySW5mb01hcBI0CgdlbnRyaWVzGAEgAygLMiMuVXNlck11c2ljQ2xlYXJJbmZvTWFwLkVudHJpZXNFbnRyeRpDCgxFbnRyaWVzRW50cnkSCwoDa2V5GAEgASgJEiIKBXZhbHVlGAIgASgLMhMuVXNlck11c2ljQ2xlYXJJbmZvOgI4ASJvCgtVc2VyVHdpdHRlchIRCgl0d2l0dGVySWQYASABKAQSEwoLdHdpdHRlck5hbWUYAiABKAkSEgoKc2NyZWVuTmFtZRgDIAEoCRILCgN1cmwYBCABKAkSFwoPcHJvZmlsZUltYWdlVXJsGAUgASgJYgZwcm90bzM", [file_common]);
+  fileDesc("Cg1wcm9maWxlLnByb3RvItUCCgtVc2VyUHJvZmlsZRIQCgh1c2VyTmFtZRgCIAEoCRIMCgRyYW5rGAMgASgNEhQKDGludHJvZHVjdGlvbhgFIAEoCRIgChhwdWJsaXNoVG90YWxEZWNrUG93ZXJGbGcYCyABKAgSMgoWbWFpbkRlY2tVc2VyU2l0dWF0aW9ucxhlIAEoCzISLlVzZXJTaXR1YXRpb25MaXN0Ei8KFGVuYWJsZWRVc2VyQXJlYUl0ZW1zGGYgASgLMhEuVXNlckFyZWFJdGVtTGlzdBIfCgxtYWluVXNlckRlY2sYayABKAsyCS5Vc2VyRGVjaxIzChR1c2VyUHJvZmlsZVNpdHVhdGlvbhhsIAEoCzIVLlVzZXJQcm9maWxlU2l0dWF0aW9uEjMKFHVzZXJQcm9maWxlRGVncmVlTWFwGG0gASgLMhUuVXNlclByb2ZpbGVEZWdyZWVNYXAiIgoMVXNlckFyZWFJdGVtEhIKCmFyZWFJdGVtSWQYAiABKA0iMgoQVXNlckFyZWFJdGVtTGlzdBIeCgdlbnRyaWVzGAEgAygLMg0uVXNlckFyZWFJdGVtQhBCDFByb2ZpbGVQcm90b1ABYgZwcm90bzM", [file_common]);
 
 /**
  * @generated from message UserProfile
  */
 export type UserProfile = Message<"UserProfile"> & {
-  /**
-   * @generated from field: uint64 userId = 1;
-   */
-  userId: bigint;
-
   /**
    * @generated from field: string userName = 2;
    */
@@ -32,11 +27,6 @@ export type UserProfile = Message<"UserProfile"> & {
    * @generated from field: uint32 rank = 3;
    */
   rank: number;
-
-  /**
-   * @generated from field: uint32 degree = 4;
-   */
-  degree: number;
 
   /**
    * @generated from field: string introduction = 5;
@@ -49,71 +39,6 @@ export type UserProfile = Message<"UserProfile"> & {
   publishTotalDeckPowerFlg: boolean;
 
   /**
-   * @generated from field: bool publishBandRankFlg = 12;
-   */
-  publishBandRankFlg: boolean;
-
-  /**
-   * @generated from field: bool publishMusicClearedFlg = 13;
-   */
-  publishMusicClearedFlg: boolean;
-
-  /**
-   * @generated from field: bool publishMusicFullComboFlg = 14;
-   */
-  publishMusicFullComboFlg: boolean;
-
-  /**
-   * @generated from field: bool publishHighScoreRatingFlg = 15;
-   */
-  publishHighScoreRatingFlg: boolean;
-
-  /**
-   * @generated from field: bool publishUserIdFlg = 16;
-   */
-  publishUserIdFlg: boolean;
-
-  /**
-   * @generated from field: bool searchableFlg = 17;
-   */
-  searchableFlg: boolean;
-
-  /**
-   * @generated from field: bool publishUpdatedAtFlg = 18;
-   */
-  publishUpdatedAtFlg: boolean;
-
-  /**
-   * @generated from field: bool friendApplicableFlg = 19;
-   */
-  friendApplicableFlg: boolean;
-
-  /**
-   * @generated from field: bool publishMusicAllPerfectFlg = 20;
-   */
-  publishMusicAllPerfectFlg: boolean;
-
-  /**
-   * @generated from field: bool publishDeckRankFlg = 21;
-   */
-  publishDeckRankFlg: boolean;
-
-  /**
-   * @generated from field: bool publishStageChallengeAchievementConditionsFlg = 22;
-   */
-  publishStageChallengeAchievementConditionsFlg: boolean;
-
-  /**
-   * @generated from field: bool publishStageChallengeFriendRankingFlg = 23;
-   */
-  publishStageChallengeFriendRankingFlg: boolean;
-
-  /**
-   * @generated from field: bool publishCharacterRankFlg = 24;
-   */
-  publishCharacterRankFlg: boolean;
-
-  /**
    * @generated from field: UserSituationList mainDeckUserSituations = 101;
    */
   mainDeckUserSituations?: UserSituationList | undefined;
@@ -122,16 +47,6 @@ export type UserProfile = Message<"UserProfile"> & {
    * @generated from field: UserAreaItemList enabledUserAreaItems = 102;
    */
   enabledUserAreaItems?: UserAreaItemList | undefined;
-
-  /**
-   * @generated from field: MapKeyUint32ValueUint32 bandRankMap = 103;
-   */
-  bandRankMap?: MapKeyUint32ValueUint32 | undefined;
-
-  /**
-   * @generated from field: UserHighScoreRating userHighScoreRating = 106;
-   */
-  userHighScoreRating?: UserHighScoreRating | undefined;
 
   /**
    * @generated from field: UserDeck mainUserDeck = 107;
@@ -147,47 +62,12 @@ export type UserProfile = Message<"UserProfile"> & {
    * @generated from field: UserProfileDegreeMap userProfileDegreeMap = 109;
    */
   userProfileDegreeMap?: UserProfileDegreeMap | undefined;
-
-  /**
-   * @generated from field: UserTwitter userTwitter = 110;
-   */
-  userTwitter?: UserTwitter | undefined;
-
-  /**
-   * @generated from field: UserDeckTotalRatingMap userDeckTotalRatingMap = 112;
-   */
-  userDeckTotalRatingMap?: UserDeckTotalRatingMap | undefined;
-
-  /**
-   * @generated from field: MapKeyUint32ValueUint32 stageChallengeAchievementConditionsMap = 113;
-   */
-  stageChallengeAchievementConditionsMap?: MapKeyUint32ValueUint32 | undefined;
-
-  /**
-   * @generated from field: UserMusicClearInfoMap userMusicClearInfoMap = 114;
-   */
-  userMusicClearInfoMap?: UserMusicClearInfoMap | undefined;
-
-  /**
-   * @generated from field: UserCharacterRankMap userCharacterRankMap = 115;
-   */
-  userCharacterRankMap?: UserCharacterRankMap | undefined;
-
-  /**
-   * @generated from field: bool searchSuccessFlg = 200;
-   */
-  searchSuccessFlg: boolean;
 };
 
 /**
  * @generated from message UserProfile
  */
 export type UserProfileJson = {
-  /**
-   * @generated from field: uint64 userId = 1;
-   */
-  userId?: string;
-
   /**
    * @generated from field: string userName = 2;
    */
@@ -197,11 +77,6 @@ export type UserProfileJson = {
    * @generated from field: uint32 rank = 3;
    */
   rank?: number;
-
-  /**
-   * @generated from field: uint32 degree = 4;
-   */
-  degree?: number;
 
   /**
    * @generated from field: string introduction = 5;
@@ -214,71 +89,6 @@ export type UserProfileJson = {
   publishTotalDeckPowerFlg?: boolean;
 
   /**
-   * @generated from field: bool publishBandRankFlg = 12;
-   */
-  publishBandRankFlg?: boolean;
-
-  /**
-   * @generated from field: bool publishMusicClearedFlg = 13;
-   */
-  publishMusicClearedFlg?: boolean;
-
-  /**
-   * @generated from field: bool publishMusicFullComboFlg = 14;
-   */
-  publishMusicFullComboFlg?: boolean;
-
-  /**
-   * @generated from field: bool publishHighScoreRatingFlg = 15;
-   */
-  publishHighScoreRatingFlg?: boolean;
-
-  /**
-   * @generated from field: bool publishUserIdFlg = 16;
-   */
-  publishUserIdFlg?: boolean;
-
-  /**
-   * @generated from field: bool searchableFlg = 17;
-   */
-  searchableFlg?: boolean;
-
-  /**
-   * @generated from field: bool publishUpdatedAtFlg = 18;
-   */
-  publishUpdatedAtFlg?: boolean;
-
-  /**
-   * @generated from field: bool friendApplicableFlg = 19;
-   */
-  friendApplicableFlg?: boolean;
-
-  /**
-   * @generated from field: bool publishMusicAllPerfectFlg = 20;
-   */
-  publishMusicAllPerfectFlg?: boolean;
-
-  /**
-   * @generated from field: bool publishDeckRankFlg = 21;
-   */
-  publishDeckRankFlg?: boolean;
-
-  /**
-   * @generated from field: bool publishStageChallengeAchievementConditionsFlg = 22;
-   */
-  publishStageChallengeAchievementConditionsFlg?: boolean;
-
-  /**
-   * @generated from field: bool publishStageChallengeFriendRankingFlg = 23;
-   */
-  publishStageChallengeFriendRankingFlg?: boolean;
-
-  /**
-   * @generated from field: bool publishCharacterRankFlg = 24;
-   */
-  publishCharacterRankFlg?: boolean;
-
-  /**
    * @generated from field: UserSituationList mainDeckUserSituations = 101;
    */
   mainDeckUserSituations?: UserSituationListJson;
@@ -287,16 +97,6 @@ export type UserProfileJson = {
    * @generated from field: UserAreaItemList enabledUserAreaItems = 102;
    */
   enabledUserAreaItems?: UserAreaItemListJson;
-
-  /**
-   * @generated from field: MapKeyUint32ValueUint32 bandRankMap = 103;
-   */
-  bandRankMap?: MapKeyUint32ValueUint32Json;
-
-  /**
-   * @generated from field: UserHighScoreRating userHighScoreRating = 106;
-   */
-  userHighScoreRating?: UserHighScoreRatingJson;
 
   /**
    * @generated from field: UserDeck mainUserDeck = 107;
@@ -312,36 +112,6 @@ export type UserProfileJson = {
    * @generated from field: UserProfileDegreeMap userProfileDegreeMap = 109;
    */
   userProfileDegreeMap?: UserProfileDegreeMapJson;
-
-  /**
-   * @generated from field: UserTwitter userTwitter = 110;
-   */
-  userTwitter?: UserTwitterJson;
-
-  /**
-   * @generated from field: UserDeckTotalRatingMap userDeckTotalRatingMap = 112;
-   */
-  userDeckTotalRatingMap?: UserDeckTotalRatingMapJson;
-
-  /**
-   * @generated from field: MapKeyUint32ValueUint32 stageChallengeAchievementConditionsMap = 113;
-   */
-  stageChallengeAchievementConditionsMap?: MapKeyUint32ValueUint32Json;
-
-  /**
-   * @generated from field: UserMusicClearInfoMap userMusicClearInfoMap = 114;
-   */
-  userMusicClearInfoMap?: UserMusicClearInfoMapJson;
-
-  /**
-   * @generated from field: UserCharacterRankMap userCharacterRankMap = 115;
-   */
-  userCharacterRankMap?: UserCharacterRankMapJson;
-
-  /**
-   * @generated from field: bool searchSuccessFlg = 200;
-   */
-  searchSuccessFlg?: boolean;
 };
 
 /**
@@ -352,55 +122,13 @@ export const UserProfileSchema: GenMessage<UserProfile, {jsonType: UserProfileJs
   messageDesc(file_profile, 0);
 
 /**
- * @generated from message MapKeyUint32ValueUint32
- */
-export type MapKeyUint32ValueUint32 = Message<"MapKeyUint32ValueUint32"> & {
-  /**
-   * @generated from field: map<uint32, uint32> entries = 1;
-   */
-  entries: { [key: number]: number };
-};
-
-/**
- * @generated from message MapKeyUint32ValueUint32
- */
-export type MapKeyUint32ValueUint32Json = {
-  /**
-   * @generated from field: map<uint32, uint32> entries = 1;
-   */
-  entries?: { [key: number]: number };
-};
-
-/**
- * Describes the message MapKeyUint32ValueUint32.
- * Use `create(MapKeyUint32ValueUint32Schema)` to create a new message.
- */
-export const MapKeyUint32ValueUint32Schema: GenMessage<MapKeyUint32ValueUint32, {jsonType: MapKeyUint32ValueUint32Json}> = /*@__PURE__*/
-  messageDesc(file_profile, 1);
-
-/**
  * @generated from message UserAreaItem
  */
 export type UserAreaItem = Message<"UserAreaItem"> & {
   /**
-   * @generated from field: uint64 userId = 1;
-   */
-  userId: bigint;
-
-  /**
    * @generated from field: uint32 areaItemId = 2;
    */
   areaItemId: number;
-
-  /**
-   * @generated from field: uint32 areaItemCategory = 3;
-   */
-  areaItemCategory: number;
-
-  /**
-   * @generated from field: uint32 level = 4;
-   */
-  level: number;
 };
 
 /**
@@ -408,24 +136,9 @@ export type UserAreaItem = Message<"UserAreaItem"> & {
  */
 export type UserAreaItemJson = {
   /**
-   * @generated from field: uint64 userId = 1;
-   */
-  userId?: string;
-
-  /**
    * @generated from field: uint32 areaItemId = 2;
    */
   areaItemId?: number;
-
-  /**
-   * @generated from field: uint32 areaItemCategory = 3;
-   */
-  areaItemCategory?: number;
-
-  /**
-   * @generated from field: uint32 level = 4;
-   */
-  level?: number;
 };
 
 /**
@@ -433,7 +146,7 @@ export type UserAreaItemJson = {
  * Use `create(UserAreaItemSchema)` to create a new message.
  */
 export const UserAreaItemSchema: GenMessage<UserAreaItem, {jsonType: UserAreaItemJson}> = /*@__PURE__*/
-  messageDesc(file_profile, 2);
+  messageDesc(file_profile, 1);
 
 /**
  * @generated from message UserAreaItemList
@@ -460,525 +173,5 @@ export type UserAreaItemListJson = {
  * Use `create(UserAreaItemListSchema)` to create a new message.
  */
 export const UserAreaItemListSchema: GenMessage<UserAreaItemList, {jsonType: UserAreaItemListJson}> = /*@__PURE__*/
-  messageDesc(file_profile, 3);
-
-/**
- * @generated from message UserCharacterRank
- */
-export type UserCharacterRank = Message<"UserCharacterRank"> & {
-  /**
-   * @generated from field: uint32 rank = 1;
-   */
-  rank: number;
-
-  /**
-   * @generated from field: uint64 exp = 2;
-   */
-  exp: bigint;
-
-  /**
-   * @generated from field: uint64 addExp = 3;
-   */
-  addExp: bigint;
-
-  /**
-   * @generated from field: uint64 nextExp = 4;
-   */
-  nextExp: bigint;
-
-  /**
-   * @generated from field: uint64 totalExp = 5;
-   */
-  totalExp: bigint;
-
-  /**
-   * @generated from field: uint64 releasedPotentialLevel = 6;
-   */
-  releasedPotentialLevel: bigint;
-};
-
-/**
- * @generated from message UserCharacterRank
- */
-export type UserCharacterRankJson = {
-  /**
-   * @generated from field: uint32 rank = 1;
-   */
-  rank?: number;
-
-  /**
-   * @generated from field: uint64 exp = 2;
-   */
-  exp?: string;
-
-  /**
-   * @generated from field: uint64 addExp = 3;
-   */
-  addExp?: string;
-
-  /**
-   * @generated from field: uint64 nextExp = 4;
-   */
-  nextExp?: string;
-
-  /**
-   * @generated from field: uint64 totalExp = 5;
-   */
-  totalExp?: string;
-
-  /**
-   * @generated from field: uint64 releasedPotentialLevel = 6;
-   */
-  releasedPotentialLevel?: string;
-};
-
-/**
- * Describes the message UserCharacterRank.
- * Use `create(UserCharacterRankSchema)` to create a new message.
- */
-export const UserCharacterRankSchema: GenMessage<UserCharacterRank, {jsonType: UserCharacterRankJson}> = /*@__PURE__*/
-  messageDesc(file_profile, 4);
-
-/**
- * @generated from message UserCharacterRankMap
- */
-export type UserCharacterRankMap = Message<"UserCharacterRankMap"> & {
-  /**
-   * @generated from field: map<uint32, UserCharacterRank> entries = 1;
-   */
-  entries: { [key: number]: UserCharacterRank };
-};
-
-/**
- * @generated from message UserCharacterRankMap
- */
-export type UserCharacterRankMapJson = {
-  /**
-   * @generated from field: map<uint32, UserCharacterRank> entries = 1;
-   */
-  entries?: { [key: number]: UserCharacterRankJson };
-};
-
-/**
- * Describes the message UserCharacterRankMap.
- * Use `create(UserCharacterRankMapSchema)` to create a new message.
- */
-export const UserCharacterRankMapSchema: GenMessage<UserCharacterRankMap, {jsonType: UserCharacterRankMapJson}> = /*@__PURE__*/
-  messageDesc(file_profile, 5);
-
-/**
- * @generated from message UserDeckTotalRating
- */
-export type UserDeckTotalRating = Message<"UserDeckTotalRating"> & {
-  /**
-   * @generated from field: string rank = 1;
-   */
-  rank: string;
-
-  /**
-   * @generated from field: uint32 score = 2;
-   */
-  score: number;
-
-  /**
-   * @generated from field: uint32 level = 3;
-   */
-  level: number;
-
-  /**
-   * @generated from field: uint32 lowerRating = 4;
-   */
-  lowerRating: number;
-
-  /**
-   * @generated from field: uint32 upperRating = 5;
-   */
-  upperRating: number;
-};
-
-/**
- * @generated from message UserDeckTotalRating
- */
-export type UserDeckTotalRatingJson = {
-  /**
-   * @generated from field: string rank = 1;
-   */
-  rank?: string;
-
-  /**
-   * @generated from field: uint32 score = 2;
-   */
-  score?: number;
-
-  /**
-   * @generated from field: uint32 level = 3;
-   */
-  level?: number;
-
-  /**
-   * @generated from field: uint32 lowerRating = 4;
-   */
-  lowerRating?: number;
-
-  /**
-   * @generated from field: uint32 upperRating = 5;
-   */
-  upperRating?: number;
-};
-
-/**
- * Describes the message UserDeckTotalRating.
- * Use `create(UserDeckTotalRatingSchema)` to create a new message.
- */
-export const UserDeckTotalRatingSchema: GenMessage<UserDeckTotalRating, {jsonType: UserDeckTotalRatingJson}> = /*@__PURE__*/
-  messageDesc(file_profile, 6);
-
-/**
- * @generated from message UserDeckTotalRatingMap
- */
-export type UserDeckTotalRatingMap = Message<"UserDeckTotalRatingMap"> & {
-  /**
-   * @generated from field: map<uint32, UserDeckTotalRating> entries = 1;
-   */
-  entries: { [key: number]: UserDeckTotalRating };
-};
-
-/**
- * @generated from message UserDeckTotalRatingMap
- */
-export type UserDeckTotalRatingMapJson = {
-  /**
-   * @generated from field: map<uint32, UserDeckTotalRating> entries = 1;
-   */
-  entries?: { [key: number]: UserDeckTotalRatingJson };
-};
-
-/**
- * Describes the message UserDeckTotalRatingMap.
- * Use `create(UserDeckTotalRatingMapSchema)` to create a new message.
- */
-export const UserDeckTotalRatingMapSchema: GenMessage<UserDeckTotalRatingMap, {jsonType: UserDeckTotalRatingMapJson}> = /*@__PURE__*/
-  messageDesc(file_profile, 7);
-
-/**
- * @generated from message UserHighScoreMusicRating
- */
-export type UserHighScoreMusicRating = Message<"UserHighScoreMusicRating"> & {
-  /**
-   * @generated from field: uint32 musicId = 1;
-   */
-  musicId: number;
-
-  /**
-   * @generated from field: string difficulty = 2;
-   */
-  difficulty: string;
-
-  /**
-   * @generated from field: uint32 rating = 3;
-   */
-  rating: number;
-};
-
-/**
- * @generated from message UserHighScoreMusicRating
- */
-export type UserHighScoreMusicRatingJson = {
-  /**
-   * @generated from field: uint32 musicId = 1;
-   */
-  musicId?: number;
-
-  /**
-   * @generated from field: string difficulty = 2;
-   */
-  difficulty?: string;
-
-  /**
-   * @generated from field: uint32 rating = 3;
-   */
-  rating?: number;
-};
-
-/**
- * Describes the message UserHighScoreMusicRating.
- * Use `create(UserHighScoreMusicRatingSchema)` to create a new message.
- */
-export const UserHighScoreMusicRatingSchema: GenMessage<UserHighScoreMusicRating, {jsonType: UserHighScoreMusicRatingJson}> = /*@__PURE__*/
-  messageDesc(file_profile, 8);
-
-/**
- * @generated from message UserHighScoreMusicRatingList
- */
-export type UserHighScoreMusicRatingList = Message<"UserHighScoreMusicRatingList"> & {
-  /**
-   * @generated from field: repeated UserHighScoreMusicRating entries = 1;
-   */
-  entries: UserHighScoreMusicRating[];
-};
-
-/**
- * @generated from message UserHighScoreMusicRatingList
- */
-export type UserHighScoreMusicRatingListJson = {
-  /**
-   * @generated from field: repeated UserHighScoreMusicRating entries = 1;
-   */
-  entries?: UserHighScoreMusicRatingJson[];
-};
-
-/**
- * Describes the message UserHighScoreMusicRatingList.
- * Use `create(UserHighScoreMusicRatingListSchema)` to create a new message.
- */
-export const UserHighScoreMusicRatingListSchema: GenMessage<UserHighScoreMusicRatingList, {jsonType: UserHighScoreMusicRatingListJson}> = /*@__PURE__*/
-  messageDesc(file_profile, 9);
-
-/**
- * @generated from message UserHighScoreRating
- */
-export type UserHighScoreRating = Message<"UserHighScoreRating"> & {
-  /**
-   * @generated from field: UserHighScoreMusicRatingList userPoppinPartyHighScoreMusicList = 1;
-   */
-  userPoppinPartyHighScoreMusicList?: UserHighScoreMusicRatingList | undefined;
-
-  /**
-   * @generated from field: UserHighScoreMusicRatingList userAfterglowHighScoreMusicList = 2;
-   */
-  userAfterglowHighScoreMusicList?: UserHighScoreMusicRatingList | undefined;
-
-  /**
-   * @generated from field: UserHighScoreMusicRatingList userPastelPalettesHighScoreMusicList = 3;
-   */
-  userPastelPalettesHighScoreMusicList?: UserHighScoreMusicRatingList | undefined;
-
-  /**
-   * @generated from field: UserHighScoreMusicRatingList userHelloHappyWorldHighScoreMusicList = 4;
-   */
-  userHelloHappyWorldHighScoreMusicList?: UserHighScoreMusicRatingList | undefined;
-
-  /**
-   * @generated from field: UserHighScoreMusicRatingList userRoseliaHighScoreMusicList = 5;
-   */
-  userRoseliaHighScoreMusicList?: UserHighScoreMusicRatingList | undefined;
-
-  /**
-   * @generated from field: UserHighScoreMusicRatingList userOtherHighScoreMusicList = 6;
-   */
-  userOtherHighScoreMusicList?: UserHighScoreMusicRatingList | undefined;
-
-  /**
-   * @generated from field: UserHighScoreMusicRatingList userMorfonicaHighScoreMusicList = 7;
-   */
-  userMorfonicaHighScoreMusicList?: UserHighScoreMusicRatingList | undefined;
-
-  /**
-   * @generated from field: UserHighScoreMusicRatingList userRaiseASuilenHighScoreMusicList = 8;
-   */
-  userRaiseASuilenHighScoreMusicList?: UserHighScoreMusicRatingList | undefined;
-
-  /**
-   * @generated from field: UserHighScoreMusicRatingList userMyGOScoreMusicList = 9;
-   */
-  userMyGOScoreMusicList?: UserHighScoreMusicRatingList | undefined;
-};
-
-/**
- * @generated from message UserHighScoreRating
- */
-export type UserHighScoreRatingJson = {
-  /**
-   * @generated from field: UserHighScoreMusicRatingList userPoppinPartyHighScoreMusicList = 1;
-   */
-  userPoppinPartyHighScoreMusicList?: UserHighScoreMusicRatingListJson;
-
-  /**
-   * @generated from field: UserHighScoreMusicRatingList userAfterglowHighScoreMusicList = 2;
-   */
-  userAfterglowHighScoreMusicList?: UserHighScoreMusicRatingListJson;
-
-  /**
-   * @generated from field: UserHighScoreMusicRatingList userPastelPalettesHighScoreMusicList = 3;
-   */
-  userPastelPalettesHighScoreMusicList?: UserHighScoreMusicRatingListJson;
-
-  /**
-   * @generated from field: UserHighScoreMusicRatingList userHelloHappyWorldHighScoreMusicList = 4;
-   */
-  userHelloHappyWorldHighScoreMusicList?: UserHighScoreMusicRatingListJson;
-
-  /**
-   * @generated from field: UserHighScoreMusicRatingList userRoseliaHighScoreMusicList = 5;
-   */
-  userRoseliaHighScoreMusicList?: UserHighScoreMusicRatingListJson;
-
-  /**
-   * @generated from field: UserHighScoreMusicRatingList userOtherHighScoreMusicList = 6;
-   */
-  userOtherHighScoreMusicList?: UserHighScoreMusicRatingListJson;
-
-  /**
-   * @generated from field: UserHighScoreMusicRatingList userMorfonicaHighScoreMusicList = 7;
-   */
-  userMorfonicaHighScoreMusicList?: UserHighScoreMusicRatingListJson;
-
-  /**
-   * @generated from field: UserHighScoreMusicRatingList userRaiseASuilenHighScoreMusicList = 8;
-   */
-  userRaiseASuilenHighScoreMusicList?: UserHighScoreMusicRatingListJson;
-
-  /**
-   * @generated from field: UserHighScoreMusicRatingList userMyGOScoreMusicList = 9;
-   */
-  userMyGOScoreMusicList?: UserHighScoreMusicRatingListJson;
-};
-
-/**
- * Describes the message UserHighScoreRating.
- * Use `create(UserHighScoreRatingSchema)` to create a new message.
- */
-export const UserHighScoreRatingSchema: GenMessage<UserHighScoreRating, {jsonType: UserHighScoreRatingJson}> = /*@__PURE__*/
-  messageDesc(file_profile, 10);
-
-/**
- * @generated from message UserMusicClearInfo
- */
-export type UserMusicClearInfo = Message<"UserMusicClearInfo"> & {
-  /**
-   * @generated from field: uint32 clearedMusicCount = 1;
-   */
-  clearedMusicCount: number;
-
-  /**
-   * @generated from field: uint32 fullComboMusicCount = 2;
-   */
-  fullComboMusicCount: number;
-
-  /**
-   * @generated from field: uint32 allPerfectMusicCount = 3;
-   */
-  allPerfectMusicCount: number;
-};
-
-/**
- * @generated from message UserMusicClearInfo
- */
-export type UserMusicClearInfoJson = {
-  /**
-   * @generated from field: uint32 clearedMusicCount = 1;
-   */
-  clearedMusicCount?: number;
-
-  /**
-   * @generated from field: uint32 fullComboMusicCount = 2;
-   */
-  fullComboMusicCount?: number;
-
-  /**
-   * @generated from field: uint32 allPerfectMusicCount = 3;
-   */
-  allPerfectMusicCount?: number;
-};
-
-/**
- * Describes the message UserMusicClearInfo.
- * Use `create(UserMusicClearInfoSchema)` to create a new message.
- */
-export const UserMusicClearInfoSchema: GenMessage<UserMusicClearInfo, {jsonType: UserMusicClearInfoJson}> = /*@__PURE__*/
-  messageDesc(file_profile, 11);
-
-/**
- * @generated from message UserMusicClearInfoMap
- */
-export type UserMusicClearInfoMap = Message<"UserMusicClearInfoMap"> & {
-  /**
-   * @generated from field: map<string, UserMusicClearInfo> entries = 1;
-   */
-  entries: { [key: string]: UserMusicClearInfo };
-};
-
-/**
- * @generated from message UserMusicClearInfoMap
- */
-export type UserMusicClearInfoMapJson = {
-  /**
-   * @generated from field: map<string, UserMusicClearInfo> entries = 1;
-   */
-  entries?: { [key: string]: UserMusicClearInfoJson };
-};
-
-/**
- * Describes the message UserMusicClearInfoMap.
- * Use `create(UserMusicClearInfoMapSchema)` to create a new message.
- */
-export const UserMusicClearInfoMapSchema: GenMessage<UserMusicClearInfoMap, {jsonType: UserMusicClearInfoMapJson}> = /*@__PURE__*/
-  messageDesc(file_profile, 12);
-
-/**
- * @generated from message UserTwitter
- */
-export type UserTwitter = Message<"UserTwitter"> & {
-  /**
-   * @generated from field: uint64 twitterId = 1;
-   */
-  twitterId: bigint;
-
-  /**
-   * @generated from field: string twitterName = 2;
-   */
-  twitterName: string;
-
-  /**
-   * @generated from field: string screenName = 3;
-   */
-  screenName: string;
-
-  /**
-   * @generated from field: string url = 4;
-   */
-  url: string;
-
-  /**
-   * @generated from field: string profileImageUrl = 5;
-   */
-  profileImageUrl: string;
-};
-
-/**
- * @generated from message UserTwitter
- */
-export type UserTwitterJson = {
-  /**
-   * @generated from field: uint64 twitterId = 1;
-   */
-  twitterId?: string;
-
-  /**
-   * @generated from field: string twitterName = 2;
-   */
-  twitterName?: string;
-
-  /**
-   * @generated from field: string screenName = 3;
-   */
-  screenName?: string;
-
-  /**
-   * @generated from field: string url = 4;
-   */
-  url?: string;
-
-  /**
-   * @generated from field: string profileImageUrl = 5;
-   */
-  profileImageUrl?: string;
-};
-
-/**
- * Describes the message UserTwitter.
- * Use `create(UserTwitterSchema)` to create a new message.
- */
-export const UserTwitterSchema: GenMessage<UserTwitter, {jsonType: UserTwitterJson}> = /*@__PURE__*/
-  messageDesc(file_profile, 13);
+  messageDesc(file_profile, 2);
 

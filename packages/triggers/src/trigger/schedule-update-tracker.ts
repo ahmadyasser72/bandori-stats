@@ -87,11 +87,7 @@ export const scheduleUpdateTracker = schedules.task({
 								{
 									$typeName: "MusicRankingResponse",
 									musicId: event.musics[0].id,
-									...pick(data, [
-										"scoreBorderUsers",
-										"scoreNearUsers",
-										"scoreTopUsers",
-									]),
+									...pick(data, ["scoreBorderUsers", "scoreTopUsers"]),
 								} satisfies MusicRankingResponse,
 							],
 						};
@@ -228,7 +224,7 @@ const insertSnapshots = async (
 		): typeof trackerSnapshots.$inferInsert => ({
 			...trackingReference,
 
-			uid: userId.toString(),
+			uid: userId,
 			name,
 			rank,
 			point: Number(point),
@@ -367,9 +363,9 @@ const updateRedisLeaderboard = async (
 				pipe.zadd(
 					GBP.fromMetadata(metadata, ...(Array.isArray(key) ? key : [key])),
 					{ gt: true },
-					{ member: first[memberKey].toString(), score: Number(first.point) },
+					{ member: first[memberKey], score: Number(first.point) },
 					...rest.map((it) => ({
-						member: it[memberKey].toString(),
+						member: it[memberKey],
 						score: Number(it.point),
 					})),
 				);
@@ -434,7 +430,7 @@ const sendPushNotifications = async (
 		"$",
 	);
 
-	const t10 = new Set(ranking.t10.map(({ userId }) => userId.toString()));
+	const t10 = new Set(ranking.t10.map(({ userId }) => userId));
 	const payloads = await logger.trace(
 		`generate-${metadata.kind}-webpush-payload`,
 		async () => {

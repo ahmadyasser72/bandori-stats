@@ -3,7 +3,6 @@ syntax = "proto3";
 import "common.proto";
 
 message UserMonthlyRankingRankingResponse {
-    RankingUserList monthlyRankingPointNearUsers = 1;
-    RankingUserList monthlyRankingPointTopUsers = 2;
-    RankingUserList monthlyRankingPointBorderUsers = 3;
+  RankingUserList monthlyRankingPointTopUsers = 2;
+  RankingUserList monthlyRankingPointBorderUsers = 3;
 }

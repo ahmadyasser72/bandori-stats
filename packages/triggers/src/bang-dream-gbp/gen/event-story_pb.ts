@@ -12,17 +12,12 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file event-story.proto.
  */
 export const file_event_story: GenFile = /*@__PURE__*/
-  fileDesc("ChFldmVudC1zdG9yeS5wcm90byJoCh1Vc2VyU3RvcnlFdmVudFJhbmtpbmdSZXNwb25zZRIjCgluZWFyVXNlcnMYASABKAsyEC5SYW5raW5nVXNlckxpc3QSIgoIdG9wVXNlcnMYAiABKAsyEC5SYW5raW5nVXNlckxpc3RiBnByb3RvMw", [file_common]);
+  fileDesc("ChFldmVudC1zdG9yeS5wcm90byJDCh1Vc2VyU3RvcnlFdmVudFJhbmtpbmdSZXNwb25zZRIiCgh0b3BVc2VycxgCIAEoCzIQLlJhbmtpbmdVc2VyTGlzdEITQg9FdmVudFN0b3J5UHJvdG9QAWIGcHJvdG8z", [file_common]);
 
 /**
  * @generated from message UserStoryEventRankingResponse
  */
 export type UserStoryEventRankingResponse = Message<"UserStoryEventRankingResponse"> & {
-  /**
-   * @generated from field: RankingUserList nearUsers = 1;
-   */
-  nearUsers?: RankingUserList | undefined;
-
   /**
    * @generated from field: RankingUserList topUsers = 2;
    */
@@ -33,11 +28,6 @@ export type UserStoryEventRankingResponse = Message<"UserStoryEventRankingRespon
  * @generated from message UserStoryEventRankingResponse
  */
 export type UserStoryEventRankingResponseJson = {
-  /**
-   * @generated from field: RankingUserList nearUsers = 1;
-   */
-  nearUsers?: RankingUserListJson;
-
   /**
    * @generated from field: RankingUserList topUsers = 2;
    */

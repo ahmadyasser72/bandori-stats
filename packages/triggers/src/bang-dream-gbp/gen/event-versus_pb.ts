@@ -12,17 +12,12 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file event-versus.proto.
  */
 export const file_event_versus: GenFile = /*@__PURE__*/
-  fileDesc("ChJldmVudC12ZXJzdXMucHJvdG8i4gEKHlVzZXJWZXJzdXNFdmVudFJhbmtpbmdSZXNwb25zZRItChNldmVudFBvaW50TmVhclVzZXJzGAEgASgLMhAuUmFua2luZ1VzZXJMaXN0EiwKEmV2ZW50UG9pbnRUb3BVc2VycxgCIAEoCzIQLlJhbmtpbmdVc2VyTGlzdBIyChN2ZXJzdXNNdXNpY1JhbmtpbmdzGAMgAygLMhUuTXVzaWNSYW5raW5nUmVzcG9uc2USLwoVZXZlbnRQb2ludEJvcmRlclVzZXJzGAQgASgLMhAuUmFua2luZ1VzZXJMaXN0YgZwcm90bzM", [file_common]);
+  fileDesc("ChJldmVudC12ZXJzdXMucHJvdG8iswEKHlVzZXJWZXJzdXNFdmVudFJhbmtpbmdSZXNwb25zZRIsChJldmVudFBvaW50VG9wVXNlcnMYAiABKAsyEC5SYW5raW5nVXNlckxpc3QSMgoTdmVyc3VzTXVzaWNSYW5raW5ncxgDIAMoCzIVLk11c2ljUmFua2luZ1Jlc3BvbnNlEi8KFWV2ZW50UG9pbnRCb3JkZXJVc2VycxgEIAEoCzIQLlJhbmtpbmdVc2VyTGlzdEIUQhBFdmVudFZlcnN1c1Byb3RvUAFiBnByb3RvMw", [file_common]);
 
 /**
  * @generated from message UserVersusEventRankingResponse
  */
 export type UserVersusEventRankingResponse = Message<"UserVersusEventRankingResponse"> & {
-  /**
-   * @generated from field: RankingUserList eventPointNearUsers = 1;
-   */
-  eventPointNearUsers?: RankingUserList | undefined;
-
   /**
    * @generated from field: RankingUserList eventPointTopUsers = 2;
    */
@@ -43,11 +38,6 @@ export type UserVersusEventRankingResponse = Message<"UserVersusEventRankingResp
  * @generated from message UserVersusEventRankingResponse
  */
 export type UserVersusEventRankingResponseJson = {
-  /**
-   * @generated from field: RankingUserList eventPointNearUsers = 1;
-   */
-  eventPointNearUsers?: RankingUserListJson;
-
   /**
    * @generated from field: RankingUserList eventPointTopUsers = 2;
    */
