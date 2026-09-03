@@ -109,10 +109,14 @@ export const bangDream = limitAsync(
 			span.setAttribute?.("typeName", schema.typeName);
 
 			const output = fromBinary(schema, bytes);
-			const json = toJson(schema, output);
-			metadata.root.set(`${type}:${id}`, { path, output: json });
-
-			return { ...output, json } as unknown as ProtobufOutput<typeof type> & {
+			return {
+				...output,
+				get json() {
+					const json = toJson(schema, output);
+					metadata.root.set(`${type}:${id}`, { path, output: json });
+					return json;
+				},
+			} as unknown as ProtobufOutput<typeof type> & {
 				json: ProtobufOutputJson<typeof type>;
 			};
 		});
@@ -176,10 +180,14 @@ export const bangDreamProfile = limitAsync(
 			span.setAttribute?.("typeName", UserProfileSchema.typeName);
 
 			const output = fromBinary(UserProfileSchema, bytes);
-			const json = toJson(UserProfileSchema, output);
-			metadata.root.set(`profile:${uid}`, { output: json });
-
-			return { ...output, json };
+			return {
+				...output,
+				get json() {
+					const json = toJson(UserProfileSchema, output);
+					metadata.root.set(`profile:${uid}`, { output: json });
+					return json;
+				},
+			};
 		});
 	},
 	1,
