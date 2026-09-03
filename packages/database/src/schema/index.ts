@@ -1,7 +1,8 @@
-import { desc, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import {
 	index,
 	integer,
+	primaryKey,
 	sqliteTable,
 	text,
 	unique,
@@ -15,6 +16,7 @@ import type {
 	PlayerAvatar,
 	PlayerBand,
 	PlayerBandMemberStateless,
+	TrackerKind,
 } from "./tracker";
 
 export const accounts = sqliteTable(
@@ -49,7 +51,7 @@ export const accountSnapshots = sqliteTable(
 	},
 	(t) => [
 		index("idx_snapshots_date").on(t.snapshotDate),
-		index("idx_snapshots_account_id").on(t.accountId, desc(t.id)),
+		index("idx_snapshots_account_id").on(t.accountId, t.id),
 		unique("idx_snapshots_account_date").on(t.accountId, t.snapshotDate),
 		unique("idx_snapshots_account_stat").on(t.accountId, t.stats),
 	],
@@ -80,11 +82,29 @@ export const { gbpEvents, gbpMonthlyRankings } = (() => {
 	};
 })();
 
+export const gbpEventMusics = sqliteTable(
+	"gbp_event_musics",
+	{
+		eventId: integer().notNull(),
+		id: integer().notNull(),
+		title: text().notNull(),
+		band: text({ mode: "json" }).notNull().$type<{
+			id: number;
+			name: string;
+			type: "normal" | "irregular";
+		}>(),
+		bgmId: text().notNull(),
+		bgmFile: text().notNull(),
+		jacketImage: text().notNull(),
+	},
+	(t) => [primaryKey({ columns: [t.eventId, t.id] })],
+);
+
 export const trackerSnapshots = sqliteTable(
 	"tracker_snapshots",
 	{
 		id: integer().primaryKey({ autoIncrement: true }),
-		trackingFor: text({ enum: ["event", "monthly"] }).notNull(),
+		trackingFor: text().$type<TrackerKind>().notNull(),
 		trackingId: integer().notNull(),
 
 		uid: text().notNull(),
@@ -94,20 +114,20 @@ export const trackerSnapshots = sqliteTable(
 		timestamp: integer({ mode: "timestamp_ms" }).notNull(),
 	},
 	(t) => [
-		index("idx_tracker_1").on(t.trackingFor, t.trackingId, t.uid, desc(t.id)),
+		index("idx_tracker_1").on(t.trackingFor, t.trackingId, t.uid, t.id),
 		index("idx_tracker_2").on(
 			t.trackingFor,
 			t.trackingId,
 			t.uid,
 			t.timestamp,
-			desc(t.id),
+			t.id,
 		),
 		index("idx_tracker_3").on(
 			t.trackingFor,
 			t.trackingId,
 			t.uid,
 			t.point,
-			desc(t.id),
+			t.id,
 		),
 		unique("idx_tracker_data").on(
 			t.uid,
@@ -124,7 +144,7 @@ export const trackerSnapshotProfiles = sqliteTable(
 	"tracker_snapshot_profiles",
 	{
 		id: integer().primaryKey({ autoIncrement: true }),
-		trackingFor: text({ enum: ["event", "monthly"] }).notNull(),
+		trackingFor: text().$type<TrackerKind>().notNull(),
 		trackingId: integer().notNull(),
 
 		uid: text().notNull(),
@@ -139,9 +159,11 @@ export const trackerSnapshotProfiles = sqliteTable(
 );
 
 export type GbpEvent = typeof gbpEvents.$inferSelect;
+export type GbpEventMusic = typeof gbpEventMusics.$inferSelect;
 export type GbpMonthlyRanking = typeof gbpMonthlyRankings.$inferSelect;
 export type GbpMetadata =
-	({ kind: "event" } & GbpEvent) | ({ kind: "monthly" } & GbpMonthlyRanking);
+	| ({ kind: "event"; musics: GbpEventMusic[] } & GbpEvent)
+	| ({ kind: "monthly" } & GbpMonthlyRanking);
 
 export type TrackerSnapshot = typeof trackerSnapshots.$inferSelect;
 export type TrackerSnapshotProfile =

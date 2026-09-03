@@ -25,6 +25,10 @@ export const relations = defineRelations(schema, (r) => ({
 			to: r.trackerSnapshots.trackingId,
 			where: { trackingFor: "event" },
 		}),
+		musics: r.many.gbpEventMusics({
+			from: r.gbpEvents.id,
+			to: r.gbpEventMusics.eventId,
+		}),
 	},
 	gbpMonthlyRankings: {
 		snapshots: r.many.trackerSnapshots({

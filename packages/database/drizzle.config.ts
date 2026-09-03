@@ -8,4 +8,5 @@ export default defineConfig({
 	dialect: "turso",
 	schema: "./src/schema/index.ts",
 	dbCredentials: { url: DATABASE_URL, authToken: DATABASE_AUTH_TOKEN },
+	verbose: true,
 });

@@ -13,7 +13,11 @@ import { EventMetadata } from "@bandori-stats/bestdori/schema/events";
 import { MasterDB, Versions } from "@bandori-stats/bestdori/schema/misc";
 import { db } from "@bandori-stats/database";
 import { GBP, redis } from "@bandori-stats/database/redis";
-import { gbpEvents, gbpMonthlyRankings } from "@bandori-stats/database/schema";
+import {
+	gbpEventMusics,
+	gbpEvents,
+	gbpMonthlyRankings,
+} from "@bandori-stats/database/schema";
 import { bestdori } from "~/bestdori";
 import { githubRedeploy } from "./github-redeploy";
 
@@ -75,6 +79,48 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 						pxat: event.endAt.getTime(),
 					});
 					await tags.add(`event_${event.assetBundleName}`);
+
+					if (
+						event.eventType === "versus" ||
+						event.eventType === "challenge" ||
+						event.eventType === "medley"
+					) {
+						const musics = (
+							data[`master${capitalize(event.eventType)}EventMap`].entries?.[
+								event.eventId
+							]?.musics ?? []
+						)
+							.map(({ musicId }) =>
+								data.masterMusicList.entries.find(
+									(it) => it.musicId === musicId,
+								),
+							)
+							.filter((music) => music !== undefined);
+
+						if (musics.length > 0) {
+							await db()
+								.insert(gbpEventMusics)
+								.values(
+									musics.map(({ bandId, musicId, musicTitle, ...music }) => {
+										const { bandName, bandType } =
+											data.masterBandMap.entries[bandId];
+
+										return {
+											id: musicId,
+											title: musicTitle,
+											eventId: event.eventId,
+											band: { id: bandId, name: bandName, type: bandType },
+											...music,
+										};
+									}),
+								);
+							await tags.add(
+								musics.map(
+									({ bgmFile }) => `event_${event.eventType}_${bgmFile}`,
+								),
+							);
+						}
+					}
 
 					const { DISCORD_BOT_TOKEN, DISCORD_GUILD_ID } = process.env;
 					if (!DISCORD_BOT_TOKEN || !DISCORD_GUILD_ID) return;

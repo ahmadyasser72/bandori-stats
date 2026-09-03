@@ -39,7 +39,7 @@ export const GBP = {
 
 	fromMetadata: (
 		{ kind, id }: Pick<GbpMetadata, "kind" | "id">,
-		...suffix: string[]
+		...suffix: (string | number)[]
 	) => {
 		const key = GBP[kind][id];
 		return suffix.length > 0 ? [key, ...suffix].join(":") : key;

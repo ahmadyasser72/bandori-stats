@@ -11,6 +11,7 @@ import { GBP, getAreaItems, redis } from "@bandori-stats/database/redis";
 import { trackerSnapshotProfiles } from "@bandori-stats/database/schema";
 import {
 	STAT_TYPES,
+	TRACKER_KIND,
 	type PlayerBandMember,
 	type PlayerBandMemberStateless,
 } from "@bandori-stats/database/tracker";
@@ -26,7 +27,7 @@ export const updateTrackerProfile = schemaTask({
 			z.object({
 				uid: z.string(),
 				trackingReference: z.object({
-					trackingFor: z.enum(["event", "monthly"]),
+					trackingFor: z.enum(TRACKER_KIND),
 					trackingId: z.number(),
 				}),
 			}),
@@ -39,16 +40,20 @@ export const updateTrackerProfile = schemaTask({
 
 		const profiles = new Map<string, UserProfile>();
 		const thisHour = dayjs().startOf("hours").unix();
-		for (const { uid } of players) {
+		for (const { uid, trackingReference } of players) {
+			const idempotencyKey = await idempotencyKeys.create(
+				`profile:bandori:${uid}:${thisHour}`,
+				{ scope: "global" },
+			);
+			if (trackingReference.trackingFor === "music") {
+				await idempotencyKeys.reset(bandoriProfile.id, idempotencyKey, {
+					scope: "global",
+				});
+			}
+
 			const run = await bandoriProfile.triggerAndWait(
 				{ uid },
-				{
-					idempotencyKey: await idempotencyKeys.create(
-						`profile:bandori:${uid}:${thisHour}`,
-						{ scope: "global" },
-					),
-					idempotencyKeyTTL: "1h",
-				},
+				{ idempotencyKey, idempotencyKeyTTL: "1h" },
 			);
 			if (!run.ok) {
 				console.error(run.error);

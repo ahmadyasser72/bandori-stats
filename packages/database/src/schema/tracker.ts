@@ -63,22 +63,31 @@ export type PlayerBandMemberStat = Record<StatType, number>;
 export const STAT_TYPES = ["performance", "technique", "visual"] as const;
 export type StatType = (typeof STAT_TYPES)[number];
 
+export const TRACKER_KIND = ["event", "music", "monthly"] as const;
+export type TrackerKind = (typeof TRACKER_KIND)[number];
+
 export const sumStats = (stat: PlayerBandMemberStat) =>
 	sum(Object.values(stat));
 
 export const getTrackingReference = ({
 	kind,
 	id,
-}: Pick<GbpMetadata, "kind" | "id">) => ({ trackingFor: kind, trackingId: id });
+}: Pick<GbpMetadata, "kind" | "id">) => ({
+	trackingFor: kind,
+	trackingId: id,
+});
 
 export const getTrackingMetadata = async ({
 	kind,
 	id,
-}: Pick<GbpMetadata, "kind" | "id">) => {
-	const metadata = await (kind === "event"
-		? db().query.gbpEvents.findFirst({ where: { id } })
-		: db().query.gbpMonthlyRankings.findFirst({ where: { id } }));
+}: Pick<GbpMetadata, "kind" | "id">): Promise<GbpMetadata | undefined> => {
+	if (kind === "event")
+		return db()
+			.query.gbpEvents.findFirst({ where: { id }, with: { musics: true } })
+			.then((value) => (value ? { kind: "event", ...value } : undefined));
 
-	if (!metadata) return;
-	return { kind, ...metadata } as GbpMetadata;
+	if (kind === "monthly")
+		return db()
+			.query.gbpMonthlyRankings.findFirst({ where: { id } })
+			.then((value) => (value ? { kind: "monthly", ...value } : undefined));
 };

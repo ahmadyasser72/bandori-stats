@@ -1,5 +1,6 @@
 import z from "zod";
 
+export const NumberAsDate = z.coerce.number().transform((n) => new Date(n));
 export const RegionTuple = <T extends z.ZodType>(value: T) => {
 	const nullable = value.nullable();
 	return z.tuple([nullable, nullable, nullable, nullable, nullable]);
@@ -22,8 +23,8 @@ export const GameEvent = z.object({
 	assetBundleName: z.string(),
 	bgmAssetBundleName: z.string(),
 	bgmFileName: z.string(),
-	startAt: z.coerce.number().transform((n) => new Date(n)),
-	endAt: z.coerce.number().transform((n) => new Date(n)),
+	startAt: NumberAsDate,
+	endAt: NumberAsDate,
 });
 
 export const GameMonthlyRanking = z.object({
@@ -32,8 +33,17 @@ export const GameMonthlyRanking = z.object({
 	assetBundleName: z.string(),
 	bgmAssetBundleName: z.string(),
 	bgmFileName: z.string(),
-	startAt: z.coerce.number().transform((n) => new Date(n)),
-	endAt: z.coerce.number().transform((n) => new Date(n)),
+	startAt: NumberAsDate,
+	endAt: NumberAsDate,
+});
+
+export const GameMusic = z.object({
+	musicId: z.number(),
+	musicTitle: z.string(),
+	bandId: z.number(),
+	bgmId: z.string(),
+	bgmFile: z.string(),
+	jacketImage: z.string(),
 });
 
 export const GameAreaItem = z.object({
@@ -56,6 +66,30 @@ export const MasterDB = z.object({
 	}),
 	masterMonthlyRankingList: z.object({
 		entries: z.array(GameMonthlyRanking),
+	}),
+
+	...Object.fromEntries(
+		(["Versus", "Challenge", "Medley"] as const).map((type) => [
+			`master${type}EventMap` as const,
+			z.object({
+				entries: z
+					.record(
+						z.string(),
+						z.object({ musics: z.array(z.object({ musicId: z.number() })) }),
+					)
+					.optional(),
+			}),
+		]),
+	),
+	masterMusicList: z.object({ entries: z.array(GameMusic) }),
+	masterBandMap: z.object({
+		entries: z.record(
+			z.string(),
+			z.object({
+				bandName: z.string(),
+				bandType: z.enum(["normal", "irregular"]),
+			}),
+		),
 	}),
 
 	masterAreaItemMap: z.object({
