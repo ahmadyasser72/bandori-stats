@@ -63,7 +63,20 @@ export const updateTrackerProfile = schemaTask({
 				...uids.map(getProfileCacheKey),
 			);
 
-			const profiles = new Map<string, UserProfile>();
+			const USED_FIELDS = [
+				"mainUserDeck",
+				"userProfileDegreeMap",
+				"enabledUserAreaItems",
+				"mainDeckUserSituations",
+				"userName",
+				"rank",
+				"introduction",
+				"publishTotalDeckPowerFlg",
+				"userProfileSituation",
+			] as const;
+			type UsedFields = (typeof USED_FIELDS)[number];
+
+			const profiles = new Map<string, Pick<UserProfile, UsedFields>>();
 			for (const [idx, profile] of fromRedis.entries()) {
 				const uid = uids[idx];
 				if (profile) {
@@ -74,13 +87,19 @@ export const updateTrackerProfile = schemaTask({
 				}
 			}
 
-			const profilesToCache = [] as [string, UserProfileJson][];
+			const profilesToCache = [] as [
+				string,
+				Pick<UserProfileJson, UsedFields>,
+			][];
 			for (const { uid } of players) {
 				if (profiles.has(uid)) continue;
 
 				const profile = await bangDreamProfile(version, uid);
 				profiles.set(uid, profile);
-				profilesToCache.push([getProfileCacheKey(uid), profile.json]);
+				profilesToCache.push([
+					getProfileCacheKey(uid),
+					pick(profile.json, USED_FIELDS),
+				]);
 			}
 
 			if (profilesToCache.length > 0) {
@@ -139,7 +158,7 @@ export const updateTrackerProfile = schemaTask({
 
 							band: {
 								name: profile.mainUserDeck?.deckName!,
-								totalStats: profile.publishBandRankFlg
+								totalStats: profile.publishTotalDeckPowerFlg
 									? calculateTotalBandStats(
 											bandMembers,
 											(profile.enabledUserAreaItems?.entries ?? []).map(
