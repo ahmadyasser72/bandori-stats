@@ -67,21 +67,21 @@ export const scheduleUpdateTracker = schedules.task({
 				if (now.isBefore(event.startAt)) return [];
 
 				const {
-					points = [],
+					t10 = [],
 					cutoffs = [],
 					musics,
 				} = await (async () => {
 					if (event.type === "versus") {
 						const data = await bangDream(version, event.type, event.id);
 						return {
-							points: data.eventPointTopUsers?.entries,
+							t10: data.eventPointTopUsers?.entries,
 							cutoffs: data.eventPointBorderUsers?.entries,
 							musics: data.versusMusicRankings,
 						};
 					} else if (event.type === "medley") {
 						const data = await bangDream(version, event.type, event.id);
 						return {
-							points: data.eventPointTopUsers?.entries,
+							t10: data.eventPointTopUsers?.entries,
 							cutoffs: data.eventPointBorderUsers?.entries,
 							musics: [
 								{
@@ -98,20 +98,20 @@ export const scheduleUpdateTracker = schedules.task({
 					} else if (event.type === "challenge") {
 						const data = await bangDream(version, event.type, event.id);
 						return {
-							points: data.eventPointTopUsers?.entries,
+							t10: data.eventPointTopUsers?.entries,
 							cutoffs: data.eventPointBorderUsers?.entries,
 							musics: data.challengeMusicRankings,
 						};
 					} else if (event.type === "mission_live") {
 						const data = await bangDream(version, event.type, event.id);
 						return {
-							points: data.topUsers?.entries,
+							t10: data.topUsers?.entries,
 							cutoffs: data.borderUsers?.entries,
 						};
 					} else if (event.type === "live_try" || event.type === "festival") {
 						const data = await bangDream(version, event.type, event.id);
 						return {
-							points: data.topUsers?.entries,
+							t10: data.topUsers?.entries,
 							cutoffs: data.eventPointBorderUsers?.entries,
 						};
 					}
@@ -122,10 +122,10 @@ export const scheduleUpdateTracker = schedules.task({
 
 					return {};
 				})();
-				if (points.length === 0 && !musics) return [];
+				if (t10.length === 0 && !musics) return [];
 
 				const top = {
-					t10: points,
+					t10,
 					cutoffs,
 					musics: musics?.map(
 						({ musicId, scoreBorderUsers, scoreTopUsers }) => ({
@@ -140,7 +140,7 @@ export const scheduleUpdateTracker = schedules.task({
 				const inserted = await insertSnapshots(top, { now, metadata });
 				if (inserted.length === 0) return [];
 
-				await updateRedisLeaderboard(top, { metadata });
+				await updateRedisLeaderboard(top, { now, metadata });
 				await sendPushNotifications(top, { now, inserted, metadata });
 
 				return inserted;
@@ -156,16 +156,16 @@ export const scheduleUpdateTracker = schedules.task({
 				if (now.isBefore(monthly.startAt)) return [];
 
 				const data = await bangDream(version, "monthly", monthly.id);
-				const points = data.monthlyRankingPointTopUsers?.entries ?? [];
+				const t10 = data.monthlyRankingPointTopUsers?.entries ?? [];
 				const cutoffs = data.monthlyRankingPointBorderUsers?.entries ?? [];
-				if (points.length === 0 || cutoffs.length === 0) return [];
+				if (t10.length === 0) return [];
 
-				const top = { t10: points, cutoffs } satisfies Ranking;
+				const top = { t10, cutoffs } satisfies Ranking;
 				const metadata: GbpMetadata = { kind: "monthly", ...monthly };
 				const inserted = await insertSnapshots(top, { now, metadata });
 				if (inserted.length === 0) return [];
 
-				await updateRedisLeaderboard(top, { metadata });
+				await updateRedisLeaderboard(top, { now, metadata });
 				await sendPushNotifications(top, { now, inserted, metadata });
 
 				return inserted;
@@ -216,6 +216,8 @@ const insertSnapshots = async (
 	ranking: Ranking,
 	{ now, metadata }: InsertSnapshotOptions,
 ) => {
+	const updateCutoffs = now.get("minutes") === 0;
+
 	const toTrackerSnapshot = curry(
 		(
 			trackingReference: Pick<
@@ -259,9 +261,11 @@ const insertSnapshots = async (
 				const trackingReference = getTrackingReference(metadata);
 				return {
 					values: ranking.t10.map(toTrackerSnapshot(trackingReference)),
-					cutoffs: await Promise.all(
-						ranking.cutoffs.map(toTrackerCutoff(trackingReference)),
-					),
+					cutoffs: updateCutoffs
+						? await Promise.all(
+								ranking.cutoffs.map(toTrackerCutoff(trackingReference)),
+							)
+						: [],
 				};
 			},
 		),
@@ -284,9 +288,10 @@ const insertSnapshots = async (
 					};
 
 					values.push(...music.t10.map(toTrackerSnapshot(trackingReference)));
-					cutoffs.push(
-						...music.cutoffs.map(toTrackerCutoff(trackingReference)),
-					);
+					if (updateCutoffs)
+						cutoffs.push(
+							...music.cutoffs.map(toTrackerCutoff(trackingReference)),
+						);
 				}
 
 				return { values, cutoffs: await Promise.all(cutoffs) };
@@ -295,6 +300,7 @@ const insertSnapshots = async (
 	});
 
 	return logger.trace(`insert-${metadata.kind}-values`, async () => {
+		const cutoffs = [...points.cutoffs, ...musics.cutoffs];
 		const [inserted] = await db().batch([
 			db()
 				.insert(trackerSnapshots)
@@ -308,21 +314,25 @@ const insertSnapshots = async (
 					trackingFor: trackerSnapshots.trackingFor,
 					trackingId: trackerSnapshots.trackingId,
 				}),
-			db()
-				.insert(trackerCutoffs)
-				.values([...points.cutoffs, ...musics.cutoffs])
-				.onConflictDoUpdate({
-					target: [
-						trackerCutoffs.trackingFor,
-						trackerCutoffs.trackingId,
-						trackerCutoffs.rank,
-						trackerCutoffs.point,
-					],
-					set: {
-						name: sql.raw(`excluded.${trackerCutoffs.name.name}`),
-						avatar: sql.raw(`excluded.${trackerCutoffs.avatar.name}`),
-					},
-				}),
+			...(cutoffs.length > 0
+				? [
+						db()
+							.insert(trackerCutoffs)
+							.values(cutoffs)
+							.onConflictDoUpdate({
+								target: [
+									trackerCutoffs.trackingFor,
+									trackerCutoffs.trackingId,
+									trackerCutoffs.rank,
+									trackerCutoffs.point,
+								],
+								set: {
+									name: sql.raw(`excluded.${trackerCutoffs.name.name}`),
+									avatar: sql.raw(`excluded.${trackerCutoffs.avatar.name}`),
+								},
+							}),
+					]
+				: []),
 		]);
 
 		if (inserted.length > 0) {
@@ -337,17 +347,15 @@ const insertSnapshots = async (
 	});
 };
 
-interface UpdateRedisLeaderboardOptions {
-	metadata: GbpMetadata;
-}
-
 const updateRedisLeaderboard = async (
 	ranking: Ranking,
-	{ metadata }: UpdateRedisLeaderboardOptions,
+	{ now, metadata }: InsertSnapshotOptions,
 ) => {
 	const pipe = await logger.trace(
 		`create-${metadata.kind}-redis-leaderboard-pipeline`,
 		async () => {
+			const updateCutoffs = now.get("minutes") === 0;
+
 			const pipe = redis().pipeline();
 			const add = (
 				key: string | string[],
@@ -368,7 +376,7 @@ const updateRedisLeaderboard = async (
 			};
 
 			add("leaderboard", ranking.t10, "userId");
-			add("cutoffs", ranking.cutoffs, "rank");
+			if (updateCutoffs) add("cutoffs", ranking.cutoffs, "rank");
 
 			if (
 				metadata.kind === "event" &&
@@ -378,7 +386,7 @@ const updateRedisLeaderboard = async (
 				for (const { id, t10, cutoffs } of ranking.musics) {
 					const musicId = metadata.type === "medley" ? "medley" : id.toString();
 					add(["leaderboard-music", musicId], t10, "userId");
-					add(["cutoffs-music", musicId], cutoffs, "rank");
+					if (updateCutoffs) add(["cutoffs-music", musicId], cutoffs, "rank");
 				}
 			}
 
@@ -389,10 +397,8 @@ const updateRedisLeaderboard = async (
 	await pipe.exec();
 };
 
-interface SendPushNotificationOptions {
-	now: dayjs.Dayjs;
+interface SendPushNotificationOptions extends InsertSnapshotOptions {
 	inserted: Awaited<ReturnType<typeof insertSnapshots>>;
-	metadata: GbpMetadata;
 }
 
 const sendPushNotifications = async (
