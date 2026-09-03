@@ -216,7 +216,7 @@ const insertSnapshots = async (
 	ranking: Ranking,
 	{ now, metadata }: InsertSnapshotOptions,
 ) => {
-	const updateCutoffs = now.get("minutes") === 0;
+	const hourlyUpdate = now.get("minutes") === 0;
 
 	const toTrackerSnapshot = curry(
 		(
@@ -261,7 +261,7 @@ const insertSnapshots = async (
 				const trackingReference = getTrackingReference(metadata);
 				return {
 					values: ranking.t10.map(toTrackerSnapshot(trackingReference)),
-					cutoffs: updateCutoffs
+					cutoffs: hourlyUpdate
 						? await Promise.all(
 								ranking.cutoffs.map(toTrackerCutoff(trackingReference)),
 							)
@@ -273,6 +273,7 @@ const insertSnapshots = async (
 			`generate-${metadata.kind}-musics-values`,
 			async () => {
 				if (
+					!hourlyUpdate ||
 					metadata.kind !== "event" ||
 					metadata.musics.length === 0 ||
 					!ranking.musics
@@ -288,10 +289,9 @@ const insertSnapshots = async (
 					};
 
 					values.push(...music.t10.map(toTrackerSnapshot(trackingReference)));
-					if (updateCutoffs)
-						cutoffs.push(
-							...music.cutoffs.map(toTrackerCutoff(trackingReference)),
-						);
+					cutoffs.push(
+						...music.cutoffs.map(toTrackerCutoff(trackingReference)),
+					);
 				}
 
 				return { values, cutoffs: await Promise.all(cutoffs) };
@@ -354,7 +354,7 @@ const updateRedisLeaderboard = async (
 	const pipe = await logger.trace(
 		`create-${metadata.kind}-redis-leaderboard-pipeline`,
 		async () => {
-			const updateCutoffs = now.get("minutes") === 0;
+			const hourlyUpdate = now.get("minutes") === 0;
 
 			const pipe = redis().pipeline();
 			const add = (
@@ -376,9 +376,10 @@ const updateRedisLeaderboard = async (
 			};
 
 			add("leaderboard", ranking.t10, "userId");
-			if (updateCutoffs) add("cutoffs", ranking.cutoffs, "rank");
+			if (hourlyUpdate) add("cutoffs", ranking.cutoffs, "rank");
 
 			if (
+				hourlyUpdate &&
 				metadata.kind === "event" &&
 				metadata.musics.length > 0 &&
 				ranking.musics
@@ -386,7 +387,7 @@ const updateRedisLeaderboard = async (
 				for (const { id, t10, cutoffs } of ranking.musics) {
 					const musicId = metadata.type === "medley" ? "medley" : id.toString();
 					add(["leaderboard-music", musicId], t10, "userId");
-					if (updateCutoffs) add(["cutoffs-music", musicId], cutoffs, "rank");
+					add(["cutoffs-music", musicId], cutoffs, "rank");
 				}
 			}
 
