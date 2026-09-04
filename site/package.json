@@ -50,7 +50,6 @@
 		"@vitejs/devtools": "0.6.3",
 		"favicons": "7.3.1",
 		"typescript": "5.9.3",
-		"vite-plugin-inspect": "11.4.1",
 		"wrangler": "4.128.0"
 	}
 }
