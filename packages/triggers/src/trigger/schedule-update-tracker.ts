@@ -21,7 +21,6 @@ import type {
 	MusicRankingResponse,
 	RankingUser,
 } from "~/bang-dream-gbp/gen/common_pb";
-import { githubRedeploy } from "~/github";
 import { discordTracker } from "./discord-tracker";
 import { getAvatar, updateTrackerProfile } from "./update-tracker-profile";
 
@@ -29,7 +28,7 @@ export const scheduleUpdateTracker = schedules.task({
 	id: "schedule-update-tracker",
 	ttl: "1m",
 	cron: { pattern: "* * * * *" },
-	run: async ({ timestamp }, { ctx }) => {
+	run: async ({ timestamp }) => {
 		const [version, eventId, monthlyId] = await redis().mget<
 			[string | null, number | null, number | null]
 		>(GBP.version, GBP.event.current, GBP.monthly.current);
@@ -185,15 +184,13 @@ export const scheduleUpdateTracker = schedules.task({
 			.flatMap(({ value }) => value);
 
 		if (inserted.length > 0) {
-			await updateTrackerProfile.triggerAndWait({
+			await updateTrackerProfile.trigger({
 				players: inserted.map(({ uid, trackingFor, trackingId }) => ({
 					uid,
 					trackingReference: { trackingFor, trackingId },
 				})),
 			});
 		}
-
-		await githubRedeploy(ctx);
 	},
 });
 

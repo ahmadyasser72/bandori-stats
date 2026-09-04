@@ -1,4 +1,4 @@
-import { AbortTaskRunError, type Context } from "@trigger.dev/sdk";
+import { AbortTaskRunError, tags, type Context } from "@trigger.dev/sdk";
 
 import { redis } from "@bandori-stats/database/redis";
 
@@ -28,5 +28,6 @@ export const githubRedeploy = async (ctx: Context) => {
 		},
 	);
 
+	await tags.add("github_redeploy");
 	await redis().set(REDEPLOY_KEY, "", { ex: 60 * 30 });
 };
