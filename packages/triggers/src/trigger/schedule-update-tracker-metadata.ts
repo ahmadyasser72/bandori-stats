@@ -24,7 +24,7 @@ import { githubRedeploy } from "~/github";
 export const scheduleUpdateTrackerMetadata = schedules.task({
 	id: "schedule-update-tracker-metadata",
 	cron: { pattern: "0 */12 * * *", timezone: GBP_TIMEZONE },
-	machine: "small-1x",
+	machine: "medium-1x",
 	run: async (_, { ctx }) => {
 		const [currentVersion, currentEvent, currentMonthly, areaItems] =
 			await redis()
