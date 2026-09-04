@@ -47,7 +47,6 @@
 		"@types/d3-shape": "3.2.0",
 		"@types/node": "26.4.1",
 		"@types/umami-browser": "2.18.1",
-		"@vitejs/devtools": "0.6.3",
 		"favicons": "7.3.1",
 		"typescript": "6.0.3",
 		"wrangler": "4.128.0"
