@@ -11,9 +11,11 @@ import { omit } from "es-toolkit";
 import type z from "zod";
 
 import type { Stats } from "@bandori-stats/bestdori/constants";
-import type { GameEventType } from "@bandori-stats/bestdori/schema/misc";
 import type {
-	EventMetadata,
+	GameEventInfo,
+	GameEventType,
+} from "@bandori-stats/bestdori/schema/misc";
+import type {
 	PlayerAvatar,
 	PlayerBand,
 	PlayerBandMemberStateless,
@@ -77,7 +79,9 @@ export const { gbpEvents, gbpMonthlyRankings } = (() => {
 			...shared,
 			bannerAssetBundleName: text().notNull(),
 			type: text().notNull().$type<z.infer<typeof GameEventType>>(),
-			metadata: text({ mode: "json" }).notNull().$type<EventMetadata>(),
+			metadata: text({ mode: "json" })
+				.notNull()
+				.$type<z.infer<typeof GameEventInfo>>(),
 		}),
 		gbpMonthlyRankings: sqliteTable("gbp_monthly_rankings", shared),
 	};

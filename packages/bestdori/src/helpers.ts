@@ -1,7 +1,9 @@
 import { startCase, words } from "es-toolkit";
+import type z from "zod";
 
 import type { Account } from "@bandori-stats/database/schema";
 import type { Stats } from "./constants";
+import type { GameEventType } from "./schema/misc";
 
 export const accountHasNickname = (
 	account: Pick<Account, "username" | "nickname">,
@@ -87,16 +89,7 @@ export const formatNumber = (
 
 export const stripBB = (s?: string) => s?.replace(/\[[^\]]+\]/g, "") as string;
 
-export const formatEventType = (
-	t:
-		| "story"
-		| "versus"
-		| "mission_live"
-		| "challenge"
-		| "live_try"
-		| "medley"
-		| "festival",
-) => {
+export const formatEventType = (t: z.infer<typeof GameEventType>) => {
 	switch (t) {
 		case "story":
 			return "Normal";

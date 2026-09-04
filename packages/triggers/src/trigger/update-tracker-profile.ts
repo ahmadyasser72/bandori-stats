@@ -3,14 +3,15 @@ import { allKeyed, capitalize, mapValues, pick, sumBy } from "es-toolkit";
 import z from "zod";
 
 import { unwrapRegionTuple } from "@bandori-stats/bestdori/helpers";
-import { Card } from "@bandori-stats/bestdori/schema/cards";
 import { Skills } from "@bandori-stats/bestdori/schema/skills";
 import { db, sql } from "@bandori-stats/database";
 import {
 	GBP,
 	getAreaItems,
+	getCards,
 	redis,
 	type BangDreamAreaItem,
+	type BangDreamCard,
 } from "@bandori-stats/database/redis";
 import { trackerSnapshotProfiles } from "@bandori-stats/database/schema";
 import {
@@ -20,7 +21,10 @@ import {
 	type PlayerBandMemberStateless,
 } from "@bandori-stats/database/tracker";
 import { bangDreamProfile } from "~/bang-dream-gbp/fetch";
-import type { UserSituation } from "~/bang-dream-gbp/gen/common_pb";
+import type {
+	UserProfileSituation,
+	UserSituation,
+} from "~/bang-dream-gbp/gen/common_pb";
 import type {
 	UserProfile,
 	UserProfileJson,
@@ -114,7 +118,7 @@ export const updateTrackerProfile = schemaTask({
 		});
 		if (profiles.size === 0) return;
 
-		const { areaItems, skills } = await logger.trace(
+		const { areaItems, cards, skills } = await logger.trace(
 			"fetch-area-items-skills",
 			() =>
 				allKeyed({
@@ -124,6 +128,16 @@ export const updateTrackerProfile = schemaTask({
 								enabledUserAreaItems?.entries.map(
 									({ areaItemId }) => areaItemId,
 								) ?? [],
+						),
+					),
+					cards: getCards(
+						[...profiles.values()].flatMap(
+							({ userProfileSituation, mainDeckUserSituations }) => [
+								userProfileSituation?.situationId,
+								...(mainDeckUserSituations?.entries.map(
+									({ situationId }) => situationId,
+								) ?? []),
+							],
 						),
 					),
 					skills: bestdori({
@@ -144,7 +158,7 @@ export const updateTrackerProfile = schemaTask({
 
 						const bandMembers = await Promise.all(
 							(profile.mainDeckUserSituations?.entries ?? []).map((data) =>
-								getBandMember(data, skills),
+								getBandMember(data, cards[data.situationId], skills),
 							),
 						);
 
@@ -155,7 +169,14 @@ export const updateTrackerProfile = schemaTask({
 							name: profile.userName,
 							level: profile.rank,
 							introduction: profile.introduction,
-							avatar: getAvatar(profile),
+							avatar:
+								profile.userProfileSituation &&
+								profile.userProfileSituation.situationId
+									? getAvatar(
+											profile.userProfileSituation,
+											cards[profile.userProfileSituation.situationId],
+										)
+									: null,
 
 							band: {
 								name: profile.mainUserDeck?.deckName!,
@@ -205,33 +226,26 @@ export const updateTrackerProfile = schemaTask({
 	},
 });
 
-const getCardById = async (id: number) =>
-	bestdori({ path: `api/cards/${id}.json`, schema: Card });
-
-export const getAvatar = async ({
-	userProfileSituation,
-}: Pick<UserProfile, "userProfileSituation">) => {
-	if (!userProfileSituation || !userProfileSituation.situationId) return null;
-
-	const card = await getCardById(userProfileSituation.situationId);
-	return {
+export const getAvatar = (
+	userProfileSituation: UserProfileSituation,
+	card: BangDreamCard,
+) =>
+	({
 		id: userProfileSituation.situationId,
 		trained: userProfileSituation.illust === "after_training",
 		attribute: card.attribute,
 		character: card.characterId,
 		band: CHARACTER_TO_BAND[card.characterId],
 		rarity: card.rarity,
-	} satisfies PlayerBandMemberStateless;
-};
+	}) satisfies PlayerBandMemberStateless;
 
 const getBandMember = async (
 	data: UserSituation,
+	card: BangDreamCard,
 	skills: z.infer<typeof Skills>,
 ) => {
-	const card = await getCardById(data.situationId);
-
-	const stat = card.stat[data.level]
-		? mapValues(card.stat[data.level]!, (base, type) => {
+	const stat = card.parameterMap[data.level]
+		? mapValues(card.parameterMap[data.level], (base, type) => {
 				if (!data.userAppendParameter) return base;
 
 				return (

@@ -7,6 +7,7 @@ import { formatNumber } from "@bandori-stats/bestdori/helpers";
 import { db, sql } from "@bandori-stats/database";
 import {
 	GBP,
+	getCards,
 	redis,
 	type NotifyWhenPlayer,
 } from "@bandori-stats/database/redis";
@@ -228,24 +229,43 @@ const insertSnapshots = async (
 			timestamp: now.toDate(),
 		}),
 	);
-	const toTrackerCutoff = curry(
-		(
-			trackingReference: Pick<
-				typeof trackerSnapshots.$inferInsert,
-				"trackingFor" | "trackingId"
-			>,
-			{ name, rank, point, userProfileSituation }: RankingUser,
-		): Promise<typeof trackerCutoffs.$inferInsert> =>
-			allKeyed({
+
+	const toTrackerCutoff = await (async () => {
+		type P1 = Pick<
+			typeof trackerSnapshots.$inferInsert,
+			"trackingFor" | "trackingId"
+		>;
+		type P2 = RankingUser;
+
+		if (!hourlyUpdate) return curry<P1, P2, null>(() => null);
+
+		const cards = await getCards(
+			[
+				...ranking.cutoffs,
+				...(ranking.musics?.flatMap(({ cutoffs }) => cutoffs) ?? []),
+			].map(({ userProfileSituation }) => userProfileSituation?.situationId),
+		);
+		return curry(
+			(
+				trackingReference: P1,
+				{ name, rank, point, userProfileSituation }: P2,
+			): typeof trackerCutoffs.$inferInsert => ({
 				...trackingReference,
 
 				name,
 				rank,
 				point: Number(point),
 				timestamp: now.toDate(),
-				avatar: getAvatar({ userProfileSituation }),
+				avatar:
+					userProfileSituation && userProfileSituation.situationId
+						? getAvatar(
+								userProfileSituation,
+								cards[userProfileSituation.situationId],
+							)
+						: null,
 			}),
-	);
+		);
+	})();
 
 	const { points, musics } = await allKeyed({
 		points: logger.trace(
@@ -255,9 +275,7 @@ const insertSnapshots = async (
 				return {
 					values: ranking.t10.map(toTrackerSnapshot(trackingReference)),
 					cutoffs: hourlyUpdate
-						? await Promise.all(
-								ranking.cutoffs.map(toTrackerCutoff(trackingReference)),
-							)
+						? ranking.cutoffs.map(toTrackerCutoff(trackingReference))
 						: [],
 				};
 			},
@@ -274,7 +292,7 @@ const insertSnapshots = async (
 					return { values: [], cutoffs: [] };
 
 				const values = [] as (typeof trackerSnapshots.$inferInsert)[];
-				const cutoffs = [] as Promise<typeof trackerCutoffs.$inferInsert>[];
+				const cutoffs = [] as (typeof trackerCutoffs.$inferInsert | null)[];
 				for (const music of ranking.musics) {
 					const trackingReference = {
 						trackingFor: "music" as const,
@@ -287,13 +305,15 @@ const insertSnapshots = async (
 					);
 				}
 
-				return { values, cutoffs: await Promise.all(cutoffs) };
+				return { values, cutoffs };
 			},
 		),
 	});
 
+	const cutoffs = [...points.cutoffs, ...musics.cutoffs].filter(
+		(value) => value !== null,
+	);
 	return logger.trace(`insert-${metadata.kind}-values`, async () => {
-		const cutoffs = [...points.cutoffs, ...musics.cutoffs];
 		const [inserted] = await db().batch([
 			db()
 				.insert(trackerSnapshots)

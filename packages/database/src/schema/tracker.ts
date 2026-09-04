@@ -3,32 +3,6 @@ import { sum } from "es-toolkit";
 import type { GbpMetadata } from ".";
 import { db } from "../db";
 
-export interface EventMetadata {
-	attributes: {
-		attribute: "powerful" | "pure" | "cool" | "happy";
-		percent: number;
-	}[];
-	characters: { characterId: number; percent: number }[];
-	eventAttributeAndCharacterBonus: {
-		pointPercent: number;
-		parameterPercent: number;
-	};
-	eventCharacterParameterBonus?: {
-		performance: number;
-		technique: number;
-		visual: number;
-	};
-	members: {
-		situationId: number;
-		percent: number;
-	}[];
-	limitBreaks: {
-		rarity: number;
-		rank: number;
-		percent: number;
-	}[];
-}
-
 export interface PlayerAvatar {
 	id: number;
 	trained: boolean;
