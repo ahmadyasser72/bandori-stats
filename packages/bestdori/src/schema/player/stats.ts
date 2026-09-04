@@ -2,10 +2,10 @@ import z from "zod";
 
 import { RAW_STAT_NAMES } from "../../constants";
 
-export const PlayerStats = z.strictObject({
+export const PlayerStats = z.object({
 	result: z.literal(true),
 	accounts: z.array(
-		z.strictObject({
+		z.object({
 			server: z.number().nonnegative(),
 			titles: z.array(z.number().positive()).optional(),
 			...Object.fromEntries(

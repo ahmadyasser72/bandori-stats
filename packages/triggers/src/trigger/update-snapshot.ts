@@ -60,7 +60,7 @@ const fetchProfile = async (username: string) => {
 
 export const updateSnapshot = schemaTask({
 	id: "update-snapshot",
-	schema: z.strictObject({
+	schema: z.object({
 		username: z.string().nonempty(),
 		date: z.iso.date(),
 	}),

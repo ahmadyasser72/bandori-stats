@@ -3,7 +3,7 @@ import z from "zod";
 import { fetchBestdori } from "../fetch";
 import { RegionTuple } from "./misc";
 
-export const BestdoriDegree = z.strictObject({
+export const BestdoriDegree = z.object({
 	degreeType: RegionTuple(
 		z.enum(["event_point", "score_ranking", "try_clear", "normal"]),
 	),

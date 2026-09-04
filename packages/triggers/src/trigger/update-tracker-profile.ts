@@ -30,7 +30,7 @@ import { githubRedeploy } from "~/github";
 
 export const updateTrackerProfile = schemaTask({
 	id: "update-tracker-profile",
-	schema: z.strictObject({
+	schema: z.object({
 		players: z.array(
 			z.object({
 				uid: z.string(),
