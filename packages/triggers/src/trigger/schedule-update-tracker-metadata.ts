@@ -27,12 +27,13 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 	machine: "small-1x",
 	run: async (_, { ctx }) => {
 		const [currentVersion, currentEvent, currentMonthly, areaItems] =
-			await redis().mget<(unknown | null)[]>(
-				GBP.version,
-				GBP.event.current,
-				GBP.monthly.current,
-				GBP.areaItems,
-			);
+			await redis()
+				.pipeline()
+				.get(GBP.version)
+				.exists(GBP.event.current)
+				.exists(GBP.monthly.current)
+				.exists(GBP.areaItems)
+				.exec<[string, ...boolean[]]>();
 
 		{
 			const versions = await bestdori({
