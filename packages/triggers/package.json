@@ -11,7 +11,7 @@
 		"@bandori-stats/database": "workspace:*",
 		"@bufbuild/protobuf": "2.14.1",
 		"@isaacs/ttlcache": "2.1.5",
-		"@trigger.dev/sdk": "4.5.15",
+		"@trigger.dev/sdk": "4.5.16",
 		"discord.js": "14.27.0",
 		"es-toolkit": "1.52.0",
 		"random": "5.5.1",
@@ -21,10 +21,10 @@
 	"devDependencies": {
 		"@bufbuild/buf": "1.72.0",
 		"@bufbuild/protoc-gen-es": "2.14.1",
-		"@trigger.dev/build": "4.5.15",
+		"@trigger.dev/build": "4.5.16",
 		"@types/node": "26.4.1",
 		"@types/web-push": "3.6.4",
-		"trigger.dev": "4.5.15",
+		"trigger.dev": "4.5.16",
 		"typescript": "6.0.3"
 	}
 }
