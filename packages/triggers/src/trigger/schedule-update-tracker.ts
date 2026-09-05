@@ -136,7 +136,6 @@ export const scheduleUpdateTracker = schedules.task({
 				const inserted = await insertSnapshots(top, { now, metadata });
 				if (inserted.length === 0) return [];
 
-				await updateRedisLeaderboard(top, { now, metadata });
 				await sendPushNotifications(top, { now, metadata });
 
 				return inserted;
@@ -161,7 +160,6 @@ export const scheduleUpdateTracker = schedules.task({
 				const inserted = await insertSnapshots(top, { now, metadata });
 				if (inserted.length === 0) return [];
 
-				await updateRedisLeaderboard(top, { now, metadata });
 				await sendPushNotifications(top, { now, metadata });
 
 				return inserted;
@@ -211,6 +209,11 @@ const insertSnapshots = async (
 	{ now, metadata }: InsertSnapshotOptions,
 ) => {
 	const hourlyUpdate = now.get("minutes") === 0;
+	const updateMusics =
+		hourlyUpdate &&
+		metadata.kind === "event" &&
+		metadata.musics.length > 0 &&
+		!!ranking.musics;
 
 	const toTrackerSnapshot = curry(
 		(
@@ -231,13 +234,7 @@ const insertSnapshots = async (
 	);
 
 	const toTrackerCutoff = await (async () => {
-		type P1 = Pick<
-			typeof trackerSnapshots.$inferInsert,
-			"trackingFor" | "trackingId"
-		>;
-		type P2 = RankingUser;
-
-		if (!hourlyUpdate) return curry<P1, P2, null>(() => null);
+		if (!hourlyUpdate) return;
 
 		const cards = await getCards(
 			[
@@ -247,8 +244,11 @@ const insertSnapshots = async (
 		);
 		return curry(
 			(
-				trackingReference: P1,
-				{ name, rank, point, userProfileSituation }: P2,
+				trackingReference: Pick<
+					typeof trackerSnapshots.$inferInsert,
+					"trackingFor" | "trackingId"
+				>,
+				{ name, rank, point, userProfileSituation }: RankingUser,
 			): typeof trackerCutoffs.$inferInsert => ({
 				...trackingReference,
 
@@ -267,148 +267,110 @@ const insertSnapshots = async (
 		);
 	})();
 
-	const { points, musics } = await allKeyed({
-		points: logger.trace(
-			`generate-${metadata.kind}-points-values`,
-			async () => {
-				const trackingReference = getTrackingReference(metadata);
-				return {
-					values: ranking.t10.map(toTrackerSnapshot(trackingReference)),
-					cutoffs: hourlyUpdate
-						? ranking.cutoffs.map(toTrackerCutoff(trackingReference))
-						: [],
-				};
-			},
-		),
-		musics: logger.trace(
-			`generate-${metadata.kind}-musics-values`,
-			async () => {
-				if (
-					!hourlyUpdate ||
-					metadata.kind !== "event" ||
-					metadata.musics.length === 0 ||
-					!ranking.musics
-				)
-					return { values: [], cutoffs: [] };
+	const values = [] as (typeof trackerSnapshots.$inferInsert)[];
+	const cutoffs = [] as (typeof trackerCutoffs.$inferInsert)[];
 
-				const values = [] as (typeof trackerSnapshots.$inferInsert)[];
-				const cutoffs = [] as (typeof trackerCutoffs.$inferInsert | null)[];
-				for (const music of ranking.musics) {
-					const trackingReference = {
-						trackingFor: "music" as const,
-						trackingId: music.id,
-					};
+	{
+		const trackingReference = getTrackingReference(metadata);
+		values.push(...ranking.t10.map(toTrackerSnapshot(trackingReference)));
+		if (toTrackerCutoff)
+			cutoffs.push(...ranking.cutoffs.map(toTrackerCutoff(trackingReference)));
+	}
 
-					values.push(...music.t10.map(toTrackerSnapshot(trackingReference)));
-					cutoffs.push(
-						...music.cutoffs.map(toTrackerCutoff(trackingReference)),
-					);
-				}
-
-				return { values, cutoffs };
-			},
-		),
-	});
-
-	const cutoffs = [...points.cutoffs, ...musics.cutoffs].filter(
-		(value) => value !== null,
-	);
-	return logger.trace(`insert-${metadata.kind}-values`, async () => {
-		const [inserted] = await db().batch([
-			db()
-				.insert(trackerSnapshots)
-				.values([...points.values, ...musics.values])
-				.onConflictDoNothing()
-				.returning({
-					uid: trackerSnapshots.uid,
-					name: trackerSnapshots.name,
-					point: trackerSnapshots.point,
-					rank: trackerSnapshots.rank,
-					trackingFor: trackerSnapshots.trackingFor,
-					trackingId: trackerSnapshots.trackingId,
-				}),
-			...(cutoffs.length > 0
-				? [
-						db()
-							.insert(trackerCutoffs)
-							.values(cutoffs)
-							.onConflictDoUpdate({
-								target: [
-									trackerCutoffs.trackingFor,
-									trackerCutoffs.trackingId,
-									trackerCutoffs.rank,
-									trackerCutoffs.point,
-								],
-								set: {
-									name: sql.raw(`excluded.${trackerCutoffs.name.name}`),
-									avatar: sql.raw(`excluded.${trackerCutoffs.avatar.name}`),
-								},
-							}),
-					]
-				: []),
-		]);
-
-		if (inserted.length > 0) {
-			await tags.add(
-				Object.entries(countBy(inserted, ({ trackingFor }) => trackingFor)).map(
-					([kind, count]) => `${kind}_+${count}`,
-				),
-			);
-		}
-
-		return inserted;
-	});
-};
-
-const updateRedisLeaderboard = async (
-	ranking: Ranking,
-	{ now, metadata }: InsertSnapshotOptions,
-) => {
-	const pipe = await logger.trace(
-		`create-${metadata.kind}-redis-leaderboard-pipeline`,
-		async () => {
-			const hourlyUpdate = now.get("minutes") === 0;
-
-			const pipe = redis().pipeline();
-			const add = (
-				key: string | string[],
-				[first, ...rest]: RankingUser[],
-				memberKey: "rank" | "userId",
-			) => {
-				if (!first) return;
-
-				pipe.zadd(
-					GBP.fromMetadata(metadata, ...(Array.isArray(key) ? key : [key])),
-					{ gt: true },
-					{ member: first[memberKey], score: Number(first.point) },
-					...rest.map((it) => ({
-						member: it[memberKey],
-						score: Number(it.point),
-					})),
-				);
+	if (updateMusics) {
+		for (const music of ranking.musics!) {
+			const trackingReference = {
+				trackingFor: "music" as const,
+				trackingId: music.id,
 			};
 
-			add("leaderboard", ranking.t10, "userId");
-			if (hourlyUpdate) add("cutoffs", ranking.cutoffs, "rank");
+			values.push(...music.t10.map(toTrackerSnapshot(trackingReference)));
+			cutoffs.push(...music.cutoffs.map(toTrackerCutoff!(trackingReference)));
+		}
+	}
 
-			if (
-				hourlyUpdate &&
-				metadata.kind === "event" &&
-				metadata.musics.length > 0 &&
-				ranking.musics
-			) {
-				for (const { id, t10, cutoffs } of ranking.musics) {
-					const musicId = metadata.type === "medley" ? "medley" : id.toString();
-					add(["leaderboard-music", musicId], t10, "userId");
-					add(["cutoffs-music", musicId], cutoffs, "rank");
-				}
-			}
-
-			return pipe;
+	const [inserted] = await logger.trace(
+		`insert-${metadata.kind}-snapshots`,
+		async () => {
+			return db().batch([
+				db()
+					.insert(trackerSnapshots)
+					.values(values)
+					.onConflictDoNothing()
+					.returning({
+						uid: trackerSnapshots.uid,
+						name: trackerSnapshots.name,
+						point: trackerSnapshots.point,
+						rank: trackerSnapshots.rank,
+						trackingFor: trackerSnapshots.trackingFor,
+						trackingId: trackerSnapshots.trackingId,
+					}),
+				...(cutoffs.length > 0
+					? [
+							db()
+								.insert(trackerCutoffs)
+								.values(cutoffs)
+								.onConflictDoUpdate({
+									target: [
+										trackerCutoffs.trackingFor,
+										trackerCutoffs.trackingId,
+										trackerCutoffs.rank,
+										trackerCutoffs.point,
+									],
+									set: {
+										name: sql.raw(`excluded.${trackerCutoffs.name.name}`),
+										avatar: sql.raw(`excluded.${trackerCutoffs.avatar.name}`),
+									},
+								}),
+						]
+					: []),
+			]);
 		},
 	);
 
-	await pipe.exec();
+	if (inserted.length === 0) return [];
+
+	await tags.add(
+		Object.entries(countBy(inserted, ({ trackingFor }) => trackingFor)).map(
+			([kind, count]) => `${kind}_+${count}`,
+		),
+	);
+
+	await logger.trace(`update-${metadata.kind}-redis`, async () => {
+		const pipe = redis().pipeline();
+		const add = (
+			key: string | string[],
+			[first, ...rest]: RankingUser[],
+			memberKey: "rank" | "userId",
+		) => {
+			if (!first) return;
+
+			pipe.zadd(
+				GBP.fromMetadata(metadata, ...(Array.isArray(key) ? key : [key])),
+				{ gt: true },
+				{ member: first[memberKey], score: Number(first.point) },
+				...rest.map((it) => ({
+					member: it[memberKey],
+					score: Number(it.point),
+				})),
+			);
+		};
+
+		add("leaderboard", ranking.t10, "userId");
+		if (hourlyUpdate) add("cutoffs", ranking.cutoffs, "rank");
+
+		if (updateMusics) {
+			for (const { id, t10, cutoffs } of ranking.musics!) {
+				const musicId = metadata.type === "medley" ? "medley" : id.toString();
+				add(["leaderboard-music", musicId], t10, "userId");
+				add(["cutoffs-music", musicId], cutoffs, "rank");
+			}
+		}
+
+		await pipe.exec();
+	});
+
+	return inserted;
 };
 
 const sendPushNotifications = async (
