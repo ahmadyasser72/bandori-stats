@@ -2,8 +2,10 @@ import { schedules, tags } from "@trigger.dev/sdk";
 import {
 	GuildScheduledEventEntityType,
 	GuildScheduledEventPrivacyLevel,
+	hyperlink,
+	underline,
 } from "discord.js";
-import { capitalize, omit } from "es-toolkit";
+import { capitalize, groupBy, omit } from "es-toolkit";
 
 import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
 import dayjs from "@bandori-stats/bestdori/date";
@@ -21,7 +23,7 @@ import {
 	gbpEvents,
 	gbpMonthlyRankings,
 } from "@bandori-stats/database/schema";
-import { bestdori } from "~/bestdori";
+import { bestdori, CHARACTER_TO_BAND } from "~/bestdori";
 import { useDiscordBot } from "~/discord";
 import { githubRedeploy } from "~/github";
 
@@ -93,41 +95,88 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 					});
 					await tags.add(`event_${event.assetBundleName}`);
 
-					if (metadata.musics) {
-						const musics = metadata.musics
-							.map(({ musicId }) =>
+					const musics =
+						metadata.musics
+							?.map(({ musicId }) =>
 								data.masterMusicList.find((it) => it.musicId === musicId),
 							)
-							.filter((music) => music !== undefined);
+							.filter((music) => music !== undefined) ?? [];
+					if (musics.length > 0) {
+						await db()
+							.insert(gbpEventMusics)
+							.values(
+								musics.map(({ bandId, musicId, musicTitle, ...music }) => {
+									const { bandName, bandType } = data.masterBandMap[bandId];
 
-						if (musics.length > 0) {
-							await db()
-								.insert(gbpEventMusics)
-								.values(
-									musics.map(({ bandId, musicId, musicTitle, ...music }) => {
-										const { bandName, bandType } = data.masterBandMap[bandId];
-
-										return {
-											id: musicId,
-											title: musicTitle,
-											eventId,
-											band: { id: bandId, name: bandName, type: bandType },
-											...music,
-										};
-									}),
-								);
-							await tags.add(
-								musics.map(({ bgmFile }) => `event_${eventType}_${bgmFile}`),
+									return {
+										id: musicId,
+										title: musicTitle,
+										eventId,
+										band: { id: bandId, name: bandName, type: bandType },
+										...music,
+									};
+								}),
 							);
-						}
+						await tags.add(
+							musics.map(({ bgmFile }) => `event_${eventType}_${bgmFile}`),
+						);
 					}
 
-					await useDiscordBot(async ({ guild }) => {
+					await useDiscordBot(async ({ client, guild }) => {
+						const emojis = await client.application.emojis.fetch();
+						const emoji = (name: string) =>
+							emojis.find((emoji) => emoji.name === name) ?? "";
+
+						const lines = [underline(formatEventType(eventType))] as string[];
+						if (musics.length > 0) {
+							lines.push(
+								musics.length === 1 ? "Event song" : "Event songs",
+								...musics.map(({ musicId, musicTitle, bandId }) => {
+									const band = data.masterBandMap[bandId];
+									return (
+										`${emoji(`band_${bandId}`)} ` +
+										hyperlink(
+											`${band.bandName} - ${musicTitle}`,
+											`https://bestdori.com/info/songs/${musicId}`,
+										)
+									);
+								}),
+							);
+						}
+
 						const attribute = metadata.attributes.at(0)?.attribute ?? "unknown";
-						const characters = metadata.characters.map(
-							({ characterId }) =>
-								data.masterCharacterInfoMap[characterId].firstName,
+						lines.push(
+							attribute === "unknown"
+								? "Unknown attribute"
+								: `${emoji(`attribute_${attribute}`)} ${capitalize(attribute)}`,
 						);
+
+						const bands = groupBy(
+							metadata.characters.map(({ characterId }) => ({
+								id: characterId,
+								band: CHARACTER_TO_BAND[characterId],
+								name: data.masterCharacterInfoMap[characterId].firstName,
+							})),
+							({ band }) => band,
+						);
+						for (const [id, characters] of Object.entries(bands)) {
+							const band = data.masterBandMap[id];
+							lines.push(
+								`${emoji(`band_${id}`)} ${band.bandName}`,
+								characters
+									.map(({ id, name }) => `${emoji(`character_${id}`)} ${name}`)
+									.join(" "),
+							);
+						}
+
+						lines.push(
+							"",
+							hyperlink(
+								"View on Bestdori!",
+								`https://bestdori.com/info/events/${eventId}`,
+							),
+						);
+
 						const banner = await bestdori({
 							path: `/assets/en/homebanner_rip/${bannerAssetBundleName}.png`,
 							schema: false,
@@ -142,13 +191,7 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 
 							image: Buffer.from(banner),
 							entityMetadata: { location: "BanG Dream" },
-							description: [
-								`Type: ${formatEventType(eventType)}`,
-								`Attribute: ${capitalize(attribute)}`,
-								`Characters: ${characters.join(", ")}`,
-								"",
-								`https://bestdori.com/info/events/${eventId}`,
-							].join("\n"),
+							description: lines.map((line) => line.trim()).join("\n"),
 						});
 					});
 

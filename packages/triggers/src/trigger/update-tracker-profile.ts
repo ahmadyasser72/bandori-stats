@@ -29,7 +29,7 @@ import type {
 	UserProfile,
 	UserProfileJson,
 } from "~/bang-dream-gbp/gen/profile_pb";
-import { bestdori } from "~/bestdori";
+import { bestdori, CHARACTER_TO_BAND } from "~/bestdori";
 import { githubRedeploy } from "~/github";
 
 export const updateTrackerProfile = schemaTask({
@@ -337,54 +337,3 @@ const calculateTotalBandStats = (
 	);
 
 const ZERO_STAT = { performance: 0, technique: 0, visual: 0 };
-
-const CHARACTER_TO_BAND: Record<number, number> = {
-	// Poppin'Party
-	1: 1,
-	2: 1,
-	3: 1,
-	4: 1,
-	5: 1,
-	// Afterglow
-	6: 2,
-	7: 2,
-	8: 2,
-	9: 2,
-	10: 2,
-	// Hello, Happy World!
-	11: 3,
-	12: 3,
-	13: 3,
-	14: 3,
-	15: 3,
-	// Pastel*Palettes
-	16: 4,
-	17: 4,
-	18: 4,
-	19: 4,
-	20: 4,
-	// Roselia
-	21: 5,
-	22: 5,
-	23: 5,
-	24: 5,
-	25: 5,
-	// Morfonica
-	26: 21,
-	27: 21,
-	28: 21,
-	29: 21,
-	30: 21,
-	// RAISE A SUILEN
-	31: 18,
-	32: 18,
-	33: 18,
-	34: 18,
-	35: 18,
-	// MyGO!!!!!
-	36: 45,
-	37: 45,
-	38: 45,
-	39: 45,
-	40: 45,
-};
