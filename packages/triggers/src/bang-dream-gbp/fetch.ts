@@ -59,10 +59,6 @@ export const bangDream = limitAsync(
 		)
 			throw new AbortTaskRunError("BanG Dream credentials are missing.");
 
-		const { BANG_DREAM_AES_KEY, BANG_DREAM_AES_IV } = process.env;
-		if (!BANG_DREAM_AES_KEY || !BANG_DREAM_AES_IV)
-			throw new AbortTaskRunError("BanG Dream decryption keys are missing.");
-
 		let path: string;
 		if (type === "monthly") path = `monthlyranking/${id}/ranking`;
 		else {
@@ -131,10 +127,6 @@ export const bangDreamProfile = limitAsync(
 		);
 		if (!credentials?.token)
 			throw new AbortTaskRunError("BanG Dream credentials are missing.");
-
-		const { BANG_DREAM_AES_KEY, BANG_DREAM_AES_IV } = process.env;
-		if (!BANG_DREAM_AES_KEY || !BANG_DREAM_AES_IV)
-			throw new AbortTaskRunError("BanG Dream decryption keys are missing.");
 
 		const url = new URL(
 			`profile/${uid}`,
