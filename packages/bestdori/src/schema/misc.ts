@@ -42,9 +42,13 @@ export const GameEventInfo = z.object({
 	attributes: z.array(
 		z.object({ attribute: GameAttributes, percent: z.number() }),
 	),
-	characters: z.array(
-		z.object({ characterId: z.number(), percent: z.number() }),
-	),
+	characters: z
+		.array(z.object({ characterId: z.number(), percent: z.number() }))
+		.transform((values) =>
+			Object.fromEntries(
+				values.map(({ characterId, percent }) => [characterId, percent]),
+			),
+		),
 	eventCharacterParameterBonus: GameStats.optional(),
 	eventAttributeAndCharacterBonus: z.object({
 		pointPercent: z.number(),
@@ -53,16 +57,17 @@ export const GameEventInfo = z.object({
 	members: z
 		.record(
 			z.number(),
-			z.object({
-				situationId: z.number(),
-				percent: z.number(),
-			}),
+			z.object({ percent: z.number() }).transform(({ percent }) => percent),
 		)
 		.apply(IsEntries),
 	limitBreaks: z
 		.record(
 			z.number(),
-			z.array(z.object({ percent: z.number() })).apply(IsEntries),
+			z
+				.array(
+					z.object({ percent: z.number() }).transform(({ percent }) => percent),
+				)
+				.apply(IsEntries),
 		)
 		.apply(IsEntries),
 

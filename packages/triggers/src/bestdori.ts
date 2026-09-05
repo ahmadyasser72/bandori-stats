@@ -70,7 +70,7 @@ export const bestdori = limitAsync<BestdoriFetch>(
 	4,
 );
 
-export const CHARACTER_TO_BAND: Record<number, number> = {
+export const CHARACTER_TO_BAND: Record<string, number> = {
 	// Poppin'Party
 	1: 1,
 	2: 1,

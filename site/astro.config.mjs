@@ -107,7 +107,7 @@ export default defineConfig({
 
 	vite: {
 		plugins: [BandoriLeaderboard(), DailyHina(), tailwindcss()],
-		server: { allowedHosts: ["cat"] },
+		server: { allowedHosts: ["cat"], hmr: false },
 
 		define: {
 			__GIT_HASH__: JSON.stringify(GIT_HASH),

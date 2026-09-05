@@ -1,7 +1,6 @@
 ---
 import { UMAMI_SITE_ID } from "astro:env/server";
 
-import { capitalize, sum } from "es-toolkit";
 import z from "zod";
 
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
@@ -13,11 +12,10 @@ import {
 	getTrackingReference,
 	TrackingTarget,
 } from "@bandori-stats/database/tracker";
-import GbpCardTooltip from "~/components/gbp-card-tooltip.astro";
 import GbpCard from "~/components/gbp-card.astro";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
-import { getTitleImage } from "~/lib/assets";
+import ProfileDropdown from "./_profile-dropdown.astro";
 
 export const partials = true;
 
@@ -62,13 +60,6 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 		});
 	const getProfile = (uid: string) =>
 		db().query.trackerSnapshotProfiles.findFirst({
-			columns: {
-				level: true,
-				avatar: true,
-				introduction: true,
-				band: true,
-				titles: true,
-			},
 			where: { ...trackingReference, uid },
 		});
 
@@ -441,91 +432,7 @@ if (Astro.cache.enabled)
 						</div>
 					</div>
 
-					{profile && (
-						<div
-							hx-preserve
-							class="dropdown dropdown-end dropdown-top w-75 overflow-visible sm:w-90"
-							id={`profile-${latest.uid}`}
-							popover
-							style={`position-anchor: --anchor-${latest.uid}-profile`}
-						>
-							<div class="flex flex-col items-center">
-								<h3 class="text-center">
-									<span class="text-xs">Level {profile.level}</span>
-									<br />
-									<span class="text-xl font-medium" data-bb={latest.name}>
-										{stripBB(latest.name)}
-									</span>
-								</h3>
-								<p class="mt-1" data-bb={profile.introduction}>
-									{stripBB(profile.introduction)}
-								</p>
-								<div class="mt-1 flex gap-1">
-									{profile.titles.map((id) => (
-										<img
-											class="aspect-23/5 w-32 rounded-2xl"
-											src={getTitleImage(id)}
-											loading="lazy"
-										/>
-									))}
-								</div>
-
-								<div class="mt-2 flex w-full items-end justify-between text-lg">
-									<span class="font-medium">{profile.band.name}</span>
-									{profile.band.totalStats ? (
-										<span class="tooltip tooltip-end tooltip-info underline decoration-dotted">
-											<div class="tooltip-content">
-												<div class="flex flex-col">
-													{Object.entries(profile.band.totalStats).map(
-														([type, value]) => (
-															<div class="flex w-full items-center justify-between">
-																<span>{capitalize(type)}</span>
-																<span class="ml-4 font-mono">
-																	{formatNumber(Math.floor(value))}
-																</span>
-															</div>
-														),
-													)}
-												</div>
-											</div>
-											{formatNumber(
-												Math.floor(sum(Object.values(profile.band.totalStats))),
-											)}
-										</span>
-									) : (
-										<span class="text-base-content/67">Hidden</span>
-									)}
-								</div>
-								<div class="flex w-full justify-between">
-									{profile.band.members
-										.filter((it) => it !== null)
-										.map((it, idx) => ({
-											...it,
-											tooltipAlign:
-												(idx < 2 && "tooltip-start") ||
-												(idx > 2 && "tooltip-end"),
-										}))
-										.map(({ tooltipAlign, ...member }) => (
-											<div
-												class:list={[
-													"tooltip tooltip-bottom tooltip-info before:w-64",
-													tooltipAlign,
-												]}
-												data-tip={member.skill}
-											>
-												<div
-													class:list={["tooltip tooltip-info", tooltipAlign]}
-												>
-													<GbpCardTooltip {member} />
-
-													<GbpCard {member} />
-												</div>
-											</div>
-										))}
-								</div>
-							</div>
-						</div>
-					)}
+					{profile && <ProfileDropdown {metadata} {profile} />}
 				</div>
 			</div>
 		))

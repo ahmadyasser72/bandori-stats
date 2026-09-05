@@ -1,0 +1,135 @@
+---
+import { capitalize } from "es-toolkit";
+
+import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
+import type {
+	GbpMetadata,
+	TrackerSnapshotProfile,
+} from "@bandori-stats/database/schema";
+import { sumStats } from "@bandori-stats/database/tracker";
+import GbpCardTooltip from "~/components/gbp-card-tooltip.astro";
+import GbpCard from "~/components/gbp-card.astro";
+import { getTitleImage } from "~/lib/assets";
+
+interface Props {
+	profile: TrackerSnapshotProfile;
+	metadata: GbpMetadata;
+}
+
+const { profile, metadata } = Astro.props;
+
+const eventPointBonus = (() => {
+	if (metadata.kind === "monthly") return 0;
+
+	const {
+		attributes: [attribute],
+		characters,
+		eventAttributeAndCharacterBonus,
+		members,
+		limitBreaks,
+	} = metadata.metadata;
+
+	let bonus = 0;
+	for (const member of profile.band.members) {
+		{
+			const matchAttribute = member.attribute === attribute.attribute;
+			if (matchAttribute) bonus += attribute.percent;
+			const matchCharacter = member.character in characters;
+			if (matchCharacter) bonus += characters[member.character];
+			if (matchAttribute && matchCharacter)
+				bonus += eventAttributeAndCharacterBonus.pointPercent;
+		}
+
+		bonus += members[member.id] ?? 0;
+		bonus += limitBreaks[member.rarity][member.limitBreakRank ?? 0];
+	}
+
+	return bonus;
+})();
+---
+
+<div
+	class="dropdown dropdown-end dropdown-top w-75 overflow-visible sm:w-90"
+	id={`profile-${profile.uid}`}
+	popover
+	style={`position-anchor: --anchor-${profile.uid}-profile`}
+>
+	<div class="flex flex-col items-center">
+		<h3 class="text-center">
+			<span class="text-xs">Level {profile.level}</span>
+			<br />
+			<span class="text-xl font-medium" data-bb={profile.name}>
+				{stripBB(profile.name)}
+			</span>
+		</h3>
+		<p class="mt-1" data-bb={profile.introduction}>
+			{stripBB(profile.introduction)}
+		</p>
+		<div class="mt-1 flex gap-1">
+			{
+				profile.titles.map((id) => (
+					<img
+						class="aspect-23/5 w-32 rounded-2xl"
+						src={getTitleImage(id)}
+						loading="lazy"
+					/>
+				))
+			}
+		</div>
+
+		<div class="mt-2 flex w-full justify-between">
+			<span class="line-clamp-1 flex-1 font-medium">{profile.band.name}</span>
+
+			{
+				profile.band.totalStats ? (
+					<span class="tooltip tooltip-end tooltip-info underline decoration-dotted">
+						<div class="tooltip-content">
+							<div class="flex flex-col">
+								{Object.entries(profile.band.totalStats).map(
+									([type, value]) => (
+										<div class="flex w-full items-center justify-between">
+											<span>{capitalize(type)}</span>
+											<span class="ml-4 font-mono">
+												{formatNumber(Math.floor(value))}
+											</span>
+										</div>
+									),
+								)}
+							</div>
+						</div>
+						{formatNumber(Math.floor(sumStats(profile.band.totalStats)))}
+					</span>
+				) : (
+					<span class="text-base-content/67">Hidden</span>
+				)
+			}
+		</div>
+
+		<div class="flex w-full justify-between">
+			{
+				profile.band.members.map((member) => (
+					<div class="group contents">
+						<div
+							class="tooltip tooltip-bottom tooltip-info group-nth-[-n+2]:tooltip-start group-nth-last-[-n+2]:tooltip-end before:w-64"
+							data-tip={member.skill}
+						>
+							<div class="tooltip tooltip-info group-nth-[-n+2]:tooltip-start group-nth-last-[-n+2]:tooltip-end">
+								<GbpCardTooltip {member} />
+
+								<GbpCard {member} />
+							</div>
+						</div>
+					</div>
+				))
+			}
+		</div>
+
+		{
+			eventPointBonus > 0 && (
+				<div class="mt-1 text-lg font-medium">
+					EP Bonus: {formatNumber(eventPointBonus, { positiveSign: true })}%
+				</div>
+			)
+		}
+	</div>
+</div>

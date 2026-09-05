@@ -152,10 +152,10 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 						);
 
 						const bands = groupBy(
-							metadata.characters.map(({ characterId }) => ({
-								id: characterId,
-								band: CHARACTER_TO_BAND[characterId],
-								name: data.masterCharacterInfoMap[characterId].firstName,
+							Object.keys(metadata.characters).map((id) => ({
+								id,
+								band: CHARACTER_TO_BAND[id],
+								name: data.masterCharacterInfoMap[id].firstName,
 							})),
 							({ band }) => band,
 						);

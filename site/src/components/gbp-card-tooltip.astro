@@ -1,11 +1,12 @@
 ---
-import { capitalize, mapValues } from "es-toolkit";
+import { capitalize, curry, mapValues } from "es-toolkit";
 
 import { formatNumber } from "@bandori-stats/bestdori/helpers";
 import {
 	STAT_TYPES,
 	sumStats,
 	type PlayerBandMember,
+	type StatType,
 } from "@bandori-stats/database/tracker";
 
 interface Props {
@@ -19,10 +20,16 @@ const statBase = mapValues(
 	(value, type) =>
 		value - member.potentialBonus[type] - member.missionBonus[type],
 );
-const getBonusPercentage = (baseStat: number, bonusStat: number) =>
-	(Math.ceil((bonusStat / baseStat) * 10000) / 100).toLocaleString("en-US", {
-		minimumFractionDigits: 1,
-	});
+const getBonusPercentage = curry(
+	(bonusType: "potential" | "mission", type: StatType) => {
+		const value = (
+			Math.ceil((member[`${bonusType}Bonus`][type] / statBase[type]) * 10000) /
+			100
+		).toLocaleString("en-US", { minimumFractionDigits: 1 });
+
+		return `+${value}%`;
+	},
+);
 
 const totalPower = sumStats(member.stat);
 const totalPotentialBonus = sumStats(member.potentialBonus);
@@ -46,10 +53,7 @@ const totalPowerBonus = totalPotentialBonus + totalMissionBonus;
 
 				...(["potential", "mission"] as const).map((bonusType) => [
 					capitalize(bonusType),
-					STAT_TYPES.map(
-						(type) =>
-							`+${getBonusPercentage(statBase[type], member[`${bonusType}Bonus`][type])}%`,
-					).join(" "),
+					STAT_TYPES.map(getBonusPercentage(bonusType)).join(" "),
 				]),
 			].map(([key, value]) => (
 				<div class="flex w-full items-center justify-between">
