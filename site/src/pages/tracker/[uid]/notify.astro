@@ -1,21 +1,17 @@
 ---
-import z from "zod";
-
 import { stripBB } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
-import { getTrackingReference } from "@bandori-stats/database/tracker";
+import {
+	getTrackingReference,
+	TrackingTarget,
+} from "@bandori-stats/database/tracker";
 import SheetModal from "~/layouts/sheet-modal.astro";
 import { NotifyWhenContainer } from "./_notify";
 
 export const partial = true;
 
 const uid = Astro.params.uid!;
-const params = Astro.locals.parseQuery(
-	z.object({
-		kind: z.enum(["event", "monthly"]),
-		id: z.coerce.number(),
-	}),
-);
+const params = Astro.locals.parseQuery(TrackingTarget);
 
 const snapshot = await db().query.trackerSnapshots.findFirst({
 	columns: { uid: true, name: true, point: true, rank: true },

@@ -121,7 +121,7 @@ const TAB_ICON = {
 								src={
 									params.tab === "event"
 										? getEventBanner({ id })
-										: getTrackerLogo(id, params.tab)
+										: getTrackerLogo({ kind: params.tab, id })
 								}
 								alt={assetBundleName}
 								loading="lazy"

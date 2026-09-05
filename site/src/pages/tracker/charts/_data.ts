@@ -4,12 +4,12 @@ import dayjs from "@bandori-stats/bestdori/date";
 import { and, asc, db, eq, inArray, max, sql } from "@bandori-stats/database";
 import { GBP, redis } from "@bandori-stats/database/redis";
 import { trackerSnapshots } from "@bandori-stats/database/schema";
-import { getTrackingMetadata } from "@bandori-stats/database/tracker";
+import {
+	getTrackingMetadata,
+	TrackingTarget,
+} from "@bandori-stats/database/tracker";
 
-export const fetchTrackerData = async (params: {
-	kind: "event" | "monthly";
-	id: number;
-}) => {
+export const fetchTrackerData = async (params: TrackingTarget) => {
 	const key = GBP.fromMetadata(params, "leaderboard");
 	const players = await redis()
 		.zrange<number[]>(key, 0, -1)

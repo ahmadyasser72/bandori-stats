@@ -11,6 +11,7 @@ import { GBP, redis } from "@bandori-stats/database/redis";
 import {
 	getTrackingMetadata,
 	getTrackingReference,
+	TrackingTarget,
 } from "@bandori-stats/database/tracker";
 import GbpCardTooltip from "~/components/gbp-card-tooltip.astro";
 import GbpCard from "~/components/gbp-card.astro";
@@ -20,12 +21,8 @@ import { getTitleImage } from "~/lib/assets";
 
 export const partials = true;
 
-const params = Astro.locals.parseQuery(
-	z.object({
-		kind: z.enum(["event", "monthly"]),
-		id: z.coerce.number(),
-		poll: z.stringbool().catch(false),
-	}),
+const { poll, ...params } = Astro.locals.parseQuery(
+	z.object({ ...TrackingTarget.shape, poll: z.stringbool().catch(false) }),
 );
 
 const metadata = await Astro.locals.tracing.enterSpan(
@@ -151,7 +148,7 @@ if (Astro.cache.enabled)
 ---
 
 {
-	!params.poll && (
+	!poll && (
 		<>
 			<hx-partial hx-target="#tracker-info">
 				<div
@@ -159,7 +156,7 @@ if (Astro.cache.enabled)
 					hx-headers="js:{ 'client-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone }"
 					hx-swap="outerHTML"
 					hx-trigger="intersect once"
-					hx-vals={JSON.stringify({ kind: params.kind, id: params.id })}
+					hx-vals={JSON.stringify(params)}
 					class="mt-4 flex flex-col items-center gap-1"
 				>
 					<div class="flex gap-1">
@@ -222,7 +219,7 @@ if (Astro.cache.enabled)
 			.join(";"),
 		"hx-swap": "outerMorph transition:true",
 		"hx-trigger": "every 60s, visibilitychange from:document",
-		"hx-vals": JSON.stringify({ kind: params.kind, id: params.id, poll: true }),
+		"hx-vals": JSON.stringify({ ...params, poll: true }),
 	}}
 	class="list mt-4 py-1"
 	id="tracker-list"
@@ -385,8 +382,7 @@ if (Astro.cache.enabled)
 								hx-swap="after"
 								hx-target="main"
 								hx-vals={JSON.stringify({
-									kind: params.kind,
-									id: params.id,
+									...params,
 									duration: lastPlayed
 										? dayjs().diff(lastPlayed.timestamp, "minutes") < 60
 											? "1h"
@@ -413,8 +409,7 @@ if (Astro.cache.enabled)
 								hx-swap="after"
 								hx-target="main"
 								hx-vals={JSON.stringify({
-									kind: params.kind,
-									id: params.id,
+									...params,
 									duration: dayjs().isBefore(metadata.endAt) ? "1d" : "all",
 								})}
 								data-umami-event="tracker-statistics"
@@ -432,7 +427,7 @@ if (Astro.cache.enabled)
 									hx-get={`/tracker/${latest.uid}/notify`}
 									hx-swap="after"
 									hx-target="main"
-									hx-vals={JSON.stringify({ kind: params.kind, id: params.id })}
+									hx-vals={JSON.stringify(params)}
 									data-umami-event="tracker-notify"
 									data-umami-event-kind={params.kind}
 									data-umami-event-name={metadata.name}

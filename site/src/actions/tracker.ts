@@ -10,7 +10,10 @@ import {
 	redis,
 	type NotifyWhenPlayer,
 } from "@bandori-stats/database/redis";
-import { getTrackingMetadata } from "@bandori-stats/database/tracker";
+import {
+	getTrackingMetadata,
+	TrackingTarget,
+} from "@bandori-stats/database/tracker";
 
 export const notifyMe = defineAction({
 	accept: "json",
@@ -20,11 +23,7 @@ export const notifyMe = defineAction({
 			expirationTime: z.number().nullable(),
 			keys: z.object({ p256dh: z.string(), auth: z.string() }),
 		}),
-		target: z.object({
-			uid: z.string(),
-			kind: z.enum(["event", "monthly"]),
-			id: z.number(),
-		}),
+		target: z.object({ ...TrackingTarget.shape, uid: z.string() }),
 		on: z.discriminatedUnion("target", [
 			z.object({
 				target: z.literal("play-again"),
@@ -104,7 +103,7 @@ export const notifyMe = defineAction({
 export const discordWebhook = defineAction({
 	accept: "json",
 	input: z.object({
-		target: z.object({ kind: z.enum(["event", "monthly"]), id: z.number() }),
+		target: TrackingTarget,
 		url: z
 			.httpUrl()
 			.transform((url) => new URL(url))

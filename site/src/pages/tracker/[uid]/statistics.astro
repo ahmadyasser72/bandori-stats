@@ -8,6 +8,7 @@ import { db, desc, gt, min, sql, sum } from "@bandori-stats/database";
 import {
 	getTrackingMetadata,
 	getTrackingReference,
+	TrackingTarget,
 } from "@bandori-stats/database/tracker";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
@@ -30,8 +31,7 @@ const DURATIONS = ["1d", "3d", "7d"] as const;
 const uid = Astro.params.uid!;
 const params = Astro.locals.parseQuery(
 	z.object({
-		kind: z.enum(["event", "monthly"]),
-		id: z.coerce.number(),
+		...TrackingTarget.shape,
 		duration: z.union([
 			z.enum(DURATIONS),
 			z.templateLiteral([z.iso.date(), ":", z.iso.date()]),
@@ -80,9 +80,9 @@ const { gameStatistics, gameByHours, gameByPoints } =
 		span.setAttribute("from", from.toISOString());
 		span.setAttribute("to", to.toISOString());
 
-		const baseFilter = createBaseFilter(params.kind, params.id, uid);
+		const baseFilter = createBaseFilter(params, uid);
 		const gapsCte = createGapsCte(baseFilter);
-		const cteFilter = createCteFilter(params.kind, gapsCte, from, to);
+		const cteFilter = createCteFilter(params, gapsCte, from, to);
 		return allKeyed({
 			gameStatistics: Astro.locals.tracing.enterSpan(
 				"fetch-game-statistics",

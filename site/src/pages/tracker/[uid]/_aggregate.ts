@@ -15,15 +15,12 @@ import {
 	sql,
 } from "@bandori-stats/database";
 import { trackerSnapshots } from "@bandori-stats/database/schema";
+import type { TrackingTarget } from "@bandori-stats/database/tracker";
 
-export const outlierCap = (kind: "event" | "monthly") =>
+export const outlierCap = ({ kind }: TrackingTarget) =>
 	kind === "monthly" ? 60 : 100_000;
 
-export const createBaseFilter = (
-	kind: "event" | "monthly",
-	id: number,
-	uid: string,
-) =>
+export const createBaseFilter = ({ kind, id }: TrackingTarget, uid: string) =>
 	and(
 		eq(trackerSnapshots.trackingFor, kind),
 		eq(trackerSnapshots.trackingId, id),
@@ -53,7 +50,7 @@ export const createGapsCte = (
 		);
 
 export const createCteFilter = (
-	kind: "event" | "monthly",
+	target: TrackingTarget,
 	gapsCte: ReturnType<typeof createGapsCte>,
 	from: dayjs.Dayjs,
 	to: dayjs.Dayjs,
@@ -62,7 +59,7 @@ export const createCteFilter = (
 		gte(gapsCte.timestamp, from.toDate()),
 		lte(gapsCte.timestamp, to.toDate()),
 		gt(gapsCte.delta, 0),
-		lte(gapsCte.delta, outlierCap(kind)),
+		lte(gapsCte.delta, outlierCap(target)),
 	);
 
 export const fetchStatistics = async (

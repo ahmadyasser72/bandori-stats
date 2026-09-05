@@ -6,7 +6,7 @@ import type {
 	GameAreaItem,
 	GameCharacterSituation,
 } from "@bandori-stats/bestdori/schema/misc";
-import type { GbpMetadata } from "./schema";
+import type { TrackingTarget } from "./schema/tracker";
 
 export const redis = once(() => {
 	const { UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN } = process.env;
@@ -47,7 +47,7 @@ export const GBP = {
 	},
 
 	fromMetadata: (
-		{ kind, id }: Pick<GbpMetadata, "kind" | "id">,
+		{ kind, id }: TrackingTarget,
 		...suffix: (string | number)[]
 	) => {
 		const key = GBP[kind][id];

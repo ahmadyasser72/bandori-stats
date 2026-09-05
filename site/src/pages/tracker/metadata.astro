@@ -1,10 +1,12 @@
 ---
 import { pick } from "es-toolkit";
-import z from "zod";
 
 import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
-import { getTrackingMetadata } from "@bandori-stats/database/tracker";
+import {
+	getTrackingMetadata,
+	TrackingTarget,
+} from "@bandori-stats/database/tracker";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import {
@@ -14,12 +16,7 @@ import {
 } from "~/lib/assets";
 import { DiscordWebhook } from "./_discord-webhook";
 
-const params = Astro.locals.parseQuery(
-	z.object({
-		kind: z.enum(["event", "monthly"]),
-		id: z.coerce.number(),
-	}),
-);
+const params = Astro.locals.parseQuery(TrackingTarget);
 
 const data = await Astro.locals.tracing.enterSpan(
 	"fetch-data",
@@ -112,7 +109,7 @@ if (Astro.cache.enabled)
 
 		<img
 			class="aspect-9/4 w-64"
-			src={getTrackerLogo(data.id, params.kind)}
+			src={getTrackerLogo(params)}
 			alt={`${data.assetBundleName} logo`}
 		/>
 
@@ -133,11 +130,8 @@ if (Astro.cache.enabled)
 				popover
 				style="position-anchor: --anchor-tracker-info"
 			>
-				<audio
-					src={getTrackerBgm(data.id, params.kind)}
-					controls
-					loop
-					preload="metadata"></audio>
+				<audio src={getTrackerBgm(params)} controls loop preload="metadata"
+				></audio>
 			</div>
 
 			<button
@@ -160,7 +154,7 @@ if (Astro.cache.enabled)
 					([1, 2] as const).map((variant) => (
 						<img
 							class="aspect-2/1 h-64 rounded-box object-cover py-2 sm:h-96"
-							src={getTrackerBackground(data.id, params.kind, variant)}
+							src={getTrackerBackground(params, variant)}
 							alt={`${data.assetBundleName} background`}
 							loading="lazy"
 						/>

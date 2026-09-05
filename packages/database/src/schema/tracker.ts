@@ -1,4 +1,5 @@
 import { sum } from "es-toolkit";
+import z from "zod";
 
 import type { GbpMetadata } from ".";
 import { db } from "../db";
@@ -34,34 +35,45 @@ export interface PlayerBandMember extends PlayerBandMemberStateless {
 
 export type PlayerBandMemberStat = Record<StatType, number>;
 
+export const sumStats = (stat: PlayerBandMemberStat) =>
+	sum(Object.values(stat));
+
 export const STAT_TYPES = ["performance", "technique", "visual"] as const;
 export type StatType = (typeof STAT_TYPES)[number];
 
 export const TRACKER_KIND = ["event", "music", "monthly"] as const;
 export type TrackerKind = (typeof TRACKER_KIND)[number];
 
-export const sumStats = (stat: PlayerBandMemberStat) =>
-	sum(Object.values(stat));
-
-export const getTrackingReference = ({
-	kind,
-	id,
-}: Pick<GbpMetadata, "kind" | "id">) => ({
-	trackingFor: kind,
-	trackingId: id,
+export const TrackingReference = z.object({
+	trackingFor: z.enum(TRACKER_KIND),
+	trackingId: z.number(),
+});
+export const TrackingTarget = z.object({
+	kind: z.enum(["event", "monthly"]),
+	id: z.coerce.number(),
 });
 
-export const getTrackingMetadata = async ({
-	kind,
-	id,
-}: Pick<GbpMetadata, "kind" | "id">): Promise<GbpMetadata | undefined> => {
+export type TrackingReference = z.infer<typeof TrackingReference>;
+export type TrackingTarget = z.infer<typeof TrackingTarget>;
+
+export const getTrackingReference = ({ kind, id }: TrackingTarget) =>
+	({
+		trackingFor: kind,
+		trackingId: id,
+	}) satisfies TrackingReference;
+
+export const getTrackingMetadata = async ({ kind, id }: TrackingTarget) => {
 	if (kind === "event")
 		return db()
 			.query.gbpEvents.findFirst({ where: { id }, with: { musics: true } })
-			.then((value) => (value ? { kind: "event", ...value } : undefined));
+			.then((value): GbpMetadata | undefined =>
+				value ? { kind: "event", ...value } : undefined,
+			);
 
 	if (kind === "monthly")
 		return db()
 			.query.gbpMonthlyRankings.findFirst({ where: { id } })
-			.then((value) => (value ? { kind: "monthly", ...value } : undefined));
+			.then((value): GbpMetadata | undefined =>
+				value ? { kind: "monthly", ...value } : undefined,
+			);
 };

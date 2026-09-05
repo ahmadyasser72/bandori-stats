@@ -16,7 +16,10 @@ import {
 	trackerSnapshots,
 	type GbpMetadata,
 } from "@bandori-stats/database/schema";
-import { getTrackingReference } from "@bandori-stats/database/tracker";
+import {
+	getTrackingReference,
+	TrackingReference,
+} from "@bandori-stats/database/tracker";
 import { bangDream } from "~/bang-dream-gbp/fetch";
 import type {
 	MusicRankingResponse,
@@ -181,15 +184,14 @@ export const scheduleUpdateTracker = schedules.task({
 		const inserted = results
 			.filter((promise) => promise.status === "fulfilled")
 			.flatMap(({ value }) => value);
+		if (inserted.length === 0) return;
 
-		if (inserted.length > 0) {
-			await updateTrackerProfile.trigger({
-				players: inserted.map(({ uid, trackingFor, trackingId }) => ({
-					uid,
-					trackingReference: { trackingFor, trackingId },
-				})),
-			});
-		}
+		await updateTrackerProfile.trigger({
+			players: inserted.map(({ uid, trackingFor, trackingId }) => ({
+				uid,
+				trackingReference: { trackingFor, trackingId },
+			})),
+		});
 	},
 });
 
@@ -217,10 +219,7 @@ const insertSnapshots = async (
 
 	const toTrackerSnapshot = curry(
 		(
-			trackingReference: Pick<
-				typeof trackerSnapshots.$inferInsert,
-				"trackingFor" | "trackingId"
-			>,
+			trackingReference: TrackingReference,
 			{ userId, name, rank, point }: RankingUser,
 		): typeof trackerSnapshots.$inferInsert => ({
 			...trackingReference,
@@ -244,10 +243,7 @@ const insertSnapshots = async (
 		);
 		return curry(
 			(
-				trackingReference: Pick<
-					typeof trackerSnapshots.$inferInsert,
-					"trackingFor" | "trackingId"
-				>,
+				trackingReference: TrackingReference,
 				{ name, rank, point, userProfileSituation }: RankingUser,
 			): typeof trackerCutoffs.$inferInsert => ({
 				...trackingReference,

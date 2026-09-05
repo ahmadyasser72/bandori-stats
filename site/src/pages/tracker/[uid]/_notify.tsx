@@ -4,13 +4,11 @@ import { VAPID_PUBLIC_KEY } from "astro:env/client";
 import { useRef, useState } from "preact/hooks";
 
 import { stripBB } from "@bandori-stats/bestdori/helpers";
-import type {
-	GbpMetadata,
-	TrackerSnapshot,
-} from "@bandori-stats/database/schema";
+import type { TrackerSnapshot } from "@bandori-stats/database/schema";
+import type { TrackingTarget } from "@bandori-stats/database/tracker";
 
 interface NotifyWhenContainerProps {
-	target: Pick<GbpMetadata, "kind" | "id">;
+	target: TrackingTarget;
 	snapshot: Pick<TrackerSnapshot, "uid" | "name" | "point" | "rank">;
 }
 

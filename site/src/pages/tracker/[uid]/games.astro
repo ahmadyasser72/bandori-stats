@@ -8,6 +8,7 @@ import { db, desc } from "@bandori-stats/database";
 import {
 	getTrackingMetadata,
 	getTrackingReference,
+	TrackingTarget,
 } from "@bandori-stats/database/tracker";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
@@ -28,8 +29,7 @@ const DURATIONS = ["1h", "3h", "6h", "12h"] as const;
 const uid = Astro.params.uid!;
 const params = Astro.locals.parseQuery(
 	z.object({
-		kind: z.enum(["event", "monthly"]),
-		id: z.coerce.number(),
+		...TrackingTarget.shape,
 		duration: z.union([
 			z.enum(DURATIONS),
 			z.templateLiteral([z.iso.date(), ":", z.iso.date()]),
@@ -78,9 +78,9 @@ const { statistics, games } = await Astro.locals.tracing.enterSpan(
 		span.setAttribute("from", from.toISOString());
 		span.setAttribute("to", to.toISOString());
 
-		const baseFilter = createBaseFilter(params.kind, params.id, uid);
+		const baseFilter = createBaseFilter(params, uid);
 		const gapsCte = createGapsCte(baseFilter);
-		const cteFilter = createCteFilter(params.kind, gapsCte, from, to);
+		const cteFilter = createCteFilter(params, gapsCte, from, to);
 		return allKeyed({
 			statistics: Astro.locals.tracing.enterSpan("fetch-game-statistics", () =>
 				fetchStatistics(gapsCte, cteFilter),
@@ -254,7 +254,7 @@ if (Astro.cache.enabled)
 							<span
 								class:list={[
 									"ml-1 badge px-1.5 badge-xs",
-									delta > outlierCap(params.kind)
+									delta > outlierCap(params)
 										? "badge-warning"
 										: "badge-success",
 								]}
@@ -262,7 +262,7 @@ if (Astro.cache.enabled)
 								{formatNumber(delta, { positiveSign: true })}
 							</span>
 
-							{delta > outlierCap(params.kind) && (
+							{delta > outlierCap(params) && (
 								<span
 									class="tooltip tooltip-end ml-1 badge badge-xs tooltip-warning badge-warning before:max-w-32"
 									data-tip="Likely accumulated while untracked"

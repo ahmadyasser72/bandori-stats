@@ -37,19 +37,14 @@ import {
 	trackerSnapshots,
 	type GbpMetadata,
 } from "@bandori-stats/database/schema";
+import { TrackingTarget } from "@bandori-stats/database/tracker";
 import { useDiscordBot } from "~/discord";
 
 export const discordTracker = schemaTask({
 	id: "discord-tracker",
 	schema: z.object({
 		metadatas: z
-			.array(
-				z.object({
-					kind: z.enum(["event", "monthly"]),
-					id: z.number(),
-					name: z.string(),
-				}),
-			)
+			.array(z.object({ ...TrackingTarget.shape, name: z.string() }))
 			.nonempty(),
 	}),
 	run: async ({ metadatas }, { ctx }) => {
@@ -142,7 +137,7 @@ interface GetSnapshotsOptions {
 }
 
 const getSnapshots = async (
-	metadata: Pick<GbpMetadata, "kind" | "id">,
+	metadata: TrackingTarget,
 	{ since, now }: GetSnapshotsOptions,
 ) => {
 	const key = GBP.fromMetadata(metadata, "leaderboard");

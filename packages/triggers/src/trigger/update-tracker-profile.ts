@@ -16,7 +16,7 @@ import {
 import { trackerSnapshotProfiles } from "@bandori-stats/database/schema";
 import {
 	STAT_TYPES,
-	TRACKER_KIND,
+	TrackingReference,
 	type PlayerBandMember,
 	type PlayerBandMemberStateless,
 } from "@bandori-stats/database/tracker";
@@ -36,13 +36,7 @@ export const updateTrackerProfile = schemaTask({
 	id: "update-tracker-profile",
 	schema: z.object({
 		players: z.array(
-			z.object({
-				uid: z.string(),
-				trackingReference: z.object({
-					trackingFor: z.enum(TRACKER_KIND),
-					trackingId: z.number(),
-				}),
-			}),
+			z.object({ uid: z.string(), trackingReference: TrackingReference }),
 		),
 	}),
 	run: async ({ players }, { ctx }) => {
