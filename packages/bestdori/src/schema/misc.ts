@@ -169,7 +169,14 @@ export const MasterDB = z.object({
 		.record(z.string(), z.object({ skillId: z.number() }))
 		.apply(IsEntries),
 	masterCharacterInfoMap: z
-		.record(z.string(), z.object({ firstName: z.string() }))
+		.looseRecord(
+			z.number().min(0).max(40),
+			z.object({
+				nickname: z.string().optional(),
+				firstName: z.string(),
+				characterName: z.string(),
+			}),
+		)
 		.apply(IsEntries),
 
 	system: z.object({ serverDate: z.coerce.number() }),

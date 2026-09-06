@@ -10,7 +10,7 @@ import {
 	time,
 	TimestampStyles,
 } from "discord.js";
-import { capitalize } from "es-toolkit";
+import { capitalize, uniq } from "es-toolkit";
 
 import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
 import dayjs from "@bandori-stats/bestdori/date";
@@ -150,13 +150,17 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 								`${attribute} ${formatEventType(eventType)}`,
 							);
 
+							const characters = Object.keys(metadata.characters)
+								.map(Number)
+								.map((id) => {
+									const { nickname, firstName } =
+										data.masterCharacterInfoMap[id];
+									return { id, name: nickname ?? firstName };
+								});
 							lines.push(
 								bold("Characters:"),
-								Object.keys(metadata.characters)
-									.map(
-										(id) =>
-											`${emoji(`character_${id}`)} ${data.masterCharacterInfoMap[id].firstName}`,
-									)
+								characters
+									.map(({ id, name }) => `${emoji(`character_${id}`)} ${name}`)
 									.join("  "),
 							);
 
@@ -187,11 +191,11 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 
 						const payload = {
 							title: `#${eventId} ${eventName}`,
-							logo: await fetchLogo(event),
+							image: await fetchImage(event),
 							description,
 						};
 
-						await createScheduledEvent(guild, event, payload);
+						await createScheduledEvent(guild, { metadata: event, payload });
 
 						const forumId = process.env.DISCORD_EVENT_TRACKER_FORUM_ID;
 						if (!forumId)
@@ -199,8 +203,28 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 								"DISCORD_EVENT_TRACKER_FORUM_ID is not defined.",
 							);
 
-						const target = { kind: "event" as const, id: eventId };
-						await createThread(guild, forumId, payload, target);
+						await createThread(guild, {
+							forumId,
+							payload,
+							target: { kind: "event" as const, id: eventId },
+							tags: [
+								...uniq(
+									[event.startAt, event.endAt].flatMap((it) => {
+										const date = dayjs.tz(it);
+										return [date.format("DDDD"), date.format("YYYY")];
+									}),
+								),
+								capitalize(metadata.attributes.at(0)?.attribute ?? "unknown"),
+								formatEventType(eventType),
+								...Object.keys(metadata.characters)
+									.map(Number)
+									.flatMap((id) => {
+										const { nickname, characterName } =
+											data.masterCharacterInfoMap[id];
+										return nickname ? [nickname, characterName] : characterName;
+									}),
+							],
+						});
 					});
 
 					return true;
@@ -229,10 +253,10 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 						const payload = {
 							title: `#${monthlyRankingId} ${monthlyRankingName}`,
 							description: [bold("Period:"), formatPeriod(monthly)].join("\n"),
-							logo: await fetchLogo(monthly),
+							image: await fetchImage(monthly),
 						};
 
-						await createScheduledEvent(guild, monthly, payload);
+						await createScheduledEvent(guild, { metadata: monthly, payload });
 
 						const forumId = process.env.DISCORD_MONTHLY_TRACKER_FORUM_ID;
 						if (!forumId)
@@ -240,8 +264,13 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 								"DISCORD_MONTHLY_TRACKER_FORUM_ID is not defined.",
 							);
 
-						const target = { kind: "monthly" as const, id: monthlyRankingId };
-						await createThread(guild, forumId, payload, target);
+						const startAt = dayjs(monthly.startAt);
+						await createThread(guild, {
+							forumId,
+							payload,
+							target: { kind: "monthly" as const, id: monthlyRankingId },
+							tags: [startAt.format("DDDD"), startAt.format("YYYY")],
+						});
 					});
 
 					return true;
@@ -292,7 +321,9 @@ const formatPeriod = ({
 	[startAt, endAt]
 		.map((date) => time(date, TimestampStyles.ShortDateMediumTime))
 		.join(" — ");
-const fetchLogo = ({ assetBundleName }: Pick<GbpMetadata, "assetBundleName">) =>
+const fetchImage = ({
+	assetBundleName,
+}: Pick<GbpMetadata, "assetBundleName">) =>
 	bestdori({
 		path: `/assets/en/event/${assetBundleName}/images_rip/logo.png`,
 		schema: false,
@@ -303,42 +334,60 @@ const fetchLogo = ({ assetBundleName }: Pick<GbpMetadata, "assetBundleName">) =>
 interface MetadataPayload {
 	title: string;
 	description: string;
-	logo: Buffer;
+	image: Buffer;
+}
+
+interface CreateScheduledEventOptions {
+	metadata: Pick<GbpMetadata, "startAt" | "endAt">;
+	payload: MetadataPayload;
 }
 
 const createScheduledEvent = (
 	guild: Guild,
-	{ startAt, endAt }: Pick<GbpMetadata, "startAt" | "endAt">,
-	{ title, description, logo }: MetadataPayload,
+	{ metadata, payload }: CreateScheduledEventOptions,
 ) =>
 	guild.scheduledEvents.create({
-		name: title,
+		name: payload.title,
 		entityType: GuildScheduledEventEntityType.External,
 		privacyLevel: GuildScheduledEventPrivacyLevel.GuildOnly,
-		scheduledStartTime: startAt,
-		scheduledEndTime: endAt,
+		scheduledStartTime: metadata.startAt,
+		scheduledEndTime: metadata.endAt,
 
-		image: logo,
+		image: payload.image,
 		entityMetadata: { location: "BanG Dream" },
-		description,
+		description: payload.description,
 	});
+
+interface CreateThreadOptions {
+	payload: MetadataPayload;
+	forumId: string;
+	target: TrackingTarget;
+	tags: string[];
+}
+
 const createThread = async (
 	guild: Guild,
-	forumId: string,
-	{ title, description, logo }: MetadataPayload,
-	target: TrackingTarget,
+	{ forumId, target, tags, payload }: CreateThreadOptions,
 ) => {
 	const forum = await guild.channels.fetch(forumId);
 	if (!forum || forum.type !== ChannelType.GuildForum)
 		throw new AbortTaskRunError(`${forumId} channel is not a forum.`);
 
+	const availableTags = new Set(forum.availableTags.map(({ name }) => name));
+	const newTags = tags.filter((tag) => !availableTags.has(tag));
+	if (newTags.length > 0)
+		await forum.setAvailableTags(newTags.map((name) => ({ name })));
+
 	const thread = await forum.threads.create({
-		name: title,
+		name: payload.title,
 		message: {
-			content: description,
-			files: [logo],
+			content: payload.description,
+			files: [payload.image],
 			flags: MessageFlags.SuppressEmbeds,
 		},
+		appliedTags: tags.map(
+			(name) => forum.availableTags.find((tag) => tag.name === name)!.id,
+		),
 	});
 	await redis().set(GBP.fromMetadata(target, "discord-thread"), thread.id);
 };
