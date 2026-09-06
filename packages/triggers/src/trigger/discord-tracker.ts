@@ -7,12 +7,10 @@ import {
 	EmbedBuilder,
 	spoiler,
 	subtext,
-	ThreadAutoArchiveDuration,
 	time,
 	TimestampStyles,
 	WebhookClient,
 	type MessageCreateOptions,
-	type PublicThreadChannel,
 } from "discord.js";
 import { allKeyed, pick } from "es-toolkit";
 import z from "zod";
@@ -304,32 +302,23 @@ const generatePayload = (
 	return { embeds: [embed] } satisfies MessageCreateOptions;
 };
 
-const getThread = async (
-	client: Client,
-	metadata: Pick<GbpMetadata, "kind" | "id" | "name">,
-) => {
-	const mainChannelName = `${metadata.kind}-tracker`;
-	const mainChannel = client.channels.cache.find(
-		(channel) =>
-			channel.type === ChannelType.GuildText &&
-			channel.name === mainChannelName,
-	);
-	if (!mainChannel || mainChannel.type !== ChannelType.GuildText)
-		throw new AbortTaskRunError(`${mainChannelName} channel doesn't exists.`);
+const getThread = async (client: Client, { kind, id }: TrackingTarget) => {
+	const forumId = process.env[`DISCORD_${kind.toUpperCase()}_TRACKER_FORUM_ID`];
+	if (!forumId)
+		throw new AbortTaskRunError(`${kind} tracker forum id is not defined.`);
 
-	const key = GBP.fromMetadata(metadata, "discord");
-	const fromRedis = await redis().get<number>(key);
-	if (fromRedis) {
-		const thread = await mainChannel.threads.fetch(fromRedis.toString());
-		if (thread && thread.type === ChannelType.PublicThread) return thread;
-	}
+	const forum = client.channels.cache.find(({ id }) => id === forumId);
+	if (!forum || forum.type !== ChannelType.GuildForum)
+		throw new AbortTaskRunError(`${kind} tracker forum doesn't exists.`);
 
-	const thread = await mainChannel.threads.create({
-		name: `#${metadata.id} ${metadata.name}`,
-		autoArchiveDuration: ThreadAutoArchiveDuration.ThreeDays,
-		type: ChannelType.PublicThread,
-	});
+	const key = GBP.fromMetadata({ kind, id }, "discord-thread");
+	const threadId = await redis().get<number>(key);
+	if (!threadId)
+		throw new AbortTaskRunError(`${kind}:${id} thread doesn't exists.`);
 
-	await redis().set(key, thread.id);
-	return thread as PublicThreadChannel;
+	const thread = await forum.threads.fetch(threadId.toString());
+	if (!thread)
+		throw new AbortTaskRunError(`${kind}:${id} thread doesn't exists.`);
+
+	return thread;
 };
