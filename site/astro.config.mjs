@@ -83,11 +83,6 @@ export default defineConfig({
 				context: "server",
 			}),
 
-			TRIGGER_SECRET_KEY: envField.string({
-				access: "secret",
-				context: "server",
-			}),
-
 			VAPID_PUBLIC_KEY: envField.string({
 				access: "public",
 				context: "client",

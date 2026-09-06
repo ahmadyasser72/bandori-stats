@@ -1,5 +1,5 @@
-# bunx buf generate
+# bun buf generate
 packages/triggers/src/bang-dream-gbp/gen linguist-generated
 
-# bunx wrangler types
+# bun wrangler types --env-file .env.site
 site/worker-configuration.d.ts linguist-generated
