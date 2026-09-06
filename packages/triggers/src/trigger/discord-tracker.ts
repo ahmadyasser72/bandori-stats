@@ -46,7 +46,7 @@ export const discordTracker = schemaTask({
 			.nonempty(),
 	}),
 	run: async ({ metadatas }, { ctx }) => {
-		const now = dayjs(ctx.run.startedAt).startOf("hour");
+		const now = dayjs.tz(ctx.run.startedAt).startOf("hour");
 
 		await useDiscordBot(async ({ client, guild }) => {
 			await guild.channels.fetch();
