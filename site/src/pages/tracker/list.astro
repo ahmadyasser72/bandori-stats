@@ -231,8 +231,9 @@ if (Astro.cache.enabled)
 			<div
 				class:list={[
 					"list-row items-center",
-					!previous &&
-						"opacity-50 transition-opacity hover:opacity-100 focus:opacity-100",
+					!isPastData &&
+						!previous &&
+						"[:not(:hover):not(:focus)]:grayscale-75 [:not(:hover):not(:focus)]:**:[button]:opacity-25",
 				]}
 				tabindex="-1"
 			>
