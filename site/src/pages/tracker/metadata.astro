@@ -182,9 +182,7 @@ if (Astro.cache.enabled)
 				{...!isPastData && {
 					class:
 						"tooltip tooltip-start tooltip-primary underline decoration-dotted",
-					"data-tip": formatDuration({
-						[isNotStarted ? "from" : "to"]: data.startAt,
-					}),
+					"data-tip": formatDuration(data.startAt),
 				}}
 				>{
 					dayjs.tz(data.startAt, clientTimezone).format("YYYY-MM-DD, HH:mm")
@@ -194,7 +192,7 @@ if (Astro.cache.enabled)
 				{...!isPastData && {
 					class:
 						"tooltip tooltip-end tooltip-primary underline decoration-dotted",
-					"data-tip": formatDuration({ from: data.endAt }),
+					"data-tip": formatDuration(data.endAt),
 				}}
 				>{
 					dayjs.tz(data.endAt, clientTimezone).format("YYYY-MM-DD, HH:mm")

@@ -316,9 +316,7 @@ if (Astro.cache.enabled)
 							</span>
 
 							{lastPlayed && (
-								<span>
-									played {formatDuration({ from: lastPlayed.timestamp })}
-								</span>
+								<span>played {formatDuration(lastPlayed.timestamp)}</span>
 							)}
 
 							{boatHistory && (
@@ -326,7 +324,7 @@ if (Astro.cache.enabled)
 									boated{" "}
 									{boatHistory.length === 1 ? (
 										<span class="text-error">
-											{formatDuration({ from: latest.timestamp })}
+											{formatDuration(latest.timestamp)}
 										</span>
 									) : (
 										<span class="tooltip tooltip-error text-error underline decoration-dotted sm:tooltip-end">
@@ -339,14 +337,12 @@ if (Astro.cache.enabled)
 																<span>
 																	{boatHistory[idx].rank} -> {rank}
 																</span>
-																<span>
-																	{formatDuration({ from: timestamp })}
-																</span>
+																<span>{formatDuration(timestamp)}</span>
 															</div>
 														))}
 												</div>
 											</div>
-											{formatDuration({ from: latest.timestamp })}
+											{formatDuration(latest.timestamp)}
 										</span>
 									)}
 								</span>

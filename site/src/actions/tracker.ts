@@ -68,7 +68,7 @@ export const notifyMe = defineAction({
 			if (sinceLastPlayed <= 60)
 				throw new ActionError({
 					code: "BAD_REQUEST",
-					message: `${stripBB(latestSnapshot.name)} recently played ${formatDuration({ from: latestSnapshot.timestamp })}!`,
+					message: `${stripBB(latestSnapshot.name)} recently played ${formatDuration(latestSnapshot.timestamp)}!`,
 				});
 		}
 		if (on.target === "point" && latestSnapshot.point > on.value)
