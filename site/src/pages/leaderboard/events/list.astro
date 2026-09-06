@@ -75,7 +75,6 @@ const matchCounts = countBy(matchedEntries, ([category]) =>
 	groupCategory(category),
 );
 
-const isPodium = (category: Category) => category.match(/t[123]$/);
 const getCategoryLabel = (category: Category) => {
 	if (category === "ex-live-goals") return "EX";
 	if (category === "live-goals") return "N";
@@ -127,70 +126,53 @@ const GROUP_LABELS = {
 	{
 		groups[params.group].map(([category, players]) =>
 			players.map(({ player, titles, terms }) => (
-				<div
-					class:list={[
-						isPodium(category) && "aura not-last:mb-1.5",
-						category.endsWith("-t1") && "aura-holo",
-						category.endsWith("-t2") && "aura-gold",
-						category.endsWith("-t3") && "aura-silver",
-					]}
-				>
-					<div
+				<div class="list-row items-center">
+					<span
 						class:list={[
-							"list-row items-center",
-							isPodium(category) && "bg-base-100 dark:bg-base-300",
+							"badge min-h-8 min-w-8 font-mono",
+							category.match(/t[123]$/) ? "badge-secondary" : "badge-ghost",
 						]}
 					>
-						<span
-							class:list={[
-								"badge min-h-8 min-w-8 font-mono",
-								category.endsWith("-t1") && "badge-primary",
-								category.endsWith("-t2") && "badge-accent",
-								category.endsWith("-t3") && "badge-secondary",
-								!isPodium(category) && "badge-ghost",
-							]}
-						>
-							{getCategoryLabel(category)}
-						</span>
+						{getCategoryLabel(category)}
+					</span>
 
-						<div class="flex min-w-0 items-center gap-2 list-col-grow">
-							{player.profileArt && (
-								<div class="avatar">
-									<div class="size-10 rounded-box">
-										<img
-											src={getProfileIcon(player)}
-											alt={player.username}
-											loading="lazy"
-										/>
-									</div>
-								</div>
-							)}
-
-							{accountHasNickname(player) ? (
-								<div class="flex min-w-0 flex-col">
-									<span
-										class="truncate font-medium text-ellipsis"
-										set:html={highlight(player.nickname!, terms?.nickname)}
-									/>
-									<span
-										class="truncate text-xs text-ellipsis text-base-content/67"
-										set:html={highlight(`@${player.username}`, terms?.username)}
+					<div class="flex min-w-0 items-center gap-2 list-col-grow">
+						{player.profileArt && (
+							<div class="avatar">
+								<div class="size-10 rounded-box">
+									<img
+										src={getProfileIcon(player)}
+										alt={player.username}
+										loading="lazy"
 									/>
 								</div>
-							) : (
+							</div>
+						)}
+
+						{accountHasNickname(player) ? (
+							<div class="flex min-w-0 flex-col">
 								<span
-									class="truncate text-lg font-medium text-ellipsis"
+									class="truncate font-medium text-ellipsis"
+									set:html={highlight(player.nickname!, terms?.nickname)}
+								/>
+								<span
+									class="truncate text-xs text-ellipsis text-base-content/67"
 									set:html={highlight(`@${player.username}`, terms?.username)}
 								/>
-							)}
-						</div>
-
-						<img
-							class="aspect-23/5 w-36 rounded-2xl max-sm:list-col-wrap"
-							src={getTitleImage(titles[0])}
-							loading="lazy"
-						/>
+							</div>
+						) : (
+							<span
+								class="truncate text-lg font-medium text-ellipsis"
+								set:html={highlight(`@${player.username}`, terms?.username)}
+							/>
+						)}
 					</div>
+
+					<img
+						class="aspect-23/5 w-36 rounded-2xl max-sm:list-col-wrap"
+						src={getTitleImage(titles[0])}
+						loading="lazy"
+					/>
 				</div>
 			)),
 		)

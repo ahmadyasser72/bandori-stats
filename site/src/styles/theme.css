@@ -7,15 +7,6 @@
 
 @custom-variant dark (&:where([data-theme="mocha"], [data-theme="mocha"] *));
 
-@utility aura {
-	&::before,
-	&::after {
-		@apply blur-none md:blur-xs lg:blur-sm;
-		will-change: filter;
-		transform: translate3d(0, 0, 0);
-	}
-}
-
 @utility btn {
 	/* its messing with event delegation */
 	> .iconify {

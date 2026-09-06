@@ -45,80 +45,63 @@ const highlightTerms = (
 	players.map(({ player, trueRank, ...data }, idx) => (
 		<div
 			class:list={[
-				"group",
-				trueRank < 3 && "aura not-last:mb-1.5",
-				trueRank === 0 && "aura-holo",
-				trueRank === 1 && "aura-gold",
-				trueRank === 2 && "aura-silver",
+				"list-row items-center",
+				trueRank < 3 && "bg-base-100 dark:bg-base-300",
 			]}
+			style={
+				Astro.props.anchor &&
+				`anchor-name: --anchor-${player.id}-${Astro.props.anchor}`
+			}
 		>
-			<div
+			<span
 				class:list={[
-					"list-row items-center",
-					trueRank < 3 && "bg-base-100 dark:bg-base-300",
+					"badge min-h-8 min-w-8",
+					trueRank < 3 ? "badge-secondary" : "badge-ghost",
 				]}
-				style={
-					Astro.props.anchor &&
-					`anchor-name: --anchor-${player.id}-${Astro.props.anchor}`
-				}
 			>
-				<span
-					class:list={[
-						"badge min-h-8 min-w-8",
-						trueRank === 0 && "badge-primary",
-						trueRank === 1 && "badge-accent",
-						trueRank === 2 && "badge-secondary",
-						trueRank > 2 && "badge-ghost",
-					]}
-				>
-					{trueRank + 1}
-				</span>
+				{trueRank + 1}
+			</span>
 
-				<div class="flex min-w-0 items-center gap-2 list-col-grow">
-					{player.profileArt && (
-						<div class="avatar">
-							<div class="size-10 rounded-box">
-								<img
-									src={getProfileIcon(player)}
-									alt={player.username}
-									loading="lazy"
-								/>
-							</div>
-						</div>
-					)}
-
-					{accountHasNickname(player) ? (
-						<div class="flex min-w-0 flex-col">
-							<span
-								class="truncate font-medium text-ellipsis"
-								set:html={highlightTerms(data, player.nickname!, "nickname")}
-							/>
-							<span
-								class="truncate text-xs text-ellipsis text-base-content/67"
-								set:html={highlightTerms(
-									data,
-									`@${player.username}`,
-									"username",
-								)}
+			<div class="flex min-w-0 items-center gap-2 list-col-grow">
+				{player.profileArt && (
+					<div class="avatar">
+						<div class="size-10 rounded-box">
+							<img
+								src={getProfileIcon(player)}
+								alt={player.username}
+								loading="lazy"
 							/>
 						</div>
-					) : (
+					</div>
+				)}
+
+				{accountHasNickname(player) ? (
+					<div class="flex min-w-0 flex-col">
 						<span
-							class="truncate text-lg font-medium text-ellipsis"
+							class="truncate font-medium text-ellipsis"
+							set:html={highlightTerms(data, player.nickname!, "nickname")}
+						/>
+						<span
+							class="truncate text-xs text-ellipsis text-base-content/67"
 							set:html={highlightTerms(data, `@${player.username}`, "username")}
 						/>
-					)}
-				</div>
-
-				<span
-					class="font-mono text-sm max-sm:list-col-wrap"
-					set:html={
-						Astro.slots.has("value")
-							? Astro.slots.render("value", [players[idx]])
-							: displayValue(data.value)
-					}
-				/>
+					</div>
+				) : (
+					<span
+						class="truncate text-lg font-medium text-ellipsis"
+						set:html={highlightTerms(data, `@${player.username}`, "username")}
+					/>
+				)}
 			</div>
+
+			<span
+				class="font-mono text-sm max-sm:list-col-wrap"
+				set:html={
+					Astro.slots.has("value")
+						? Astro.slots.render("value", [players[idx]])
+						: displayValue(data.value)
+				}
+			/>
 		</div>
 	))
 }
