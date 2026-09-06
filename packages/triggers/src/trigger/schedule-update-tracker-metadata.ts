@@ -231,8 +231,8 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 				})(),
 			!currentMonthly &&
 				(async () => {
-					const active = data.masterMonthlyRankingList.find(
-						({ startAt, endAt }) => dayjs().isBetween(startAt, endAt),
+					const active = data.masterMonthlyRankingList.find(({ endAt }) =>
+						dayjs().isSame(endAt, "month"),
 					);
 					if (!active) return;
 

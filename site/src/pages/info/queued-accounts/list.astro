@@ -1,7 +1,7 @@
 ---
 import { runs } from "@trigger.dev/sdk";
 
-import dayjs from "@bandori-stats/bestdori/date";
+import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
 import { accountHasNickname } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
 import Icon from "~/components/icon.astro";
@@ -104,7 +104,7 @@ if (Astro.cache.enabled) {
 
 			<span
 				class="tooltip tooltip-start badge badge-sm tooltip-info underline decoration-dotted badge-info max-sm:list-col-wrap sm:tooltip-end"
-				data-tip={dayjs.tz(delayedUntil).fromNow()}
+				data-tip={formatDuration(delayedUntil)}
 			>
 				{dayjs.tz(delayedUntil).format("DD MMMM, HH:mm")}
 			</span>

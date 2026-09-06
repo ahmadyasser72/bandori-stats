@@ -103,7 +103,7 @@ const [
 					? "Today"
 					: lastUpdate === yesterday
 						? "Yesterday"
-						: dayjs.tz(lastUpdate).fromNow()}
+						: dayjs(lastUpdate).fromNow()}
 			</div>
 			<div class="stat-desc">
 				<div class="badge badge-soft badge-sm font-medium badge-info">
