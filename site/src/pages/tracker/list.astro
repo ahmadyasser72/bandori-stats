@@ -117,7 +117,9 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 			latest,
 			profile,
 			previous:
-				dayjs().diff(latest.timestamp, "minutes") <= 30 ? previous : undefined,
+				dayjs().diff(lastPlayed.timestamp, "minutes") <= 30
+					? previous
+					: undefined,
 			lastPlayed,
 			boatHistory:
 				previous &&
@@ -231,8 +233,7 @@ if (Astro.cache.enabled)
 			<div
 				class:list={[
 					"list-row items-center",
-					!isPastData &&
-						!previous &&
+					!previous &&
 						"[:not(:hover):not(:focus)]:grayscale-75 [:not(:hover):not(:focus)]:**:[button]:opacity-25",
 				]}
 				tabindex="-1"
