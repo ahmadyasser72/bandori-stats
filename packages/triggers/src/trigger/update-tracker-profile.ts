@@ -151,6 +151,9 @@ export const updateTrackerProfile = schemaTask({
 				const profile = profiles.get(uid);
 				if (!profile) return null;
 
+				const bandAreaItems = (profile.enabledUserAreaItems?.entries ?? []).map(
+					({ areaItemId }) => areaItems[areaItemId],
+				);
 				const bandMembers = (profile.mainDeckUserSituations?.entries ?? []).map(
 					(data) => getBandMember(data, cards[data.situationId], skills),
 				);
@@ -173,15 +176,11 @@ export const updateTrackerProfile = schemaTask({
 
 					band: {
 						name: profile.mainUserDeck?.deckName!,
-						totalStats: profile.publishTotalDeckPowerFlg
-							? calculateTotalBandStats(
-									bandMembers,
-									(profile.enabledUserAreaItems?.entries ?? []).map(
-										({ areaItemId }) => areaItems[areaItemId],
-									),
-								)
-							: null,
 						members: bandMembers,
+						areaItems: bandAreaItems.length > 0 ? bandAreaItems : null,
+						totalStats: profile.publishTotalDeckPowerFlg
+							? calculateTotalBandStats(bandMembers, bandAreaItems)
+							: null,
 					},
 
 					titles: Object.values(

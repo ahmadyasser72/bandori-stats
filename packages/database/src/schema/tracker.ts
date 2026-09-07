@@ -3,6 +3,7 @@ import z from "zod";
 
 import type { GbpMetadata } from ".";
 import { db } from "../db";
+import type { BangDreamAreaItem } from "../redis";
 
 export interface PlayerAvatar {
 	id: number;
@@ -13,6 +14,7 @@ export interface PlayerBand {
 	name: string;
 	totalStats: PlayerBandMemberStat | null;
 	members: PlayerBandMember[];
+	areaItems: BangDreamAreaItem[] | null;
 }
 
 export interface PlayerBandMemberStateless extends PlayerAvatar {
