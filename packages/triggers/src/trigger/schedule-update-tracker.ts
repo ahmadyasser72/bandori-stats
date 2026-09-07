@@ -33,9 +33,9 @@ export const scheduleUpdateTracker = schedules.task({
 	ttl: "1m",
 	cron: { pattern: "* * * * *" },
 	run: async ({ timestamp }) => {
-		const [version, eventId, monthlyId] = await redis().mget<
-			[string | null, number | null, number | null]
-		>(GBP.version, GBP.event.current, GBP.monthly.current);
+		const [version, eventId, monthlyId, maintenance] = await redis().mget<
+			[string | null, number | null, number | null, true | null]
+		>(GBP.version, GBP.event.current, GBP.monthly.current, GBP.maintenance);
 
 		await tags.add(`version_${version ?? "n/a"}`);
 		if (!version || (!eventId && !monthlyId)) return;
@@ -55,6 +55,11 @@ export const scheduleUpdateTracker = schedules.task({
 			`event_${event ? event.assetBundleName : (eventId ?? "n/a")}`,
 			`monthly_${monthly ? monthly.assetBundleName : (monthlyId ?? "n/a")}`,
 		]);
+
+		if (maintenance) {
+			await tags.add("maintenance_skip");
+			return;
+		}
 
 		const now = dayjs(timestamp).startOf("minute").add(1, "minute");
 		await wait.until({ date: now.toDate() });

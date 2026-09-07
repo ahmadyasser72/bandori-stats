@@ -90,10 +90,14 @@ export const bangDream = limitAsync(
 			span.setAttribute?.("path", path);
 
 			const response = await fetch(url, { headers });
-			if (!response.ok)
+			if (!response.ok) {
+				if (response.status === 503)
+					await redis().set(GBP.maintenance, true, { ex: 60 * 15 });
+
 				throw new AbortTaskRunError(
 					`Request to ${url.pathname} failed (${response.status})`,
 				);
+			}
 
 			return response.arrayBuffer().then(decrypt);
 		});

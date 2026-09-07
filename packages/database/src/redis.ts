@@ -38,6 +38,7 @@ const idProxy = <Prefix extends string, Fallback extends string>(
 
 export const GBP = {
 	version: "gbp:version",
+	maintenance: "gbp:maintenance",
 	credentials: "gbp:credentials",
 	event: idProxy("gbp:event", "current"),
 	monthly: idProxy("gbp:monthly", "current"),
