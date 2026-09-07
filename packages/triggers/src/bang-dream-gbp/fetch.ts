@@ -92,27 +92,16 @@ export const bangDream = limitAsync(
 			"x-unity-version": UNITY_VERSION,
 		};
 
-		return logger.trace(`fetch-gbp-ranking`, async (span) => {
-			span.setAttribute?.("path", path);
+		return logger.trace("gbp-ranking", async (span) => {
+			span.setAttribute?.("type", type);
+			span.setAttribute?.("id", id);
 
-			const response = await fetch(url, { headers });
-			if (!response.ok) {
-				if (response.status === 503) {
-					await redis().set(GBP.maintenance, true, { ex: 60 * 30 });
-					throw new MaintenanceError();
-				}
-
-				throw new AbortTaskRunError(
-					`Request to ${url.pathname} failed (${response.status})`,
-				);
-			}
-
-			const bytes = await response.arrayBuffer().then(decrypt);
-			return logger.trace("parse-gbp-ranking", async (span) => {
+			const response = await fetchBangDream(url, headers, "GET");
+			return logger.trace("parse", async (span) => {
 				const schema = PROTOBUF[type];
 				span.setAttribute?.("typeName", schema.typeName);
 
-				const output = fromBinary(schema, bytes);
+				const output = fromBinary(schema, response.bytes);
 				return {
 					...(output as unknown as ProtobufOutput<typeof type>),
 					get json() {
@@ -153,21 +142,11 @@ export const bangDreamProfile = limitAsync(
 			"x-unity-version": UNITY_VERSION,
 		};
 
-		return logger.trace("fetch-gbp-profile", async (span) => {
+		return logger.trace("gbp-profile", async (span) => {
 			span.setAttribute?.("uid", uid);
 
 			await redis().json.del(GBP.credentials, "$.token");
-			const response = await fetch(url, { method: "PUT", headers });
-			if (!response.ok) {
-				if (response.status === 503) {
-					await redis().set(GBP.maintenance, true, { ex: 60 * 30 });
-					throw new MaintenanceError();
-				}
-
-				throw new AbortTaskRunError(
-					`Request to ${url.pathname} failed (${response.status})`,
-				);
-			}
+			const response = await fetchBangDream(url, headers, "PUT");
 
 			const newToken = response.headers.get("x-token");
 			if (!newToken)
@@ -176,11 +155,10 @@ export const bangDreamProfile = limitAsync(
 				);
 			await redis().json.set(GBP.credentials, "$.token", `"${newToken}"`);
 
-			const bytes = await response.arrayBuffer().then(decrypt);
-			return logger.trace("parse-gbp-profile", async (span) => {
+			return logger.trace("parse", async (span) => {
 				span.setAttribute?.("typeName", UserProfileSchema.typeName);
 
-				const output = fromBinary(UserProfileSchema, bytes);
+				const output = fromBinary(UserProfileSchema, response.bytes);
 				return {
 					...output,
 					get json() {
@@ -195,6 +173,34 @@ export const bangDreamProfile = limitAsync(
 	1,
 );
 
+const fetchBangDream = async (
+	url: URL,
+	headers: Record<string, string>,
+	method: "GET" | "PUT",
+) =>
+	logger.trace("fetch", async (span) => {
+		span.setAttribute?.("request", `${method}: ${url}`);
+
+		const response = await fetch(url, { method, headers });
+		span.setAttribute?.("status", response.status);
+
+		if (!response.ok) {
+			if (response.status === 503) {
+				await redis().set(GBP.maintenance, true, { ex: 60 * 30 });
+				throw new MaintenanceError();
+			}
+
+			throw new AbortTaskRunError(
+				`${method}: ${url.pathname} failed (${response.status})`,
+			);
+		}
+
+		const bytes = await response.arrayBuffer().then(decrypt);
+		span.setAttribute?.("size", bytes.byteLength);
+
+		return { bytes, headers: response.headers };
+	});
+
 const decrypt = (() => {
 	const { BANG_DREAM_AES_KEY, BANG_DREAM_AES_IV } = process.env;
 	if (!BANG_DREAM_AES_KEY || !BANG_DREAM_AES_IV)
@@ -202,20 +208,16 @@ const decrypt = (() => {
 
 	const key = Buffer.from(BANG_DREAM_AES_KEY);
 	const iv = Buffer.from(BANG_DREAM_AES_IV);
+	return (data: ArrayBuffer) => {
+		const decipher = createDecipheriv("aes-128-cbc", key, iv);
+		decipher.setAutoPadding(false);
 
-	return async (data: ArrayBuffer) =>
-		logger.trace("decrypt-gbp-response", async () => {
-			{
-				const decipher = createDecipheriv("aes-128-cbc", key, iv);
-				decipher.setAutoPadding(false);
+		const plain = Buffer.concat([
+			decipher.update(Buffer.from(data)),
+			decipher.final(),
+		]);
 
-				const plain = Buffer.concat([
-					decipher.update(Buffer.from(data)),
-					decipher.final(),
-				]);
-
-				const paddingLength = plain[plain.length - 1];
-				return plain.subarray(0, plain.length - paddingLength);
-			}
-		});
+		const paddingLength = plain[plain.length - 1];
+		return plain.subarray(0, plain.length - paddingLength);
+	};
 })();
