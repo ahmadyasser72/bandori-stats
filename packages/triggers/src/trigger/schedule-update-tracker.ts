@@ -1,4 +1,10 @@
-import { logger, schedules, tags, wait } from "@trigger.dev/sdk";
+import {
+	AbortTaskRunError,
+	logger,
+	schedules,
+	tags,
+	wait,
+} from "@trigger.dev/sdk";
 import { allKeyed, countBy, curry, pick, sum, uniqBy } from "es-toolkit";
 import webPush from "web-push";
 
@@ -183,20 +189,27 @@ export const scheduleUpdateTracker = schedules.task({
 		}
 
 		const errors = results.filter((promise) => promise.status === "rejected");
-		for (const { reason } of errors) console.error(reason);
+		const abortErrors = [] as string[];
+		for (const { reason } of errors) {
+			if (reason instanceof AbortTaskRunError) abortErrors.push(reason.message);
+			else console.error(reason);
+		}
 		if (errors.length > 0) await tags.add("error_settled");
 
 		const inserted = results
 			.filter((promise) => promise.status === "fulfilled")
 			.flatMap(({ value }) => value);
-		if (inserted.length === 0) return;
+		if (inserted.length > 0) {
+			await updateTrackerProfile.trigger({
+				players: inserted.map(({ uid, trackingFor, trackingId }) => ({
+					uid,
+					trackingReference: { trackingFor, trackingId },
+				})),
+			});
+		}
 
-		await updateTrackerProfile.trigger({
-			players: inserted.map(({ uid, trackingFor, trackingId }) => ({
-				uid,
-				trackingReference: { trackingFor, trackingId },
-			})),
-		});
+		if (abortErrors.length > 0)
+			throw new AbortTaskRunError(abortErrors.join("\n"));
 	},
 });
 

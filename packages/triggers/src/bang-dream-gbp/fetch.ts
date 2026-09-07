@@ -45,6 +45,12 @@ type ProtobufOutputJson<T extends MetadataType> =
 		? O
 		: never;
 
+export class MaintenanceError extends Error {
+	constructor() {
+		super("Server Maintenance");
+	}
+}
+
 export const bangDream = limitAsync(
 	async <T extends MetadataType>(version: string, type: T, id: number) => {
 		const {
@@ -86,39 +92,36 @@ export const bangDream = limitAsync(
 			"x-unity-version": UNITY_VERSION,
 		};
 
-		const bytes = await logger.trace(`fetch-gbp-ranking`, async (span) => {
+		return logger.trace(`fetch-gbp-ranking`, async (span) => {
 			span.setAttribute?.("path", path);
 
 			const response = await fetch(url, { headers });
 			if (!response.ok) {
-				if (response.status === 503)
-					await redis().set(GBP.maintenance, true, { ex: 60 * 15 });
+				if (response.status === 503) {
+					await redis().set(GBP.maintenance, true, { ex: 60 * 30 });
+					throw new MaintenanceError();
+				}
 
 				throw new AbortTaskRunError(
 					`Request to ${url.pathname} failed (${response.status})`,
 				);
 			}
 
-			return response.arrayBuffer().then(decrypt);
-		});
+			const bytes = await response.arrayBuffer().then(decrypt);
+			return logger.trace("parse-gbp-ranking", async (span) => {
+				const schema = PROTOBUF[type];
+				span.setAttribute?.("typeName", schema.typeName);
 
-		return logger.trace("parse-gbp-ranking", async (span) => {
-			span.setAttribute?.("path", path);
-
-			const schema = PROTOBUF[type];
-			span.setAttribute?.("typeName", schema.typeName);
-
-			const output = fromBinary(schema, bytes);
-			return {
-				...output,
-				get json() {
-					const json = toJson(schema, output);
-					metadata.root.set(`${type}:${id}`, { path, output: json });
-					return json;
-				},
-			} as unknown as ProtobufOutput<typeof type> & {
-				json: ProtobufOutputJson<typeof type>;
-			};
+				const output = fromBinary(schema, bytes);
+				return {
+					...(output as unknown as ProtobufOutput<typeof type>),
+					get json() {
+						const json = toJson(schema, output);
+						metadata.root.set(`${type}:${id}`, { path, output: json });
+						return json as ProtobufOutputJson<typeof type>;
+					},
+				};
+			});
 		});
 	},
 	1,
@@ -150,40 +153,43 @@ export const bangDreamProfile = limitAsync(
 			"x-unity-version": UNITY_VERSION,
 		};
 
-		const bytes = await logger.trace("fetch-gbp-profile", async (span) => {
+		return logger.trace("fetch-gbp-profile", async (span) => {
 			span.setAttribute?.("uid", uid);
 
 			await redis().json.del(GBP.credentials, "$.token");
 			const response = await fetch(url, { method: "PUT", headers });
-			if (!response.ok)
+			if (!response.ok) {
+				if (response.status === 503) {
+					await redis().set(GBP.maintenance, true, { ex: 60 * 30 });
+					throw new MaintenanceError();
+				}
+
 				throw new AbortTaskRunError(
 					`Request to ${url.pathname} failed (${response.status})`,
 				);
+			}
 
 			const newToken = response.headers.get("x-token");
 			if (!newToken)
 				throw new AbortTaskRunError(
 					`Request to ${url.pathname} not returning new token`,
 				);
-
 			await redis().json.set(GBP.credentials, "$.token", `"${newToken}"`);
 
-			return response.arrayBuffer().then(decrypt);
-		});
+			const bytes = await response.arrayBuffer().then(decrypt);
+			return logger.trace("parse-gbp-profile", async (span) => {
+				span.setAttribute?.("typeName", UserProfileSchema.typeName);
 
-		return logger.trace("parse-gbp-profile", async (span) => {
-			span.setAttribute?.("uid", uid);
-			span.setAttribute?.("typeName", UserProfileSchema.typeName);
-
-			const output = fromBinary(UserProfileSchema, bytes);
-			return {
-				...output,
-				get json() {
-					const json = toJson(UserProfileSchema, output);
-					metadata.root.set(`profile:${uid}`, { output: json });
-					return json;
-				},
-			};
+				const output = fromBinary(UserProfileSchema, bytes);
+				return {
+					...output,
+					get json() {
+						const json = toJson(UserProfileSchema, output);
+						metadata.root.set(`profile:${uid}`, { output: json });
+						return json;
+					},
+				};
+			});
 		});
 	},
 	1,
