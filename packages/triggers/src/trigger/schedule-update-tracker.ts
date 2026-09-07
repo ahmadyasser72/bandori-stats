@@ -1,5 +1,5 @@
 import { logger, schedules, tags, wait } from "@trigger.dev/sdk";
-import { allKeyed, countBy, curry, pick, uniqBy } from "es-toolkit";
+import { allKeyed, countBy, curry, pick, sum, uniqBy } from "es-toolkit";
 import webPush from "web-push";
 
 import dayjs from "@bandori-stats/bestdori/date";
@@ -217,6 +217,55 @@ const insertSnapshots = async (
 		metadata.musics.length > 0 &&
 		!!ranking.musics;
 
+	const updated = await logger.trace(
+		`update-${metadata.kind}-redis`,
+		async (span) => {
+			const added = [] as string[];
+			const pipe = redis().pipeline();
+			const add = (
+				suffix: string | string[],
+				[first, ...rest]: RankingUser[],
+				memberKey: "rank" | "userId",
+			) => {
+				if (!first) return;
+
+				const key = GBP.fromMetadata(
+					metadata,
+					...(Array.isArray(suffix) ? suffix : [suffix]),
+				);
+				added.push(key);
+				pipe.zadd(
+					key,
+					{ gt: true, ch: true },
+					{ member: first[memberKey], score: Number(first.point) },
+					...rest.map((it) => ({
+						member: it[memberKey],
+						score: Number(it.point),
+					})),
+				);
+			};
+
+			add("leaderboard", ranking.t10, "userId");
+			if (hourlyUpdate) add("cutoffs", ranking.cutoffs, "rank");
+
+			if (updateMusics) {
+				for (const { id, t10, cutoffs } of ranking.musics!) {
+					const musicId = metadata.type === "medley" ? "medley" : id.toString();
+					add(["leaderboard-music", musicId], t10, "userId");
+					add(["cutoffs-music", musicId], cutoffs, "rank");
+				}
+			}
+
+			const results = await pipe.exec<number[]>();
+			for (const [idx, key] of added.entries())
+				span.setAttribute(key, results[idx]);
+
+			return sum(results);
+		},
+	);
+
+	if (updated === 0) return [];
+
 	const toTrackerSnapshot = curry(
 		(
 			trackingReference: TrackingReference,
@@ -231,7 +280,6 @@ const insertSnapshots = async (
 			timestamp: now.toDate(),
 		}),
 	);
-
 	const toTrackerCutoff = await (async () => {
 		if (!hourlyUpdate) return;
 
@@ -331,40 +379,6 @@ const insertSnapshots = async (
 			([kind, count]) => `${kind}_+${count}`,
 		),
 	);
-
-	await logger.trace(`update-${metadata.kind}-redis`, async () => {
-		const pipe = redis().pipeline();
-		const add = (
-			key: string | string[],
-			[first, ...rest]: RankingUser[],
-			memberKey: "rank" | "userId",
-		) => {
-			if (!first) return;
-
-			pipe.zadd(
-				GBP.fromMetadata(metadata, ...(Array.isArray(key) ? key : [key])),
-				{ gt: true },
-				{ member: first[memberKey], score: Number(first.point) },
-				...rest.map((it) => ({
-					member: it[memberKey],
-					score: Number(it.point),
-				})),
-			);
-		};
-
-		add("leaderboard", ranking.t10, "userId");
-		if (hourlyUpdate) add("cutoffs", ranking.cutoffs, "rank");
-
-		if (updateMusics) {
-			for (const { id, t10, cutoffs } of ranking.musics!) {
-				const musicId = metadata.type === "medley" ? "medley" : id.toString();
-				add(["leaderboard-music", musicId], t10, "userId");
-				add(["cutoffs-music", musicId], cutoffs, "rank");
-			}
-		}
-
-		await pipe.exec();
-	});
 
 	return inserted;
 };
