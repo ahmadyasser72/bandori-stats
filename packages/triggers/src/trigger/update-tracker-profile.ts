@@ -113,90 +113,88 @@ export const updateTrackerProfile = schemaTask({
 		if (profiles.size === 0) return;
 
 		const { areaItems, cards, skills } = await logger.trace(
-			"fetch-area-items-skills",
+			"fetch-shared-data",
 			() =>
 				allKeyed({
-					areaItems: getAreaItems(
-						[...profiles.values()].flatMap(
+					areaItems: logger.trace("fetch-area-items", (span) => {
+						const ids = [...profiles.values()].flatMap(
 							({ enabledUserAreaItems }) =>
 								enabledUserAreaItems?.entries.map(
 									({ areaItemId }) => areaItemId,
 								) ?? [],
-						),
-					),
-					cards: getCards(
-						[...profiles.values()].flatMap(
+						);
+						span.setAttribute("id", ids);
+
+						return getAreaItems(ids);
+					}),
+					cards: logger.trace("fetch-cards", (span) => {
+						const ids = [...profiles.values()].flatMap(
 							({ userProfileSituation, mainDeckUserSituations }) => [
 								userProfileSituation?.situationId,
 								...(mainDeckUserSituations?.entries.map(
 									({ situationId }) => situationId,
 								) ?? []),
 							],
-						),
-					),
-					skills: bestdori({
-						path: "api/skills/all.10.json",
-						schema: Skills,
+						);
+						span.setAttribute("id", ids);
+
+						return getCards(ids);
 					}),
+					skills: logger.trace("fetch-skills", () =>
+						bestdori({ path: "api/skills/all.10.json", schema: Skills }),
+					),
 				}),
 		);
 
 		const values: (typeof trackerSnapshotProfiles.$inferInsert | null)[] =
-			await Promise.all(
-				players.map(async ({ uid, trackingReference }) => {
-					const profile = profiles.get(uid);
-					if (!profile) return null;
+			players.map(({ uid, trackingReference }) => {
+				const profile = profiles.get(uid);
+				if (!profile) return null;
 
-					return logger.trace("generate-value", async (span) => {
-						span.setAttributes?.({ uid, ...trackingReference });
+				const bandMembers = (profile.mainDeckUserSituations?.entries ?? []).map(
+					(data) => getBandMember(data, cards[data.situationId], skills),
+				);
 
-						const bandMembers = await Promise.all(
-							(profile.mainDeckUserSituations?.entries ?? []).map((data) =>
-								getBandMember(data, cards[data.situationId], skills),
-							),
-						);
+				return {
+					...trackingReference,
 
-						return allKeyed({
-							...trackingReference,
+					uid,
+					name: profile.userName,
+					level: profile.rank,
+					introduction: profile.introduction,
+					avatar:
+						profile.userProfileSituation &&
+						profile.userProfileSituation.situationId
+							? getAvatar(
+									profile.userProfileSituation,
+									cards[profile.userProfileSituation.situationId],
+								)
+							: null,
 
-							uid,
-							name: profile.userName,
-							level: profile.rank,
-							introduction: profile.introduction,
-							avatar:
-								profile.userProfileSituation &&
-								profile.userProfileSituation.situationId
-									? getAvatar(
-											profile.userProfileSituation,
-											cards[profile.userProfileSituation.situationId],
-										)
-									: null,
+					band: {
+						name: profile.mainUserDeck?.deckName!,
+						totalStats: profile.publishTotalDeckPowerFlg
+							? calculateTotalBandStats(
+									bandMembers,
+									(profile.enabledUserAreaItems?.entries ?? []).map(
+										({ areaItemId }) => areaItems[areaItemId],
+									),
+								)
+							: null,
+						members: bandMembers,
+					},
 
-							band: {
-								name: profile.mainUserDeck?.deckName!,
-								totalStats: profile.publishTotalDeckPowerFlg
-									? calculateTotalBandStats(
-											bandMembers,
-											(profile.enabledUserAreaItems?.entries ?? []).map(
-												({ areaItemId }) => areaItems[areaItemId],
-											),
-										)
-									: null,
-								members: bandMembers,
-							},
+					titles: Object.values(
+						profile.userProfileDegreeMap?.entries ?? {},
+					).map(({ degreeId }) => degreeId),
+				};
+			});
 
-							titles: Object.values(
-								profile.userProfileDegreeMap?.entries ?? {},
-							).map(({ degreeId }) => degreeId),
-						});
-					});
-				}),
-			);
-
-		const results = await logger.trace("insert-profiles", () =>
-			db()
+		const inserted = await logger.trace("insert-profiles", async (span) => {
+			const snapshotProfiles = values.filter((value) => value !== null);
+			const inserted = await db()
 				.insert(trackerSnapshotProfiles)
-				.values(values.filter((value) => value !== null))
+				.values(snapshotProfiles)
 				.onConflictDoUpdate({
 					target: [
 						trackerSnapshotProfiles.uid,
@@ -213,10 +211,24 @@ export const updateTrackerProfile = schemaTask({
 						band: sql.raw(`excluded.${trackerSnapshotProfiles.band.name}`),
 						titles: sql.raw(`excluded.${trackerSnapshotProfiles.titles.name}`),
 					},
-				}),
-		);
+				})
+				.returning({
+					uid: trackerSnapshotProfiles.uid,
+					trackingFor: trackerSnapshotProfiles.trackingFor,
+				});
 
-		if (results.rowsAffected > 0) await githubRedeploy(ctx);
+			if (inserted.length > 0) {
+				await tags.add("profile_updated");
+				span.setAttribute(
+					"updated",
+					inserted.map(({ uid, trackingFor }) => `${trackingFor}:${uid}`),
+				);
+			}
+
+			return inserted;
+		});
+
+		if (inserted.length > 0) await githubRedeploy(ctx);
 	},
 });
 
@@ -233,7 +245,7 @@ export const getAvatar = (
 		rarity: card.rarity,
 	}) satisfies PlayerBandMemberStateless;
 
-const getBandMember = async (
+const getBandMember = (
 	data: UserSituation,
 	card: BangDreamCard,
 	skills: z.infer<typeof Skills>,
