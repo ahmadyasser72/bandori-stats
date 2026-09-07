@@ -34,7 +34,7 @@ const metadata = await Astro.locals.tracing.enterSpan(
 );
 if (!metadata) return new Response(null, { status: 404 });
 
-const isPastData = dayjs().isAfter(metadata.endAt);
+const isActive = dayjs().isBefore(metadata.endAt);
 
 const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 	const top10 = await Astro.locals.tracing.enterSpan(
@@ -55,7 +55,7 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 		db().query.trackerSnapshots.findMany({
 			columns: { trackingFor: false, trackingId: false },
 			where: { ...trackingReference, uid },
-			limit: isPastData ? 1 : 2,
+			limit: isActive ? 2 : 1,
 			orderBy: { id: "desc" },
 		});
 	const getProfile = (uid: string) =>
@@ -109,7 +109,7 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 
 	return players.map(({ snapshots, profile }) => {
 		const [latest, previous] = snapshots;
-		if (isPastData) return { latest, profile };
+		if (!isActive) return { latest, profile };
 
 		const lastPlayed =
 			latest.point === previous?.point ? snapshots.at(-1)! : latest;
@@ -137,7 +137,7 @@ Astro.response.headers.set(
 );
 
 if (Astro.cache.enabled)
-	Astro.cache.set(isPastData ? { maxAge: 60 * 60 } : { maxAge: 30, swr: 30 });
+	Astro.cache.set(isActive ? { maxAge: 30, swr: 30 } : { maxAge: 60 * 60 });
 ---
 
 {
@@ -198,7 +198,7 @@ if (Astro.cache.enabled)
 }
 
 <div
-	{...!isPastData && {
+	{...isActive && {
 		"hx-get": Astro.url.pathname,
 		"hx-browser-indicator": "true",
 		"hx-indicator": "#tracker-list-loader",
@@ -233,7 +233,8 @@ if (Astro.cache.enabled)
 			<div
 				class:list={[
 					"list-row items-center",
-					!previous &&
+					isActive &&
+						!previous &&
 						"[:not(:hover):not(:focus)]:grayscale-75 [:not(:hover):not(:focus)]:**:[button]:opacity-25",
 				]}
 				tabindex="-1"
@@ -396,7 +397,7 @@ if (Astro.cache.enabled)
 							Statistics
 						</button>
 
-						{!isPastData && (
+						{isActive && (
 							<button
 								hx-get={`/tracker/${latest.uid}/notify`}
 								hx-swap="after"

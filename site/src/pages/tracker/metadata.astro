@@ -35,10 +35,10 @@ Astro.response.headers.append("vary", "client-timezone");
 const now = dayjs().tz(clientTimezone);
 
 const isNotStarted = now.isBefore(data.startAt);
-const isPastData = now.isAfter(data.endAt);
+const isActive = now.isBefore(data.endAt);
 const progress = (() => {
 	if (isNotStarted) return 0;
-	else if (isPastData) return 100;
+	else if (!isActive) return 100;
 	else
 		return (
 			(now.diff(data.startAt) / dayjs(data.endAt).diff(data.startAt)) * 100
@@ -46,11 +46,11 @@ const progress = (() => {
 })();
 
 if (Astro.cache.enabled)
-	Astro.cache.set(isPastData ? { maxAge: 60 * 60 } : { maxAge: 30, swr: 30 });
+	Astro.cache.set(isActive ? { maxAge: 30, swr: 30 } : { maxAge: 60 * 60 });
 ---
 
 <div
-	{...!isPastData && {
+	{...isActive && {
 		"hx-get": `${Astro.url.pathname}${Astro.url.search}`,
 		"hx-headers": JSON.stringify({ "client-timezone": clientTimezone }),
 		"hx-indicator": "#metadata-loader",
@@ -84,13 +84,14 @@ if (Astro.cache.enabled)
 				data-umami-event-name={data.name}
 				class="tooltip btn tooltip-bottom tooltip-start btn-square size-10 tooltip-secondary btn-secondary"
 				data-tip="Subscribe to Discord Webhook"
-				disabled={isPastData}
+				disabled={!isActive}
 				popovertarget="tracker-discord-webhook"
 			>
 				<Icon class="size-5" name="lucide--megaphone" />
 			</button>
+
 			{
-				!isPastData && (
+				isActive && (
 					<div
 						hx-morph-skip-children
 						class="dropdown dropdown-center px-6 py-4"
@@ -179,7 +180,7 @@ if (Astro.cache.enabled)
 			class="flex translate-y-1.5 justify-between px-0.5 text-sm font-medium"
 		>
 			<span
-				{...!isPastData && {
+				{...isActive && {
 					class:
 						"tooltip tooltip-start tooltip-primary underline decoration-dotted",
 					"data-tip": formatDuration(data.startAt),
@@ -189,7 +190,7 @@ if (Astro.cache.enabled)
 				}</span
 			>
 			<span
-				{...!isPastData && {
+				{...isActive && {
 					class:
 						"tooltip tooltip-end tooltip-primary underline decoration-dotted",
 					"data-tip": formatDuration(data.endAt),
