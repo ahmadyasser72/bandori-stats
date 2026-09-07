@@ -270,6 +270,7 @@ const insertSnapshots = async (
 	);
 
 	if (updated === 0) return [];
+	else await tags.add(`${metadata.kind}_redis`);
 
 	const toTrackerSnapshot = curry(
 		(
@@ -316,12 +317,12 @@ const insertSnapshots = async (
 		);
 	})();
 
-	const values = [] as (typeof trackerSnapshots.$inferInsert)[];
+	const snapshots = [] as (typeof trackerSnapshots.$inferInsert)[];
 	const cutoffs = [] as (typeof trackerCutoffs.$inferInsert)[];
 
 	{
 		const trackingReference = getTrackingReference(metadata);
-		values.push(...ranking.t10.map(toTrackerSnapshot(trackingReference)));
+		snapshots.push(...ranking.t10.map(toTrackerSnapshot(trackingReference)));
 		if (toTrackerCutoff)
 			cutoffs.push(...ranking.cutoffs.map(toTrackerCutoff(trackingReference)));
 	}
@@ -333,59 +334,76 @@ const insertSnapshots = async (
 				trackingId: music.id,
 			};
 
-			values.push(...music.t10.map(toTrackerSnapshot(trackingReference)));
+			snapshots.push(...music.t10.map(toTrackerSnapshot(trackingReference)));
 			cutoffs.push(...music.cutoffs.map(toTrackerCutoff!(trackingReference)));
 		}
 	}
 
-	const [inserted] = await logger.trace(
-		`insert-${metadata.kind}-snapshots`,
-		async () => {
-			return db().batch([
-				db()
-					.insert(trackerSnapshots)
-					.values(values)
-					.onConflictDoNothing()
-					.returning({
-						uid: trackerSnapshots.uid,
-						name: trackerSnapshots.name,
-						point: trackerSnapshots.point,
-						rank: trackerSnapshots.rank,
-						trackingFor: trackerSnapshots.trackingFor,
-						trackingId: trackerSnapshots.trackingId,
-					}),
-				...(cutoffs.length > 0
-					? [
-							db()
-								.insert(trackerCutoffs)
-								.values(cutoffs)
-								.onConflictDoUpdate({
-									target: [
-										trackerCutoffs.trackingFor,
-										trackerCutoffs.trackingId,
-										trackerCutoffs.rank,
-										trackerCutoffs.point,
-									],
-									set: {
-										name: sql.raw(`excluded.${trackerCutoffs.name.name}`),
-										avatar: sql.raw(`excluded.${trackerCutoffs.avatar.name}`),
-									},
-								}),
-						]
-					: []),
-			]);
-		},
-	);
+	return logger.trace(`insert-${metadata.kind}`, async (span) => {
+		const [newSnapshots, newCutoffs] = await db().batch([
+			db()
+				.insert(trackerSnapshots)
+				.values(snapshots)
+				.onConflictDoNothing()
+				.returning({
+					uid: trackerSnapshots.uid,
+					name: trackerSnapshots.name,
+					point: trackerSnapshots.point,
+					rank: trackerSnapshots.rank,
+					trackingFor: trackerSnapshots.trackingFor,
+					trackingId: trackerSnapshots.trackingId,
+				}),
+			...(cutoffs.length > 0
+				? [
+						db()
+							.insert(trackerCutoffs)
+							.values(cutoffs)
+							.onConflictDoUpdate({
+								target: [
+									trackerCutoffs.trackingFor,
+									trackerCutoffs.trackingId,
+									trackerCutoffs.rank,
+									trackerCutoffs.point,
+								],
+								set: {
+									name: sql.raw(`excluded.${trackerCutoffs.name.name}`),
+									avatar: sql.raw(`excluded.${trackerCutoffs.avatar.name}`),
+									timestamp: sql.raw(
+										`excluded.${trackerCutoffs.timestamp.name}`,
+									),
+								},
+							})
+							.returning({
+								trackingFor: trackerCutoffs.trackingFor,
+								trackingId: trackerCutoffs.trackingId,
+							}),
+					]
+				: []),
+		]);
 
-	if (inserted.length === 0) return [];
+		const groupByKind = ({ trackingFor, trackingId }: TrackingReference) =>
+			trackingFor === metadata.kind && trackingId === metadata.id
+				? trackingFor
+				: `${trackingFor}:${trackingId}`;
 
-	await tags.add(
-		Object.entries(countBy(inserted, ({ trackingFor }) => trackingFor)).map(
-			([kind, count]) => `${kind}_+${count}`,
-		),
-	);
+		const newSnapshotsByKind = countBy(newSnapshots, groupByKind);
+		await tags.add(
+			Object.keys(newSnapshotsByKind).map((kind) => `${kind}_snapshots`),
+		);
+		for (const [kind, count] of Object.entries(newSnapshotsByKind))
+			span.setAttribute(`${kind}:snapshots`, count);
 
-	return inserted;
+		if (cutoffs.length > 0) {
+			const newCutoffsByKind = countBy(newCutoffs, groupByKind);
+			await tags.add(
+				Object.keys(newCutoffsByKind).map((kind) => `${kind}_cutoffs`),
+			);
+			for (const [kind, count] of Object.entries(newCutoffsByKind))
+				span.setAttribute(`${kind}:cutoffs`, count);
+		}
+
+		return newSnapshots;
+	});
 };
 
 const sendPushNotifications = async (
@@ -429,7 +447,7 @@ const sendPushNotifications = async (
 		`generate-${metadata.kind}-webpush-payload`,
 		async () => {
 			const results = await Promise.all(
-				items.map(async ({ key, uid, name, point, rank }, idx) => {
+				items.map(async ({ key, uid, name, point, rank, profile }, idx) => {
 					const notify = notifyEntries.at(idx)?.flat();
 					if (!notify || notify.length === 0) return [];
 
@@ -446,11 +464,6 @@ const sendPushNotifications = async (
 					for (const [idx] of [...subscriptions].reverse())
 						deleteNotify.json.del(key, `$[${idx}]`);
 					await deleteNotify.exec();
-
-					const profile = await db().query.trackerSnapshotProfiles.findFirst({
-						columns: { avatar: true },
-						where: { ...trackingReference, uid },
-					});
 
 					return uniqBy(
 						subscriptions.map(([, it]) => it),
@@ -485,24 +498,32 @@ const sendPushNotifications = async (
 	);
 	if (payloads.length === 0) return;
 
-	const results = await logger.trace(`send-${metadata.kind}-webpush`, () =>
+	const results = await logger.trace(`send-${metadata.kind}-webpush`, (span) =>
 		Promise.allSettled(
 			payloads.map(({ subscription, ...data }) =>
-				webPush.sendNotification(subscription, JSON.stringify(data), {
-					TTL: Math.max(
-						60 * 60 * 12,
-						dayjs(metadata.endAt).diff(dayjs(), "seconds"),
-					),
-					vapidDetails: {
-						publicKey: VAPID_PUBLIC_KEY,
-						privateKey: VAPID_PRIVATE_KEY,
-						subject: "mailto:eh@example.com",
-					},
-				}),
+				webPush
+					.sendNotification(subscription, JSON.stringify(data), {
+						TTL: Math.max(
+							60 * 60 * 12,
+							dayjs(metadata.endAt).diff(dayjs(), "seconds"),
+						),
+						vapidDetails: {
+							publicKey: VAPID_PUBLIC_KEY,
+							privateKey: VAPID_PRIVATE_KEY,
+							subject: "mailto:eh@example.com",
+						},
+					})
+					.then(() => {
+						span.setAttribute(data.tag, "notified");
+					})
+					.catch((error) => {
+						span.setAttribute(data.tag, `error: ${error}`);
+						throw error;
+					}),
 			),
 		),
 	);
 
-	const { fulfilled = 0 } = countBy(results, ({ status }) => status);
-	if (fulfilled > 0) await tags.add(`notified_${fulfilled}`);
+	if (results.some(({ status }) => status === "fulfilled"))
+		await tags.add("notified");
 };

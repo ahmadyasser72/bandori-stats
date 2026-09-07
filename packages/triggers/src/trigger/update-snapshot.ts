@@ -3,10 +3,7 @@ import { sum } from "es-toolkit";
 import z from "zod";
 
 import { STAT_NAMES, type Stats } from "@bandori-stats/bestdori/constants";
-import {
-	abbreviateStatName,
-	compareValue,
-} from "@bandori-stats/bestdori/helpers";
+import { compareValue } from "@bandori-stats/bestdori/helpers";
 import {
 	fetchDegrees,
 	sortDegrees,
@@ -126,14 +123,6 @@ export const updateSnapshot = schemaTask({
 
 					const deltaTotal = sum(Object.values(difference));
 					if (deltaTotal === 0) return;
-
-					await tags.add(
-						Object.entries(difference)
-							.filter(([, delta]) => delta > 0)
-							.map(
-								([name, delta]) => `diff_${abbreviateStatName(name)}+${delta}`,
-							),
-					);
 
 					const [newSnapshot] = await db()
 						.insert(accountSnapshots)

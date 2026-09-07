@@ -1,4 +1,4 @@
-import { startCase, words } from "es-toolkit";
+import { startCase } from "es-toolkit";
 import type z from "zod";
 
 import type { Account } from "@bandori-stats/database/schema";
@@ -8,24 +8,6 @@ import type { GameEventType } from "./schema/misc";
 export const accountHasNickname = (
 	account: Pick<Account, "username" | "nickname">,
 ) => account.nickname?.trim() && account.username !== account.nickname;
-
-export const abbreviateStatName = (name: keyof Stats) => {
-	switch (name) {
-		case "allPerfectCount":
-		case "fullComboCount":
-		case "bandRating":
-		case "highScoreRating":
-			return words(name.replace(/Count$/, ""))
-				.map((s) => s.charAt(0))
-				.join("")
-				.toLowerCase();
-		case "clearCount":
-			return "clear";
-		case "rank":
-		case "titles":
-			return name;
-	}
-};
 
 export const simplifyStatName = (name: keyof Stats) => {
 	switch (name) {
