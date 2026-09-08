@@ -98,7 +98,7 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 							metadata,
 						});
 					await redis().set(GBP.event.current, eventId, {
-						pxat: event.endAt.getTime(),
+						pxat: dayjs(event.endAt).add(1, "hour").valueOf(),
 					});
 					await tags.add(`event_${event.assetBundleName}`);
 
@@ -245,7 +245,7 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 							...monthly,
 						});
 					await redis().set(GBP.monthly.current, monthlyRankingId, {
-						pxat: monthly.endAt.getTime(),
+						pxat: dayjs(monthly.endAt).add(1, "hour").valueOf(),
 					});
 					await tags.add(`monthly_${monthly.assetBundleName}`);
 
