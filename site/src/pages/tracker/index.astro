@@ -13,6 +13,7 @@ const params = Astro.locals.parseQuery(
 	z.object({
 		tab: z.enum(TABS).catch("event"),
 		id: z.coerce.number().optional(),
+		display: z.enum(["t10", "cutoffs"]).optional(),
 	}),
 );
 
@@ -95,12 +96,12 @@ const TAB_ICON = {
 			{capitalize(params.tab)}
 		</span>
 		<select
-			hx-get="/tracker/list"
+			hx-get="/tracker"
 			hx-browser-indicator="true"
 			hx-indicator="previous .label"
-			hx-swap="outerHTML"
-			hx-target="#tracker-list"
-			hx-vals={JSON.stringify({ kind: params.tab })}
+			hx-swap="outerHTML transition:true"
+			hx-target="main"
+			hx-vals={JSON.stringify({ kind: params.tab, display: params.display })}
 			class="min-w-48"
 			name="id"
 		>
@@ -134,14 +135,44 @@ const TAB_ICON = {
 		</select>
 	</label>
 
-	<div class="contents" id="tracker-info"></div>
+	<div
+		hx-get="/tracker/metadata"
+		hx-headers="js:{ 'client-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone }"
+		hx-swap="outerHTML"
+		hx-trigger="intersect once"
+		hx-vals={JSON.stringify({ id: params.id, kind: params.tab })}
+		class="mt-4 flex flex-col items-center gap-1"
+	>
+		<div class="aspect-9/4 w-64 skeleton"></div>
+
+		<h2 class="skeleton skeleton-text text-center text-lg font-semibold">
+			Loading {params.tab}...
+		</h2>
+
+		<div class="flex w-full flex-col gap-1">
+			<div class="flex translate-y-1.5 justify-between px-0.5">
+				<span class="h-4 w-24 skeleton"></span>
+				<span class="h-4 w-24 skeleton"></span>
+			</div>
+
+			<div class="relative w-full">
+				<progress class="progress w-full opacity-50"></progress>
+
+				<div class="absolute center badge badge-sm badge-neutral">~</div>
+			</div>
+		</div>
+	</div>
 
 	<div
 		hx-get="/tracker/list"
 		hx-browser-indicator="true"
 		hx-swap="outerHTML"
 		hx-trigger="load"
-		hx-vals={JSON.stringify({ kind: params.tab, id: params.id })}
+		hx-vals={JSON.stringify({
+			display: params.display ?? "t10",
+			id: params.id,
+			kind: params.tab,
+		})}
 		class="list mt-4 py-1"
 		id="tracker-list"
 	>

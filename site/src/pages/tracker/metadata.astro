@@ -9,17 +9,22 @@ import {
 } from "@bandori-stats/database/tracker";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
-import {
-	getTrackerBackground,
-	getTrackerBgm,
-	getTrackerLogo,
-} from "~/lib/assets";
+import { getTrackerLogo } from "~/lib/assets";
 import { DiscordWebhook } from "./_discord-webhook";
 
 const params = Astro.locals.parseQuery(TrackingTarget);
 
-const data = await Astro.locals.tracing.enterSpan(
-	"fetch-data",
+const selectedDisplay = (() => {
+	try {
+		const url = new URL(Astro.request.headers.get("hx-current-url")!);
+		return url.searchParams.get("display") ?? "t10";
+	} catch (_) {
+		return "t10";
+	}
+})();
+
+const metadata = await Astro.locals.tracing.enterSpan(
+	"fetch-metadata",
 	async (span) => {
 		span.setAttribute("kind", params.kind);
 		span.setAttribute("id", params.id);
@@ -27,21 +32,23 @@ const data = await Astro.locals.tracing.enterSpan(
 		return getTrackingMetadata(params);
 	},
 );
-if (!data) return new Response(null, { status: 404 });
+if (!metadata) return new Response(null, { status: 404 });
 
 const clientTimezone =
 	Astro.request.headers.get("client-timezone") ?? GBP_TIMEZONE;
 Astro.response.headers.append("vary", "client-timezone");
 const now = dayjs().tz(clientTimezone);
 
-const isNotStarted = now.isBefore(data.startAt);
-const isActive = now.isBefore(data.endAt);
+const isNotStarted = now.isBefore(metadata.startAt);
+const isActive = now.isBefore(metadata.endAt);
 const progress = (() => {
 	if (isNotStarted) return 0;
 	else if (!isActive) return 100;
 	else
 		return (
-			(now.diff(data.startAt) / dayjs(data.endAt).diff(data.startAt)) * 100
+			(now.diff(metadata.startAt) /
+				dayjs(metadata.endAt).diff(metadata.startAt)) *
+			100
 		);
 })();
 
@@ -51,7 +58,7 @@ if (Astro.cache.enabled)
 
 <div
 	{...isActive && {
-		"hx-get": `${Astro.url.pathname}${Astro.url.search}`,
+		"hx-get": `${Astro.url.pathname}${Astro.url.search}&poll=true`,
 		"hx-headers": JSON.stringify({ "client-timezone": clientTimezone }),
 		"hx-indicator": "#metadata-loader",
 		"hx-on":
@@ -60,110 +67,12 @@ if (Astro.cache.enabled)
 		"hx-trigger": "every 60s, visibilitychange from:document",
 	}}
 	class="mt-4 flex flex-col items-center gap-1"
-	style="anchor-name: --anchor-tracker-info"
 >
-	<div class="flex gap-1">
-		<div class="flex flex-col justify-evenly">
-			<button
-				hx-get="/tracker/charts/points"
-				hx-swap="after"
-				hx-target="main"
-				hx-vals={JSON.stringify(params)}
-				data-umami-event="tracker-chart-points"
-				data-umami-event-kind={params.kind}
-				data-umami-event-name={data.name}
-				class="tooltip btn tooltip-start btn-square size-10 tooltip-secondary btn-secondary"
-				data-tip="Points Chart"
-			>
-				<IconLoader class="size-5" name="lucide--chart-no-axes-combined" />
-			</button>
-
-			<button
-				data-umami-event="tracker-discord-webhook"
-				data-umami-event-kind={params.kind}
-				data-umami-event-name={data.name}
-				class="tooltip btn tooltip-bottom tooltip-start btn-square size-10 tooltip-secondary btn-secondary"
-				data-tip="Subscribe to Discord Webhook"
-				disabled={!isActive}
-				popovertarget="tracker-discord-webhook"
-			>
-				<Icon class="size-5" name="lucide--megaphone" />
-			</button>
-
-			{
-				isActive && (
-					<div
-						hx-morph-skip-children
-						class="dropdown dropdown-center px-6 py-4"
-						id="tracker-discord-webhook"
-						popover
-						style="position-anchor: --anchor-tracker-info"
-					>
-						<DiscordWebhook
-							client:only="preact"
-							target={pick(data, ["kind", "id"])}
-						/>
-					</div>
-				)
-			}
-		</div>
-
-		<img
-			class="aspect-9/4 w-64"
-			src={getTrackerLogo(params)}
-			alt={`${data.assetBundleName} logo`}
-		/>
-
-		<div class="flex flex-col justify-evenly">
-			<button
-				data-umami-event="tracker-info-audio"
-				data-umami-event-kind={params.kind}
-				data-umami-event-name={data.name}
-				class="tooltip btn tooltip-end btn-square size-10 tooltip-secondary btn-secondary"
-				data-tip="BGM Player"
-				popovertarget="tracker-info-audio"
-			>
-				<Icon class="size-5" name="lucide--music" />
-			</button>
-			<div
-				class="dropdown dropdown-center"
-				id="tracker-info-audio"
-				popover
-				style="position-anchor: --anchor-tracker-info"
-			>
-				<audio src={getTrackerBgm(params)} controls loop preload="metadata"
-				></audio>
-			</div>
-
-			<button
-				data-umami-event="tracker-info-images"
-				data-umami-event-kind={params.kind}
-				data-umami-event-name={data.name}
-				class="tooltip btn tooltip-bottom tooltip-end btn-square size-10 tooltip-secondary btn-secondary"
-				data-tip="Images"
-				popovertarget="tracker-info-images"
-			>
-				<Icon class="size-5" name="lucide--wallpaper" />
-			</button>
-			<div
-				class="dropdown dropdown-center h-64 px-2 py-0 sm:h-96"
-				id="tracker-info-images"
-				popover
-				style="position-anchor: --anchor-tracker-info"
-			>
-				{
-					([1, 2] as const).map((variant) => (
-						<img
-							class="aspect-2/1 h-64 rounded-box object-cover py-2 sm:h-96"
-							src={getTrackerBackground(params, variant)}
-							alt={`${data.assetBundleName} background`}
-							loading="lazy"
-						/>
-					))
-				}
-			</div>
-		</div>
-	</div>
+	<img
+		class="aspect-9/4 w-64"
+		src={getTrackerLogo(params)}
+		alt={`${metadata.assetBundleName} logo`}
+	/>
 
 	<h2 class="text-center text-lg font-semibold">
 		<Icon
@@ -172,7 +81,7 @@ if (Astro.cache.enabled)
 			name="svg-spinners--90-ring-with-bg"
 		/>
 
-		{data.name}
+		{metadata.name}
 	</h2>
 
 	<div class="flex w-full flex-col">
@@ -183,20 +92,20 @@ if (Astro.cache.enabled)
 				{...isActive && {
 					class:
 						"tooltip tooltip-start tooltip-primary underline decoration-dotted",
-					"data-tip": formatDuration(data.startAt),
+					"data-tip": formatDuration(metadata.startAt),
 				}}
 				>{
-					dayjs.tz(data.startAt, clientTimezone).format("YYYY-MM-DD, HH:mm")
+					dayjs.tz(metadata.startAt, clientTimezone).format("YYYY-MM-DD, HH:mm")
 				}</span
 			>
 			<span
 				{...isActive && {
 					class:
 						"tooltip tooltip-end tooltip-primary underline decoration-dotted",
-					"data-tip": formatDuration(data.endAt),
+					"data-tip": formatDuration(metadata.endAt),
 				}}
 				>{
-					dayjs.tz(data.endAt, clientTimezone).format("YYYY-MM-DD, HH:mm")
+					dayjs.tz(metadata.endAt, clientTimezone).format("YYYY-MM-DD, HH:mm")
 				}</span
 			>
 		</div>
@@ -211,5 +120,90 @@ if (Astro.cache.enabled)
 				{progress.toFixed(1)}%
 			</div>
 		</div>
+	</div>
+
+	<div class="mt-2 flex w-full justify-between gap-2 max-sm:flex-col">
+		<div class="join" style="anchor-name: --anchor-tracker-actions">
+			<button
+				hx-get="/tracker/charts/points"
+				hx-swap="after"
+				hx-target="main"
+				hx-vals={JSON.stringify(params)}
+				data-umami-event="tracker-chart-points"
+				data-umami-event-kind={params.kind}
+				data-umami-event-name={metadata.name}
+				class="btn join-item flex-1 btn-secondary btn-sm"
+			>
+				<IconLoader name="lucide--chart-no-axes-combined" />
+				Chart
+			</button>
+
+			{
+				isActive && (
+					<>
+						<button
+							data-umami-event="tracker-discord-webhook"
+							data-umami-event-kind={params.kind}
+							data-umami-event-name={metadata.name}
+							class="btn join-item flex-1 btn-secondary btn-sm"
+							popovertarget="tracker-discord-webhook"
+						>
+							<Icon name="lucide--megaphone" />
+							Webhook
+						</button>
+						<div
+							hx-morph-skip-children
+							class="dropdown dropdown-start w-84 sm:w-md"
+							id="tracker-discord-webhook"
+							popover
+							style="position-anchor: --anchor-tracker-actions"
+						>
+							<DiscordWebhook
+								client:visible
+								target={pick(metadata, ["kind", "id"])}
+							/>
+						</div>
+					</>
+				)
+			}
+
+			<button
+				hx-get="/tracker/metadata-info"
+				hx-headers={JSON.stringify({ "client-timezone": clientTimezone })}
+				hx-swap="after"
+				hx-target="main"
+				hx-vals={JSON.stringify(params)}
+				data-umami-event="tracker-metadata-info"
+				data-umami-event-kind={params.kind}
+				data-umami-event-name={metadata.name}
+				class="btn join-item flex-1 btn-secondary btn-sm"
+			>
+				<IconLoader name="lucide--tags" />
+				Info
+			</button>
+		</div>
+
+		<label class="select w-full select-sm sm:w-max">
+			<span class="label">
+				<IconLoader name="lucide--list" />
+				Display
+			</span>
+			<select
+				hx-get="/tracker/list"
+				hx-browser-indicator="true"
+				hx-indicator="previous .label"
+				hx-swap="outerHTML"
+				hx-target="#tracker-list"
+				hx-vals={JSON.stringify(params)}
+				name="display"
+			>
+				<option value="t10" selected={selectedDisplay === "t10"}
+					>Leaderboard T10</option
+				>
+				<option value="cutoffs" selected={selectedDisplay === "cutoffs"}
+					>Leaderboard Cutoffs</option
+				>
+			</select>
+		</label>
 	</div>
 </div>

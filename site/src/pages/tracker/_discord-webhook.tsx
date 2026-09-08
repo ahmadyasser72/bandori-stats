@@ -60,7 +60,7 @@ export const DiscordWebhook = ({ target }: DiscordWebhookProps) => {
 	};
 
 	return (
-		<fieldset class="fieldset w-full sm:w-md">
+		<fieldset class="fieldset w-full">
 			<legend class="fieldset-legend">Subscribe to hourly/daily tracker</legend>
 
 			<p>

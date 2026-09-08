@@ -131,69 +131,20 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 	});
 });
 
-Astro.response.headers.set(
-	"hx-replace-url",
-	`/tracker?id=${params.id}&tab=${params.kind}`,
-);
-
 if (Astro.cache.enabled)
 	Astro.cache.set(isActive ? { maxAge: 30, swr: 30 } : { maxAge: 60 * 60 });
 ---
 
 {
 	!poll && (
-		<>
-			<hx-partial hx-target="#tracker-info">
-				<div
-					hx-get="/tracker/metadata"
-					hx-headers="js:{ 'client-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone }"
-					hx-swap="outerHTML"
-					hx-trigger="intersect once"
-					hx-vals={JSON.stringify(params)}
-					class="mt-4 flex flex-col items-center gap-1"
-				>
-					<div class="flex gap-1">
-						<div class="flex flex-col justify-evenly">
-							<div class="size-10 skeleton" />
-							<div class="size-10 skeleton" />
-						</div>
-
-						<div class="aspect-9/4 w-64 skeleton" />
-
-						<div class="flex flex-col justify-evenly">
-							<div class="size-10 skeleton" />
-							<div class="size-10 skeleton" />
-						</div>
-					</div>
-
-					<h2 class="skeleton skeleton-text text-center text-lg font-semibold">
-						Loading {params.kind}...
-					</h2>
-
-					<div class="flex w-full flex-col gap-1">
-						<div class="flex translate-y-1.5 justify-between px-0.5">
-							<span class="h-4 w-24 skeleton" />
-							<span class="h-4 w-24 skeleton" />
-						</div>
-
-						<div class="relative w-full">
-							<progress class="progress w-full opacity-50" />
-
-							<div class="absolute center badge badge-sm badge-neutral">~</div>
-						</div>
-					</div>
+		<hx-partial hx-swap="after" hx-target="main">
+			<div class="toast toast-center">
+				<div class="htmx-indicator alert alert-info" id="tracker-list-loader">
+					<Icon class="size-6" name="svg-spinners--90-ring-with-bg" />
+					<span class="font-medium">Reloading tracker data...</span>
 				</div>
-			</hx-partial>
-
-			<hx-partial hx-swap="after" hx-target="main">
-				<div class="toast toast-center">
-					<div class="htmx-indicator alert alert-info" id="tracker-list-loader">
-						<Icon class="size-6" name="svg-spinners--90-ring-with-bg" />
-						<span class="font-medium">Reloading tracker data...</span>
-					</div>
-				</div>
-			</hx-partial>
-		</>
+			</div>
+		</hx-partial>
 	)
 }
 
@@ -222,7 +173,7 @@ if (Astro.cache.enabled)
 			<div class="list-row items-center">
 				<div class="flex items-center justify-center gap-2 list-col-grow">
 					<Icon class="size-10" name="lucide--x" />
-					<span class="text-lg font-medium">No data at the moment</span>
+					<span class="text-lg font-medium">No data</span>
 				</div>
 			</div>
 		)

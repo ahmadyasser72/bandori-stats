@@ -76,3 +76,7 @@
 		@apply pointer-events-none opacity-40;
 	}
 }
+
+@utility tab-content {
+	@apply border bg-base-100 p-4 shadow-sm dark:bg-base-200;
+}

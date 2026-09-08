@@ -70,6 +70,26 @@ export const getStaticPaths = (async () => {
 					.flatMap(({ avatar, band }) => [avatar, ...band.members])
 					.filter((it) => it !== null),
 			),
+		db()
+			.query.trackerCutoffs.findMany({
+				columns: { avatar: true },
+				where: { avatar: { isNotNull: true } },
+			})
+			.then((cutoffs) => cutoffs.map(({ avatar }) => avatar!)),
+		db()
+			.query.gbpEvents.findMany({ columns: { metadata: true } })
+			.then((events) =>
+				events
+					.map(({ metadata }) =>
+						Object.keys(metadata.members)
+							.map(Number)
+							.map((id) => [
+								{ id, trained: true },
+								{ id, trained: false },
+							]),
+					)
+					.flat(2),
+			),
 	]);
 
 	const cards = await fetchCards(import.meta.env.DEV);

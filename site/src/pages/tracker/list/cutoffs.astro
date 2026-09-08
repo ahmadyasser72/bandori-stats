@@ -1,0 +1,128 @@
+---
+import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
+import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
+import { db } from "@bandori-stats/database";
+import { GBP, redis } from "@bandori-stats/database/redis";
+import {
+	getTrackingMetadata,
+	getTrackingReference,
+	TrackingTarget,
+} from "@bandori-stats/database/tracker";
+import GbpCard from "~/components/gbp-card.astro";
+import Icon from "~/components/icon.astro";
+
+export const partials = true;
+
+const params = Astro.locals.parseQuery(TrackingTarget);
+
+const metadata = await Astro.locals.tracing.enterSpan(
+	"fetch-metadata",
+	async (span) => {
+		span.setAttribute("kind", params.kind);
+		span.setAttribute("id", params.id);
+
+		return getTrackingMetadata(params);
+	},
+);
+if (!metadata) return new Response(null, { status: 404 });
+
+const isActive = dayjs().isBefore(metadata.endAt);
+
+const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
+	const ranks = await Astro.locals.tracing.enterSpan(
+		"fetch-ranks",
+		async (span) => {
+			const key = GBP.fromMetadata(params, "cutoffs");
+			span.setAttribute("key", key);
+
+			return redis().zrange<number[]>(key, 0, -1, { rev: true });
+		},
+	);
+	if (ranks.length === 0) return [];
+
+	const trackingReference = getTrackingReference(params);
+	const getCutoffs = (rank: number) =>
+		db().query.trackerCutoffs.findMany({
+			columns: { id: false, trackingFor: false, trackingId: false },
+			where: { ...trackingReference, rank },
+			limit: isActive ? 2 : 1,
+			orderBy: { id: "desc" },
+		});
+
+	return db()
+		.batch([getCutoffs(ranks[0]), ...ranks.slice(1).map(getCutoffs)])
+		.then((entries) =>
+			entries.map(([current, previous]) => ({
+				current,
+				previous:
+					previous && dayjs().diff(previous.timestamp, "hour") <= 1
+						? previous
+						: undefined,
+			})),
+		);
+});
+
+if (Astro.cache.enabled)
+	Astro.cache.set(isActive ? { maxAge: 30, swr: 30 } : { maxAge: 60 * 60 });
+---
+
+<div class="list mt-4 py-1" id="tracker-list">
+	{
+		players.length === 0 && (
+			<div class="list-row items-center">
+				<div class="flex items-center justify-center gap-2 list-col-grow">
+					<Icon class="size-10" name="lucide--x" />
+					<span class="text-lg font-medium">No data</span>
+				</div>
+			</div>
+		)
+	}
+
+	{
+		players.map(({ current, previous }) => (
+			<div class="list-row items-center">
+				<div class="flex flex-col items-center gap-0.5 font-mono">
+					<span
+						class:list={[
+							"badge h-10 min-w-10 px-2",
+							current.rank <= 3 ? "badge-secondary" : "badge-ghost",
+						]}
+					>
+						{current.rank}
+					</span>
+				</div>
+
+				<div class="flex min-w-0 items-center gap-2 list-col-grow">
+					{current.avatar && (
+						<GbpCard class="scale-75" member={current.avatar} />
+					)}
+
+					<span
+						class="flex-1 truncate text-lg font-medium text-ellipsis"
+						data-bb={current.name}
+					>
+						{stripBB(current.name)}
+					</span>
+				</div>
+
+				<div class="flex flex-col text-sm max-sm:list-col-wrap sm:items-end">
+					<span class="inline-flex items-center font-semibold">
+						{formatNumber(current.point)}
+						{previous && current.point !== previous.point && (
+							<span
+								class="tooltip tooltip-end ml-1 badge px-1.5 badge-xs tooltip-success underline decoration-dotted badge-success"
+								data-tip={`compared to ${formatDuration(previous.timestamp)}`}
+							>
+								{formatNumber(current.point - previous.point, {
+									positiveSign: true,
+								})}
+							</span>
+						)}
+					</span>
+
+					<span>updated {formatDuration(current.timestamp)}</span>
+				</div>
+			</div>
+		))
+	}
+</div>
