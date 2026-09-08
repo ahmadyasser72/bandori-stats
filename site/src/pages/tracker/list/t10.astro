@@ -1,12 +1,13 @@
 ---
 import { UMAMI_SITE_ID } from "astro:env/server";
 
+import { uniqBy } from "es-toolkit";
 import z from "zod";
 
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
 import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
-import { GBP, redis } from "@bandori-stats/database/redis";
+import type { TrackerSnapshot } from "@bandori-stats/database/schema";
 import {
 	getTrackingMetadata,
 	getTrackingReference,
@@ -37,98 +38,94 @@ if (!metadata) return new Response(null, { status: 404 });
 const isActive = dayjs().isBefore(metadata.endAt);
 
 const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
-	const top10 = await Astro.locals.tracing.enterSpan(
-		"fetch-t10",
-		async (span) => {
-			const key = GBP.fromMetadata(params, "leaderboard");
-			span.setAttribute("key", key);
-
-			return redis()
-				.zrange<number[]>(key, 0, 9, { rev: true })
-				.then((uids) => uids.map((uid) => uid.toString()));
-		},
-	);
-	if (top10.length === 0) return [];
-
 	const trackingReference = getTrackingReference(params);
-	const getSnapshots = (uid: string) =>
-		db().query.trackerSnapshots.findMany({
-			columns: { trackingFor: false, trackingId: false },
-			where: { ...trackingReference, uid },
-			limit: isActive ? 2 : 1,
+	const getLatestRank = (rank: number) =>
+		db().query.trackerSnapshots.findFirst({
+			where: { ...trackingReference, rank },
+			orderBy: { id: "desc" },
+			with: { profile: { where: trackingReference } },
+		});
+
+	const ranks = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+	const top10 = (
+		await db().batch([getLatestRank(1), ...ranks.slice(1).map(getLatestRank)])
+	).filter((it) => it !== undefined);
+	if (top10.length === 0) return [];
+	else if (!isActive)
+		return top10.map(
+			(
+				latest,
+			): { latest: typeof latest } & Partial<
+				Record<
+					"previous" | "lastPlayed" | "recentlyPlayed" | "rankHistory",
+					undefined
+				>
+			> => ({ latest }),
+		);
+
+	const getPrevious = ({ id, uid, point }: TrackerSnapshot) =>
+		db().query.trackerSnapshots.findFirst({
+			where: {
+				...trackingReference,
+				uid,
+				id: { lt: id },
+				point: { ne: point },
+			},
 			orderBy: { id: "desc" },
 		});
-	const getProfile = (uid: string) =>
-		db().query.trackerSnapshotProfiles.findFirst({
-			where: { ...trackingReference, uid },
-		});
+	const previousSnapshots = await db().batch([
+		getPrevious(top10[0]),
+		...top10.slice(1).map(getPrevious),
+	]);
 
-	const players = await Astro.locals.tracing.enterSpan(
-		"fetch-players",
-		async (span) => {
-			for (const [idx, uid] of top10.entries())
-				span.setAttribute(`t${idx + 1}`, uid);
-
-			const rows = await db().batch([
-				getSnapshots(top10[0]),
-				getProfile(top10[0]),
-				...top10
-					.slice(1)
-					.flatMap((uid) => [getSnapshots(uid), getProfile(uid)]),
-			]);
-
-			return Promise.all(
-				top10.map(async (_, idx) => {
-					let snapshots = rows[2 * idx] as Awaited<
-						ReturnType<typeof getSnapshots>
-					>;
-
-					const [current, previous] = snapshots;
-					if (previous && current.point === previous.point) {
-						snapshots = await db().query.trackerSnapshots.findMany({
-							columns: { trackingFor: false, trackingId: false },
-							where: {
-								...trackingReference,
-								uid: current.uid,
-								point: current.point,
-							},
-							orderBy: { id: "desc" },
-						});
-					}
-
-					return {
-						snapshots,
-						profile: rows[2 * idx + 1] as Awaited<
-							ReturnType<typeof getProfile>
-						>,
-					};
-				}),
-			);
-		},
-	);
-
-	return players.map(({ snapshots, profile }) => {
-		const [latest, previous] = snapshots;
-		if (!isActive) return { latest, profile };
-
+	const snapshots = top10.map((latest, idx) => {
+		const previous = previousSnapshots[idx];
 		const lastPlayed =
-			latest.point === previous?.point ? snapshots.at(-1)! : latest;
+			previous && previous.point === latest.point ? previous : latest;
 		return {
 			latest,
-			profile,
-			previous:
-				dayjs().diff(lastPlayed.timestamp, "minutes") <= 30
-					? previous
-					: undefined,
+			previous,
 			lastPlayed,
-			boatHistory:
-				previous &&
-				latest.point === previous.point &&
-				latest.rank > lastPlayed.rank
-					? snapshots.reverse()
-					: undefined,
+			recentlyPlayed: lastPlayed
+				? dayjs().diff(lastPlayed?.timestamp, "minutes") <= 30
+				: false,
 		};
 	});
+
+	const boatedPlayers = new Map<
+		TrackerSnapshot,
+		Pick<TrackerSnapshot, "rank" | "timestamp">[]
+	>();
+	for (const { latest, lastPlayed } of snapshots) {
+		if (latest.rank > lastPlayed.rank) boatedPlayers.set(lastPlayed, []);
+	}
+
+	if (boatedPlayers.size > 0) {
+		const getRankHistory = ({ id, uid }: TrackerSnapshot) =>
+			db().query.trackerSnapshots.findMany({
+				columns: { rank: true, timestamp: true },
+				where: { ...trackingReference, uid, id: { gte: id } },
+				orderBy: { id: "desc" },
+			});
+
+		const keys = [...boatedPlayers.keys()];
+		const values = await db().batch([
+			getRankHistory(keys[0]),
+			...keys.slice(1).map(getRankHistory),
+		]);
+		for (const [idx, key] of keys.entries())
+			boatedPlayers.set(
+				key,
+				uniqBy(values[idx], ({ rank }) => rank),
+			);
+	}
+
+	return snapshots.map((value) => ({
+		...value,
+		rankHistory: value.lastPlayed
+			? boatedPlayers.get(value.lastPlayed)
+			: undefined,
+	}));
 });
 
 if (Astro.cache.enabled)
@@ -180,195 +177,203 @@ if (Astro.cache.enabled)
 	}
 
 	{
-		players.map(({ latest, previous, lastPlayed, boatHistory, profile }) => (
-			<div
-				class:list={[
-					"list-row items-center",
-					isActive &&
-						!previous &&
-						"[:not(:hover):not(:focus)]:grayscale-75 [:not(:hover):not(:focus)]:**:[button]:opacity-25",
-				]}
-				tabindex="-1"
-			>
-				<div class="flex flex-col items-center gap-0.5 font-mono">
-					<span
-						class:list={[
-							"badge size-10 px-0",
-							latest.rank <= 3 ? "badge-secondary" : "badge-ghost",
-						]}
-					>
-						{latest.rank}
-					</span>
-
-					{lastPlayed && lastPlayed.rank !== latest.rank && (
+		players.map(
+			({
+				latest: { profile, ...latest },
+				previous,
+				lastPlayed,
+				recentlyPlayed,
+				rankHistory,
+			}) => (
+				<div
+					class:list={[
+						"list-row items-center",
+						isActive &&
+							!recentlyPlayed &&
+							"[:not(:hover):not(:focus)]:grayscale-75 [:not(:hover):not(:focus)]:**:[button]:opacity-25",
+					]}
+					tabindex="-1"
+				>
+					<div class="flex flex-col items-center gap-0.5 font-mono">
 						<span
 							class:list={[
-								"badge w-8 px-0 badge-xs font-semibold",
-								latest.rank < lastPlayed.rank && "badge-success",
-								latest.rank > lastPlayed.rank && "badge-error",
+								"badge size-10 px-0",
+								latest.rank <= 3 ? "badge-secondary" : "badge-ghost",
 							]}
 						>
-							{latest.rank < lastPlayed.rank ? "▲" : "▼"}{" "}
-							{Math.abs(lastPlayed.rank - latest.rank)}
-						</span>
-					)}
-				</div>
-
-				<div class="flex min-w-0 items-center gap-2 list-col-grow">
-					{profile?.avatar && (
-						<GbpCard class="scale-75" member={profile.avatar} />
-					)}
-
-					<span
-						class="flex-1 truncate text-lg font-medium text-ellipsis"
-						data-bb={latest.name}
-					>
-						{stripBB(latest.name)}
-					</span>
-
-					<button
-						data-umami-event="tracker-profile"
-						data-umami-event-kind={params.kind}
-						data-umami-event-name={metadata.name}
-						data-umami-event-player={stripBB(latest.name)}
-						class="btn btn-info btn-sm max-sm:hidden"
-						disabled={!profile}
-						popovertarget={`profile-${latest.uid}`}
-						style={`anchor-name: --anchor-${latest.uid}-profile`}
-					>
-						<IconLoader name="lucide--id-card" />
-						Profile
-					</button>
-				</div>
-
-				<div class="list-col-wrap grid grid-cols-5 justify-between gap-2 sm:flex">
-					<div class="col-span-3 flex flex-col text-sm">
-						<span class="inline-flex items-center font-semibold">
-							{formatNumber(latest.point)}
-							{previous && latest.point !== previous.point && (
-								<span class="ml-1 badge px-1.5 badge-xs badge-success">
-									{formatNumber(latest.point - previous.point, {
-										positiveSign: true,
-									})}
-								</span>
-							)}
+							{latest.rank}
 						</span>
 
-						{lastPlayed && (
-							<span>played {formatDuration(lastPlayed.timestamp)}</span>
-						)}
-
-						{boatHistory && (
-							<span>
-								boated{" "}
-								{boatHistory.length === 1 ? (
-									<span class="text-error">
-										{formatDuration(latest.timestamp)}
-									</span>
-								) : (
-									<span class="tooltip tooltip-error text-error underline decoration-dotted sm:tooltip-end">
-										<div class="tooltip-content">
-											<div class="flex flex-col">
-												{boatHistory
-													.slice(1)
-													.map(({ timestamp, rank }, idx) => (
-														<div class="flex justify-between gap-2">
-															<span>
-																{boatHistory[idx].rank} -> {rank}
-															</span>
-															<span>{formatDuration(timestamp)}</span>
-														</div>
-													))}
-											</div>
-										</div>
-										{formatDuration(latest.timestamp)}
-									</span>
-								)}
+						{lastPlayed && lastPlayed.rank !== latest.rank && (
+							<span
+								class:list={[
+									"badge w-8 px-0 badge-xs font-semibold",
+									latest.rank < lastPlayed.rank && "badge-success",
+									latest.rank > lastPlayed.rank && "badge-error",
+								]}
+							>
+								{latest.rank < lastPlayed.rank ? "▲" : "▼"}{" "}
+								{Math.abs(lastPlayed.rank - latest.rank)}
 							</span>
 						)}
 					</div>
 
-					<button
-						data-umami-event="tracker-profile"
-						data-umami-event-kind={params.kind}
-						data-umami-event-name={metadata.name}
-						data-umami-event-player={stripBB(latest.name)}
-						class="btn col-span-2 self-center btn-info btn-sm sm:hidden"
-						disabled={!profile}
-						popovertarget={`profile-${latest.uid}`}
-						style={`anchor-name: --anchor-${latest.uid}-profile`}
-					>
-						<IconLoader name="lucide--id-card" />
-						Profile
-					</button>
+					<div class="flex min-w-0 items-center gap-2 list-col-grow">
+						{profile?.avatar && (
+							<GbpCard class="scale-75" member={profile.avatar} />
+						)}
 
-					<div class="col-span-full flex gap-1 sm:justify-end">
+						<span
+							class="flex-1 truncate text-lg font-medium text-ellipsis"
+							data-bb={latest.name}
+						>
+							{stripBB(latest.name)}
+						</span>
+
 						<button
-							hx-get={`/tracker/${latest.uid}/games`}
-							hx-swap="after"
-							hx-target="main"
-							hx-vals={JSON.stringify({
-								...params,
-								duration: lastPlayed
-									? dayjs().diff(lastPlayed.timestamp, "minutes") < 60
-										? "1h"
-										: "12h"
-									: [
-											dayjs(metadata.endAt).subtract(1, "day"),
-											dayjs(metadata.endAt),
-										]
-											.map((date) => date.format("YYYY-MM-DD"))
-											.join(":"),
-							})}
-							data-umami-event="tracker-games"
+							data-umami-event="tracker-profile"
 							data-umami-event-kind={params.kind}
 							data-umami-event-name={metadata.name}
 							data-umami-event-player={stripBB(latest.name)}
-							class="btn btn-primary btn-xs sm:btn-sm"
+							class="btn btn-info btn-sm max-sm:hidden"
+							disabled={!profile}
+							popovertarget={`profile-${latest.uid}`}
+							style={`anchor-name: --anchor-${latest.uid}-profile`}
 						>
-							<IconLoader class="max-sm:size-3" name="lucide--gamepad-2" />
-							Games
+							<IconLoader name="lucide--id-card" />
+							Profile
 						</button>
+					</div>
+
+					<div class="list-col-wrap grid grid-cols-5 justify-between gap-2 sm:flex">
+						<div class="col-span-3 flex flex-col text-sm">
+							<span class="inline-flex items-center font-semibold">
+								{formatNumber(latest.point)}
+								{recentlyPlayed && (
+									<span class="ml-1 badge px-1.5 badge-xs badge-success">
+										{formatNumber(latest.point - previous!.point, {
+											positiveSign: true,
+										})}
+									</span>
+								)}
+							</span>
+
+							{lastPlayed && (
+								<span>played {formatDuration(lastPlayed.timestamp)}</span>
+							)}
+
+							{rankHistory && (
+								<span>
+									boated{" "}
+									{rankHistory.length === 1 ? (
+										<span class="text-error">
+											{formatDuration(latest.timestamp)}
+										</span>
+									) : (
+										<span class="tooltip tooltip-error text-error underline decoration-dotted sm:tooltip-end">
+											<div class="tooltip-content">
+												<div class="flex flex-col">
+													{rankHistory
+														.slice(1)
+														.map(({ timestamp, rank }, idx) => (
+															<div class="flex justify-between gap-2">
+																<span>
+																	{rankHistory[idx].rank} -> {rank}
+																</span>
+																<span>{formatDuration(timestamp)}</span>
+															</div>
+														))}
+												</div>
+											</div>
+											{formatDuration(latest.timestamp)}
+										</span>
+									)}
+								</span>
+							)}
+						</div>
 
 						<button
-							hx-get={`/tracker/${latest.uid}/statistics`}
-							hx-swap="after"
-							hx-target="main"
-							hx-vals={JSON.stringify({
-								...params,
-								duration: dayjs().isBefore(metadata.endAt) ? "1d" : "all",
-							})}
-							data-umami-event="tracker-statistics"
+							data-umami-event="tracker-profile"
 							data-umami-event-kind={params.kind}
 							data-umami-event-name={metadata.name}
 							data-umami-event-player={stripBB(latest.name)}
-							class="btn btn-accent btn-xs max-sm:flex-1 sm:btn-sm"
+							class="btn col-span-2 self-center btn-info btn-sm sm:hidden"
+							disabled={!profile}
+							popovertarget={`profile-${latest.uid}`}
+							style={`anchor-name: --anchor-${latest.uid}-profile`}
 						>
-							<IconLoader class="max-sm:size-3" name="lucide--bar-chart-3" />
-							Statistics
+							<IconLoader name="lucide--id-card" />
+							Profile
 						</button>
 
-						{isActive && (
+						<div class="col-span-full flex gap-1 sm:justify-end">
 							<button
-								hx-get={`/tracker/${latest.uid}/notify`}
+								hx-get={`/tracker/${latest.uid}/games`}
 								hx-swap="after"
 								hx-target="main"
-								hx-vals={JSON.stringify(params)}
-								data-umami-event="tracker-notify"
+								hx-vals={JSON.stringify({
+									...params,
+									duration: lastPlayed
+										? dayjs().diff(lastPlayed.timestamp, "minutes") < 60
+											? "1h"
+											: "12h"
+										: [
+												dayjs(metadata.endAt).subtract(1, "day"),
+												dayjs(metadata.endAt),
+											]
+												.map((date) => date.format("YYYY-MM-DD"))
+												.join(":"),
+								})}
+								data-umami-event="tracker-games"
 								data-umami-event-kind={params.kind}
 								data-umami-event-name={metadata.name}
 								data-umami-event-player={stripBB(latest.name)}
-								class="btn btn-secondary btn-xs max-sm:flex-1 sm:btn-sm"
+								class="btn btn-primary btn-xs sm:btn-sm"
 							>
-								<IconLoader class="max-sm:size-3" name="lucide--bell" />
-								Notify me
+								<IconLoader class="max-sm:size-3" name="lucide--gamepad-2" />
+								Games
 							</button>
-						)}
-					</div>
-				</div>
 
-				{profile && <ProfileDropdown {metadata} {profile} />}
-			</div>
-		))
+							<button
+								hx-get={`/tracker/${latest.uid}/statistics`}
+								hx-swap="after"
+								hx-target="main"
+								hx-vals={JSON.stringify({
+									...params,
+									duration: dayjs().isBefore(metadata.endAt) ? "1d" : "all",
+								})}
+								data-umami-event="tracker-statistics"
+								data-umami-event-kind={params.kind}
+								data-umami-event-name={metadata.name}
+								data-umami-event-player={stripBB(latest.name)}
+								class="btn btn-accent btn-xs max-sm:flex-1 sm:btn-sm"
+							>
+								<IconLoader class="max-sm:size-3" name="lucide--bar-chart-3" />
+								Statistics
+							</button>
+
+							{isActive && (
+								<button
+									hx-get={`/tracker/${latest.uid}/notify`}
+									hx-swap="after"
+									hx-target="main"
+									hx-vals={JSON.stringify(params)}
+									data-umami-event="tracker-notify"
+									data-umami-event-kind={params.kind}
+									data-umami-event-name={metadata.name}
+									data-umami-event-player={stripBB(latest.name)}
+									class="btn btn-secondary btn-xs max-sm:flex-1 sm:btn-sm"
+								>
+									<IconLoader class="max-sm:size-3" name="lucide--bell" />
+									Notify me
+								</button>
+							)}
+						</div>
+					</div>
+
+					{profile && <ProfileDropdown {metadata} {profile} />}
+				</div>
+			),
+		)
 	}
 </div>

@@ -120,25 +120,12 @@ export const { trackerSnapshots, trackerCutoffs } = (() => {
 
 	return {
 		trackerSnapshots: sqliteTable("tracker_snapshots", shared, (t) => [
-			index("idx_tracker_1").on(t.trackingFor, t.trackingId, t.uid, t.id),
-			index("idx_tracker_2").on(
+			index("idx_snapshot_uid").on(t.trackingFor, t.trackingId, t.uid, t.id),
+			index("idx_snapshot_rank").on(t.trackingFor, t.trackingId, t.rank, t.id),
+			unique("unique_snapshot").on(
 				t.trackingFor,
 				t.trackingId,
 				t.uid,
-				t.timestamp,
-				t.id,
-			),
-			index("idx_tracker_3").on(
-				t.trackingFor,
-				t.trackingId,
-				t.uid,
-				t.point,
-				t.id,
-			),
-			unique("idx_tracker_data").on(
-				t.uid,
-				t.trackingFor,
-				t.trackingId,
 				t.name,
 				t.rank,
 				t.point,
@@ -151,7 +138,7 @@ export const { trackerSnapshots, trackerCutoffs } = (() => {
 				avatar: text({ mode: "json" }).$type<PlayerBandMemberStateless>(),
 			},
 			(t) => [
-				unique("idx_cutoff_data").on(
+				unique("unique_cutoff").on(
 					t.trackingFor,
 					t.trackingId,
 					t.rank,

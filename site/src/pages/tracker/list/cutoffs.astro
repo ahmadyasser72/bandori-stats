@@ -29,14 +29,11 @@ if (!metadata) return new Response(null, { status: 404 });
 const isActive = dayjs().isBefore(metadata.endAt);
 
 const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
-	const ranks = await Astro.locals.tracing.enterSpan(
-		"fetch-ranks",
-		async (span) => {
-			const key = GBP.fromMetadata(params, "cutoffs");
-			span.setAttribute("key", key);
-
-			return redis().zrange<number[]>(key, 0, -1, { rev: true });
-		},
+	const ranks = await redis().zrange<number[]>(
+		GBP.fromMetadata(params, "cutoffs"),
+		0,
+		-1,
+		{ rev: true },
 	);
 	if (ranks.length === 0) return [];
 
@@ -52,8 +49,8 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 	return db()
 		.batch([getCutoffs(ranks[0]), ...ranks.slice(1).map(getCutoffs)])
 		.then((entries) =>
-			entries.map(([current, previous]) => ({
-				current,
+			entries.map(([latest, previous]) => ({
+				latest,
 				previous:
 					previous && dayjs().diff(previous.timestamp, "hour") <= 1
 						? previous
@@ -79,48 +76,46 @@ if (Astro.cache.enabled)
 	}
 
 	{
-		players.map(({ current, previous }) => (
+		players.map(({ latest, previous }) => (
 			<div class="list-row items-center">
 				<div class="flex flex-col items-center gap-0.5 font-mono">
 					<span
 						class:list={[
 							"badge h-10 min-w-10 px-2",
-							current.rank <= 3 ? "badge-secondary" : "badge-ghost",
+							latest.rank <= 3 ? "badge-secondary" : "badge-ghost",
 						]}
 					>
-						{current.rank}
+						{latest.rank}
 					</span>
 				</div>
 
 				<div class="flex min-w-0 items-center gap-2 list-col-grow">
-					{current.avatar && (
-						<GbpCard class="scale-75" member={current.avatar} />
-					)}
+					{latest.avatar && <GbpCard class="scale-75" member={latest.avatar} />}
 
 					<span
 						class="flex-1 truncate text-lg font-medium text-ellipsis"
-						data-bb={current.name}
+						data-bb={latest.name}
 					>
-						{stripBB(current.name)}
+						{stripBB(latest.name)}
 					</span>
 				</div>
 
 				<div class="flex flex-col text-sm max-sm:list-col-wrap sm:items-end">
 					<span class="inline-flex items-center font-semibold">
-						{formatNumber(current.point)}
-						{previous && current.point !== previous.point && (
+						{formatNumber(latest.point)}
+						{previous && latest.point !== previous.point && (
 							<span
 								class="tooltip tooltip-end ml-1 badge px-1.5 badge-xs tooltip-success underline decoration-dotted badge-success"
 								data-tip={`compared to ${formatDuration(previous.timestamp)}`}
 							>
-								{formatNumber(current.point - previous.point, {
+								{formatNumber(latest.point - previous.point, {
 									positiveSign: true,
 								})}
 							</span>
 						)}
 					</span>
 
-					<span>updated {formatDuration(current.timestamp)}</span>
+					<span>updated {formatDuration(latest.timestamp)}</span>
 				</div>
 			</div>
 		))

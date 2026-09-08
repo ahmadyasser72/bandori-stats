@@ -12,30 +12,21 @@ import {
 	WebhookClient,
 	type MessageCreateOptions,
 } from "discord.js";
-import { allKeyed, pick } from "es-toolkit";
+import { allKeyed, chunk } from "es-toolkit";
 import z from "zod";
 
 import dayjs from "@bandori-stats/bestdori/date";
 import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
-import {
-	and,
-	asc,
-	db,
-	desc,
-	eq,
-	getColumns,
-	gt,
-	gte,
-	lte,
-	sql,
-	sum,
-} from "@bandori-stats/database";
+import { db } from "@bandori-stats/database";
 import { GBP, redis } from "@bandori-stats/database/redis";
 import {
-	trackerSnapshots,
 	type GbpMetadata,
+	type TrackerSnapshot,
 } from "@bandori-stats/database/schema";
-import { TrackingTarget } from "@bandori-stats/database/tracker";
+import {
+	getTrackingReference,
+	TrackingTarget,
+} from "@bandori-stats/database/tracker";
 import { useDiscordBot } from "~/discord";
 
 export const discordTracker = schemaTask({
@@ -134,115 +125,87 @@ interface GetSnapshotsOptions {
 	now: dayjs.Dayjs;
 }
 
-const getSnapshots = async (
+export const getSnapshots = async (
 	metadata: TrackingTarget,
 	{ since, now }: GetSnapshotsOptions,
 ) => {
-	const key = GBP.fromMetadata(metadata, "leaderboard");
-	const top10 = await redis()
-		.zrange<number[]>(key, 0, 9, { rev: true })
-		.then((uids) => uids.map((uid) => uid.toString()));
+	const trackingReference = getTrackingReference(metadata);
+	const getLatestRank = (rank: number) =>
+		db().query.trackerSnapshots.findFirst({
+			where: { ...trackingReference, rank, timestamp: { lte: now.toDate() } },
+			orderBy: { id: "desc" },
+		});
+
+	const ranks = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+	const top10 = (
+		await db().batch([getLatestRank(1), ...ranks.slice(1).map(getLatestRank)])
+	).filter((it) => it !== undefined);
 	if (top10.length === 0) return [];
 
-	const deltaSql = sql<number>`${trackerSnapshots.point} - LAG(${trackerSnapshots.point}, 1, ${trackerSnapshots.point}) OVER (ORDER BY ${asc(trackerSnapshots.id)})`;
-	const gapMinutesSql = sql<number>`(${trackerSnapshots.timestamp} - LAG(${trackerSnapshots.timestamp}) OVER (ORDER BY ${asc(trackerSnapshots.id)})) / 60000.0`;
-	const getSnapshot = (uid: string) => {
-		const deltaCte = db()
-			.$with("delta_cte")
-			.as(
-				db()
-					.select({
-						delta: deltaSql.as("delta"),
-						gapMinutes: gapMinutesSql.as("gap_minutes"),
-						...pick(getColumns(trackerSnapshots), [
-							"id",
-							"name",
-							"point",
-							"timestamp",
-							"rank",
-						]),
-					})
-					.from(trackerSnapshots)
-					.where(
-						and(
-							eq(trackerSnapshots.trackingFor, metadata.kind),
-							eq(trackerSnapshots.trackingId, metadata.id),
-							eq(trackerSnapshots.uid, uid),
-						),
-					),
-			);
+	const getBefore = ({ id, uid }: TrackerSnapshot) =>
+		db().query.trackerSnapshots.findFirst({
+			columns: { point: true, rank: true, timestamp: true },
+			where: {
+				...trackingReference,
+				uid,
+				id: { lt: id },
+				timestamp: { lte: since.toDate() },
+			},
+			orderBy: { id: "desc" },
+		});
+	const getInPeriod = ({ id, uid }: TrackerSnapshot) =>
+		db().query.trackerSnapshots.findFirst({
+			columns: { point: true, rank: true, timestamp: true },
+			where: {
+				...trackingReference,
+				uid,
+				id: { lt: id },
+				timestamp: { gt: since.toDate(), lt: now.toDate() },
+			},
+			orderBy: { id: "asc" },
+		});
+	const getPrevious = ({ id, uid, point }: TrackerSnapshot) =>
+		db().query.trackerSnapshots.findFirst({
+			columns: { point: true, rank: true, timestamp: true },
+			where: {
+				...trackingReference,
+				uid,
+				id: { lt: id },
+				point: { ne: point },
+			},
+			orderBy: { id: "desc" },
+		});
+	const snapshots = chunk(
+		await db().batch([
+			getBefore(top10[0]),
+			getInPeriod(top10[0]),
+			getPrevious(top10[0]),
+			...top10
+				.slice(1)
+				.flatMap((it) => [getBefore(it), getInPeriod(it), getPrevious(it)]),
+		]),
+		3,
+	);
 
-		return [
-			db()
-				.with(deltaCte)
-				.select({
-					points: sum(
-						sql`CASE WHEN ${deltaCte.gapMinutes} <= 60 THEN ${deltaCte.delta} ELSE NULL END`,
-					)
-						.mapWith(Number)
-						.as("points"),
-				})
-				.from(deltaCte)
-				.where(
-					and(
-						gte(deltaCte.timestamp, since.toDate()),
-						lte(deltaCte.timestamp, now.toDate()),
-					),
-				),
-			db()
-				.with(deltaCte)
-				.select({
-					name: deltaCte.name,
-					rank: deltaCte.rank,
-					point: deltaCte.point,
-				})
-				.from(deltaCte)
-				.where(lte(deltaCte.timestamp, now.toDate()))
-				.orderBy(desc(deltaCte.id))
-				.limit(1),
-			db()
-				.with(deltaCte)
-				.select({ rank: deltaCte.rank })
-				.from(deltaCte)
-				.where(lte(deltaCte.timestamp, since.toDate()))
-				.orderBy(desc(deltaCte.id))
-				.limit(1),
-			db()
-				.with(deltaCte)
-				.select({ lastPlayed: deltaCte.timestamp })
-				.from(deltaCte)
-				.where(
-					and(lte(deltaCte.timestamp, now.toDate()), gt(deltaCte.delta, 0)),
-				)
-				.orderBy(desc(deltaCte.id))
-				.limit(1),
-		] as const;
-	};
+	return top10.map((current, idx) => {
+		const [beforePeriod, inPeriod, previous] = snapshots[idx];
+		const lastPlayed =
+			previous && previous.point === current.point ? previous : current;
 
-	const first = getSnapshot(top10[0]);
-	const results = await db().batch([
-		first[0],
-		first[1],
-		first[2],
-		first[3],
-		...top10.slice(1).flatMap((uid) => getSnapshot(uid)),
-	]);
-
-	return top10.map((_, idx) => {
-		type Output<N extends 0 | 1 | 2 | 3> = Awaited<(typeof first)[N]>;
-		const [{ points }] = results[idx * 4] as Output<0>;
-		const [current] = results[idx * 4 + 1] as Output<1>;
-		const [previous] = results[idx * 4 + 2] as Output<2>;
-		const [{ lastPlayed }] = results[idx * 4 + 3] as Output<3>;
+		let reference = beforePeriod;
+		if (beforePeriod && since.diff(beforePeriod.timestamp) > now.diff(since))
+			reference = inPeriod;
 
 		return {
 			current,
-			previous,
-			lastPlayed,
-			delta: {
-				points: points ?? 0,
-				rank: previous ? current.rank - previous.rank : 0,
-			},
+			previous: beforePeriod,
+			lastPlayed: lastPlayed.timestamp,
+			delta: reference
+				? {
+						points: current.point - reference.point,
+						rank: current.rank - reference.rank,
+					}
+				: { points: 0, rank: 0 },
 		};
 	});
 };
@@ -283,7 +246,7 @@ const generatePayload = (
 					const difference = Math.abs(delta.rank);
 					const arrow = delta.rank > 0 ? "⬇️" : "⬆️";
 					lines.push(
-						`#${previous.rank} → #${current.rank} ${arrow.repeat(difference)}`,
+						`#${previous!.rank} → #${current.rank} ${arrow.repeat(difference)}`,
 					);
 				}
 
