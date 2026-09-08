@@ -381,9 +381,6 @@ const insertSnapshots = async (
 								set: {
 									name: sql.raw(`excluded.${trackerCutoffs.name.name}`),
 									avatar: sql.raw(`excluded.${trackerCutoffs.avatar.name}`),
-									timestamp: sql.raw(
-										`excluded.${trackerCutoffs.timestamp.name}`,
-									),
 								},
 							})
 							.returning({
