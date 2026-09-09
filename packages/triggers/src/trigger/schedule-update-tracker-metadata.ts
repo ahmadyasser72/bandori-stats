@@ -10,7 +10,7 @@ import {
 	time,
 	TimestampStyles,
 } from "discord.js";
-import { capitalize, uniq } from "es-toolkit";
+import { capitalize } from "es-toolkit";
 
 import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
 import dayjs from "@bandori-stats/bestdori/date";
@@ -192,22 +192,12 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 								"DISCORD_EVENT_TRACKER_FORUM_ID is not defined.",
 							);
 
+						const startAt = dayjs.tz(event.startAt);
 						const tags = [
-							...uniq(
-								[event.startAt, event.endAt].flatMap((it) => {
-									const date = dayjs.tz(it);
-									return [date.format("MMMM"), date.format("YYYY")];
-								}),
-							),
+							startAt.format("MMMM"),
+							startAt.format("YYYY"),
 							capitalize(metadata.attributes.at(0)?.attribute ?? "unknown"),
 							formatEventType(eventType),
-							...Object.keys(metadata.characters)
-								.map(Number)
-								.flatMap((id) => {
-									const { nickname, characterName } =
-										data.masterCharacterInfoMap[id];
-									return nickname ? [nickname, characterName] : characterName;
-								}),
 						];
 
 						const eventThread = await createThread(guild, {
