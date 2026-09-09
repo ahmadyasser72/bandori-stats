@@ -221,7 +221,7 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 								[scheduledEvent.description!, eventThread.url].join("\n"),
 							);
 						} else if (musics.length > 0) {
-							const title = `${payload.title} — ${musics.map(({ musicTitle }) => musicTitle).join(" / ")}`;
+							const title = `${payload.title} — Song Ranking`;
 							const description = [
 								bold(musics.length === 1 ? "Event song:" : "Event songs:"),
 								...musics.map(({ musicId, musicTitle, bandId }) => {
