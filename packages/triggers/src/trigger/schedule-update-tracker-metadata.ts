@@ -18,6 +18,7 @@ import { formatEventType } from "@bandori-stats/bestdori/helpers";
 import { MasterDB, Versions } from "@bandori-stats/bestdori/schema/misc";
 import { db } from "@bandori-stats/database";
 import {
+	CHARACTER_TO_BAND,
 	GBP,
 	redis,
 	type BangDreamAreaItem,
@@ -31,7 +32,7 @@ import {
 	type GbpMetadata,
 } from "@bandori-stats/database/schema";
 import type { TrackingTarget } from "@bandori-stats/database/tracker";
-import { bestdori, CHARACTER_TO_BAND } from "~/bestdori";
+import { bestdori } from "~/bestdori";
 import { useDiscordBot } from "~/discord";
 import { githubRedeploy } from "~/github";
 

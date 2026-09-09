@@ -4,10 +4,12 @@ import { capitalize } from "es-toolkit";
 import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
 import dayjs from "@bandori-stats/bestdori/date";
 import { formatEventType } from "@bandori-stats/bestdori/helpers";
+import { CHARACTER_TO_BAND, getRedisData } from "@bandori-stats/database/redis";
 import {
 	getTrackingMetadata,
 	TrackingTarget,
 } from "@bandori-stats/database/tracker";
+import GbpCard from "~/components/gbp-card.astro";
 import Icon from "~/components/icon.astro";
 import SheetModal from "~/layouts/sheet-modal.astro";
 import {
@@ -34,6 +36,13 @@ const kind = capitalize(params.kind);
 const clientTimezone =
 	Astro.request.headers.get("client-timezone") ?? GBP_TIMEZONE;
 Astro.response.headers.append("vary", "client-timezone");
+
+const { cards } =
+	metadata.kind === "event"
+		? await getRedisData({
+				cards: Object.keys(metadata.metadata.members).map(Number),
+			})
+		: {};
 ---
 
 <SheetModal>
@@ -83,14 +92,21 @@ Astro.response.headers.append("vary", "client-timezone");
 						<div>
 							<h3 class="font-medium">Event Gacha Cards</h3>
 							<span class="inline-flex flex-wrap justify-center gap-1">
-								{Object.keys(metadata.metadata.members).flatMap((id) =>
-									["normal", "trained"].map((variant) => (
-										<img
-											class="size-12 rounded-box"
-											src={`/assets/cards/${id}-${variant}-icon.webp`}
-										/>
-									)),
-								)}
+								{cards &&
+									[...cards.values()].flatMap((card) =>
+										[false, true].map((trained) => (
+											<GbpCard
+												member={{
+													id: card.situationId,
+													trained,
+													attribute: card.attribute,
+													character: card.characterId,
+													band: CHARACTER_TO_BAND[card.characterId],
+													rarity: card.rarity,
+												}}
+											/>
+										)),
+									)}
 							</span>
 						</div>
 					</>

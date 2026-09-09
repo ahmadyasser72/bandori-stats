@@ -6,6 +6,7 @@ import { unwrapRegionTuple } from "@bandori-stats/bestdori/helpers";
 import { Skills } from "@bandori-stats/bestdori/schema/skills";
 import { db, sql } from "@bandori-stats/database";
 import {
+	CHARACTER_TO_BAND,
 	GBP,
 	getRedisData,
 	redis,
@@ -28,7 +29,7 @@ import type {
 	UserProfile,
 	UserProfileJson,
 } from "~/bang-dream-gbp/gen/profile_pb";
-import { bestdori, CHARACTER_TO_BAND } from "~/bestdori";
+import { bestdori } from "~/bestdori";
 import { githubRedeploy } from "~/github";
 
 export const updateTrackerProfile = schemaTask({
