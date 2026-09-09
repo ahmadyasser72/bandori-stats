@@ -1,4 +1,4 @@
-import { sum } from "es-toolkit";
+import { memoize, sum } from "es-toolkit";
 import z from "zod";
 
 import type { GbpMetadata } from ".";
@@ -64,18 +64,21 @@ export const getTrackingReference = ({ kind, id }: TrackingTarget) =>
 		trackingId: id,
 	}) satisfies TrackingReference;
 
-export const getTrackingMetadata = async ({ kind, id }: TrackingTarget) => {
-	if (kind === "event")
-		return db()
-			.query.gbpEvents.findFirst({ where: { id }, with: { musics: true } })
-			.then((value): GbpMetadata | undefined =>
-				value ? { kind: "event", ...value } : undefined,
-			);
+export const getTrackingMetadata = memoize(
+	async ({ kind, id }: TrackingTarget) => {
+		if (kind === "event")
+			return db()
+				.query.gbpEvents.findFirst({ where: { id }, with: { musics: true } })
+				.then((value): GbpMetadata | undefined =>
+					value ? { kind: "event", ...value } : undefined,
+				);
 
-	if (kind === "monthly")
-		return db()
-			.query.gbpMonthlyRankings.findFirst({ where: { id } })
-			.then((value): GbpMetadata | undefined =>
-				value ? { kind: "monthly", ...value } : undefined,
-			);
-};
+		if (kind === "monthly")
+			return db()
+				.query.gbpMonthlyRankings.findFirst({ where: { id } })
+				.then((value): GbpMetadata | undefined =>
+					value ? { kind: "monthly", ...value } : undefined,
+				);
+	},
+	{ getCacheKey: ({ kind, id }) => `${kind}:${id}` },
+);
