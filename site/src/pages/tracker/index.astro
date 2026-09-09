@@ -68,26 +68,24 @@ const TAB_ICON = {
 
 <BaseLayout title="Tracker" containerClass="max-w-2xl" page="tracker">
 	<fieldset class="tabs tabs-lg text-primary" id="tracker-tabs" role="tablist">
-		{
-			TABS.map((tab) => (
-				<label class="tab hover:text-primary max-sm:flex-1 sm:px-16">
-					<input
-						hx-get="/tracker"
-						hx-disable="closest .tabs"
-						hx-swap="outerHTML transition:true"
-						hx-target="main"
-						data-umami-event="tracker-tab"
-						data-umami-event-name={tab}
-						name="tab"
-						type="radio"
-						value={tab}
-						checked={params.tab === tab}
-					/>
-					<IconLoader class="mr-2 size-5" name={TAB_ICON[tab]} />
-					{startCase(tab)}
-				</label>
-			))
-		}
+		{TABS.map((tab) => (
+			<label class="tab hover:text-primary max-sm:flex-1 sm:px-16">
+				<input
+					hx-get="/tracker"
+					hx-disable="closest .tabs"
+					hx-swap="outerHTML transition:true"
+					hx-target="main"
+					data-umami-event="tracker-tab"
+					data-umami-event-name={tab}
+					name="tab"
+					type="radio"
+					value={tab}
+					checked={params.tab === tab}
+				/>
+				<IconLoader class="mr-2 size-5" name={TAB_ICON[tab]} />
+				{startCase(tab)}
+			</label>
+		))}
 	</fieldset>
 
 	<label class="select mx-auto mt-4 flex w-max max-w-full">
@@ -105,33 +103,31 @@ const TAB_ICON = {
 			class="min-w-48"
 			name="id"
 		>
-			{
-				choices.map(({ assetBundleName, id, name }) => (
-					<option
-						data-umami-event="tracker-select"
-						data-umami-event-kind={params.tab}
-						data-umami-event-name={name}
-						value={id}
-						selected={params.id === id}
-					>
-						<div class="flex flex-col items-center">
-							<img
-								class={
-									params.tab === "event" ? "aspect-3/1 w-64" : "aspect-9/4 w-48"
-								}
-								src={
-									params.tab === "event"
-										? getEventBanner({ id })
-										: getTrackerLogo({ kind: params.tab, id })
-								}
-								alt={assetBundleName}
-								loading="lazy"
-							/>
-							<span class="text-center text-sm">{name}</span>
-						</div>
-					</option>
-				))
-			}
+			{choices.map(({ assetBundleName, id, name }) => (
+				<option
+					data-umami-event="tracker-select"
+					data-umami-event-kind={params.tab}
+					data-umami-event-name={name}
+					value={id}
+					selected={params.id === id}
+				>
+					<div class="flex flex-col items-center">
+						<img
+							class={
+								params.tab === "event" ? "aspect-3/1 w-64" : "aspect-9/4 w-48"
+							}
+							src={
+								params.tab === "event"
+									? getEventBanner({ id })
+									: getTrackerLogo({ kind: params.tab, id })
+							}
+							alt={assetBundleName}
+							loading="lazy"
+						/>
+						<span class="text-center text-sm">{name}</span>
+					</div>
+				</option>
+			))}
 		</select>
 	</label>
 
@@ -176,6 +172,8 @@ const TAB_ICON = {
 		class="list mt-4 py-1"
 		id="tracker-list"
 	>
-		{Array.from({ length: 5 }).map(() => <div class="list-row skeleton" />)}
+		{Array.from({ length: 5 }).map(() => (
+			<div class="list-row skeleton" />
+		))}
 	</div>
 </BaseLayout>

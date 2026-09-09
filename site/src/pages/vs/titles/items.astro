@@ -71,32 +71,27 @@ const BADGE_BY_DISPLAY = {
 } satisfies Record<typeof display, string>;
 ---
 
-{
-	page.items.map(({ id, category }, idx, items) => (
-		<>
-			{((idx === 0 &&
-				(page.current === 1 ||
-					data.categorized[page.size * (page.current - 1) - 1].category !==
-						category)) ||
-				(idx > 0 && items[idx - 1].category !== category)) && (
-				<div class="divider my-1 basis-full">
-					<div
-						class:list={[
-							"badge badge-sm font-medium",
-							BADGE_BY_DISPLAY[display],
-						]}
-					>
-						{data.grouped[category].length} &mdash; {displayCategory[category]}
-					</div>
+{page.items.map(({ id, category }, idx, items) => (
+	<>
+		{((idx === 0 &&
+			(page.current === 1 ||
+				data.categorized[page.size * (page.current - 1) - 1].category !==
+					category)) ||
+			(idx > 0 && items[idx - 1].category !== category)) && (
+			<div class="divider my-1 basis-full">
+				<div
+					class:list={["badge badge-sm font-medium", BADGE_BY_DISPLAY[display]]}
+				>
+					{data.grouped[category].length} &mdash; {displayCategory[category]}
 				</div>
-			)}
+			</div>
+		)}
 
-			<img
-				{...(page.isLastElement(idx) && page.props)}
-				class="aspect-23/5 rounded-2xl"
-				src={getTitleImage(id)}
-				loading="lazy"
-			/>
-		</>
-	))
-}
+		<img
+			{...(page.isLastElement(idx) && page.props)}
+			class="aspect-23/5 rounded-2xl"
+			src={getTitleImage(id)}
+			loading="lazy"
+		/>
+	</>
+))}

@@ -80,8 +80,10 @@ const data = {
 export type Data = typeof data;
 ---
 
-<div class="snapshot-calendar vc skeleton" data-calendar={JSON.stringify(data)}>
-</div>
+<div
+	class="snapshot-calendar vc skeleton"
+	data-calendar={JSON.stringify(data)}
+></div>
 
 <script>
 	import { simplifyStatName } from "@bandori-stats/bestdori/helpers";

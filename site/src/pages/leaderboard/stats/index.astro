@@ -9,19 +9,17 @@ export const partial = true;
 	<div></div>
 </hx-partial>
 
-{
-	STAT_NAMES.map((stat) => (
-		<LeaderboardCard name={stat}>
-			<div
-				hx-get="/leaderboard/stats/list"
-				hx-trigger="intersect once"
-				hx-vals={JSON.stringify({ stat, limit: 10 })}
-				class="list mt-1 max-h-100 overflow-y-auto px-8 py-1"
-			>
-				{Array.from({ length: 5 }).map(() => (
-					<div class="list-row skeleton" />
-				))}
-			</div>
-		</LeaderboardCard>
-	))
-}
+{STAT_NAMES.map((stat) => (
+	<LeaderboardCard name={stat}>
+		<div
+			hx-get="/leaderboard/stats/list"
+			hx-trigger="intersect once"
+			hx-vals={JSON.stringify({ stat, limit: 10 })}
+			class="list mt-1 max-h-100 overflow-y-auto px-8 py-1"
+		>
+			{Array.from({ length: 5 }).map(() => (
+				<div class="list-row skeleton" />
+			))}
+		</div>
+	</LeaderboardCard>
+))}

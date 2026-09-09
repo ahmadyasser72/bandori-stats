@@ -60,9 +60,7 @@ const id = `comparison-${name}`;
 
 <div class="card" {id}>
 	<div class="card-body gap-2 p-4">
-		<div
-			class="inline-flex items-center justify-center gap-2 text-sm font-medium text-base-content/67"
-		>
+		<div class="inline-flex items-center justify-center gap-2 text-sm font-medium text-base-content/67">
 			{startCase(isRatio ? name.replace("Count", "Ratio") : name)}
 		</div>
 
@@ -84,15 +82,17 @@ const id = `comparison-${name}`;
 			>
 				<Icon
 					class="size-5"
-					name={delta === 0
-						? typeof left.raw === "number" &&
-							typeof right.raw === "number" &&
-							left.raw === right.raw
-							? "lucide--equal"
-							: "lucide--minus"
-						: delta > 0
-							? "lucide--arrow-right"
-							: "lucide--arrow-left"}
+					name={
+						delta === 0
+							? typeof left.raw === "number" &&
+								typeof right.raw === "number" &&
+								left.raw === right.raw
+								? "lucide--equal"
+								: "lucide--minus"
+							: delta > 0
+								? "lucide--arrow-right"
+								: "lucide--arrow-left"
+					}
 					style={`view-transition-name: stat-compare-${name}-delta`}
 				/>
 
@@ -108,22 +108,20 @@ const id = `comparison-${name}`;
 		</div>
 
 		<div class="mt-1 flex h-1.5 w-full overflow-hidden rounded-full opacity-80">
-			{
-				delta === 0 ? (
-					<div class="w-full bg-neutral" />
-				) : (
-					<>
-						<div
-							class="bg-primary"
-							style={`width: ${leftPercent}%; view-transition-name: stat-bar-${name}-${leftId ?? "left"}`}
-						/>
-						<div
-							class="bg-accent"
-							style={`width: ${rightPercent}%; view-transition-name: stat-bar-${name}-${rightId ?? "right"}`}
-						/>
-					</>
-				)
-			}
+			{delta === 0 ? (
+				<div class="w-full bg-neutral" />
+			) : (
+				<>
+					<div
+						class="bg-primary"
+						style={`width: ${leftPercent}%; view-transition-name: stat-bar-${name}-${leftId ?? "left"}`}
+					/>
+					<div
+						class="bg-accent"
+						style={`width: ${rightPercent}%; view-transition-name: stat-bar-${name}-${rightId ?? "right"}`}
+					/>
+				</>
+			)}
 		</div>
 	</div>
 </div>
