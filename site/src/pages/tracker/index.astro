@@ -53,9 +53,11 @@ const choices = await Astro.locals.tracing.enterSpan(
 		return params.tab === "event"
 			? db().query.gbpEvents.findMany({
 					columns: { id: true, name: true, assetBundleName: true },
+					orderBy: { id: "desc" },
 				})
 			: db().query.gbpMonthlyRankings.findMany({
 					columns: { id: true, name: true, assetBundleName: true },
+					orderBy: { id: "desc" },
 				});
 	},
 );
