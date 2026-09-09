@@ -27,6 +27,7 @@ import {
 	gbpEventMusics,
 	gbpEvents,
 	gbpMonthlyRankings,
+	type GbpEventMusic,
 	type GbpMetadata,
 } from "@bandori-stats/database/schema";
 import type { TrackingTarget } from "@bandori-stats/database/tracker";
@@ -164,23 +165,6 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 									.join("  "),
 							);
 
-							if (musics.length > 0) {
-								lines.push(
-									"",
-									bold(musics.length === 1 ? "Event song:" : "Event songs:"),
-									...musics.map(({ musicId, musicTitle, bandId }) => {
-										const band = data.masterBandMap[bandId];
-										return (
-											`${emoji(`band_${bandId}`)} ` +
-											hyperlink(
-												`${band.bandName} - ${musicTitle}`,
-												`https://bestdori.com/info/songs/${musicId}`,
-											)
-										);
-									}),
-								);
-							}
-
 							lines.push(
 								"",
 								`${emoji("bestdori")} https://bestdori.com/info/events/${eventId}`,
@@ -191,11 +175,14 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 
 						const payload = {
 							title: `#${eventId} ${eventName}`,
-							image: await fetchImage(event),
+							image: await fetchLogo(event),
 							description,
 						};
 
-						await createScheduledEvent(guild, { metadata: event, payload });
+						const scheduledEvent = await createScheduledEvent(guild, {
+							metadata: event,
+							payload,
+						});
 
 						const forumId = process.env.DISCORD_EVENT_TRACKER_FORUM_ID;
 						if (!forumId)
@@ -203,28 +190,85 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 								"DISCORD_EVENT_TRACKER_FORUM_ID is not defined.",
 							);
 
-						await createThread(guild, {
+						const tags = [
+							...uniq(
+								[event.startAt, event.endAt].flatMap((it) => {
+									const date = dayjs.tz(it);
+									return [date.format("DDDD"), date.format("YYYY")];
+								}),
+							),
+							capitalize(metadata.attributes.at(0)?.attribute ?? "unknown"),
+							formatEventType(eventType),
+							...Object.keys(metadata.characters)
+								.map(Number)
+								.flatMap((id) => {
+									const { nickname, characterName } =
+										data.masterCharacterInfoMap[id];
+									return nickname ? [nickname, characterName] : characterName;
+								}),
+						];
+
+						const eventThread = await createThread(guild, {
 							forumId,
 							payload,
 							target: { kind: "event" as const, id: eventId },
-							tags: [
-								...uniq(
-									[event.startAt, event.endAt].flatMap((it) => {
-										const date = dayjs.tz(it);
-										return [date.format("DDDD"), date.format("YYYY")];
-									}),
-								),
-								capitalize(metadata.attributes.at(0)?.attribute ?? "unknown"),
-								formatEventType(eventType),
-								...Object.keys(metadata.characters)
-									.map(Number)
-									.flatMap((id) => {
-										const { nickname, characterName } =
-											data.masterCharacterInfoMap[id];
-										return nickname ? [nickname, characterName] : characterName;
-									}),
-							],
+							keySuffix: "discord-thread",
+							tags,
 						});
+
+						if (musics.length === 0) {
+							await scheduledEvent.setDescription(
+								[scheduledEvent.description!, eventThread.url].join("\n"),
+							);
+						} else if (musics.length > 0) {
+							const title = `${payload.title} — ${musics.map(({ musicTitle }) => musicTitle).join(" / ")}`;
+							const description = [
+								bold(musics.length === 1 ? "Event song:" : "Event songs:"),
+								...musics.map(({ musicId, musicTitle, bandId }) => {
+									const band = data.masterBandMap[bandId];
+									return (
+										`${emoji(`band_${bandId}`)} ` +
+										hyperlink(
+											`${band.bandName} - ${musicTitle}`,
+											`https://bestdori.com/info/songs/${musicId}`,
+										)
+									);
+								}),
+								"",
+								eventThread.url,
+							].join("\n");
+							const image = [
+								payload.image,
+								...(await Promise.all(
+									musics.map(({ musicId: id, jacketImage }) =>
+										fetchAlbumCover({ id, jacketImage }),
+									),
+								)),
+							];
+
+							const musicThread = await createThread(guild, {
+								forumId,
+								payload: { title, description, image },
+								target: { kind: "event" as const, id: eventId },
+								keySuffix: "discord-thread-musics",
+								tags,
+							});
+
+							const eventThreadMessage =
+								await eventThread.fetchStarterMessage();
+							if (eventThreadMessage)
+								await eventThreadMessage.edit(
+									[eventThreadMessage.content, musicThread.url].join("\n"),
+								);
+
+							await scheduledEvent.setDescription(
+								[
+									scheduledEvent.description!,
+									eventThread.url,
+									musicThread.url,
+								].join("\n"),
+							);
+						}
 					});
 
 					return true;
@@ -253,10 +297,13 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 						const payload = {
 							title: `#${monthlyRankingId} ${monthlyRankingName}`,
 							description: [bold("Period:"), formatPeriod(monthly)].join("\n"),
-							image: await fetchImage(monthly),
+							image: await fetchLogo(monthly),
 						};
 
-						await createScheduledEvent(guild, { metadata: monthly, payload });
+						const scheduledEvent = await createScheduledEvent(guild, {
+							metadata: monthly,
+							payload,
+						});
 
 						const forumId = process.env.DISCORD_MONTHLY_TRACKER_FORUM_ID;
 						if (!forumId)
@@ -265,12 +312,17 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 							);
 
 						const startAt = dayjs(monthly.startAt);
-						await createThread(guild, {
+						const monthlyThread = await createThread(guild, {
 							forumId,
 							payload,
 							target: { kind: "monthly" as const, id: monthlyRankingId },
+							keySuffix: "discord-thread",
 							tags: [startAt.format("DDDD"), startAt.format("YYYY")],
 						});
+
+						await scheduledEvent.setDescription(
+							[scheduledEvent.description!, monthlyThread.url].join("\n"),
+						);
 					});
 
 					return true;
@@ -321,15 +373,25 @@ const formatPeriod = ({
 	[startAt, endAt]
 		.map((date) => time(date, TimestampStyles.ShortDateMediumTime))
 		.join(" — ");
-const fetchImage = ({
-	assetBundleName,
-}: Pick<GbpMetadata, "assetBundleName">) =>
+const fetchLogo = ({ assetBundleName }: Pick<GbpMetadata, "assetBundleName">) =>
 	bestdori({
 		path: `/assets/en/event/${assetBundleName}/images_rip/logo.png`,
 		schema: false,
 	})
 		.then((response) => response.arrayBuffer())
 		.then(Buffer.from);
+const fetchAlbumCover = async ({
+	id,
+	jacketImage,
+}: Pick<GbpEventMusic, "id" | "jacketImage">) => {
+	const chunk = 10 * Math.ceil(id / 10);
+	return bestdori({
+		path: `/assets/en/musicjacket/musicjacket${chunk}_rip/assets-star-forassetbundle-startapp-musicjacket-musicjacket${chunk}-${jacketImage.toLowerCase()}-jacket.png`,
+		schema: false,
+	})
+		.then((response) => response.arrayBuffer())
+		.then(Buffer.from);
+};
 
 interface MetadataPayload {
 	title: string;
@@ -359,15 +421,16 @@ const createScheduledEvent = (
 	});
 
 interface CreateThreadOptions {
-	payload: MetadataPayload;
+	payload: Omit<MetadataPayload, "image"> & { image: Buffer | Buffer[] };
 	forumId: string;
 	target: TrackingTarget;
+	keySuffix: string;
 	tags: string[];
 }
 
 const createThread = async (
 	guild: Guild,
-	{ forumId, target, tags, payload }: CreateThreadOptions,
+	{ forumId, target, tags, payload, keySuffix }: CreateThreadOptions,
 ) => {
 	const forum = await guild.channels.fetch(forumId);
 	if (!forum || forum.type !== ChannelType.GuildForum)
@@ -382,12 +445,14 @@ const createThread = async (
 		name: payload.title,
 		message: {
 			content: payload.description,
-			files: [payload.image],
+			files: Array.isArray(payload.image) ? payload.image : [payload.image],
 			flags: MessageFlags.SuppressEmbeds,
 		},
 		appliedTags: tags.map(
 			(name) => forum.availableTags.find((tag) => tag.name === name)!.id,
 		),
 	});
-	await redis().set(GBP.fromMetadata(target, "discord-thread"), thread.id);
+	await redis().set(GBP.fromMetadata(target, keySuffix), thread.id);
+
+	return thread;
 };
