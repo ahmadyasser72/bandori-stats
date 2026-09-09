@@ -10,7 +10,7 @@ import {
 	time,
 	TimestampStyles,
 } from "discord.js";
-import { capitalize } from "es-toolkit";
+import { capitalize, uniq } from "es-toolkit";
 
 import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
 import dayjs from "@bandori-stats/bestdori/date";
@@ -31,7 +31,7 @@ import {
 	type GbpMetadata,
 } from "@bandori-stats/database/schema";
 import type { TrackingTarget } from "@bandori-stats/database/tracker";
-import { bestdori } from "~/bestdori";
+import { bestdori, CHARACTER_TO_BAND } from "~/bestdori";
 import { useDiscordBot } from "~/discord";
 import { githubRedeploy } from "~/github";
 
@@ -193,11 +193,19 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 							);
 
 						const startAt = dayjs.tz(event.startAt);
+						const bands = uniq(
+							Object.keys(metadata.characters)
+								.map(Number)
+								.map(
+									(id) => data.masterBandMap[CHARACTER_TO_BAND[id]].bandName,
+								),
+						);
 						const tags = [
 							startAt.format("MMMM"),
 							startAt.format("YYYY"),
 							capitalize(metadata.attributes.at(0)?.attribute ?? "unknown"),
 							formatEventType(eventType),
+							bands.length > 1 ? "Mixed" : bands[0],
 						];
 
 						const eventThread = await createThread(guild, {
