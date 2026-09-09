@@ -91,8 +91,10 @@ const data = {
 export type Data = typeof data;
 ---
 
-<div class="history-calendar vc skeleton" data-calendar={JSON.stringify(data)}>
-</div>
+<div
+	class="history-calendar vc skeleton"
+	data-calendar={JSON.stringify(data)}
+></div>
 
 <script>
 	import { dismissCalendarPopover, initCalendar } from "~/lib/calendar";

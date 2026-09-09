@@ -25,131 +25,129 @@ const otherSide = isPlayer1 ? "player-2" : "player-1";
 ---
 
 <div class="grid flex-1">
-	{
-		player ? (
+	{player ? (
+		<div
+			class:list={[
+				"flex h-16 items-center gap-2 sm:gap-4",
+				!isPlayer1 && "flex-row-reverse",
+			]}
+		>
+			{player.profileArt && (
+				<div class="avatar">
+					<div class="size-16 rounded-box">
+						<img src={getProfileIcon(player)} loading="lazy" />
+					</div>
+				</div>
+			)}
+
 			<div
 				class:list={[
-					"flex h-16 items-center gap-2 sm:gap-4",
-					!isPlayer1 && "flex-row-reverse",
+					"flex min-w-0 flex-1 flex-col justify-center gap-1",
+					!isPlayer1 && "text-end",
 				]}
 			>
-				{player.profileArt && (
-					<div class="avatar">
-						<div class="size-16 rounded-box">
-							<img src={getProfileIcon(player)} loading="lazy" />
-						</div>
-					</div>
-				)}
-
 				<div
 					class:list={[
-						"flex min-w-0 flex-1 flex-col justify-center gap-1",
-						!isPlayer1 && "text-end",
+						"tooltip tooltip-bottom grid w-full",
+						isPlayer1
+							? "tooltip-start tooltip-primary"
+							: "tooltip-end tooltip-accent",
 					]}
 				>
+					{accountHasNickname(player) && (
+						<div class="tooltip-content">
+							<div
+								class:list={[
+									"flex flex-col",
+									isPlayer1 ? "items-start" : "items-end",
+								]}
+							>
+								<div class="text-xs">@{player.username}</div>
+								<div class="text-lg font-medium">{player.nickname}</div>
+							</div>
+						</div>
+					)}
 					<div
 						class:list={[
-							"tooltip tooltip-bottom grid w-full",
-							isPlayer1
-								? "tooltip-start tooltip-primary"
-								: "tooltip-end tooltip-accent",
+							"truncate text-2xl font-bold",
+							isPlayer1 ? "text-primary" : "text-accent",
 						]}
+						style={`view-transition-name: player-card-title-${player.id}`}
 					>
-						{accountHasNickname(player) && (
-							<div class="tooltip-content">
-								<div
-									class:list={[
-										"flex flex-col",
-										isPlayer1 ? "items-start" : "items-end",
-									]}
-								>
-									<div class="text-xs">@{player.username}</div>
-									<div class="text-lg font-medium">{player.nickname}</div>
-								</div>
-							</div>
-						)}
-						<div
-							class:list={[
-								"truncate text-2xl font-bold",
-								isPlayer1 ? "text-primary" : "text-accent",
-							]}
-							style={`view-transition-name: player-card-title-${player.id}`}
-						>
-							@{player.username}
-						</div>
+						@{player.username}
 					</div>
-					<span
-						class="font-mono text-xs text-base-content/67"
-						style={`view-transition-name: player-card-date-${player.id}`}
-					>
-						SNAPSHOT @ {player.snapshots[0].snapshotDate}
-					</span>
 				</div>
-
-				<button
-					hx-get="/vs"
-					hx-replace-url="true"
-					hx-select="main"
-					hx-swap="outerMorph"
-					hx-target="main"
-					hx-vals={JSON.stringify({ [otherSide]: other })}
-					class="btn btn-circle btn-ghost btn-sm hover:btn-error"
+				<span
+					class="font-mono text-xs text-base-content/67"
+					style={`view-transition-name: player-card-date-${player.id}`}
 				>
-					<IconLoader class="size-5" name="lucide--x" />
-				</button>
+					SNAPSHOT @ {player.snapshots[0].snapshotDate}
+				</span>
 			</div>
-		) : (
-			<>
-				<button
-					class="btn h-16 btn-dash max-sm:w-full sm:min-w-48"
-					popovertarget={popoverId}
-					style={`anchor-name: ${anchorName}`}
-				>
-					<Icon class="size-6" name="lucide--plus" />
-					<span class="text-sm font-bold">{startCase(side)}</span>
-				</button>
 
-				<div
-					class:list={[
-						"dropdown dropdown-bottom mt-1 w-84",
-						!isPlayer1 && "sm:dropdown-end",
-					]}
-					id={popoverId}
-					ontoggle={`event.newState === "open" && ${inputId}.focus()`}
-					popover
-					style={`position-anchor: ${anchorName}`}
-				>
-					<label class="input w-48">
-						<IconLoader name="lucide--search" />
-						<input
-							hx-get="/vs/search"
-							hx-sync="this:replace"
-							hx-target="next .menu"
-							hx-trigger="keyup changed delay:300ms, intersect once"
-							hx-vals={JSON.stringify({ side, other })}
-							id={inputId}
-							name="query"
-							type="search"
-						/>
-					</label>
+			<button
+				hx-get="/vs"
+				hx-replace-url="true"
+				hx-select="main"
+				hx-swap="outerMorph"
+				hx-target="main"
+				hx-vals={JSON.stringify({ [otherSide]: other })}
+				class="btn btn-circle btn-ghost btn-sm hover:btn-error"
+			>
+				<IconLoader class="size-5" name="lucide--x" />
+			</button>
+		</div>
+	) : (
+		<>
+			<button
+				class="btn h-16 btn-dash max-sm:w-full sm:min-w-48"
+				popovertarget={popoverId}
+				style={`anchor-name: ${anchorName}`}
+			>
+				<Icon class="size-6" name="lucide--plus" />
+				<span class="text-sm font-bold">{startCase(side)}</span>
+			</button>
 
-					<ul
-						hx-disable:inherited={`#${popoverId} button, #${popoverId} input`}
-						hx-indicator:inherited="previous .input"
-						hx-replace-url:inherited="true"
-						hx-select:inherited="main"
-						hx-swap:inherited="outerMorph transition:true"
-						hx-target:inherited="main"
-						class="menu mt-4 max-h-64 w-full flex-nowrap overflow-y-auto p-0"
-					>
-						<li>
-							<button class="btn btn-ghost" disabled>
-								loading accounts...
-							</button>
-						</li>
-					</ul>
-				</div>
-			</>
-		)
-	}
+			<div
+				class:list={[
+					"dropdown dropdown-bottom mt-1 w-84",
+					!isPlayer1 && "sm:dropdown-end",
+				]}
+				id={popoverId}
+				ontoggle={`event.newState === "open" && ${inputId}.focus()`}
+				popover
+				style={`position-anchor: ${anchorName}`}
+			>
+				<label class="input w-48">
+					<IconLoader name="lucide--search" />
+					<input
+						hx-get="/vs/search"
+						hx-sync="this:replace"
+						hx-target="next .menu"
+						hx-trigger="keyup changed delay:300ms, intersect once"
+						hx-vals={JSON.stringify({ side, other })}
+						id={inputId}
+						name="query"
+						type="search"
+					/>
+				</label>
+
+				<ul
+					hx-disable:inherited={`#${popoverId} button, #${popoverId} input`}
+					hx-indicator:inherited="previous .input"
+					hx-replace-url:inherited="true"
+					hx-select:inherited="main"
+					hx-swap:inherited="outerMorph transition:true"
+					hx-target:inherited="main"
+					class="menu mt-4 max-h-64 w-full flex-nowrap overflow-y-auto p-0"
+				>
+					<li>
+						<button class="btn btn-ghost" disabled>
+							loading accounts...
+						</button>
+					</li>
+				</ul>
+			</div>
+		</>
+	)}
 </div>

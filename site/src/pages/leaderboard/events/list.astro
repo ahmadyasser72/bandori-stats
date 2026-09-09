@@ -95,86 +95,82 @@ const GROUP_LABELS = {
 ---
 
 <fieldset class="tabs text-accent" role="tablist">
-	{
-		Object.keys(groups).map((group) => (
-			<label class="tab indicator flex-1 indicator-center indicator-bottom hover:text-accent">
-				<input
-					hx-get="/leaderboard/events/list"
-					hx-disable="closest .tabs"
-					data-umami-event="events-leaderboard-tab"
-					data-umami-event-name={group}
-					class="peer"
-					name="group"
-					type="radio"
-					value={group}
-					checked={params.group === group}
-				/>
-				<IconLoader class="mr-2 size-5" name={GROUP_ICONS[group]} />
-				{GROUP_LABELS[group]}
+	{Object.keys(groups).map((group) => (
+		<label class="tab indicator flex-1 indicator-center indicator-bottom hover:text-accent">
+			<input
+				hx-get="/leaderboard/events/list"
+				hx-disable="closest .tabs"
+				data-umami-event="events-leaderboard-tab"
+				data-umami-event-name={group}
+				class="peer"
+				name="group"
+				type="radio"
+				value={group}
+				checked={params.group === group}
+			/>
+			<IconLoader class="mr-2 size-5" name={GROUP_ICONS[group]} />
+			{GROUP_LABELS[group]}
 
-				{matchCounts[group] > 0 && (
-					<span class="pointer-events-none indicator-item badge badge-xs badge-accent not-peer-checked:badge-soft">
-						{matchCounts[group]}
-					</span>
-				)}
-			</label>
-		))
-	}
+			{matchCounts[group] > 0 && (
+				<span class="pointer-events-none indicator-item badge badge-xs badge-accent not-peer-checked:badge-soft">
+					{matchCounts[group]}
+				</span>
+			)}
+		</label>
+	))}
 </fieldset>
 
 <div class="list mt-4">
-	{
-		groups[params.group].map(([category, players]) =>
-			players.map(({ player, titles, terms }) => (
-				<div class="list-row items-center">
-					<span
-						class:list={[
-							"badge min-h-8 min-w-8 font-mono",
-							category.match(/t[123]$/) ? "badge-secondary" : "badge-ghost",
-						]}
-					>
-						{getCategoryLabel(category)}
-					</span>
+	{groups[params.group].map(([category, players]) =>
+		players.map(({ player, titles, terms }) => (
+			<div class="list-row items-center">
+				<span
+					class:list={[
+						"badge min-h-8 min-w-8 font-mono",
+						category.match(/t[123]$/) ? "badge-secondary" : "badge-ghost",
+					]}
+				>
+					{getCategoryLabel(category)}
+				</span>
 
-					<div class="flex min-w-0 items-center gap-2 list-col-grow">
-						{player.profileArt && (
-							<div class="avatar">
-								<div class="size-10 rounded-box">
-									<img
-										src={getProfileIcon(player)}
-										alt={player.username}
-										loading="lazy"
-									/>
-								</div>
-							</div>
-						)}
-
-						{accountHasNickname(player) ? (
-							<div class="flex min-w-0 flex-col">
-								<span
-									class="truncate font-medium text-ellipsis"
-									set:html={highlight(player.nickname!, terms?.nickname)}
-								/>
-								<span
-									class="truncate text-xs text-ellipsis text-base-content/67"
-									set:html={highlight(`@${player.username}`, terms?.username)}
+				<div class="flex min-w-0 items-center gap-2 list-col-grow">
+					{player.profileArt && (
+						<div class="avatar">
+							<div class="size-10 rounded-box">
+								<img
+									src={getProfileIcon(player)}
+									alt={player.username}
+									loading="lazy"
 								/>
 							</div>
-						) : (
+						</div>
+					)}
+
+					{accountHasNickname(player) ? (
+						<div class="flex min-w-0 flex-col">
 							<span
-								class="truncate text-lg font-medium text-ellipsis"
+								class="truncate font-medium text-ellipsis"
+								set:html={highlight(player.nickname!, terms?.nickname)}
+							/>
+							<span
+								class="truncate text-xs text-ellipsis text-base-content/67"
 								set:html={highlight(`@${player.username}`, terms?.username)}
 							/>
-						)}
-					</div>
-
-					<img
-						class="aspect-23/5 w-36 rounded-2xl max-sm:list-col-wrap"
-						src={getTitleImage(titles[0])}
-						loading="lazy"
-					/>
+						</div>
+					) : (
+						<span
+							class="truncate text-lg font-medium text-ellipsis"
+							set:html={highlight(`@${player.username}`, terms?.username)}
+						/>
+					)}
 				</div>
-			)),
-		)
-	}
+
+				<img
+					class="aspect-23/5 w-36 rounded-2xl max-sm:list-col-wrap"
+					src={getTitleImage(titles[0])}
+					loading="lazy"
+				/>
+			</div>
+		)),
+	)}
 </div>

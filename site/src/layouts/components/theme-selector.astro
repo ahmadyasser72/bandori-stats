@@ -26,17 +26,15 @@ const { compact = false } = Astro.props;
 	popover
 	style="view-transition-name: theme-selector"
 >
-	{
-		Object.entries(THEMES).map(([mode, name]) => (
-			<li>
-				<label class="btn w-full justify-start capitalize btn-sm not-has-checked:btn-ghost has-checked:btn-primary">
-					<input class="hidden" name="theme-select" type="radio" value={name} />
-					<Icon name={mode === "light" ? "lucide--sun" : "lucide--moon"} />
-					{name}
-				</label>
-			</li>
-		))
-	}
+	{Object.entries(THEMES).map(([mode, name]) => (
+		<li>
+			<label class="btn w-full justify-start capitalize btn-sm not-has-checked:btn-ghost has-checked:btn-primary">
+				<input class="hidden" name="theme-select" type="radio" value={name} />
+				<Icon name={mode === "light" ? "lucide--sun" : "lucide--moon"} />
+				{name}
+			</label>
+		</li>
+	))}
 </ul>
 
 <script>

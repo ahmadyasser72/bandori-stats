@@ -83,50 +83,48 @@ if (params.query.length >= 4) {
 				placeholder="search players in top 100..."
 			/>
 			<datalist id="titles-search-suggestions">
-				{suggestions.map((value) => <option {value} />)}
+				{suggestions.map((value) => (
+					<option {value} />
+				))}
 			</datalist>
 		</label>
 		<fieldset class="tabs w-full tabs-sm text-accent" role="tablist">
-			{
-				Object.entries(groups).map(([name, { icon, label }]) => (
-					<label class="tab h-16 flex-col hover:text-accent max-md:flex-1 md:px-12">
-						<input
-							hx-get="/leaderboard/titles"
-							hx-browser-indicator="true"
-							hx-disable="closest .tabs"
-							hx-include="#titles-search"
-							hx-replace-url={`/leaderboard?tab=titles-${name}`}
-							hx-target="#leaderboard-cards"
-							data-umami-event="leaderboard-titles-tab"
-							data-umami-event-name={name}
-							name="group"
-							type="radio"
-							value={name}
-							checked={name === params.group}
-						/>
-						<IconLoader class="size-5" name={icon} />
-						<span class="max-sm:hidden">{label}</span>
-						<span class="sm:hidden">{label.replace(/Rank.*/, "")}</span>
-					</label>
-				))
-			}
+			{Object.entries(groups).map(([name, { icon, label }]) => (
+				<label class="tab h-16 flex-col hover:text-accent max-md:flex-1 md:px-12">
+					<input
+						hx-get="/leaderboard/titles"
+						hx-browser-indicator="true"
+						hx-disable="closest .tabs"
+						hx-include="#titles-search"
+						hx-replace-url={`/leaderboard?tab=titles-${name}`}
+						hx-target="#leaderboard-cards"
+						data-umami-event="leaderboard-titles-tab"
+						data-umami-event-name={name}
+						name="group"
+						type="radio"
+						value={name}
+						checked={name === params.group}
+					/>
+					<IconLoader class="size-5" name={icon} />
+					<span class="max-sm:hidden">{label}</span>
+					<span class="sm:hidden">{label.replace(/Rank.*/, "")}</span>
+				</label>
+			))}
 		</fieldset>
 	</div>
 </hx-partial>
 
-{
-	groups[params.group].items.map((category) => (
-		<LeaderboardCard name="titles" title={displayCategory[category]}>
-			<div
-				hx-get="/leaderboard/titles/list"
-				hx-trigger="intersect once"
-				hx-vals={JSON.stringify({ category, query: params.query })}
-				class="list mt-1 max-h-100 overflow-y-auto px-8 py-1"
-			>
-				{Array.from({ length: 5 }).map(() => (
-					<div class="list-row skeleton" />
-				))}
-			</div>
-		</LeaderboardCard>
-	))
-}
+{groups[params.group].items.map((category) => (
+	<LeaderboardCard name="titles" title={displayCategory[category]}>
+		<div
+			hx-get="/leaderboard/titles/list"
+			hx-trigger="intersect once"
+			hx-vals={JSON.stringify({ category, query: params.query })}
+			class="list mt-1 max-h-100 overflow-y-auto px-8 py-1"
+		>
+			{Array.from({ length: 5 }).map(() => (
+				<div class="list-row skeleton" />
+			))}
+		</div>
+	</LeaderboardCard>
+))}

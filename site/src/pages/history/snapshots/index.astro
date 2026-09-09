@@ -126,61 +126,59 @@ const snapshots = currentSnapshots.map((snapshot) => ({
 }));
 ---
 
-{
-	snapshots.map(({ id, accountId, account, snapshotDate, stats, previous }) => (
-		<li class="contents" id={`snapshot-${id}`}>
-			<SnapshotCard {account} {previous} {ratio} {snapshotDate} {stats}>
-				<div
-					hx-disable:inherited={`#snapshot-${id} .card-actions button`}
-					class="card-actions justify-end"
-					style={`anchor-name: --anchor-${id}-actions`}
+{snapshots.map(({ id, accountId, account, snapshotDate, stats, previous }) => (
+	<li class="contents" id={`snapshot-${id}`}>
+		<SnapshotCard {account} {previous} {ratio} {snapshotDate} {stats}>
+			<div
+				hx-disable:inherited={`#snapshot-${id} .card-actions button`}
+				class="card-actions justify-end"
+				style={`anchor-name: --anchor-${id}-actions`}
+			>
+				<button
+					data-umami-event="view-snapshot-calendar"
+					data-umami-event-id={accountId}
+					data-umami-event-username={account.username}
+					class="btn btn-soft btn-primary btn-sm"
+					popovertarget={`calendar-${id}`}
 				>
+					<Icon name="lucide--calendar" />
+					Calendar
+				</button>
+
+				{stats.titles && (
 					<button
-						data-umami-event="view-snapshot-calendar"
+						data-umami-event="view-snapshot-titles"
 						data-umami-event-id={accountId}
 						data-umami-event-username={account.username}
-						class="btn btn-soft btn-primary btn-sm"
-						popovertarget={`calendar-${id}`}
+						class="btn btn-soft btn-accent btn-sm"
+						popovertarget={`titles-${id}`}
 					>
-						<Icon name="lucide--calendar" />
-						Calendar
+						<Icon name="lucide--crown" />
+						Titles
 					</button>
+				)}
 
-					{stats.titles && (
-						<button
-							data-umami-event="view-snapshot-titles"
-							data-umami-event-id={accountId}
-							data-umami-event-username={account.username}
-							class="btn btn-soft btn-accent btn-sm"
-							popovertarget={`titles-${id}`}
-						>
-							<Icon name="lucide--crown" />
-							Titles
-						</button>
-					)}
+				<PopoverDropdown class="overflow-visible" {id} name="calendar">
+					<CalendarLoader
+						hx-vals={JSON.stringify({
+							date: dayjs(snapshotDate).startOf("month").format("YYYY-MM-DD"),
+						})}
+						name={`${id}-snapshot`}
+						url={`/history/snapshots/${id}/calendar`}
+					/>
+				</PopoverDropdown>
 
-					<PopoverDropdown class="overflow-visible" {id} name="calendar">
-						<CalendarLoader
-							hx-vals={JSON.stringify({
-								date: dayjs(snapshotDate).startOf("month").format("YYYY-MM-DD"),
-							})}
-							name={`${id}-snapshot`}
-							url={`/history/snapshots/${id}/calendar`}
+				{stats.titles && (
+					<PopoverDropdown {id} name="titles">
+						<TitlesLoader
+							size={stats.titles.length}
+							url={`/history/snapshots/${id}/titles`}
 						/>
 					</PopoverDropdown>
-
-					{stats.titles && (
-						<PopoverDropdown {id} name="titles">
-							<TitlesLoader
-								size={stats.titles.length}
-								url={`/history/snapshots/${id}/titles`}
-							/>
-						</PopoverDropdown>
-					)}
-				</div>
-			</SnapshotCard>
-		</li>
-	))
-}
+				)}
+			</div>
+		</SnapshotCard>
+	</li>
+))}
 
 {page.hasNextPage && <InfiniteGridLoader item="snapshots" {...page.props} />}

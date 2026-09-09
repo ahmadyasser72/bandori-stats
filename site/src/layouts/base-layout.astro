@@ -129,7 +129,6 @@ const { title, page, containerClass } = Astro.props;
 					? "mocha"
 					: "latte");
 		</script>
-
 		<link type="image/x-icon" href="/favicon.ico" rel="icon" />
 		<link type="image/png" href="/favicon-16x16.png" rel="icon" sizes="16x16" />
 		<link type="image/png" href="/favicon-32x32.png" rel="icon" sizes="32x32" />
@@ -149,31 +148,27 @@ const { title, page, containerClass } = Astro.props;
 			content="extensions:browser-indicator boostBrowserIndicator:true includeIndicatorCSS:false"
 		/>
 
-		{
-			import.meta.env.PROD && UMAMI_SITE_ID && (
-				<script
-					data-website-id={UMAMI_SITE_ID}
-					src="https://cloud.umami.is/script.js"
-					defer
-					is:inline
-				/>
-			)
-		}
+		{import.meta.env.PROD && UMAMI_SITE_ID && (
+			<script
+				data-website-id={UMAMI_SITE_ID}
+				src="https://cloud.umami.is/script.js"
+				defer
+				is:inline
+			></script>
+		)}
 	</head>
 	<body>
 		<main
 			hx-boost:inherited="transition:true"
 			class:list={["container mx-auto min-h-screen p-4", containerClass]}
 		>
-			{
-				page && (
-					<div class="mb-4 flex items-center justify-between">
-						<MegaMenu {page} />
+			{page && (
+				<div class="mb-4 flex items-center justify-between">
+					<MegaMenu {page} />
 
-						<ThemeSelector />
-					</div>
-				)
-			}
+					<ThemeSelector />
+				</div>
+			)}
 
 			<slot />
 		</main>
