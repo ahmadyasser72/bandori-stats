@@ -7,6 +7,7 @@ import cloudflare from "@astrojs/cloudflare";
 import { cacheCloudflare } from "@astrojs/cloudflare/cache";
 import preact from "@astrojs/preact";
 import tailwindcss from "@tailwindcss/vite";
+import zodCompiler from "zod-compiler/vite";
 
 import BandoriLeaderboard from "./vite-plugins/bandori-leaderboard";
 import DailyHina from "./vite-plugins/daily-hina";
@@ -101,7 +102,7 @@ export default defineConfig({
 	},
 
 	vite: {
-		plugins: [BandoriLeaderboard(), DailyHina(), tailwindcss()],
+		plugins: [BandoriLeaderboard(), DailyHina(), tailwindcss(), zodCompiler()],
 		server: { allowedHosts: ["cat"], hmr: false },
 
 		define: {

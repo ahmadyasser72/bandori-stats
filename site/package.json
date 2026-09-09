@@ -48,6 +48,7 @@
 		"@types/umami-browser": "2.18.1",
 		"favicons": "7.3.1",
 		"typescript": "6.0.3",
-		"wrangler": "4.129.0"
+		"wrangler": "4.129.0",
+		"zod-compiler": "2.0.3"
 	}
 }

@@ -3,6 +3,8 @@ import { AbortTaskRunError, logger, tags } from "@trigger.dev/sdk";
 import { limitAsync, memoize, retry } from "es-toolkit";
 import z from "zod";
 
+import "zod/compile";
+
 interface BestdoriOptions<S extends z.ZodType | false> {
 	path: string;
 	query?: Record<string, string>;
@@ -21,10 +23,10 @@ const bestdoriFetch: BestdoriFetch = async ({ path, query, schema }) => {
 	const url = new URL(path, "https://bestdori.com/");
 	url.search = new URLSearchParams(query).toString();
 
-	const response = await logger.trace("fetch-bestdori", (span) => {
+	return logger.trace("bestdori", async (span) => {
 		span.setAttribute?.("url", url.href);
 
-		return retry(
+		const response = await retry(
 			async () => {
 				const response = await fetch(url);
 				const contentType = response.headers.get("content-type") ?? "";
@@ -38,19 +40,21 @@ const bestdoriFetch: BestdoriFetch = async ({ path, query, schema }) => {
 			},
 			{ delay: (attempt) => attempt * 2500, retries: 4 },
 		);
-	});
 
-	if (!schema) return response as never;
+		if (!schema) return response as never;
 
-	return logger.trace("parse-bestdori-response", async () => {
-		const json = await response.json();
-		const { success, data, error } = schema.safeParse(json);
-		if (!success) {
-			await tags.add("schema_error").catch(() => console.error(error.message));
-			throw new AbortTaskRunError(error.message);
-		}
+		return logger.trace("parse-response", async () => {
+			const json = await response.json();
+			const { success, data, error } = schema.safeParse(json);
+			if (!success) {
+				await tags
+					.add("schema_error")
+					.catch(() => console.error(error.message));
+				throw new AbortTaskRunError(error.message);
+			}
 
-		return data as never;
+			return data as never;
+		});
 	});
 };
 
