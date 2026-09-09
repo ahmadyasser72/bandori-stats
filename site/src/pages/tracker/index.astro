@@ -1,5 +1,5 @@
 ---
-import { capitalize, startCase } from "es-toolkit";
+import { capitalize, omit, startCase } from "es-toolkit";
 import z from "zod";
 
 import { db } from "@bandori-stats/database";
@@ -101,7 +101,7 @@ const TAB_ICON = {
 			hx-indicator="previous .label"
 			hx-swap="outerHTML transition:true"
 			hx-target="main"
-			hx-vals={JSON.stringify({ kind: params.tab, display: params.display })}
+			hx-vals={JSON.stringify(omit(params, ["id"]))}
 			class="min-w-48"
 			name="id"
 		>
