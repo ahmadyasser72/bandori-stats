@@ -7,8 +7,7 @@ import { Skills } from "@bandori-stats/bestdori/schema/skills";
 import { db, sql } from "@bandori-stats/database";
 import {
 	GBP,
-	getAreaItems,
-	getCards,
+	getRedisData,
 	redis,
 	type BangDreamAreaItem,
 	type BangDreamCard,
@@ -112,39 +111,30 @@ export const updateTrackerProfile = schemaTask({
 		});
 		if (profiles.size === 0) return;
 
-		const { areaItems, cards, skills } = await logger.trace(
-			"fetch-shared-data",
-			() =>
-				allKeyed({
-					areaItems: logger.trace("fetch-area-items", (span) => {
-						const ids = [...profiles.values()].flatMap(
-							({ enabledUserAreaItems }) =>
-								enabledUserAreaItems?.entries.map(
-									({ areaItemId }) => areaItemId,
-								) ?? [],
-						);
-						span.setAttribute("id", ids);
+		const { data, skills } = await allKeyed({
+			data: logger.trace("fetch-redis-data", (span) => {
+				const areaItems = [...profiles.values()].flatMap(
+					({ enabledUserAreaItems }) =>
+						enabledUserAreaItems?.entries.map(({ areaItemId }) => areaItemId) ??
+						[],
+				);
+				span.setAttribute("areaItems", areaItems);
+				const cards = [...profiles.values()].flatMap(
+					({ userProfileSituation, mainDeckUserSituations }) => [
+						userProfileSituation?.situationId,
+						...(mainDeckUserSituations?.entries.map(
+							({ situationId }) => situationId,
+						) ?? []),
+					],
+				);
+				span.setAttribute("cards", cards);
 
-						return getAreaItems(ids);
-					}),
-					cards: logger.trace("fetch-cards", (span) => {
-						const ids = [...profiles.values()].flatMap(
-							({ userProfileSituation, mainDeckUserSituations }) => [
-								userProfileSituation?.situationId,
-								...(mainDeckUserSituations?.entries.map(
-									({ situationId }) => situationId,
-								) ?? []),
-							],
-						);
-						span.setAttribute("id", ids);
-
-						return getCards(ids);
-					}),
-					skills: logger.trace("fetch-skills", () =>
-						bestdori({ path: "api/skills/all.10.json", schema: Skills }),
-					),
-				}),
-		);
+				return getRedisData({ areaItems, cards });
+			}),
+			skills: logger.trace("fetch-skills", () =>
+				bestdori({ path: "api/skills/all.10.json", schema: Skills }),
+			),
+		});
 
 		const values: (typeof trackerSnapshotProfiles.$inferInsert | null)[] =
 			players.map(({ uid, trackingReference }) => {
@@ -152,10 +142,11 @@ export const updateTrackerProfile = schemaTask({
 				if (!profile) return null;
 
 				const bandAreaItems = (profile.enabledUserAreaItems?.entries ?? []).map(
-					({ areaItemId }) => areaItems[areaItemId],
+					({ areaItemId }) => data.areaItems.get(areaItemId)!,
 				);
 				const bandMembers = (profile.mainDeckUserSituations?.entries ?? []).map(
-					(data) => getBandMember(data, cards[data.situationId], skills),
+					(member) =>
+						getBandMember(member, data.cards.get(member.situationId)!, skills),
 				);
 
 				return {
@@ -170,7 +161,7 @@ export const updateTrackerProfile = schemaTask({
 						profile.userProfileSituation.situationId
 							? getAvatar(
 									profile.userProfileSituation,
-									cards[profile.userProfileSituation.situationId],
+									data.cards.get(profile.userProfileSituation.situationId)!,
 								)
 							: null,
 

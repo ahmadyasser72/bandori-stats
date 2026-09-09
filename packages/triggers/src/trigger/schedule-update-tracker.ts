@@ -13,7 +13,7 @@ import { formatNumber } from "@bandori-stats/bestdori/helpers";
 import { db, sql } from "@bandori-stats/database";
 import {
 	GBP,
-	getCards,
+	getRedisData,
 	redis,
 	type NotifyWhenPlayer,
 } from "@bandori-stats/database/redis";
@@ -302,12 +302,12 @@ const insertSnapshots = async (
 	const toTrackerCutoff = await (async () => {
 		if (!hourlyUpdate) return;
 
-		const cards = await getCards(
-			[
+		const { cards } = await getRedisData({
+			cards: [
 				...ranking.cutoffs,
 				...(ranking.musics?.flatMap(({ cutoffs }) => cutoffs) ?? []),
 			].map(({ userProfileSituation }) => userProfileSituation?.situationId),
-		);
+		});
 		return curry(
 			(
 				trackingReference: TrackingReference,
@@ -323,7 +323,7 @@ const insertSnapshots = async (
 					userProfileSituation && userProfileSituation.situationId
 						? getAvatar(
 								userProfileSituation,
-								cards[userProfileSituation.situationId],
+								cards.get(userProfileSituation.situationId)!,
 							)
 						: null,
 			}),

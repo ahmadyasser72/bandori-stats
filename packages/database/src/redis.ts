@@ -1,5 +1,5 @@
 import { Redis } from "@upstash/redis";
-import { once, uniq } from "es-toolkit";
+import { mapValues, once, uniq } from "es-toolkit";
 import type z from "zod";
 
 import type {
@@ -63,49 +63,35 @@ export interface BangDreamCredentials {
 }
 
 export type BangDreamAreaItem = z.infer<typeof GameAreaItem>;
-
-export const getAreaItems = (() => {
-	const emptyAreaItem = {
-		level: 0,
-		areaItemName: "",
-		performance: 0,
-		technique: 0,
-		visual: 0,
-		targetAttributes: [],
-		targetBandIds: [],
-	} satisfies BangDreamAreaItem;
-
-	return async (ids: number[]) => {
-		if (ids.length === 0) return {};
-
-		const uniqueIds = uniq(ids);
-		const results = await redis().mget<(BangDreamAreaItem | null)[]>(
-			uniqueIds.map((id) => GBP.data.AreaItem[id]),
-		);
-
-		return Object.fromEntries<BangDreamAreaItem>(
-			uniqueIds.map((id, idx) => [id, results[idx] ?? emptyAreaItem]),
-		);
-	};
-})();
-
 export type BangDreamCard = Omit<
 	z.infer<typeof GameCharacterSituation>,
 	"situationSkillId"
 > & { skillId: number };
 
-export const getCards = async (ids: (number | undefined)[]) => {
-	const safeIds = ids.filter((it): it is number => !!it);
-	if (safeIds.length === 0) return {};
-
-	const uniqueIds = uniq(safeIds);
-	const results = await redis().mget<BangDreamCard[]>(
-		uniqueIds.map((id) => GBP.data.CharacterSituation[id]),
+export const getRedisData = async (
+	keys: Partial<Record<"areaItems" | "cards", (number | undefined)[]>>,
+) => {
+	const ids = mapValues(keys, (ids) =>
+		uniq(ids?.filter((id): id is number => !!id) ?? []),
 	);
 
-	return Object.fromEntries<BangDreamCard>(
-		uniqueIds.map((id, idx) => [id, results[idx]]),
+	const results = await redis().mget(
+		...ids.areaItems.map((id) => GBP.data.AreaItem[id]),
+		...ids.cards.map((id) => GBP.data.CharacterSituation[id]),
 	);
+
+	const areaItems = new Map<number, BangDreamAreaItem>();
+	const cards = new Map<number, BangDreamCard>();
+	for (const [idx, data] of results.entries()) {
+		const isAreaItem = idx < ids.areaItems.length;
+		const id = isAreaItem
+			? ids.areaItems[idx]
+			: ids.cards[idx - ids.areaItems.length];
+
+		(isAreaItem ? areaItems : cards).set(id, data as never);
+	}
+
+	return { areaItems, cards };
 };
 
 export interface NotifyWhenPlayer {
