@@ -143,7 +143,7 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 							const attribute = (() => {
 								const value = metadata.attributes.at(0)?.attribute ?? "unknown";
 								return value
-									? `${emoji(`attribute_${value}`)} `
+									? `${emoji(`attribute_${value}`)}  `
 									: "(Unknown attribute)";
 							})();
 							lines.push(
@@ -161,13 +161,15 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 							lines.push(
 								bold("Characters:"),
 								characters
-									.map(({ id, name }) => `${emoji(`character_${id}`)}  ${name}`)
-									.join("   "),
+									.map(
+										({ id, name }) => `${emoji(`character_${id}`)}   ${name}`,
+									)
+									.join("  "),
 							);
 
 							lines.push(
 								"",
-								`${emoji("bestdori")}  https://bestdori.com/info/events/${eventId}`,
+								`${emoji("bestdori")}   https://bestdori.com/info/events/${eventId}`,
 							);
 
 							return lines.map((line) => line.trim()).join("\n");
@@ -227,7 +229,7 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 								...musics.map(({ musicId, musicTitle, bandId }) => {
 									const band = data.masterBandMap[bandId];
 									return (
-										`${emoji(`band_${bandId}`)} ` +
+										`${emoji(`band_${bandId}`)}  ` +
 										hyperlink(
 											`${band.bandName} - ${musicTitle}`,
 											`https://bestdori.com/info/songs/${musicId}`,
