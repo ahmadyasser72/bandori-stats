@@ -1,7 +1,6 @@
 ---
 import { pick } from "es-toolkit";
 
-import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
 import {
 	getTrackingMetadata,
@@ -34,9 +33,7 @@ const metadata = await Astro.locals.tracing.enterSpan(
 );
 if (!metadata) return new Response(null, { status: 404 });
 
-const clientTimezone =
-	Astro.request.headers.get("client-timezone") ?? GBP_TIMEZONE;
-Astro.response.headers.append("vary", "client-timezone");
+const { clientTimezone } = Astro.locals;
 const now = dayjs().tz(clientTimezone);
 
 const isNotStarted = now.isBefore(metadata.startAt);
@@ -59,7 +56,6 @@ if (Astro.cache.enabled)
 <div
 	{...(isActive && {
 		"hx-get": `${Astro.url.pathname}${Astro.url.search}&poll=true`,
-		"hx-headers": JSON.stringify({ "client-timezone": clientTimezone }),
 		"hx-indicator": "#metadata-loader",
 		"hx-on":
 			"htmx:config:request from:self -> if (document.hidden) event.preventDefault()",
@@ -164,7 +160,6 @@ if (Astro.cache.enabled)
 
 			<button
 				hx-get="/tracker/metadata-info"
-				hx-headers={JSON.stringify({ "client-timezone": clientTimezone })}
 				hx-swap="after"
 				hx-target="main"
 				hx-vals={JSON.stringify(params)}

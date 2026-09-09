@@ -2,6 +2,7 @@ import { defineMiddleware } from "astro:middleware";
 
 import z from "zod";
 
+import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
 import dayjs from "@bandori-stats/bestdori/date";
 import { maybeArray } from "./lib/schema";
 
@@ -71,15 +72,27 @@ export const onRequest = defineMiddleware(
 			return redirect(`${url.pathname}?${search}`);
 		}
 
-		if (import.meta.env.DEV || !cache.enabled) return next();
+		let clientTimezoneUsed = false;
+		Object.defineProperty(locals, "clientTimezone", {
+			configurable: true,
+			get: () => {
+				clientTimezoneUsed = true;
+				return request.headers.get("client-timezone") ?? GBP_TIMEZONE;
+			},
+		});
 
-		const isHtmxPartial = request.headers.get("hx-request-type") === "partial";
-		if (isHtmxPartial) {
-			cache.set({ maxAge: 60 * 5, swr: 60 * 60, tags: ["htmx-partial"] });
+		if (cache.enabled) {
+			const isHtmxPartial =
+				request.headers.get("hx-request-type") === "partial";
+			if (isHtmxPartial) {
+				cache.set({ maxAge: 60 * 5, swr: 60 * 60, tags: ["htmx-partial"] });
+			}
 		}
 
 		const response = await next();
 		response.headers.append("vary", "hx-request-type");
+		if (clientTimezoneUsed) response.headers.append("vary", "client-timezone");
+
 		return response;
 	},
 );

@@ -4,5 +4,6 @@ declare namespace App {
 			schema: S,
 		) => import("zod").output<S>;
 		tracing: Tracing;
+		clientTimezone: string;
 	}
 }

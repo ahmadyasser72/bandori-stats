@@ -135,7 +135,6 @@ const TAB_ICON = {
 
 	<div
 		hx-get="/tracker/metadata"
-		hx-headers="js:{ 'client-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone }"
 		hx-swap="outerHTML"
 		hx-trigger="intersect once"
 		hx-vals={JSON.stringify({ id: params.id, kind: params.tab })}
