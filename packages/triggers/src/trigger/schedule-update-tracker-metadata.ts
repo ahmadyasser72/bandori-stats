@@ -325,30 +325,6 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 
 					return true;
 				})(),
-			currentVersion !== versions.app &&
-				redis().mset(
-					Object.fromEntries([
-						...Object.entries(data.masterAreaItemMap).map(
-							([id, value]): [string, BangDreamAreaItem] => [
-								GBP.data.AreaItem[id],
-								value,
-							],
-						),
-						...Object.entries(data.masterCharacterSituationMap).map(
-							([id, { situationSkillId, ...value }]): [
-								string,
-								BangDreamCard,
-							] => [
-								GBP.data.CharacterSituation[id],
-								{
-									...value,
-									skillId:
-										data.masterSituationSkillMap[situationSkillId].skillId,
-								},
-							],
-						),
-					]),
-				),
 		]);
 
 		const errors = results.filter((promise) => promise.status === "rejected");
@@ -359,8 +335,32 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 			results.some(
 				(promise) => promise.status === "fulfilled" && promise.value === true,
 			)
-		)
+		) {
 			await githubRedeploy(ctx);
+		}
+
+		const [newEvent] = results;
+		if (newEvent.status === "fulfilled" && newEvent.value) {
+			await redis().mset(
+				Object.fromEntries([
+					...Object.entries(data.masterAreaItemMap).map(
+						([id, value]): [string, BangDreamAreaItem] => [
+							GBP.data.AreaItem[id],
+							value,
+						],
+					),
+					...Object.entries(data.masterCharacterSituationMap).map(
+						([id, { situationSkillId, ...value }]): [string, BangDreamCard] => [
+							GBP.data.CharacterSituation[id],
+							{
+								...value,
+								skillId: data.masterSituationSkillMap[situationSkillId].skillId,
+							},
+						],
+					),
+				]),
+			);
+		}
 	},
 });
 
