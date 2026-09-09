@@ -439,7 +439,10 @@ const createThread = async (
 	const availableTags = new Set(forum.availableTags.map(({ name }) => name));
 	const newTags = tags.filter((tag) => !availableTags.has(tag));
 	if (newTags.length > 0)
-		await forum.setAvailableTags(newTags.map((name) => ({ name })));
+		await forum.setAvailableTags([
+			...forum.availableTags,
+			...newTags.map((name) => ({ name })),
+		]);
 
 	const thread = await forum.threads.create({
 		name: payload.title,
