@@ -4,6 +4,7 @@ import z from "zod";
 
 import { db } from "@bandori-stats/database";
 import IconLoader from "~/components/icon-loader.astro";
+import Icon from "~/components/icon.astro";
 import BaseLayout from "~/layouts/base-layout.astro";
 import { getEventBanner, getTrackerLogo } from "~/lib/assets";
 
@@ -179,5 +180,12 @@ const TAB_ICON = {
 		id="tracker-list"
 	>
 		{Array.from({ length: 5 }).map(() => <div class="list-row skeleton" />)}
+	</div>
+
+	<div class="toast toast-center">
+		<div class="htmx-indicator alert alert-info" id="tracker-list-loader">
+			<Icon class="size-6" name="svg-spinners--90-ring-with-bg" />
+			<span class="font-medium">Reloading tracker data...</span>
+		</div>
 	</div>
 </BaseLayout>

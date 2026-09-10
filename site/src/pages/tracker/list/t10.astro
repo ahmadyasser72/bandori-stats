@@ -2,7 +2,6 @@
 import { UMAMI_SITE_ID } from "astro:env/server";
 
 import { uniqBy } from "es-toolkit";
-import z from "zod";
 
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
 import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
@@ -20,9 +19,7 @@ import ProfileDropdown from "./_profile-dropdown.astro";
 
 export const partials = true;
 
-const { poll, ...params } = Astro.locals.parseQuery(
-	z.object({ ...TrackingTarget.shape, poll: z.stringbool().catch(false) }),
-);
+const params = Astro.locals.parseQuery(TrackingTarget);
 
 const metadata = await Astro.locals.tracing.enterSpan(
 	"fetch-metadata",
@@ -131,19 +128,6 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 if (Astro.cache.enabled)
 	Astro.cache.set(isActive ? { maxAge: 30, swr: 30 } : { maxAge: 60 * 60 });
 ---
-
-{
-	!poll && (
-		<hx-partial hx-swap="after" hx-target="main">
-			<div class="toast toast-center">
-				<div class="htmx-indicator alert alert-info" id="tracker-list-loader">
-					<Icon class="size-6" name="svg-spinners--90-ring-with-bg" />
-					<span class="font-medium">Reloading tracker data...</span>
-				</div>
-			</div>
-		</hx-partial>
-	)
-}
 
 <div
 	{...isActive && {
