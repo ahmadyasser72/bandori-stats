@@ -94,7 +94,7 @@ export const discordTracker = schemaTask({
 											snapshots.filter(
 												({ current, previous, delta, lastPlayed }) =>
 													(now.diff(lastPlayed, "hour") < 1 &&
-														(delta.points > 0 || !previous)) ||
+														(delta.point > 0 || !previous)) ||
 													(now.diff(current.timestamp, "hour") < 1 &&
 														delta.rank !== 0),
 											),
@@ -299,20 +299,18 @@ export const getSnapshots = async (
 		const lastPlayed =
 			previous && previous.point === current.point ? previous : current;
 
-		let reference = beforePeriod;
+		let pointReference = beforePeriod;
 		if (beforePeriod && since.diff(beforePeriod.timestamp) > now.diff(since))
-			reference = inPeriod;
+			pointReference = inPeriod;
 
 		return {
 			current,
 			previous: beforePeriod,
 			lastPlayed: lastPlayed.timestamp,
-			delta: reference
-				? {
-						points: current.point - reference.point,
-						rank: current.rank - reference.rank,
-					}
-				: { points: 0, rank: 0 },
+			delta: {
+				point: pointReference ? current.point - pointReference.point : 0,
+				rank: beforePeriod ? current.rank - beforePeriod.rank : 0,
+			},
 		};
 	});
 };
@@ -339,8 +337,8 @@ const generateEmbed = (
 
 	for (const { current, previous, lastPlayed, delta } of snapshots) {
 		let points = `${formatNumber(current.point)} Pts`;
-		if (delta.points > 0)
-			points += ` (${formatNumber(delta.points, { positiveSign: true })} Pts)`;
+		if (delta.point > 0)
+			points += ` (${formatNumber(delta.point, { positiveSign: true })} Pts)`;
 
 		embed.addFields({
 			name: [bold(`#${current.rank} ${stripBB(current.name)}`), points].join(
