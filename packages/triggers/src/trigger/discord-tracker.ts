@@ -339,6 +339,7 @@ const generateEmbed = (
 		let points = `${formatNumber(current.point)} Pts`;
 		if (delta.point > 0)
 			points += ` (${formatNumber(delta.point, { positiveSign: true })} Pts)`;
+		if (!previous) points += " 🆕";
 
 		embed.addFields({
 			name: [bold(`#${current.rank} ${stripBB(current.name)}`), points].join(
