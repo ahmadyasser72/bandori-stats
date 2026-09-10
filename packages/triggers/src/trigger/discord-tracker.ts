@@ -92,9 +92,11 @@ export const discordTracker = schemaTask({
 											{ now, since: anHourAgo },
 										).then((snapshots) =>
 											snapshots.filter(
-												({ current, previous }) =>
-													current.point !== previous?.point ||
-													current.rank !== previous?.rank,
+												({ current, previous, delta, lastPlayed }) =>
+													(now.diff(lastPlayed, "hour") < 1 &&
+														(delta.points > 0 || !previous)) ||
+													(now.diff(current.timestamp, "hour") < 1 &&
+														delta.rank !== 0),
 											),
 										),
 									})),
