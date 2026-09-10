@@ -271,33 +271,31 @@ export const getSnapshots = async (
 			},
 			orderBy: { id: "asc" },
 		});
-	const getPrevious = ({ id, uid, point }: TrackerSnapshot) =>
+	const getLastPlayed = ({ id, uid, point }: TrackerSnapshot) =>
 		db().query.trackerSnapshots.findFirst({
 			columns: { point: true, rank: true, timestamp: true },
 			where: {
 				...trackingReference,
 				uid,
-				id: { lt: id },
-				point: { ne: point },
+				id: { lte: id },
+				point,
 			},
-			orderBy: { id: "desc" },
+			orderBy: { id: "asc" },
 		});
 	const snapshots = chunk(
 		await db().batch([
 			getBefore(top10[0]),
 			getInPeriod(top10[0]),
-			getPrevious(top10[0]),
+			getLastPlayed(top10[0]),
 			...top10
 				.slice(1)
-				.flatMap((it) => [getBefore(it), getInPeriod(it), getPrevious(it)]),
+				.flatMap((it) => [getBefore(it), getInPeriod(it), getLastPlayed(it)]),
 		]),
 		3,
 	);
 
 	return top10.map((current, idx) => {
-		const [beforePeriod, inPeriod, previous] = snapshots[idx];
-		const lastPlayed =
-			previous && previous.point === current.point ? previous : current;
+		const [beforePeriod, inPeriod, lastPlayed] = snapshots[idx];
 
 		let pointReference = beforePeriod;
 		if (beforePeriod && since.diff(beforePeriod.timestamp) > now.diff(since))
@@ -306,7 +304,7 @@ export const getSnapshots = async (
 		return {
 			current,
 			previous: beforePeriod,
-			lastPlayed: lastPlayed.timestamp,
+			lastPlayed: (lastPlayed ?? current)?.timestamp,
 			delta: {
 				point: pointReference ? current.point - pointReference.point : 0,
 				rank: beforePeriod ? current.rank - beforePeriod.rank : 0,
