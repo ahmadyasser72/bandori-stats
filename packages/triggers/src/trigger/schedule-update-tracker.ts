@@ -199,12 +199,33 @@ export const scheduleUpdateTracker = schedules.task({
 		const inserted = results
 			.filter((promise) => promise.status === "fulfilled")
 			.flatMap(({ value }) => value);
+
 		if (inserted.length > 0) {
+			const getPreviousSnapshot = ({
+				id,
+				trackingFor,
+				trackingId,
+				uid,
+			}: (typeof inserted)[number]) =>
+				db().query.trackerSnapshots.findFirst({
+					where: { trackingFor, trackingId, uid, id: { lt: id } },
+					orderBy: { id: "desc" },
+				});
+			const previousSnapshots = await db().batch([
+				getPreviousSnapshot(inserted[0]),
+				...inserted.slice(1).map(getPreviousSnapshot),
+			]);
+
 			await updateTrackerProfile.trigger({
-				players: inserted.map(({ uid, trackingFor, trackingId }) => ({
-					uid,
-					trackingReference: { trackingFor, trackingId },
-				})),
+				players: inserted
+					.filter(({ point }, idx) => {
+						const previous = previousSnapshots[idx];
+						return !previous || point !== previous.point;
+					})
+					.map(({ uid, trackingFor, trackingId }) => ({
+						uid,
+						trackingReference: { trackingFor, trackingId },
+					})),
 			});
 		}
 
@@ -358,14 +379,7 @@ const insertSnapshots = async (
 				.insert(trackerSnapshots)
 				.values(snapshots)
 				.onConflictDoNothing()
-				.returning({
-					uid: trackerSnapshots.uid,
-					name: trackerSnapshots.name,
-					point: trackerSnapshots.point,
-					rank: trackerSnapshots.rank,
-					trackingFor: trackerSnapshots.trackingFor,
-					trackingId: trackerSnapshots.trackingId,
-				}),
+				.returning(),
 			...(cutoffs.length > 0
 				? [
 						db()
