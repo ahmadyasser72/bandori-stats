@@ -245,6 +245,10 @@ const getBandMember = (
 		? mapValues(card.parameterMap[data.level], (base, type) => {
 				if (!data.userAppendParameter) return base;
 
+				data.userAppendParameter[type] ??= 0;
+				data.userAppendParameter[`characterPotential${capitalize(type)}`] ??= 0;
+				data.userAppendParameter[`characterBonus${capitalize(type)}`] ??= 0;
+
 				return (
 					base +
 					data.userAppendParameter[type] +
