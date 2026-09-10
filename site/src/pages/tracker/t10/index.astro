@@ -292,7 +292,7 @@ if (Astro.cache.enabled)
 
 						<div class="col-span-full flex gap-1 sm:justify-end">
 							<button
-								hx-get={`/tracker/${latest.uid}/games`}
+								hx-get={`/tracker/t10/${latest.uid}/games`}
 								hx-swap="after"
 								hx-target="main"
 								hx-vals={JSON.stringify({
@@ -319,7 +319,7 @@ if (Astro.cache.enabled)
 							</button>
 
 							<button
-								hx-get={`/tracker/${latest.uid}/statistics`}
+								hx-get={`/tracker/t10/${latest.uid}/statistics`}
 								hx-swap="after"
 								hx-target="main"
 								hx-vals={JSON.stringify({
@@ -338,7 +338,7 @@ if (Astro.cache.enabled)
 
 							{isActive && (
 								<button
-									hx-get={`/tracker/${latest.uid}/notify`}
+									hx-get={`/tracker/t10/${latest.uid}/notify`}
 									hx-swap="after"
 									hx-target="main"
 									hx-vals={JSON.stringify(params)}

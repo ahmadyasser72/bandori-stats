@@ -40,6 +40,8 @@ const { cards } =
 				cards: Object.keys(metadata.metadata.members).map(Number),
 			})
 		: {};
+
+if (Astro.cache.enabled) Astro.cache.set({ maxAge: 60 * 60 });
 ---
 
 <SheetModal>

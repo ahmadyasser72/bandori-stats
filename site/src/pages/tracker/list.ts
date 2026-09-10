@@ -12,7 +12,7 @@ export const GET: APIRoute = async ({ locals, rewrite }) => {
 	const search = new URLSearchParams();
 	search.set("id", params.id.toString());
 	search.set("kind", params.kind);
-	const response = await rewrite(`/tracker/list/${display}?${search}`);
+	const response = await rewrite(`/tracker/${display}?${search}`);
 
 	response.headers.set(
 		"hx-replace-url",

@@ -5,7 +5,7 @@ import { scaleBand, scaleLinear } from "d3-scale";
 import { sumBy } from "es-toolkit";
 import { useMemo } from "preact/hooks";
 
-import { CHART_THEME } from "../charts/_utilities";
+import { CHART_THEME } from "../../_charts";
 
 export interface BarChartProps {
 	data: [number, number][];

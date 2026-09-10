@@ -38,10 +38,14 @@ if (!params.id) {
 		},
 	);
 
-	if (latest)
-		return Astro.redirect(
-			`${Astro.url.pathname}?id=${latest.id}&tab=${params.tab}`,
-		);
+	if (latest) {
+		const search = new URLSearchParams();
+		if (params.display) search.set("display", params.display);
+		search.set("id", latest.id.toString());
+		search.set("tab", params.tab);
+
+	return Astro.redirect(`${Astro.url.pathname}?${search}`);
+	}
 
 	return new Response(null, { status: 404 });
 }

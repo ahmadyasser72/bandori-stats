@@ -118,20 +118,6 @@ if (Astro.cache.enabled)
 
 	<div class="mt-2 flex w-full justify-between gap-2 max-sm:flex-col">
 		<div class="join" style="anchor-name: --anchor-tracker-actions">
-			<button
-				hx-get="/tracker/charts/points"
-				hx-swap="after"
-				hx-target="main"
-				hx-vals={JSON.stringify(params)}
-				data-umami-event="tracker-chart-points"
-				data-umami-event-kind={params.kind}
-				data-umami-event-name={metadata.name}
-				class="btn join-item flex-1 btn-secondary btn-sm"
-			>
-				<IconLoader name="lucide--chart-no-axes-combined" />
-				Chart
-			</button>
-
 			{
 				isActive && (
 					<>
@@ -162,7 +148,7 @@ if (Astro.cache.enabled)
 			}
 
 			<button
-				hx-get="/tracker/metadata-info"
+				hx-get="/tracker/metadata/info"
 				hx-swap="after"
 				hx-target="main"
 				hx-vals={JSON.stringify(params)}
