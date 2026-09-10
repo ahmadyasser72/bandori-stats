@@ -244,9 +244,9 @@ if (Astro.cache.enabled)
 					<div class="col-span-3 flex flex-col text-sm">
 						<span class="inline-flex items-center font-semibold">
 							{formatNumber(latest.point)}
-							{recentlyPlayed && (
+							{recentlyPlayed && previous && (
 								<span class="ml-1 badge px-1.5 badge-xs badge-success">
-									{formatNumber(latest.point - previous!.point, {
+									{formatNumber(latest.point - previous.point, {
 										positiveSign: true,
 									})}
 								</span>
