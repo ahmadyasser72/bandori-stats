@@ -55,51 +55,55 @@ const page = await paginate<(typeof players)[number]>({
 });
 ---
 
-{players.length === 0 && (
-	<div class="list-row items-center">
-		<div class="flex items-center justify-center gap-2 list-col-grow">
-			<Icon class="size-10" name="lucide--x" />
-			<span class="text-lg font-medium">No players found</span>
+{
+	players.length === 0 && (
+		<div class="list-row items-center">
+			<div class="flex items-center justify-center gap-2 list-col-grow">
+				<Icon class="size-10" name="lucide--x" />
+				<span class="text-lg font-medium">No players found</span>
+			</div>
 		</div>
-	</div>
-)}
+	)
+}
 
 <LeaderboardTopList anchor={params.category} players={page.items}>
 	<fragment slot="value">
-		{({ idx, player, value }: (typeof players)[number]) => (
-			<>
-				<div class="flex items-center gap-2 lg:flex-row-reverse">
-					<button
-						data-umami-event="view-player-titles"
-						data-umami-event-category={params.category}
-						data-umami-event-id={player.id}
-						data-umami-event-username={player.username}
-						class="btn btn-square btn-soft btn-primary btn-xs"
-						popovertarget={`titles-${player.id}-${params.category}`}
-					>
-						<Icon name="lucide--eye" />
-					</button>
-					<div
-						class="dropdown dropdown-center dropdown-bottom group-nth-last-[-n+3]:dropdown-top lg:dropdown-end"
-						id={`titles-${player.id}-${params.category}`}
-						popover
-						style={`position-anchor: --anchor-${player.id}-${params.category}`}
-					>
-						<TitlesLoader
-							hx-vals:inherited={JSON.stringify({
-								category: params.category,
-							})}
-							size={value}
-							url={`/leaderboard/titles/for/${idx}`}
-						/>
-					</div>
+		{
+			({ idx, player, value }: (typeof players)[number]) => (
+				<>
+					<div class="flex items-center gap-2 lg:flex-row-reverse">
+						<button
+							data-umami-event="view-player-titles"
+							data-umami-event-category={params.category}
+							data-umami-event-id={player.id}
+							data-umami-event-username={player.username}
+							class="btn btn-square btn-soft btn-primary btn-xs"
+							popovertarget={`titles-${player.id}-${params.category}`}
+						>
+							<Icon name="lucide--eye" />
+						</button>
+						<div
+							class="dropdown dropdown-center dropdown-bottom group-nth-last-[-n+3]:dropdown-top lg:dropdown-end"
+							id={`titles-${player.id}-${params.category}`}
+							popover
+							style={`position-anchor: --anchor-${player.id}-${params.category}`}
+						>
+							<TitlesLoader
+								hx-vals:inherited={JSON.stringify({
+									category: params.category,
+								})}
+								size={value}
+								url={`/leaderboard/titles/for/${idx}`}
+							/>
+						</div>
 
-					<div>
-						{value} title{value > 1 && "s"}
+						<div>
+							{value} title{value > 1 && "s"}
+						</div>
 					</div>
-				</div>
-			</>
-		)}
+				</>
+			)
+		}
 	</fragment>
 </LeaderboardTopList>
 

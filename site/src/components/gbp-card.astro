@@ -20,13 +20,15 @@ const { member, class: className } = Astro.props;
 		alt={`card ${member.id}`}
 		loading="lazy"
 	/>
-	{member.rarity > 1 && (
-		<img
-			class="gbp-card-frame"
-			src={`/assets/card-frame/${member.rarity}.webp`}
-			loading="lazy"
-		/>
-	)}
+	{
+		member.rarity > 1 && (
+			<img
+				class="gbp-card-frame"
+				src={`/assets/card-frame/${member.rarity}.webp`}
+				loading="lazy"
+			/>
+		)
+	}
 
 	<img
 		class="gbp-card-band"
@@ -40,20 +42,24 @@ const { member, class: className } = Astro.props;
 	/>
 
 	<div class="gbp-card-stars">
-		{Array.from({ length: member.rarity }, () => (
-			<img
-				src={`/assets/card-rarity/${(member.trainedStatus ?? member.trained) ? "trained" : "normal"}.webp`}
-				loading="lazy"
-			/>
-		))}
+		{
+			Array.from({ length: member.rarity }, () => (
+				<img
+					src={`/assets/card-rarity/${(member.trainedStatus ?? member.trained) ? "trained" : "normal"}.webp`}
+					loading="lazy"
+				/>
+			))
+		}
 	</div>
 
-	{member.limitBreakRank && member.limitBreakRank > 0 && (
-		<div class="gbp-card-limit-break">
-			<img src="/assets/card-limit-break/overlay.svg" loading="lazy" />
-			<span>{member.limitBreakRank}</span>
-		</div>
-	)}
+	{
+		member.limitBreakRank && member.limitBreakRank > 0 && (
+			<div class="gbp-card-limit-break">
+				<img src="/assets/card-limit-break/overlay.svg" loading="lazy" />
+				<span>{member.limitBreakRank}</span>
+			</div>
+		)
+	}
 
 	{member.level && <div class="gbp-card-level">{member.level}</div>}
 </div>

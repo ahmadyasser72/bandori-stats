@@ -24,8 +24,10 @@ export const partial = true;
 	</div>
 </hx-partial>
 
-{Array.from({ length: 4 }).map(() => (
-	<div class="card h-100">
-		<div class="card-body m-8 skeleton p-0" />
-	</div>
-))}
+{
+	Array.from({ length: 4 }).map(() => (
+		<div class="card h-100">
+			<div class="card-body m-8 skeleton p-0" />
+		</div>
+	))
+}

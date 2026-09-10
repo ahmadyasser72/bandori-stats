@@ -62,7 +62,9 @@ const [player1, player2] = await Promise.all(
 	>
 		<PlayerCard other={player2?.id} player={player1} side="player-1" />
 
-		<div class="divider my-4 text-sm font-black text-base-content/67 sm:my-0 sm:divider-horizontal sm:px-4">
+		<div
+			class="divider my-4 text-sm font-black text-base-content/67 sm:my-0 sm:divider-horizontal sm:px-4"
+		>
 			VS
 		</div>
 
@@ -70,21 +72,23 @@ const [player1, player2] = await Promise.all(
 	</div>
 
 	<div class="grid grid-cols-1 gap-4 py-4 md:grid-cols-2" id="comparison">
-		{STAT_NAMES.map((name) => (
-			<StatCompareCard
-				{name}
-				left={player1?.snapshots[0].stats[name]}
-				left-id={player1?.id}
-				left-ratio-reference={
-					useRatio(name) && player1?.snapshots[0].stats.clearCount
-				}
-				right={player2?.snapshots[0].stats[name]}
-				right-id={player2?.id}
-				right-ratio-reference={
-					useRatio(name) && player2?.snapshots[0].stats.clearCount
-				}
-			/>
-		))}
+		{
+			STAT_NAMES.map((name) => (
+				<StatCompareCard
+					{name}
+					left={player1?.snapshots[0].stats[name]}
+					left-id={player1?.id}
+					left-ratio-reference={
+						useRatio(name) && player1?.snapshots[0].stats.clearCount
+					}
+					right={player2?.snapshots[0].stats[name]}
+					right-id={player2?.id}
+					right-ratio-reference={
+						useRatio(name) && player2?.snapshots[0].stats.clearCount
+					}
+				/>
+			))
+		}
 	</div>
 
 	<div

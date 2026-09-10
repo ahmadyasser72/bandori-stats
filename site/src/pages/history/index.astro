@@ -142,10 +142,12 @@ const { query, ratio, date } = Astro.locals.parseQuery(
 		class="mx-auto mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3"
 		id="history-grid"
 	>
-		{Array.from({ length: 6 }).map(() => (
-			<div class="card h-84">
-				<div class="card-body m-4 skeleton p-0" />
-			</div>
-		))}
+		{
+			Array.from({ length: 6 }).map(() => (
+				<div class="card h-84">
+					<div class="card-body m-4 skeleton p-0" />
+				</div>
+			))
+		}
 	</ul>
 </BaseLayout>

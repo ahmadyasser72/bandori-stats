@@ -39,42 +39,46 @@ const PAGE_DESCRIPTIONS = {
 	</div>
 
 	<div class="mt-2 grid w-full grid-cols-1 gap-2 sm:grid-cols-4">
-		{Object.entries(PAGES).map(([key, { icon, label, url }]) => (
-			<a
-				hx-indicator="find .card-body"
-				class="card card-sm hover:bg-base-200 dark:hover:bg-base-300"
-				href={url}
-			>
-				<div class="card-body items-center text-center">
-					<IconLoader class="size-6" name={icon} />
-					<h2 class="card-title">{label}</h2>
-					<p class="text-xs text-base-content/67">{PAGE_DESCRIPTIONS[key]}</p>
-				</div>
-			</a>
-		))}
+		{
+			Object.entries(PAGES).map(([key, { icon, label, url }]) => (
+				<a
+					hx-indicator="find .card-body"
+					class="card card-sm hover:bg-base-200 dark:hover:bg-base-300"
+					href={url}
+				>
+					<div class="card-body items-center text-center">
+						<IconLoader class="size-6" name={icon} />
+						<h2 class="card-title">{label}</h2>
+						<p class="text-xs text-base-content/67">{PAGE_DESCRIPTIONS[key]}</p>
+					</div>
+				</a>
+			))
+		}
 	</div>
 
 	<div class="relative mt-4 flex w-full flex-col items-center gap-2">
-		{["/statistics/data", "/statistics/players"].map((path) => (
-			<div hx-get={path} hx-trigger="intersect once" class="stats w-full">
-				{Array.from({ length: 3 }, () => (
-					<div class="stat">
-						<div class="stat-figure">
-							<div class="size-10 skeleton" />
+		{
+			["/statistics/data", "/statistics/players"].map((path) => (
+				<div hx-get={path} hx-trigger="intersect once" class="stats w-full">
+					{Array.from({ length: 3 }, () => (
+						<div class="stat">
+							<div class="stat-figure">
+								<div class="size-10 skeleton" />
+							</div>
+							<div class="stat-title">
+								<div class="h-4 w-20 skeleton sm:w-12" />
+							</div>
+							<div class="stat-value py-2.5">
+								<div class="h-8 w-32 skeleton sm:w-24" />
+							</div>
+							<div class="stat-desc">
+								<div class="h-4 w-16 skeleton" />
+							</div>
 						</div>
-						<div class="stat-title">
-							<div class="h-4 w-20 skeleton sm:w-12" />
-						</div>
-						<div class="stat-value py-2.5">
-							<div class="h-8 w-32 skeleton sm:w-24" />
-						</div>
-						<div class="stat-desc">
-							<div class="h-4 w-16 skeleton" />
-						</div>
-					</div>
-				))}
-			</div>
-		))}
+					))}
+				</div>
+			))
+		}
 
 		<div
 			class="htmx-indicator absolute center badge w-max badge-xl badge-neutral"
@@ -87,18 +91,20 @@ const PAGE_DESCRIPTIONS = {
 	<div class="divider"></div>
 
 	<div class="flex flex-wrap justify-center gap-2">
-		{LINKS.map(({ icon, label, url }) => (
-			<a
-				data-umami-event="homepage-external"
-				data-umami-event-name={label}
-				class="btn btn-sm"
-				href={url}
-				target="_blank"
-			>
-				<Icon class="size-4" name={icon} />
-				{label}
-			</a>
-		))}
+		{
+			LINKS.map(({ icon, label, url }) => (
+				<a
+					data-umami-event="homepage-external"
+					data-umami-event-name={label}
+					class="btn btn-sm"
+					href={url}
+					target="_blank"
+				>
+					<Icon class="size-4" name={icon} />
+					{label}
+				</a>
+			))
+		}
 	</div>
 
 	<div class="mt-1 flex flex-wrap justify-center gap-2">

@@ -39,26 +39,28 @@ const totalPowerBonus = totalPotentialBonus + totalMissionBonus;
 
 <div class="tooltip-content w-64">
 	<div class="flex flex-col">
-		{[
+		{
 			[
-				"Power",
-				`${formatNumber(totalPower)} (+${formatNumber(totalPowerBonus)})`,
-			],
+				[
+					"Power",
+					`${formatNumber(totalPower)} (+${formatNumber(totalPowerBonus)})`,
+				],
 
-			...STAT_TYPES.map((type) => [
-				capitalize(type),
-				`${formatNumber(member.stat[type])} (+${formatNumber(member.potentialBonus[type] + member.missionBonus[type])})`,
-			]),
+				...STAT_TYPES.map((type) => [
+					capitalize(type),
+					`${formatNumber(member.stat[type])} (+${formatNumber(member.potentialBonus[type] + member.missionBonus[type])})`,
+				]),
 
-			...(["potential", "mission"] as const).map((bonusType) => [
-				capitalize(bonusType),
-				STAT_TYPES.map(getBonusPercentage(bonusType)).join(" "),
-			]),
-		].map(([key, value]) => (
-			<div class="flex w-full items-center justify-between">
-				<span>{key}</span>
-				<span class="ml-4 font-mono">{value}</span>
-			</div>
-		))}
+				...(["potential", "mission"] as const).map((bonusType) => [
+					capitalize(bonusType),
+					STAT_TYPES.map(getBonusPercentage(bonusType)).join(" "),
+				]),
+			].map(([key, value]) => (
+				<div class="flex w-full items-center justify-between">
+					<span>{key}</span>
+					<span class="ml-4 font-mono">{value}</span>
+				</div>
+			))
+		}
 	</div>
 </div>

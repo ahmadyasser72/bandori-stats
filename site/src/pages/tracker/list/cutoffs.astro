@@ -66,56 +66,60 @@ if (Astro.cache.enabled)
 ---
 
 <div class="list mt-4 py-1" id="tracker-list">
-	{players.length === 0 && (
-		<div class="list-row items-center">
-			<div class="flex items-center justify-center gap-2 list-col-grow">
-				<Icon class="size-10" name="lucide--x" />
-				<span class="text-lg font-medium">No data</span>
+	{
+		players.length === 0 && (
+			<div class="list-row items-center">
+				<div class="flex items-center justify-center gap-2 list-col-grow">
+					<Icon class="size-10" name="lucide--x" />
+					<span class="text-lg font-medium">No data</span>
+				</div>
 			</div>
-		</div>
-	)}
+		)
+	}
 
-	{players.map(({ latest, previous }) => (
-		<div class="list-row items-center">
-			<div class="flex flex-col items-center gap-0.5 font-mono">
-				<span
-					class:list={[
-						"badge h-10 min-w-10 px-2",
-						latest.rank <= 3 ? "badge-secondary" : "badge-ghost",
-					]}
-				>
-					{latest.rank}
-				</span>
+	{
+		players.map(({ latest, previous }) => (
+			<div class="list-row items-center">
+				<div class="flex flex-col items-center gap-0.5 font-mono">
+					<span
+						class:list={[
+							"badge h-10 min-w-10 px-2",
+							latest.rank <= 3 ? "badge-secondary" : "badge-ghost",
+						]}
+					>
+						{latest.rank}
+					</span>
+				</div>
+
+				<div class="flex min-w-0 items-center gap-2 list-col-grow">
+					{latest.avatar && <GbpCard class="scale-75" member={latest.avatar} />}
+
+					<span
+						class="flex-1 truncate text-lg font-medium text-ellipsis"
+						data-bb={latest.name}
+					>
+						{stripBB(latest.name)}
+					</span>
+				</div>
+
+				<div class="flex flex-col text-sm max-sm:list-col-wrap sm:items-end">
+					<span class="inline-flex items-center font-semibold">
+						{formatNumber(latest.point)}
+						{previous && latest.point !== previous.point && (
+							<span
+								class="tooltip tooltip-end ml-1 badge px-1.5 badge-xs tooltip-success underline decoration-dotted badge-success"
+								data-tip={`compared to ${formatDuration(previous.timestamp)}`}
+							>
+								{formatNumber(latest.point - previous.point, {
+									positiveSign: true,
+								})}
+							</span>
+						)}
+					</span>
+
+					<span>updated {formatDuration(latest.timestamp)}</span>
+				</div>
 			</div>
-
-			<div class="flex min-w-0 items-center gap-2 list-col-grow">
-				{latest.avatar && <GbpCard class="scale-75" member={latest.avatar} />}
-
-				<span
-					class="flex-1 truncate text-lg font-medium text-ellipsis"
-					data-bb={latest.name}
-				>
-					{stripBB(latest.name)}
-				</span>
-			</div>
-
-			<div class="flex flex-col text-sm max-sm:list-col-wrap sm:items-end">
-				<span class="inline-flex items-center font-semibold">
-					{formatNumber(latest.point)}
-					{previous && latest.point !== previous.point && (
-						<span
-							class="tooltip tooltip-end ml-1 badge px-1.5 badge-xs tooltip-success underline decoration-dotted badge-success"
-							data-tip={`compared to ${formatDuration(previous.timestamp)}`}
-						>
-							{formatNumber(latest.point - previous.point, {
-								positiveSign: true,
-							})}
-						</span>
-					)}
-				</span>
-
-				<span>updated {formatDuration(latest.timestamp)}</span>
-			</div>
-		</div>
-	))}
+		))
+	}
 </div>

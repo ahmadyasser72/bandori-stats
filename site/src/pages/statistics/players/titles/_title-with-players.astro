@@ -35,8 +35,6 @@ const { players } = titlesLookup.get(titleId)!;
 		hx-trigger="intersect once"
 		class="list mt-1 max-h-64 w-64 overflow-y-auto"
 	>
-		{Array.from({ length: 1 }).map(() => (
-			<div class="list-row skeleton" />
-		))}
+		{Array.from({ length: 1 }).map(() => <div class="list-row skeleton" />)}
 	</div>
 </div>

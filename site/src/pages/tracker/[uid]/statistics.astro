@@ -181,14 +181,16 @@ if (Astro.cache.enabled)
 
 <SheetModal class="mx-auto max-w-2xl">
 	<h2 class="text-center text-2xl font-medium">
-		{profile ? (
-			<>
-				<span data-bb={profile.name}>{stripBB(profile.name)}</span> &mdash;
-				Statistics
-			</>
-		) : (
-			"Player not found"
-		)}
+		{
+			profile ? (
+				<>
+					<span data-bb={profile.name}>{stripBB(profile.name)}</span> &mdash;
+					Statistics
+				</>
+			) : (
+				"Player not found"
+			)
+		}
 	</h2>
 	<span class="text-center font-mono text-sm text-base-content/67">
 		({params.duration})
@@ -199,36 +201,38 @@ if (Astro.cache.enabled)
 		class="tabs mt-4 w-full tabs-sm text-accent"
 		role="tablist"
 	>
-		{(isPastData ? ["?", "all"] : [...DURATIONS, "?", "all"]).map(
-			(duration) => (
-				<label
-					class="tab h-16 flex-col hover:text-accent max-md:flex-1 md:px-12"
-					{...(duration === "?" && {
-						onclick: "this.parentNode.lastElementChild.togglePopover()",
-						style: "anchor-name: --anchor-duration-calendar",
-					})}
-				>
-					{duration !== "?" && (
-						<input
-							hx-get={Astro.url.pathname}
-							hx-disable="closest .tabs"
-							hx-swap="after"
-							hx-target="main"
-							data-umami-event="tracker-statistics-duration"
-							data-umami-event-duration={duration}
-							data-umami-event-kind={params.kind}
-							data-umami-event-player={stripBB(profile?.name)}
-							name="duration"
-							type="radio"
-							value={duration}
-							checked={duration === params.duration}
-						/>
-					)}
-					<IconLoader class="size-5" name="lucide--clock" />
-					{duration}
-				</label>
-			),
-		)}
+		{
+			(isPastData ? ["?", "all"] : [...DURATIONS, "?", "all"]).map(
+				(duration) => (
+					<label
+						class="tab h-16 flex-col hover:text-accent max-md:flex-1 md:px-12"
+						{...(duration === "?" && {
+							onclick: "this.parentNode.lastElementChild.togglePopover()",
+							style: "anchor-name: --anchor-duration-calendar",
+						})}
+					>
+						{duration !== "?" && (
+							<input
+								hx-get={Astro.url.pathname}
+								hx-disable="closest .tabs"
+								hx-swap="after"
+								hx-target="main"
+								data-umami-event="tracker-statistics-duration"
+								data-umami-event-duration={duration}
+								data-umami-event-kind={params.kind}
+								data-umami-event-player={stripBB(profile?.name)}
+								name="duration"
+								type="radio"
+								value={duration}
+								checked={duration === params.duration}
+							/>
+						)}
+						<IconLoader class="size-5" name="lucide--clock" />
+						{duration}
+					</label>
+				),
+			)
+		}
 
 		<div
 			class="dropdown dropdown-center text-base-content"
@@ -285,39 +289,41 @@ if (Astro.cache.enabled)
 		</div>
 	</div>
 
-	{params.duration === "all" ? (
-		<ActivityChart client:only="preact" data={gameByHours}>
-			<div class="mt-8 w-full" slot="fallback">
-				<h3 class="text-center text-xl font-medium">
-					<Icon
-						class="mr-1 align-[-2px]"
-						name="svg-spinners--90-ring-with-bg"
-					/>
-					Activity heatmap
-				</h3>
-				<div class="my-2 h-64 w-full skeleton" />
-			</div>
-		</ActivityChart>
-	) : (
-		<BarChart
-			client:only="preact"
-			color="var(--color-primary)"
-			data={gameByHours.map(([timestamp, [count]]) => [timestamp, count])}
-			hourly
-			label="Active hours"
-		>
-			<div class="mt-8 w-full" slot="fallback">
-				<h3 class="text-center text-xl font-medium">
-					<Icon
-						class="mr-1 align-[-2px]"
-						name="svg-spinners--90-ring-with-bg"
-					/>
-					Active hours
-				</h3>
-				<div class="my-2 h-64 w-full skeleton" />
-			</div>
-		</BarChart>
-	)}
+	{
+		params.duration === "all" ? (
+			<ActivityChart client:only="preact" data={gameByHours}>
+				<div class="mt-8 w-full" slot="fallback">
+					<h3 class="text-center text-xl font-medium">
+						<Icon
+							class="mr-1 align-[-2px]"
+							name="svg-spinners--90-ring-with-bg"
+						/>
+						Activity heatmap
+					</h3>
+					<div class="my-2 h-64 w-full skeleton" />
+				</div>
+			</ActivityChart>
+		) : (
+			<BarChart
+				client:only="preact"
+				color="var(--color-primary)"
+				data={gameByHours.map(([timestamp, [count]]) => [timestamp, count])}
+				hourly
+				label="Active hours"
+			>
+				<div class="mt-8 w-full" slot="fallback">
+					<h3 class="text-center text-xl font-medium">
+						<Icon
+							class="mr-1 align-[-2px]"
+							name="svg-spinners--90-ring-with-bg"
+						/>
+						Active hours
+					</h3>
+					<div class="my-2 h-64 w-full skeleton" />
+				</div>
+			</BarChart>
+		)
+	}
 
 	<BarChart
 		client:only="preact"

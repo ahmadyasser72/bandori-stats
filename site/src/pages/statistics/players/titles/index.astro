@@ -17,17 +17,20 @@ export const partial = true;
 		class="select mt-2 w-64"
 		name="category"
 	>
-		{Object.entries(titles).map(([category, items], idx) => (
-			<option value={category} selected={idx === 0}>
-				{items.length} &mdash; {displayCategory[category]}
-			</option>
-		))}
+		{
+			Object.entries(titles).map(([category, items], idx) => (
+				<option value={category} selected={idx === 0}>
+					{items.length} &mdash; {displayCategory[category]}
+				</option>
+			))
+		}
 	</select>
 
 	<div
 		class="htmx-indicator-replace container mx-auto mt-4 h-[60vh] max-sm:max-w-max sm:w-max"
 		id="player-titles"
-	></div>
+	>
+	</div>
 	<InfiniteGridLoader
 		class="htmx-indicator container mx-auto mt-4 min-h-[60vh]"
 		item="category"

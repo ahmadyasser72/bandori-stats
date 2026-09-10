@@ -54,14 +54,14 @@ if (Astro.cache.enabled)
 ---
 
 <div
-	{...(isActive && {
+	{...isActive && {
 		"hx-get": `${Astro.url.pathname}${Astro.url.search}&poll=true`,
 		"hx-indicator": "#metadata-loader",
 		"hx-on":
 			"htmx:config:request from:self -> if (document.hidden) event.preventDefault()",
 		"hx-swap": "outerMorph",
 		"hx-trigger": "every 60s, visibilitychange from:document",
-	})}
+	}}
 	class="mt-4 flex flex-col items-center gap-1"
 >
 	<img
@@ -81,22 +81,24 @@ if (Astro.cache.enabled)
 	</h2>
 
 	<div class="flex w-full flex-col">
-		<div class="flex translate-y-1.5 justify-between px-0.5 text-sm font-medium">
+		<div
+			class="flex translate-y-1.5 justify-between px-0.5 text-sm font-medium"
+		>
 			<span
-				{...(isActive && {
+				{...isActive && {
 					class:
 						"tooltip tooltip-start tooltip-primary underline decoration-dotted",
 					"data-tip": formatDuration(metadata.startAt),
-				})}
+				}}
 			>
 				{dayjs.tz(metadata.startAt, clientTimezone).format("YYYY-MM-DD, HH:mm")}
 			</span>
 			<span
-				{...(isActive && {
+				{...isActive && {
 					class:
 						"tooltip tooltip-end tooltip-primary underline decoration-dotted",
 					"data-tip": formatDuration(metadata.endAt),
-				})}
+				}}
 			>
 				{dayjs.tz(metadata.endAt, clientTimezone).format("YYYY-MM-DD, HH:mm")}
 			</span>
@@ -106,8 +108,7 @@ if (Astro.cache.enabled)
 			<progress
 				class="progress w-full progress-primary"
 				value={progress}
-				max="100"
-			></progress>
+				max="100"></progress>
 
 			<div class="absolute center badge badge-sm badge-primary">
 				{progress.toFixed(1)}%
@@ -131,32 +132,34 @@ if (Astro.cache.enabled)
 				Chart
 			</button>
 
-			{isActive && (
-				<>
-					<button
-						data-umami-event="tracker-discord-webhook"
-						data-umami-event-kind={params.kind}
-						data-umami-event-name={metadata.name}
-						class="btn join-item flex-1 btn-secondary btn-sm"
-						popovertarget="tracker-discord-webhook"
-					>
-						<Icon name="lucide--megaphone" />
-						Webhook
-					</button>
-					<div
-						hx-morph-skip-children
-						class="dropdown dropdown-start w-84 sm:w-md"
-						id="tracker-discord-webhook"
-						popover
-						style="position-anchor: --anchor-tracker-actions"
-					>
-						<DiscordWebhook
-							client:visible
-							target={pick(metadata, ["kind", "id"])}
-						/>
-					</div>
-				</>
-			)}
+			{
+				isActive && (
+					<>
+						<button
+							data-umami-event="tracker-discord-webhook"
+							data-umami-event-kind={params.kind}
+							data-umami-event-name={metadata.name}
+							class="btn join-item flex-1 btn-secondary btn-sm"
+							popovertarget="tracker-discord-webhook"
+						>
+							<Icon name="lucide--megaphone" />
+							Webhook
+						</button>
+						<div
+							hx-morph-skip-children
+							class="dropdown dropdown-start w-84 sm:w-md"
+							id="tracker-discord-webhook"
+							popover
+							style="position-anchor: --anchor-tracker-actions"
+						>
+							<DiscordWebhook
+								client:visible
+								target={pick(metadata, ["kind", "id"])}
+							/>
+						</div>
+					</>
+				)
+			}
 
 			<button
 				hx-get="/tracker/metadata-info"

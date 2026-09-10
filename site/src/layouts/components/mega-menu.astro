@@ -42,9 +42,11 @@ const { page } = Astro.props;
 				</a>
 			</li>
 
-			{Object.entries(PAGES).map(([key, item]) => (
-				<MegaMenuItem active={page === key} {item} />
-			))}
+			{
+				Object.entries(PAGES).map(([key, item]) => (
+					<MegaMenuItem active={page === key} {item} />
+				))
+			}
 		</ul>
 	</div>
 
@@ -53,19 +55,21 @@ const { page } = Astro.props;
 	</button>
 	<div id="site-links" popover>
 		<ul class="menu">
-			{LINKS.map(({ icon, label, url }) => (
-				<li>
-					<a
-						data-umami-event="megamenu-external"
-						data-umami-event-name={label}
-						href={url}
-						target="_blank"
-					>
-						<Icon name={icon} />
-						{label}
-					</a>
-				</li>
-			))}
+			{
+				LINKS.map(({ icon, label, url }) => (
+					<li>
+						<a
+							data-umami-event="megamenu-external"
+							data-umami-event-name={label}
+							href={url}
+							target="_blank"
+						>
+							<Icon name={icon} />
+							{label}
+						</a>
+					</li>
+				))
+			}
 
 			<li>
 				<h2 class="menu-title">Info</h2>

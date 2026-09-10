@@ -45,19 +45,21 @@ const [
 	</div>
 	<div class="stat-title text-info">Players tracked</div>
 	<div class="stat-value">{totalAccounts}</div>
-	{firstUpdate && (
-		<div class="stat-desc">
-			<div class="badge badge-soft badge-sm font-medium badge-info">
-				Since
-				<span
-					class="tooltip -ml-1 tooltip-info underline decoration-dotted"
-					data-tip={dayjs(firstUpdate).fromNow()}
-				>
-					{firstUpdate}
-				</span>
+	{
+		firstUpdate && (
+			<div class="stat-desc">
+				<div class="badge badge-soft badge-sm font-medium badge-info">
+					Since
+					<span
+						class="tooltip -ml-1 tooltip-info underline decoration-dotted"
+						data-tip={dayjs(firstUpdate).fromNow()}
+					>
+						{firstUpdate}
+					</span>
+				</div>
 			</div>
-		</div>
-	)}
+		)
+	}
 </div>
 
 <div class="stat">
@@ -66,40 +68,44 @@ const [
 	</div>
 	<div class="stat-title text-info">Snapshots taken</div>
 	<div class="stat-value">{totalSnapshots}</div>
-	{snapshotsToday > 0 ? (
-		<div class="stat-desc">
-			<div class="badge badge-soft badge-sm font-medium badge-info">
-				↗︎ +{snapshotsToday} today
-			</div>
-		</div>
-	) : (
-		snapshotsYesterday > 0 && (
+	{
+		snapshotsToday > 0 ? (
 			<div class="stat-desc">
 				<div class="badge badge-soft badge-sm font-medium badge-info">
-					↗︎ +{snapshotsYesterday} yesterday
+					↗︎ +{snapshotsToday} today
 				</div>
 			</div>
+		) : (
+			snapshotsYesterday > 0 && (
+				<div class="stat-desc">
+					<div class="badge badge-soft badge-sm font-medium badge-info">
+						↗︎ +{snapshotsYesterday} yesterday
+					</div>
+				</div>
+			)
 		)
-	)}
+	}
 </div>
 
-{lastUpdate && (
-	<div class="stat">
-		<div class="stat-figure">
-			<Icon class="size-10 text-info" name="lucide--clock-3" />
-		</div>
-		<div class="stat-title text-info">Last update</div>
-		<div class="stat-value">
-			{lastUpdate === today
-				? "Today"
-				: lastUpdate === yesterday
-					? "Yesterday"
-					: dayjs(lastUpdate).fromNow()}
-		</div>
-		<div class="stat-desc">
-			<div class="badge badge-soft badge-sm font-medium badge-info">
-				{lastUpdate}
+{
+	lastUpdate && (
+		<div class="stat">
+			<div class="stat-figure">
+				<Icon class="size-10 text-info" name="lucide--clock-3" />
+			</div>
+			<div class="stat-title text-info">Last update</div>
+			<div class="stat-value">
+				{lastUpdate === today
+					? "Today"
+					: lastUpdate === yesterday
+						? "Yesterday"
+						: dayjs(lastUpdate).fromNow()}
+			</div>
+			<div class="stat-desc">
+				<div class="badge badge-soft badge-sm font-medium badge-info">
+					{lastUpdate}
+				</div>
 			</div>
 		</div>
-	</div>
-)}
+	)
+}

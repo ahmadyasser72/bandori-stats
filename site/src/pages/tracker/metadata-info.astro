@@ -56,58 +56,65 @@ const { cards } =
 				<div>
 					<h3 class="font-medium">{kind} Period</h3>
 					<span>
-						{[metadata.startAt, metadata.endAt]
-							.map((date) =>
-								dayjs.tz(date, clientTimezone).format("DD MMM YYYY, HH:mm"),
-							)
-							.join(" — ")}
+						{
+							[metadata.startAt, metadata.endAt]
+								.map((date) =>
+									dayjs.tz(date, clientTimezone).format("DD MMM YYYY, HH:mm"),
+								)
+								.join(" — ")
+						}
 					</span>
 				</div>
 
-				{metadata.kind === "event" && (
-					<>
-						<div>
-							<h3 class="font-medium">Event Type</h3>
-							<span class="inline-flex items-center gap-1">
-								<img
-									class="size-5"
-									src={`/assets/attributes/${metadata.metadata.attributes[0].attribute}.svg`}
-								/>
-								{formatEventType(metadata.type)}
-							</span>
-						</div>
+				{
+					metadata.kind === "event" && (
+						<>
+							<div>
+								<h3 class="font-medium">Event Type</h3>
+								<span class="inline-flex items-center gap-1">
+									<img
+										class="size-5"
+										src={`/assets/attributes/${metadata.metadata.attributes[0].attribute}.svg`}
+									/>
+									{formatEventType(metadata.type)}
+								</span>
+							</div>
 
-						<div>
-							<h3 class="font-medium">Event Characters</h3>
-							<span class="inline-flex gap-1">
-								{Object.keys(metadata.metadata.characters).map((id) => (
-									<img class="size-10" src={`/assets/characters/${id}.webp`} />
-								))}
-							</span>
-						</div>
+							<div>
+								<h3 class="font-medium">Event Characters</h3>
+								<span class="inline-flex gap-1">
+									{Object.keys(metadata.metadata.characters).map((id) => (
+										<img
+											class="size-10"
+											src={`/assets/characters/${id}.webp`}
+										/>
+									))}
+								</span>
+							</div>
 
-						<div>
-							<h3 class="font-medium">Event Gacha Cards</h3>
-							<span class="inline-flex flex-wrap justify-center gap-1">
-								{cards &&
-									[...cards.values()].flatMap((card) =>
-										[false, true].map((trained) => (
-											<GbpCard
-												member={{
-													id: card.situationId,
-													trained,
-													attribute: card.attribute,
-													character: card.characterId,
-													band: CHARACTER_TO_BAND[card.characterId],
-													rarity: card.rarity,
-												}}
-											/>
-										)),
-									)}
-							</span>
-						</div>
-					</>
-				)}
+							<div>
+								<h3 class="font-medium">Event Gacha Cards</h3>
+								<span class="inline-flex flex-wrap justify-center gap-1">
+									{cards &&
+										[...cards.values()].flatMap((card) =>
+											[false, true].map((trained) => (
+												<GbpCard
+													member={{
+														id: card.situationId,
+														trained,
+														attribute: card.attribute,
+														character: card.characterId,
+														band: CHARACTER_TO_BAND[card.characterId],
+														rarity: card.rarity,
+													}}
+												/>
+											)),
+										)}
+								</span>
+							</div>
+						</>
+					)
+				}
 			</div>
 		</div>
 
@@ -120,25 +127,23 @@ const { cards } =
 			<div class="flex flex-col items-center gap-4 text-center">
 				<div>
 					<h3 class="font-medium">{kind} BGM</h3>
-					<audio
-						src={getTrackerBgm(params)}
-						controls
-						loop
-						preload="metadata"
+					<audio src={getTrackerBgm(params)} controls loop preload="metadata"
 					></audio>
 				</div>
 
-				{metadata.kind === "event" && (
-					<div>
-						<h3 class="font-medium">Event Banner</h3>
-						<img
-							class="my-2 aspect-3/1 w-64"
-							src={getEventBanner(params)}
-							alt={metadata.assetBundleName}
-							loading="lazy"
-						/>
-					</div>
-				)}
+				{
+					metadata.kind === "event" && (
+						<div>
+							<h3 class="font-medium">Event Banner</h3>
+							<img
+								class="my-2 aspect-3/1 w-64"
+								src={getEventBanner(params)}
+								alt={metadata.assetBundleName}
+								loading="lazy"
+							/>
+						</div>
+					)
+				}
 
 				<div>
 					<h3 class="font-medium">{kind} Logo</h3>
@@ -152,14 +157,16 @@ const { cards } =
 
 				<div>
 					<h3 class="font-medium">{kind} Background</h3>
-					{([1, 2] as const).map((variant) => (
-						<img
-							class="my-2 aspect-2/1 h-64 rounded-box object-cover sm:h-96"
-							src={getTrackerBackground(params, variant)}
-							alt={`${metadata.assetBundleName} background`}
-							loading="lazy"
-						/>
-					))}
+					{
+						([1, 2] as const).map((variant) => (
+							<img
+								class="my-2 aspect-2/1 h-64 rounded-box object-cover sm:h-96"
+								src={getTrackerBackground(params, variant)}
+								alt={`${metadata.assetBundleName} background`}
+								loading="lazy"
+							/>
+						))
+					}
 				</div>
 			</div>
 		</div>

@@ -35,33 +35,37 @@ const accounts = await db().query.accounts.findMany({
 });
 ---
 
-{accounts.map((account) => (
-	<li>
-		<button
-			hx-get="/vs"
-			hx-vals={JSON.stringify({
-				[side]: account.id,
-				[otherSide]: otherId,
-			})}
-			{...(otherId && {
-				"data-umami-event": "vs-account",
-				[`data-umami-event-${side}`]: account.id,
-				[`data-umami-event-${otherSide}`]: otherId,
-			})}
-		>
-			{account.nickname ? (
-				<>
-					@{account.username}
-					<span class="opacity-50">({account.nickname})</span>
-				</>
-			) : (
-				`@${account.username}`
-			)}
-		</button>
-	</li>
-))}
-{accounts.length === 0 && (
-	<li class="disabled">
-		<a>No accounts found</a>
-	</li>
-)}
+{
+	accounts.map((account) => (
+		<li>
+			<button
+				hx-get="/vs"
+				hx-vals={JSON.stringify({
+					[side]: account.id,
+					[otherSide]: otherId,
+				})}
+				{...(otherId && {
+					"data-umami-event": "vs-account",
+					[`data-umami-event-${side}`]: account.id,
+					[`data-umami-event-${otherSide}`]: otherId,
+				})}
+			>
+				{account.nickname ? (
+					<>
+						@{account.username}
+						<span class="opacity-50">({account.nickname})</span>
+					</>
+				) : (
+					`@${account.username}`
+				)}
+			</button>
+		</li>
+	))
+}
+{
+	accounts.length === 0 && (
+		<li class="disabled">
+			<a>No accounts found</a>
+		</li>
+	)
+}

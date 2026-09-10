@@ -11,25 +11,27 @@ interface Props {
 const { item, active } = Astro.props;
 ---
 
-{item.items ? (
-	<li>
-		<details>
-			<summary class:list={[active && "menu-active"]}>
-				<Icon name={item.icon} />
+{
+	item.items ? (
+		<li>
+			<details>
+				<summary class:list={[active && "menu-active"]}>
+					<Icon name={item.icon} />
+					{item.label}
+				</summary>
+				<ul>
+					{item.items.map((subitem) => (
+						<Astro.self active={false} item={subitem} />
+					))}
+				</ul>
+			</details>
+		</li>
+	) : (
+		<li>
+			<a class:list={[active && "menu-active"]} href={item.url}>
+				<IconLoader name={item.icon} />
 				{item.label}
-			</summary>
-			<ul>
-				{item.items.map((subitem) => (
-					<Astro.self active={false} item={subitem} />
-				))}
-			</ul>
-		</details>
-	</li>
-) : (
-	<li>
-		<a class:list={[active && "menu-active"]} href={item.url}>
-			<IconLoader name={item.icon} />
-			{item.label}
-		</a>
-	</li>
-)}
+			</a>
+		</li>
+	)
+}

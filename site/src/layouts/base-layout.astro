@@ -148,27 +148,31 @@ const { title, page, containerClass } = Astro.props;
 			content="extensions:browser-indicator boostBrowserIndicator:true includeIndicatorCSS:false"
 		/>
 
-		{import.meta.env.PROD && UMAMI_SITE_ID && (
-			<script
-				data-website-id={UMAMI_SITE_ID}
-				src="https://cloud.umami.is/script.js"
-				defer
-				is:inline
-			></script>
-		)}
+		{
+			import.meta.env.PROD && UMAMI_SITE_ID && (
+				<script
+					data-website-id={UMAMI_SITE_ID}
+					src="https://cloud.umami.is/script.js"
+					defer
+					is:inline
+				/>
+			)
+		}
 	</head>
 	<body>
 		<main
 			hx-boost:inherited="transition:true"
 			class:list={["container mx-auto min-h-screen p-4", containerClass]}
 		>
-			{page && (
-				<div class="mb-4 flex items-center justify-between">
-					<MegaMenu {page} />
+			{
+				page && (
+					<div class="mb-4 flex items-center justify-between">
+						<MegaMenu {page} />
 
-					<ThemeSelector />
-				</div>
-			)}
+						<ThemeSelector />
+					</div>
+				)
+			}
 
 			<slot />
 		</main>

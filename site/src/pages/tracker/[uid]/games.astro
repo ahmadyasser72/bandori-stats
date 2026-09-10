@@ -118,14 +118,16 @@ if (Astro.cache.enabled)
 
 <SheetModal>
 	<h2 class="text-center text-2xl font-medium">
-		{profile ? (
-			<>
-				<span data-bb={profile.name}>{stripBB(profile.name)}</span> &mdash;
-				Games
-			</>
-		) : (
-			"Player not found"
-		)}
+		{
+			profile ? (
+				<>
+					<span data-bb={profile.name}>{stripBB(profile.name)}</span> &mdash;
+					Games
+				</>
+			) : (
+				"Player not found"
+			)
+		}
 	</h2>
 	<span class="text-center font-mono text-sm text-base-content/67">
 		({params.duration})
@@ -136,34 +138,36 @@ if (Astro.cache.enabled)
 		class="tabs mt-4 w-full tabs-sm text-accent"
 		role="tablist"
 	>
-		{(isPastData ? ["?"] : [...DURATIONS, "?"]).map((duration) => (
-			<label
-				class="tab h-16 flex-col hover:text-accent max-md:flex-1 md:px-12"
-				{...(duration === "?" && {
-					onclick: "this.parentNode.lastElementChild.togglePopover()",
-					style: "anchor-name: --anchor-duration-calendar",
-				})}
-			>
-				{duration !== "?" && (
-					<input
-						hx-get={Astro.url.pathname}
-						hx-disable="closest .tabs"
-						hx-swap="after"
-						hx-target="main"
-						data-umami-event="tracker-games-duration"
-						data-umami-event-duration={duration}
-						data-umami-event-kind={params.kind}
-						data-umami-event-player={stripBB(profile?.name)}
-						name="duration"
-						type="radio"
-						value={duration}
-						checked={duration === params.duration}
-					/>
-				)}
-				<IconLoader class="size-5" name="lucide--clock" />
-				{duration}
-			</label>
-		))}
+		{
+			(isPastData ? ["?"] : [...DURATIONS, "?"]).map((duration) => (
+				<label
+					class="tab h-16 flex-col hover:text-accent max-md:flex-1 md:px-12"
+					{...(duration === "?" && {
+						onclick: "this.parentNode.lastElementChild.togglePopover()",
+						style: "anchor-name: --anchor-duration-calendar",
+					})}
+				>
+					{duration !== "?" && (
+						<input
+							hx-get={Astro.url.pathname}
+							hx-disable="closest .tabs"
+							hx-swap="after"
+							hx-target="main"
+							data-umami-event="tracker-games-duration"
+							data-umami-event-duration={duration}
+							data-umami-event-kind={params.kind}
+							data-umami-event-player={stripBB(profile?.name)}
+							name="duration"
+							type="radio"
+							value={duration}
+							checked={duration === params.duration}
+						/>
+					)}
+					<IconLoader class="size-5" name="lucide--clock" />
+					{duration}
+				</label>
+			))
+		}
 
 		<div
 			class:list={[
@@ -200,11 +204,13 @@ if (Astro.cache.enabled)
 	</fieldset>
 
 	<div class="mt-4 flex max-w-4/5 flex-wrap justify-center gap-x-1 gap-y-0.5">
-		{params.duration !== "1h" && (
-			<div class="badge badge-soft badge-md badge-primary">
-				{formatNumber(gamesTotal / dayjs().diff(from, "hours"))} Games/hour
-			</div>
-		)}
+		{
+			params.duration !== "1h" && (
+				<div class="badge badge-soft badge-md badge-primary">
+					{formatNumber(gamesTotal / dayjs().diff(from, "hours"))} Games/hour
+				</div>
+			)
+		}
 
 		<div class="badge badge-soft badge-md badge-primary">
 			{gamesTotal} Games
@@ -229,42 +235,52 @@ if (Astro.cache.enabled)
 		</div>
 	</div>
 
-	<ul class="timeline timeline-vertical mt-2 max-h-[60vh] w-full max-w-120 overflow-y-auto">
-		{games.map(({ point, timestamp, delta }, idx) => (
-			<li>
-				{idx > 0 && <hr class="bg-neutral" />}
-				<div class="timeline-start font-mono">{formatDuration(timestamp)}</div>
-				<div class="timeline-end">
-					<div class="inline-flex items-center font-semibold">
-						{formatNumber(point)}
-						<span
-							class:list={[
-								"ml-1 badge px-1.5 badge-xs",
-								delta > outlierCap(params) ? "badge-warning" : "badge-success",
-							]}
-						>
-							{formatNumber(delta, { positiveSign: true })}
-						</span>
-
-						{delta > outlierCap(params) && (
-							<span
-								class="tooltip tooltip-end ml-1 badge badge-xs tooltip-warning badge-warning before:max-w-32"
-								data-tip="Likely accumulated while untracked"
-							>
-								gap
-							</span>
-						)}
+	<ul
+		class="timeline timeline-vertical mt-2 max-h-[60vh] w-full max-w-120 overflow-y-auto"
+	>
+		{
+			games.map(({ point, timestamp, delta }, idx) => (
+				<li>
+					{idx > 0 && <hr class="bg-neutral" />}
+					<div class="timeline-start font-mono">
+						{formatDuration(timestamp)}
 					</div>
-				</div>
-				{idx < games.length - 1 && <hr class="bg-neutral" />}
-			</li>
-		))}
+					<div class="timeline-end">
+						<div class="inline-flex items-center font-semibold">
+							{formatNumber(point)}
+							<span
+								class:list={[
+									"ml-1 badge px-1.5 badge-xs",
+									delta > outlierCap(params)
+										? "badge-warning"
+										: "badge-success",
+								]}
+							>
+								{formatNumber(delta, { positiveSign: true })}
+							</span>
+
+							{delta > outlierCap(params) && (
+								<span
+									class="tooltip tooltip-end ml-1 badge badge-xs tooltip-warning badge-warning before:max-w-32"
+									data-tip="Likely accumulated while untracked"
+								>
+									gap
+								</span>
+							)}
+						</div>
+					</div>
+					{idx < games.length - 1 && <hr class="bg-neutral" />}
+				</li>
+			))
+		}
 	</ul>
 
-	{gamesTotal === 0 && (
-		<div class="flex items-center justify-center gap-2 py-16">
-			<Icon class="size-10" name="lucide--x" />
-			<span class="text-lg font-medium">No games found</span>
-		</div>
-	)}
+	{
+		gamesTotal === 0 && (
+			<div class="flex items-center justify-center gap-2 py-16">
+				<Icon class="size-10" name="lucide--x" />
+				<span class="text-lg font-medium">No games found</span>
+			</div>
+		)
+	}
 </SheetModal>
