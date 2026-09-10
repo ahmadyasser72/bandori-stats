@@ -49,13 +49,15 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 	return db()
 		.batch([getCutoffs(ranks[0]), ...ranks.slice(1).map(getCutoffs)])
 		.then((entries) =>
-			entries.map(([latest, previous]) => ({
-				latest,
-				previous:
-					previous && dayjs().diff(previous.timestamp, "hour") <= 1
-						? previous
-						: undefined,
-			})),
+			entries
+				.filter((snapshots) => snapshots.length > 0)
+				.map(([latest, previous]) => ({
+					latest,
+					previous:
+						previous && dayjs().diff(previous.timestamp, "hour") <= 1
+							? previous
+							: undefined,
+				})),
 		);
 });
 
