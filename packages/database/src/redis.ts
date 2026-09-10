@@ -77,20 +77,22 @@ export const getRedisData = async (
 	ids.areaItems ??= [];
 	ids.cards ??= [];
 
-	const results = await redis().mget(
-		...ids.areaItems.map((id) => GBP.data.AreaItem[id]),
-		...ids.cards.map((id) => GBP.data.CharacterSituation[id]),
-	);
-
 	const areaItems = new Map<number, BangDreamAreaItem>();
 	const cards = new Map<number, BangDreamCard>();
-	for (const [idx, data] of results.entries()) {
-		const isAreaItem = idx < ids.areaItems.length;
-		const id = isAreaItem
-			? ids.areaItems[idx]
-			: ids.cards[idx - ids.areaItems.length];
+	if (ids.areaItems.length > 0 || ids.cards.length > 0) {
+		const results = await redis().mget(
+			...ids.areaItems.map((id) => GBP.data.AreaItem[id]),
+			...ids.cards.map((id) => GBP.data.CharacterSituation[id]),
+		);
 
-		(isAreaItem ? areaItems : cards).set(id, data as never);
+		for (const [idx, data] of results.entries()) {
+			const isAreaItem = idx < ids.areaItems.length;
+			const id = isAreaItem
+				? ids.areaItems[idx]
+				: ids.cards[idx - ids.areaItems.length];
+
+			(isAreaItem ? areaItems : cards).set(id, data as never);
+		}
 	}
 
 	return { areaItems, cards };
