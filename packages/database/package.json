@@ -18,10 +18,10 @@
 		"@upstash/redis": "1.38.4",
 		"drizzle-orm": "1.0.0-rc.5-ab785fc",
 		"es-toolkit": "1.52.0",
-		"zod": "4.5.4"
+		"zod": "4.6.2"
 	},
 	"devDependencies": {
-		"@types/node": "26.4.1",
+		"@types/node": "26.5.1",
 		"drizzle-kit": "1.0.0-rc.5-ab785fc",
 		"typescript": "6.0.3"
 	}
