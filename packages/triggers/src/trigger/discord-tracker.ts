@@ -12,7 +12,7 @@ import {
 	WebhookClient,
 	type MessageCreateOptions,
 } from "discord.js";
-import { allKeyed, chunk } from "es-toolkit";
+import { allKeyed, chunk, curry } from "es-toolkit";
 import z from "zod";
 
 import dayjs from "@bandori-stats/bestdori/date";
@@ -237,16 +237,27 @@ export const getSnapshots = async (
 	trackingReference: TrackingReference,
 	{ since, now }: GetSnapshotsOptions,
 ) => {
-	const getLatestRank = (rank: number) =>
+	const getRankAt = curry((reference: dayjs.Dayjs, rank: number) =>
 		db().query.trackerSnapshots.findFirst({
-			where: { ...trackingReference, rank, timestamp: { lte: now.toDate() } },
+			where: {
+				...trackingReference,
+				rank,
+				timestamp: { lte: reference.toDate() },
+			},
 			orderBy: { id: "desc" },
-		});
+		}),
+	);
 
+	const getLatestRank = getRankAt(now);
+	const getPreviousRank = getRankAt(since);
 	const ranks = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-	const top10 = (
-		await db().batch([getLatestRank(1), ...ranks.slice(1).map(getLatestRank)])
-	).filter((it) => it !== undefined);
+	const [top10, previousTop10] = chunk(
+		await db().batch([
+			...ranks.map(getLatestRank),
+			...ranks.map(getPreviousRank),
+		] as [ReturnType<typeof getLatestRank>]),
+		10,
+	).map((top10) => top10.filter((it) => it !== undefined));
 	if (top10.length === 0) return [];
 
 	const getBefore = ({ id, uid }: TrackerSnapshot) =>
@@ -296,33 +307,28 @@ export const getSnapshots = async (
 	);
 
 	const periodDuration = now.diff(since);
-	// Music tracks max score, not cumulative points: records are sparse so
-	// `before` is stale by default, and rebasing onto re-entry would drop the
-	// first record's own gain. Always measure vs `before` instead.
+	const formerTop10 = new Set(previousTop10.map(({ uid }) => uid));
 	const useStale = trackingReference.trackingFor !== "music";
 	return top10.map((current, idx) => {
-		const [beforePeriod, windowStart, lastPlayed] = snapshots[idx];
+		const [beforePeriod, windowStart, lastPlayed = current] = snapshots[idx];
 		const stale =
 			useStale &&
-			(!beforePeriod || since.diff(beforePeriod.timestamp) > periodDuration);
-		// Stale + re-entry rows = back after absence: baseline re-entry, old
-		// rank discarded. Otherwise baseline `before` — idle gaps hold zero
-		// gain (no-change-no-row), so `current - before` is exact.
-		const baseline = stale ? (windowStart ?? beforePeriod) : beforePeriod;
+			(!beforePeriod || now.diff(lastPlayed.timestamp) > periodDuration);
+		const returning = beforePeriod && !formerTop10.has(current.uid);
+		const baseline = stale ? windowStart : beforePeriod;
 
 		return {
 			current,
-			previous: baseline,
-			returning:
-				stale &&
-				beforePeriod &&
-				windowStart &&
-				windowStart.point !== current.point,
-			lastPlayed: (lastPlayed ?? current)?.timestamp,
-			delta: {
-				point: baseline ? current.point - baseline.point : 0,
-				rank: baseline ? current.rank - baseline.rank : 0,
-			},
+			previous: baseline ?? beforePeriod,
+			returning,
+			lastPlayed: lastPlayed.timestamp,
+			delta:
+				baseline && (!returning || !useStale)
+					? {
+							point: current.point - baseline.point,
+							rank: current.rank - baseline.rank,
+						}
+					: { point: 0, rank: 0 },
 		};
 	});
 };
