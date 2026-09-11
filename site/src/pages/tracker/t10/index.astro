@@ -1,7 +1,7 @@
 ---
 import { UMAMI_SITE_ID } from "astro:env/server";
 
-import { uniqBy } from "es-toolkit";
+import { chunk, uniqBy } from "es-toolkit";
 
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
 import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
@@ -38,6 +38,7 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 	const trackingReference = getTrackingReference(params);
 	const getLatestRank = (rank: number) =>
 		db().query.trackerSnapshots.findFirst({
+			columns: { trackingFor: false, trackingId: false },
 			where: { ...trackingReference, rank },
 			orderBy: { id: "desc" },
 			with: { profile: { where: trackingReference } },
@@ -45,23 +46,39 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 
 	const ranks = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 	const top10 = (
-		await db().batch([getLatestRank(1), ...ranks.slice(1).map(getLatestRank)])
+		await db().batch(
+			ranks.map(getLatestRank) as [ReturnType<typeof getLatestRank>],
+		)
 	).filter((it) => it !== undefined);
 	if (top10.length === 0) return [];
 	else if (!isActive)
 		return top10.map(
-			(
-				latest,
-			): { latest: typeof latest } & Partial<
-				Record<
-					"previous" | "lastPlayed" | "recentlyPlayed" | "rankHistory",
-					undefined
-				>
-			> => ({ latest }),
+			(latest) =>
+				({ latest }) as { latest: typeof latest } & Partial<
+					Record<
+						"lastPlayed" | "recentlyPlayed" | "pointsGained" | "rankHistory",
+						undefined
+					>
+				>,
 		);
 
-	const getPrevious = ({ id, uid, point }: TrackerSnapshot) =>
+	const getLastPlayed = ({
+		id,
+		uid,
+		point,
+	}: Pick<TrackerSnapshot, "id" | "uid" | "point">) =>
 		db().query.trackerSnapshots.findFirst({
+			columns: { id: true, uid: true, rank: true, timestamp: true },
+			where: { ...trackingReference, uid, id: { lt: id }, point },
+			orderBy: { id: "asc" },
+		});
+	const getPreviousPoint = ({
+		id,
+		uid,
+		point,
+	}: Pick<TrackerSnapshot, "id" | "uid" | "point">) =>
+		db().query.trackerSnapshots.findFirst({
+			columns: { point: true },
 			where: {
 				...trackingReference,
 				uid,
@@ -70,27 +87,38 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 			},
 			orderBy: { id: "desc" },
 		});
-	const previousSnapshots = await db().batch([
-		getPrevious(top10[0]),
-		...top10.slice(1).map(getPrevious),
-	]);
+	type LastPlayed = ReturnType<typeof getLastPlayed>;
+	type PreviousPoint = ReturnType<typeof getPreviousPoint>;
+
+	const previousSnapshots = chunk(
+		await db().batch(
+			top10.flatMap((snapshot) => [
+				getLastPlayed(snapshot),
+				getPreviousPoint(snapshot),
+			]) as [LastPlayed | PreviousPoint],
+		),
+		2,
+	);
 
 	const snapshots = top10.map((latest, idx) => {
-		const previous = previousSnapshots[idx];
-		const lastPlayed =
-			previous && previous.point === latest.point ? previous : latest;
+		const [lastPlayed = latest, previous] = previousSnapshots[idx] as [
+			Awaited<LastPlayed>,
+			Awaited<PreviousPoint>,
+		];
+
+		const recentlyPlayed = dayjs().diff(lastPlayed.timestamp, "minutes") <= 30;
+
 		return {
 			latest,
-			previous,
 			lastPlayed,
-			recentlyPlayed: lastPlayed
-				? dayjs().diff(lastPlayed?.timestamp, "minutes") <= 30
-				: false,
+			recentlyPlayed,
+			pointsGained:
+				recentlyPlayed && previous ? latest.point - previous.point : undefined,
 		};
 	});
 
 	const boatedPlayers = new Map<
-		TrackerSnapshot,
+		Pick<TrackerSnapshot, "id" | "uid">,
 		Pick<TrackerSnapshot, "rank" | "timestamp">[]
 	>();
 	for (const { latest, lastPlayed } of snapshots) {
@@ -98,7 +126,7 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 	}
 
 	if (boatedPlayers.size > 0) {
-		const getRankHistory = ({ id, uid }: TrackerSnapshot) =>
+		const getRankHistory = ({ id, uid }: Pick<TrackerSnapshot, "id" | "uid">) =>
 			db().query.trackerSnapshots.findMany({
 				columns: { rank: true, timestamp: true },
 				where: { ...trackingReference, uid, id: { gte: id } },
@@ -164,9 +192,9 @@ if (Astro.cache.enabled)
 		players.map(
 			({
 				latest: { profile, ...latest },
-				previous,
 				lastPlayed,
 				recentlyPlayed,
+				pointsGained,
 				rankHistory,
 			}) => (
 				<div
@@ -233,11 +261,9 @@ if (Astro.cache.enabled)
 						<div class="col-span-3 flex flex-col text-sm">
 							<span class="inline-flex items-center font-semibold">
 								{formatNumber(latest.point)}
-								{recentlyPlayed && previous && (
+								{pointsGained && pointsGained > 0 && (
 									<span class="ml-1 badge px-1.5 badge-xs badge-success">
-										{formatNumber(latest.point - previous.point, {
-											positiveSign: true,
-										})}
+										{formatNumber(pointsGained, { positiveSign: true })}
 									</span>
 								)}
 							</span>
