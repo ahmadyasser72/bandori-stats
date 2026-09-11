@@ -1,26 +1,23 @@
 ---
-import { pick } from "es-toolkit";
+import { capitalize, pick } from "es-toolkit";
+import z from "zod";
 
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
+import type { GbpEventMusic } from "@bandori-stats/database/schema";
 import {
 	getTrackingMetadata,
 	TrackingTarget,
 } from "@bandori-stats/database/tracker";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
-import { getTrackerLogo } from "~/lib/assets";
+import { getSongAlbumCover, getTrackerLogo } from "~/lib/assets";
+import { IdSchema } from "~/lib/schema";
+import { DisplaySchema } from "../list";
 import { DiscordWebhook } from "./_discord-webhook";
 
-const params = Astro.locals.parseQuery(TrackingTarget);
-
-const selectedDisplay = (() => {
-	try {
-		const url = new URL(Astro.request.headers.get("hx-current-url")!);
-		return url.searchParams.get("display") ?? "t10";
-	} catch (_) {
-		return "t10";
-	}
-})();
+const params = Astro.locals.parseQuery(
+	z.object({ ...TrackingTarget.shape, display: DisplaySchema.default("t10") }),
+);
 
 const metadata = await Astro.locals.tracing.enterSpan(
 	"fetch-metadata",
@@ -32,6 +29,51 @@ const metadata = await Astro.locals.tracing.enterSpan(
 	},
 );
 if (!metadata) return new Response(null, { status: 404 });
+
+let song: GbpEventMusic | undefined = undefined;
+const [songDisplay, songIdRaw] = params.display.split("-");
+const songId = IdSchema.catch(0).parse(songIdRaw);
+if (songId !== 0 && metadata.kind === "event")
+	song = metadata.musics.find(({ id }) => id === songId);
+
+interface DisplayChoice {
+	label: string;
+	image?: { kind: "logo" | "music"; url: string };
+	items: { value: string; label: string }[];
+}
+
+const displayChoices = [
+	{
+		label: `${capitalize(params.kind)} Ranking`,
+		image: { kind: "logo", url: getTrackerLogo(params) },
+		items: [
+			{ value: "t10", label: "T10" },
+			{ value: "cutoffs", label: "Cutoffs" },
+		],
+	},
+] as DisplayChoice[];
+if (metadata.kind === "event" && metadata.musics.length > 0) {
+	displayChoices.push(
+		...(metadata.type === "medley"
+			? ([
+					{
+						label: "Medley Ranking",
+						items: [
+							{ value: "t10-medley", label: "T10" },
+							{ value: "cutoffs-medley", label: "Cutoffs" },
+						],
+					},
+				] satisfies typeof displayChoices)
+			: metadata.musics.map(({ id, title }) => ({
+					label: title,
+					image: { kind: "music" as const, url: getSongAlbumCover({ id }) },
+					items: [
+						{ value: `t10-${id}`, label: "T10" },
+						{ value: `cutoffs-${id}`, label: "Cutoffs" },
+					],
+				}))),
+	);
+}
 
 const { clientTimezone } = Astro.locals;
 const now = dayjs().tz(clientTimezone);
@@ -65,8 +107,8 @@ if (Astro.cache.enabled)
 	class="mt-4 flex flex-col items-center gap-1"
 >
 	<img
-		class="aspect-9/4 w-64"
-		src={getTrackerLogo(params)}
+		class={song ? "aspect-square size-48" : "aspect-9/4 w-64"}
+		src={song ? getSongAlbumCover(song) : getTrackerLogo(params)}
 		alt={`${metadata.assetBundleName} logo`}
 	/>
 
@@ -79,6 +121,14 @@ if (Astro.cache.enabled)
 
 		{metadata.name}
 	</h2>
+
+	<span class="-mt-1 text-sm"
+		>{
+			song
+				? `${song.title} — ${capitalize(songDisplay)}`
+				: `${capitalize(metadata.kind)} Ranking — ${capitalize(params.display)}`
+		}</span
+	>
 
 	<div class="flex w-full flex-col">
 		<div
@@ -162,27 +212,83 @@ if (Astro.cache.enabled)
 			</button>
 		</div>
 
-		<label class="select w-full select-sm sm:w-max">
-			<span class="label">
-				<IconLoader name="lucide--list" />
-				Display
-			</span>
-			<select
-				hx-get="/tracker/list"
-				hx-browser-indicator="true"
-				hx-indicator="previous .label"
-				hx-swap="outerHTML"
-				hx-target="#tracker-list"
-				hx-vals={JSON.stringify(params)}
-				name="display"
+		<button
+			class="btn w-full btn-secondary btn-sm sm:w-max"
+			popovertarget="metadata-display-menu"
+			style="anchor-name: --anchor-metadata-display-menu"
+		>
+			<IconLoader name="lucide--list" />
+			Display
+		</button>
+		<div
+			class="dropdown dropdown-end"
+			id="metadata-display-menu"
+			popover
+			style="position-anchor: --anchor-metadata-display-menu"
+		>
+			<ul
+				hx-browser-indicator:inherited="true"
+				hx-swap:inherited="outerHTML transition:true"
+				hx-target:inherited="main"
+				hx-vals:inherited={JSON.stringify({ tab: params.kind, id: params.id })}
+				class="menu menu-vertical menu-paged min-w-64"
 			>
-				<option value="t10" selected={selectedDisplay === "t10"}>
-					Leaderboard T10
-				</option>
-				<option value="cutoffs" selected={selectedDisplay === "cutoffs"}>
-					Leaderboard Cutoffs
-				</option>
-			</select>
-		</label>
+				{
+					displayChoices.map(({ label, items, image }) => (
+						<li>
+							<details>
+								<summary
+									class:list={[
+										items.find(({ value }) => value === params.display) &&
+											"menu-active",
+									]}
+								>
+									{image && image.kind === "music" && (
+										<img
+											class="aspect-square size-10"
+											src={image.url}
+											loading="lazy"
+										/>
+									)}
+									{label}
+								</summary>
+								<ul>
+									{image && (
+										<img
+											class:list={[
+												"mx-auto my-1",
+												image.kind === "music"
+													? "aspect-square h-32"
+													: "aspect-9/4 h-24",
+											]}
+											src={image.url}
+											loading="lazy"
+										/>
+									)}
+
+									{items.map((item) => (
+										<li>
+											<button
+												hx-get="/tracker"
+												hx-vals:append={JSON.stringify({ display: item.value })}
+												class:list={[
+													item.value === params.display && "menu-active",
+												]}
+											>
+												<Icon
+													class="htmx-indicator"
+													name="svg-spinners--90-ring-with-bg"
+												/>
+												{label} &mdash; {item.label}
+											</button>
+										</li>
+									))}
+								</ul>
+							</details>
+						</li>
+					))
+				}
+			</ul>
+		</div>
 	</div>
 </div>

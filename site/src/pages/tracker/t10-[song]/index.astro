@@ -1,6 +1,4 @@
 ---
-import { UMAMI_SITE_ID } from "astro:env/server";
-
 import { chunk, uniqBy } from "es-toolkit";
 
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
@@ -9,17 +7,18 @@ import { db } from "@bandori-stats/database";
 import type { TrackerSnapshot } from "@bandori-stats/database/schema";
 import {
 	getTrackingMetadata,
-	getTrackingReference,
 	TrackingTarget,
 } from "@bandori-stats/database/tracker";
 import GbpCard from "~/components/gbp-card.astro";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
+import { IdSchema } from "~/lib/schema";
 import ProfileDropdown from "~/pages/tracker/_profile-dropdown.astro";
 
 export const partials = true;
 
 const params = Astro.locals.parseQuery(TrackingTarget);
+if (params.kind !== "event") return new Response(null, { status: 404 });
 
 const metadata = await Astro.locals.tracing.enterSpan(
 	"fetch-metadata",
@@ -30,12 +29,20 @@ const metadata = await Astro.locals.tracing.enterSpan(
 		return getTrackingMetadata(params);
 	},
 );
-if (!metadata) return new Response(null, { status: 404 });
+if (!metadata || metadata.kind !== "event")
+	return new Response(null, { status: 404 });
+
+const songId = IdSchema.parse(Astro.params.song);
+const song = metadata.musics.find(({ id }) => id === songId);
+if (!song) return new Response(null, { status: 404 });
 
 const isActive = dayjs().isBefore(metadata.endAt);
 
 const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
-	const trackingReference = getTrackingReference(params);
+	const trackingReference = {
+		trackingFor: "music" as const,
+		trackingId: songId,
+	};
 	const getLatestRank = (rank: number) =>
 		db().query.trackerSnapshots.findFirst({
 			columns: { trackingFor: false, trackingId: false },
@@ -55,10 +62,7 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 		return top10.map(
 			(latest) =>
 				({ latest }) as { latest: typeof latest } & Partial<
-					Record<
-						"lastPlayed" | "recentlyPlayed" | "pointsGained" | "rankHistory",
-						undefined
-					>
+					Record<"lastPlayed" | "pointsGained" | "rankHistory", undefined>
 				>,
 		);
 
@@ -111,7 +115,6 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 		return {
 			latest,
 			lastPlayed,
-			recentlyPlayed,
 			pointsGained:
 				recentlyPlayed && previous ? latest.point - previous.point : undefined,
 		};
@@ -157,26 +160,7 @@ if (Astro.cache.enabled)
 	Astro.cache.set(isActive ? { maxAge: 30, swr: 30 } : { maxAge: 60 * 60 });
 ---
 
-<div
-	{...isActive && {
-		"hx-get": Astro.url.pathname,
-		"hx-browser-indicator": "true",
-		"hx-indicator": "#tracker-list-loader",
-		"hx-on": [
-			import.meta.env.PROD &&
-				UMAMI_SITE_ID &&
-				`htmx:before:request from:self -> umami.track("tracker-poll", { name: "${metadata.name}", kind: "${params.kind}" })`,
-			"htmx:config:request from:self -> if (document.hidden) event.preventDefault()",
-		]
-			.filter(Boolean)
-			.join(";"),
-		"hx-swap": "outerMorph transition:true",
-		"hx-trigger": "every 60s, visibilitychange from:document",
-		"hx-vals": JSON.stringify({ ...params, poll: true }),
-	}}
-	class="list mt-4 py-1"
-	id="tracker-list"
->
+<div class="list mt-4 py-1" id="tracker-list">
 	{
 		players.length === 0 && (
 			<div class="list-row items-center">
@@ -193,19 +177,10 @@ if (Astro.cache.enabled)
 			({
 				latest: { profile, ...latest },
 				lastPlayed,
-				recentlyPlayed,
 				pointsGained,
 				rankHistory,
 			}) => (
-				<div
-					class:list={[
-						"list-row items-center",
-						isActive &&
-							!recentlyPlayed &&
-							"[:not(:hover):not(:focus)]:grayscale-75 [:not(:hover):not(:focus)]:**:[button]:opacity-25",
-					]}
-					tabindex="-1"
-				>
+				<div class="list-row items-center">
 					<div class="flex flex-col items-center gap-0.5 font-mono">
 						<span
 							class:list={[
@@ -244,8 +219,8 @@ if (Astro.cache.enabled)
 
 						<button
 							data-umami-event="tracker-profile"
-							data-umami-event-kind={params.kind}
-							data-umami-event-name={metadata.name}
+							data-umami-event-kind="music"
+							data-umami-event-name={song.title}
 							data-umami-event-player={stripBB(latest.name)}
 							class="btn btn-info btn-sm max-sm:hidden"
 							disabled={!profile}
@@ -269,7 +244,7 @@ if (Astro.cache.enabled)
 							</span>
 
 							{lastPlayed && (
-								<span>played {formatDuration(lastPlayed.timestamp)}</span>
+								<span>updated {formatDuration(lastPlayed.timestamp)}</span>
 							)}
 
 							{rankHistory && (
@@ -304,8 +279,8 @@ if (Astro.cache.enabled)
 
 						<button
 							data-umami-event="tracker-profile"
-							data-umami-event-kind={params.kind}
-							data-umami-event-name={metadata.name}
+							data-umami-event-kind="music"
+							data-umami-event-name={song.title}
 							data-umami-event-player={stripBB(latest.name)}
 							class="btn col-span-2 self-center btn-info btn-sm sm:hidden"
 							disabled={!profile}
@@ -315,70 +290,6 @@ if (Astro.cache.enabled)
 							<IconLoader name="lucide--id-card" />
 							Profile
 						</button>
-
-						<div class="col-span-full flex gap-1 sm:justify-end">
-							<button
-								hx-get={`/tracker/t10/${latest.uid}/games`}
-								hx-swap="after"
-								hx-target="main"
-								hx-vals={JSON.stringify({
-									...params,
-									duration: lastPlayed
-										? dayjs().diff(lastPlayed.timestamp, "minutes") < 60
-											? "1h"
-											: "12h"
-										: [
-												dayjs(metadata.endAt).subtract(1, "day"),
-												dayjs(metadata.endAt),
-											]
-												.map((date) => date.format("YYYY-MM-DD"))
-												.join(":"),
-								})}
-								data-umami-event="tracker-games"
-								data-umami-event-kind={params.kind}
-								data-umami-event-name={metadata.name}
-								data-umami-event-player={stripBB(latest.name)}
-								class="btn btn-primary btn-xs sm:btn-sm"
-							>
-								<IconLoader class="max-sm:size-3" name="lucide--gamepad-2" />
-								Games
-							</button>
-
-							<button
-								hx-get={`/tracker/t10/${latest.uid}/statistics`}
-								hx-swap="after"
-								hx-target="main"
-								hx-vals={JSON.stringify({
-									...params,
-									duration: dayjs().isBefore(metadata.endAt) ? "1d" : "all",
-								})}
-								data-umami-event="tracker-statistics"
-								data-umami-event-kind={params.kind}
-								data-umami-event-name={metadata.name}
-								data-umami-event-player={stripBB(latest.name)}
-								class="btn btn-accent btn-xs max-sm:flex-1 sm:btn-sm"
-							>
-								<IconLoader class="max-sm:size-3" name="lucide--bar-chart-3" />
-								Statistics
-							</button>
-
-							{isActive && (
-								<button
-									hx-get={`/tracker/t10/${latest.uid}/notify`}
-									hx-swap="after"
-									hx-target="main"
-									hx-vals={JSON.stringify(params)}
-									data-umami-event="tracker-notify"
-									data-umami-event-kind={params.kind}
-									data-umami-event-name={metadata.name}
-									data-umami-event-player={stripBB(latest.name)}
-									class="btn btn-secondary btn-xs max-sm:flex-1 sm:btn-sm"
-								>
-									<IconLoader class="max-sm:size-3" name="lucide--bell" />
-									Notify me
-								</button>
-							)}
-						</div>
 					</div>
 
 					{profile && <ProfileDropdown {metadata} {profile} />}

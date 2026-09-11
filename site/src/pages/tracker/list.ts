@@ -4,9 +4,14 @@ import z from "zod";
 
 import { TrackingTarget } from "@bandori-stats/database/tracker";
 
+export const DisplaySchema = z.templateLiteral([
+	z.enum(["t10", "cutoffs"]),
+	z.templateLiteral(["-", z.number()]).optional(),
+]);
+
 export const GET: APIRoute = async ({ locals, rewrite }) => {
 	const { display, ...params } = locals.parseQuery(
-		z.object({ ...TrackingTarget.shape, display: z.enum(["t10", "cutoffs"]) }),
+		z.object({ ...TrackingTarget.shape, display: DisplaySchema }),
 	);
 
 	const search = new URLSearchParams();

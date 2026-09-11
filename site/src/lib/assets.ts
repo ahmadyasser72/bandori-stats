@@ -1,4 +1,4 @@
-import type { Account } from "@bandori-stats/database/schema";
+import type { Account, GbpEventMusic } from "@bandori-stats/database/schema";
 import type { TrackingTarget } from "@bandori-stats/database/tracker";
 
 export const getProfileIcon = ({ profileArt }: Pick<Account, "profileArt">) =>
@@ -19,3 +19,6 @@ export const getTrackerBackground = (
 
 export const getTrackerLogo = ({ kind, id }: TrackingTarget) =>
 	`/assets/tracker/${kind}-${id}-logo.webp`;
+
+export const getSongAlbumCover = ({ id }: Pick<GbpEventMusic, "id">) =>
+	`/assets/songs/${id}-cover.webp`;
