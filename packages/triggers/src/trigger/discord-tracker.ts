@@ -260,7 +260,7 @@ export const getSnapshots = async (
 			},
 			orderBy: { id: "desc" },
 		});
-	const getInPeriod = ({ id, uid }: TrackerSnapshot) =>
+	const getWindowStart = ({ id, uid }: TrackerSnapshot) =>
 		db().query.trackerSnapshots.findFirst({
 			columns: { point: true, rank: true, timestamp: true },
 			where: {
@@ -282,32 +282,46 @@ export const getSnapshots = async (
 			},
 			orderBy: { id: "asc" },
 		});
+
+	type Output = ReturnType<typeof getBefore>;
 	const snapshots = chunk(
-		await db().batch([
-			getBefore(top10[0]),
-			getInPeriod(top10[0]),
-			getLastPlayed(top10[0]),
-			...top10
-				.slice(1)
-				.flatMap((it) => [getBefore(it), getInPeriod(it), getLastPlayed(it)]),
-		]),
+		await db().batch(
+			top10.flatMap((it) => [
+				getBefore(it),
+				getWindowStart(it),
+				getLastPlayed(it),
+			]) as [Output, ...Output[]],
+		),
 		3,
 	);
 
+	const periodDuration = now.diff(since);
+	// Music tracks max score, not cumulative points: records are sparse so
+	// `before` is stale by default, and rebasing onto re-entry would drop the
+	// first record's own gain. Always measure vs `before` instead.
+	const useStale = trackingReference.trackingFor !== "music";
 	return top10.map((current, idx) => {
-		const [beforePeriod, inPeriod, lastPlayed] = snapshots[idx];
-
-		let pointReference = beforePeriod;
-		if (beforePeriod && since.diff(beforePeriod.timestamp) > now.diff(since))
-			pointReference = inPeriod;
+		const [beforePeriod, windowStart, lastPlayed] = snapshots[idx];
+		const stale =
+			useStale &&
+			(!beforePeriod || since.diff(beforePeriod.timestamp) > periodDuration);
+		// Stale + re-entry rows = back after absence: baseline re-entry, old
+		// rank discarded. Otherwise baseline `before` — idle gaps hold zero
+		// gain (no-change-no-row), so `current - before` is exact.
+		const baseline = stale ? (windowStart ?? beforePeriod) : beforePeriod;
 
 		return {
 			current,
-			previous: beforePeriod,
+			previous: baseline,
+			returning:
+				stale &&
+				beforePeriod &&
+				windowStart &&
+				windowStart.point !== current.point,
 			lastPlayed: (lastPlayed ?? current)?.timestamp,
 			delta: {
-				point: pointReference ? current.point - pointReference.point : 0,
-				rank: beforePeriod ? current.rank - beforePeriod.rank : 0,
+				point: baseline ? current.point - baseline.point : 0,
+				rank: baseline ? current.rank - baseline.rank : 0,
 			},
 		};
 	});
@@ -333,11 +347,10 @@ const generateEmbed = (
 		.setFooter({ text: footer })
 		.setTimestamp(now.toDate());
 
-	for (const { current, previous, lastPlayed, delta } of snapshots) {
+	for (const { current, previous, returning, lastPlayed, delta } of snapshots) {
 		let points = `${formatNumber(current.point)} Pts`;
 		if (delta.point > 0)
 			points += ` (${formatNumber(delta.point, { positiveSign: true })} Pts)`;
-		if (!previous) points += " 🆕";
 
 		embed.addFields({
 			name: [bold(`#${current.rank} ${stripBB(current.name)}`), points].join(
@@ -345,6 +358,14 @@ const generateEmbed = (
 			),
 			value: (() => {
 				const lines = [] as string[];
+
+				{
+					let status = "";
+					if (returning) status = "🔙";
+					else if (!previous) status = "🆕";
+
+					if (status) lines.push(`#${current.rank} ${status}`);
+				}
 
 				if (delta.rank !== 0) {
 					const difference = Math.abs(delta.rank);
