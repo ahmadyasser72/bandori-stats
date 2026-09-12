@@ -313,7 +313,7 @@ export const getSnapshots = async (
 		const [beforePeriod, windowStart, lastPlayed = current] = snapshots[idx];
 		const stale =
 			useStale &&
-			(!beforePeriod || now.diff(lastPlayed.timestamp) > periodDuration);
+			(!beforePeriod || now.diff(current.timestamp) > periodDuration);
 		const returning = beforePeriod && !formerTop10.has(current.uid);
 		const baseline = stale ? windowStart : beforePeriod;
 
@@ -365,15 +365,12 @@ const generateEmbed = (
 			value: (() => {
 				const lines = [] as string[];
 
-				{
-					let status = "";
-					if (returning) status = "🔙";
-					else if (!previous) status = "🆕";
+				let status = "";
+				if (returning) status = "🔙";
+				else if (!previous) status = "🆕";
 
-					if (status) lines.push(`#${current.rank} ${status}`);
-				}
-
-				if (delta.rank !== 0) {
+				if (status) lines.push(`#${current.rank} ${status}`);
+				else if (delta.rank !== 0) {
 					const difference = Math.abs(delta.rank);
 					const arrow = delta.rank > 0 ? "⬇️" : "⬆️";
 					lines.push(
