@@ -133,14 +133,13 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 			db().query.trackerSnapshots.findMany({
 				columns: { rank: true, timestamp: true },
 				where: { ...trackingReference, uid, id: { gte: id } },
-				orderBy: { id: "desc" },
+				orderBy: { id: "asc" },
 			});
 
 		const keys = [...boatedPlayers.keys()];
-		const values = await db().batch([
-			getRankHistory(keys[0]),
-			...keys.slice(1).map(getRankHistory),
-		]);
+		const values = await db().batch(
+			keys.map(getRankHistory) as [ReturnType<typeof getRankHistory>],
+		);
 		for (const [idx, key] of keys.entries())
 			boatedPlayers.set(
 				key,
@@ -150,9 +149,7 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 
 	return snapshots.map((value) => ({
 		...value,
-		rankHistory: value.lastPlayed
-			? boatedPlayers.get(value.lastPlayed)
-			: undefined,
+		rankHistory: boatedPlayers.get(value.lastPlayed),
 	}));
 });
 
