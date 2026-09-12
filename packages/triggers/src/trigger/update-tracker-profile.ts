@@ -35,9 +35,11 @@ import { githubRedeploy } from "~/github";
 export const updateTrackerProfile = schemaTask({
 	id: "update-tracker-profile",
 	schema: z.object({
-		players: z.array(
-			z.object({ uid: z.string(), trackingReference: TrackingReference }),
-		),
+		players: z
+			.array(
+				z.object({ uid: z.string(), trackingReference: TrackingReference }),
+			)
+			.nonempty(),
 	}),
 	run: async ({ players }, { ctx }) => {
 		const version = await redis().get<string>(GBP.version);
@@ -58,9 +60,12 @@ export const updateTrackerProfile = schemaTask({
 			const getProfileCacheKey = (uid: string) => `gbp:profile:${uid}`;
 
 			const uids = [...getFromCache];
-			const fromRedis = await redis().mget<(UserProfile | null)[]>(
-				...uids.map(getProfileCacheKey),
-			);
+			const fromRedis =
+				uids.length > 0
+					? await redis().mget<(UserProfile | null)[]>(
+							...uids.map(getProfileCacheKey),
+						)
+					: [];
 
 			const USED_FIELDS = [
 				"mainUserDeck",

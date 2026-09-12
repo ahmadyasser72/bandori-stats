@@ -211,22 +211,23 @@ export const scheduleUpdateTracker = schedules.task({
 					where: { trackingFor, trackingId, uid, id: { lt: id } },
 					orderBy: { id: "desc" },
 				});
-			const previousSnapshots = await db().batch([
-				getPreviousSnapshot(inserted[0]),
-				...inserted.slice(1).map(getPreviousSnapshot),
-			]);
+			const previousSnapshots = await db().batch(
+				inserted.map(getPreviousSnapshot) as [
+					ReturnType<typeof getPreviousSnapshot>,
+				],
+			);
 
-			await updateTrackerProfile.trigger({
-				players: inserted
-					.filter(({ point }, idx) => {
-						const previous = previousSnapshots[idx];
-						return !previous || point !== previous.point;
-					})
-					.map(({ uid, trackingFor, trackingId }) => ({
+			const playersToUpdate = inserted.filter(({ point }, idx) => {
+				const previous = previousSnapshots[idx];
+				return !previous || point !== previous.point;
+			});
+			if (playersToUpdate.length > 0)
+				await updateTrackerProfile.trigger({
+					players: playersToUpdate.map(({ uid, trackingFor, trackingId }) => ({
 						uid,
 						trackingReference: { trackingFor, trackingId },
 					})),
-			});
+				});
 		}
 
 		if (abortErrors.length > 0)
