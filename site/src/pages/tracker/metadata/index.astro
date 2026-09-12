@@ -42,16 +42,7 @@ interface DisplayChoice {
 	items: { value: string; label: string }[];
 }
 
-const displayChoices = [
-	{
-		label: `${capitalize(params.kind)} Ranking`,
-		image: { kind: "logo", url: getTrackerLogo(params) },
-		items: [
-			{ value: "t10", label: "T10" },
-			{ value: "cutoffs", label: "Cutoffs" },
-		],
-	},
-] as DisplayChoice[];
+const displayChoices = [] as DisplayChoice[];
 if (metadata.kind === "event" && metadata.musics.length > 0) {
 	displayChoices.push(
 		...(metadata.type === "medley"
@@ -231,8 +222,32 @@ if (Astro.cache.enabled)
 				hx-swap:inherited="outerHTML transition:true"
 				hx-target:inherited="main"
 				hx-vals:inherited={JSON.stringify({ tab: params.kind, id: params.id })}
-				class="menu menu-vertical menu-paged min-w-64"
+				class="menu menu-vertical menu-paged w-64"
 			>
+				<img
+					class="mx-auto my-1 aspect-9/4 h-24"
+					src={getTrackerLogo(params)}
+					loading="lazy"
+				/>
+
+				{
+					["t10", "cutoffs"].map((value) => (
+						<li>
+							<button
+								hx-get="/tracker"
+								hx-vals:append={JSON.stringify({ display: value })}
+								class:list={[value === params.display && "menu-active"]}
+							>
+								<Icon
+									class="htmx-indicator"
+									name="svg-spinners--90-ring-with-bg"
+								/>
+								{capitalize(params.kind)} Ranking &mdash; {capitalize(value)}
+							</button>
+						</li>
+					))
+				}
+
 				{
 					displayChoices.map(({ label, items, image }) => (
 						<li>
@@ -255,12 +270,7 @@ if (Astro.cache.enabled)
 								<ul>
 									{image && (
 										<img
-											class:list={[
-												"mx-auto my-1",
-												image.kind === "music"
-													? "aspect-square h-32"
-													: "aspect-9/4 h-24",
-											]}
+											class="mx-auto my-1 aspect-square h-32"
 											src={image.url}
 											loading="lazy"
 										/>
