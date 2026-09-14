@@ -5,17 +5,14 @@ import {
 	tags,
 	wait,
 } from "@trigger.dev/sdk";
-import { allKeyed, countBy, curry, pick, sum } from "es-toolkit";
+import { allKeyed, countBy, curry, pick, sum, uniqBy } from "es-toolkit";
 
 import dayjs from "@bandori-stats/bestdori/date";
-import { db, sql } from "@bandori-stats/database";
-import {
-	GBP,
-	getRedisData,
-	redis,
-} from "@bandori-stats/database/redis";
+import { and, db, eq, sql, type TableFilter } from "@bandori-stats/database";
+import { GBP, getRedisData, redis } from "@bandori-stats/database/redis";
 import {
 	trackerCutoffs,
+	trackerSnapshotProfiles,
 	trackerSnapshots,
 	type GbpMetadata,
 } from "@bandori-stats/database/schema";
@@ -69,13 +66,13 @@ export const scheduleUpdateTracker = schedules.task({
 
 		const results = await Promise.allSettled([
 			logger.trace("event-tracker", async (span) => {
-				if (!event) return [];
+				if (!event) return;
 				span.setAttributes?.({
 					id: event.id,
 					startAt: event.startAt.toISOString(),
 					endAt: event.endAt.toISOString(),
 				});
-				if (now.isBefore(event.startAt)) return [];
+				if (now.isBefore(event.startAt)) return;
 
 				const {
 					t10 = [],
@@ -129,7 +126,7 @@ export const scheduleUpdateTracker = schedules.task({
 
 					return {};
 				})();
-				if (t10.length === 0 && !musics) return [];
+				if (t10.length === 0 && !musics) return;
 
 				const top = {
 					t10,
@@ -145,38 +142,58 @@ export const scheduleUpdateTracker = schedules.task({
 
 				const metadata: GbpMetadata = { kind: "event", ...event };
 				const inserted = await insertSnapshots(top, { now, metadata });
-				if (inserted.length === 0) return [];
+				if (inserted.length === 0) return;
 
-				return inserted;
+				return { inserted, top };
 			}),
 
 			logger.trace("monthly-tracker", async (span) => {
-				if (!monthly) return [];
+				if (!monthly) return;
 				span.setAttributes?.({
 					id: monthly.id,
 					startAt: monthly.startAt.toISOString(),
 					endAt: monthly.endAt.toISOString(),
 				});
-				if (now.isBefore(monthly.startAt)) return [];
+				if (now.isBefore(monthly.startAt)) return;
 
 				const data = await bangDream(version, "monthly", monthly.id);
 				const t10 = data.monthlyRankingPointTopUsers?.entries ?? [];
 				const cutoffs = data.monthlyRankingPointBorderUsers?.entries ?? [];
-				if (t10.length === 0) return [];
+				if (t10.length === 0) return;
 
 				const top = { t10, cutoffs } satisfies Ranking;
 				const metadata: GbpMetadata = { kind: "monthly", ...monthly };
 				const inserted = await insertSnapshots(top, { now, metadata });
-				if (inserted.length === 0) return [];
+				if (inserted.length === 0) return;
 
-				return inserted;
+				return { inserted, top };
 			}),
 		]);
 
 		if (now.get("minutes") === 0) {
 			const metadatas = [] as GbpMetadata[];
+
 			if (event) metadatas.push({ kind: "event", ...event });
 			if (monthly) metadatas.push({ kind: "monthly", ...monthly });
+
+			{
+				const references = [] as (TrackingReference & { top: Ranking })[];
+				const [eventTracker, monthlyTracker] = results;
+				if (eventTracker.status === "fulfilled" && eventTracker.value)
+					references.push({
+						trackingFor: "event",
+						trackingId: eventId!,
+						top: eventTracker.value.top,
+					});
+				if (monthlyTracker.status === "fulfilled" && monthlyTracker.value)
+					references.push({
+						trackingFor: "monthly",
+						trackingId: monthlyId!,
+						top: monthlyTracker.value.top,
+					});
+
+				if (references.length > 0) await deleteBannedPlayers(references);
+			}
 
 			if (metadatas.length > 0) await discordTracker.trigger({ metadatas });
 		}
@@ -191,7 +208,7 @@ export const scheduleUpdateTracker = schedules.task({
 
 		const inserted = results
 			.filter((promise) => promise.status === "fulfilled")
-			.flatMap(({ value }) => value);
+			.flatMap(({ value }) => value?.inserted ?? []);
 
 		if (inserted.length > 0) {
 			const getPreviousSnapshot = ({
@@ -424,3 +441,76 @@ const insertSnapshots = async (
 	});
 };
 
+const deleteBannedPlayers = async (
+	references: (TrackingReference & { top: Ranking })[],
+) => {
+	const filters: TableFilter<typeof trackerSnapshots>[] = [];
+	for (const { top, ...trackingReference } of references) {
+		filters.push({
+			...trackingReference,
+			uid: { notIn: top.t10.map(({ userId }) => userId) },
+			point: {
+				gt: Math.min(...top.t10.map(({ point }) => Number(point))),
+			},
+		});
+
+		if (trackingReference.trackingFor === "event" && top.musics) {
+			for (const { id, t10 } of top.musics) {
+				filters.push({
+					trackingFor: "music",
+					trackingId: id,
+					uid: { notIn: t10.map(({ userId }) => userId) },
+					point: {
+						gt: Math.min(...t10.map(({ point }) => Number(point))),
+					},
+				});
+			}
+		}
+	}
+
+	const candidates = uniqBy(
+		await db().query.trackerSnapshots.findMany({
+			columns: { trackingFor: true, trackingId: true, uid: true },
+			where: { OR: filters },
+		}),
+		({ trackingFor, trackingId, uid }) =>
+			[trackingFor, trackingId, uid].join(":"),
+	);
+	if (candidates.length === 0) return;
+
+	const deleteSnapshot = ({
+		trackingFor,
+		trackingId,
+		uid,
+	}: (typeof candidates)[number]) =>
+		db()
+			.delete(trackerSnapshots)
+			.where(
+				and(
+					eq(trackerSnapshots.trackingFor, trackingFor),
+					eq(trackerSnapshots.trackingId, trackingId),
+					eq(trackerSnapshots.uid, uid),
+				),
+			);
+	const deleteProfile = ({
+		trackingFor,
+		trackingId,
+		uid,
+	}: (typeof candidates)[number]) =>
+		db()
+			.delete(trackerSnapshotProfiles)
+			.where(
+				and(
+					eq(trackerSnapshotProfiles.trackingFor, trackingFor),
+					eq(trackerSnapshotProfiles.trackingId, trackingId),
+					eq(trackerSnapshotProfiles.uid, uid),
+				),
+			);
+
+	await db().batch(
+		candidates.flatMap((snapshot) => [
+			deleteSnapshot(snapshot),
+			deleteProfile(snapshot),
+		]) as [ReturnType<typeof deleteSnapshot | typeof deleteProfile>],
+	);
+};
