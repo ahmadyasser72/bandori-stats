@@ -242,8 +242,13 @@ if (Astro.cache.enabled)
 			games.map(({ point, timestamp, delta }, idx) => (
 				<li>
 					{idx > 0 && <hr class="bg-neutral" />}
-					<div class="timeline-start font-mono">
-						{formatDuration(timestamp)}
+					<div class="timeline-start flex flex-col items-end font-mono">
+						<span class="text-sm">{formatDuration(timestamp)}</span>
+						<span class="text-xs">
+							{dayjs
+								.tz(timestamp, Astro.locals.clientTimezone)
+								.format("MMM DD, hh:mm A")}
+						</span>
 					</div>
 					<div class="timeline-end">
 						<div class="inline-flex items-center font-semibold">
