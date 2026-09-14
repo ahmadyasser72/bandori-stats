@@ -5,17 +5,14 @@ import {
 	tags,
 	wait,
 } from "@trigger.dev/sdk";
-import { allKeyed, countBy, curry, pick, sum, uniqBy } from "es-toolkit";
-import webPush from "web-push";
+import { allKeyed, countBy, curry, pick, sum } from "es-toolkit";
 
 import dayjs from "@bandori-stats/bestdori/date";
-import { formatNumber } from "@bandori-stats/bestdori/helpers";
 import { db, sql } from "@bandori-stats/database";
 import {
 	GBP,
 	getRedisData,
 	redis,
-	type NotifyWhenPlayer,
 } from "@bandori-stats/database/redis";
 import {
 	trackerCutoffs,
@@ -150,8 +147,6 @@ export const scheduleUpdateTracker = schedules.task({
 				const inserted = await insertSnapshots(top, { now, metadata });
 				if (inserted.length === 0) return [];
 
-				await sendPushNotifications(top, { now, metadata });
-
 				return inserted;
 			}),
 
@@ -173,8 +168,6 @@ export const scheduleUpdateTracker = schedules.task({
 				const metadata: GbpMetadata = { kind: "monthly", ...monthly };
 				const inserted = await insertSnapshots(top, { now, metadata });
 				if (inserted.length === 0) return [];
-
-				await sendPushNotifications(top, { now, metadata });
 
 				return inserted;
 			}),
@@ -431,124 +424,3 @@ const insertSnapshots = async (
 	});
 };
 
-const sendPushNotifications = async (
-	ranking: Ranking,
-	{ now, metadata }: InsertSnapshotOptions,
-) => {
-	if (now.get("minutes") % 10 !== 0) return;
-
-	const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY } = process.env;
-	if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return;
-
-	const key = GBP.fromMetadata(metadata, "leaderboard");
-	const t15 = await redis()
-		.zrange<number[]>(key, 0, 14, { rev: true })
-		.then((uids) => uids.map((uid) => uid.toString()));
-
-	const trackingReference = getTrackingReference(metadata);
-	const snapshots = await db().query.trackerSnapshots.findMany({
-		columns: { uid: true, name: true, point: true, rank: true },
-		where: { ...trackingReference, uid: { in: t15 } },
-		orderBy: { id: "desc" },
-		with: {
-			profile: {
-				columns: { avatar: true },
-				where: { ...trackingReference, avatar: { isNotNull: true } },
-			},
-		},
-	});
-
-	const items = snapshots.map((item) => ({
-		...item,
-		key: GBP.fromMetadata(metadata, "notify", item.uid),
-	}));
-	const notifyEntries = await redis().json.mget<NotifyWhenPlayer[][][]>(
-		items.map(({ key }) => key),
-		"$",
-	);
-
-	const t10 = new Set(ranking.t10.map(({ userId }) => userId));
-	const payloads = await logger.trace(
-		`generate-${metadata.kind}-webpush-payload`,
-		async () => {
-			const results = await Promise.all(
-				items.map(async ({ key, uid, name, point, rank, profile }, idx) => {
-					const notify = notifyEntries.at(idx)?.flat();
-					if (!notify || notify.length === 0) return [];
-
-					const subscriptions = [...notify.entries()].filter(
-						([, { on }]) =>
-							on.target === "play-again" ||
-							(on.target === "point" && point > on.value) ||
-							(on.target === "boated-from" &&
-								(rank > on.value || !t10.has(uid))),
-					);
-					if (subscriptions.length === 0) return [];
-
-					const deleteNotify = redis().multi();
-					for (const [idx] of [...subscriptions].reverse())
-						deleteNotify.json.del(key, `$[${idx}]`);
-					await deleteNotify.exec();
-
-					return uniqBy(
-						subscriptions.map(([, it]) => it),
-						({ on, subscription }) =>
-							`${subscription.endpoint}:${on.target}:${on.value}`,
-					).map(({ on, subscription }) => {
-						let body = `notify me: ${name}`;
-						if (on.target === "play-again") body = `${name} just plays again!`;
-						else if (on.target === "point")
-							body = `${name} just hit ${formatNumber(point)} Pts!`;
-						else if (on.target === "boated-from")
-							body = `${name} just got boated from rank #${on.value}!`;
-
-						return {
-							subscription,
-							tag: `${key}-${on.target}-${on.value}`,
-							title: metadata.name,
-							body,
-							icon: profile?.avatar
-								? `/assets/cards/${profile.avatar.id}-${profile.avatar.trained ? "trained" : "normal"}-icon.webp`
-								: undefined,
-							image: `/assets/tracker/${trackingReference.trackingFor}-${trackingReference.trackingId}-logo.webp`,
-							timestamp: now.valueOf(),
-							navigate: `/tracker?tab=${trackingReference.trackingFor}&id=${trackingReference.trackingId}`,
-						};
-					});
-				}),
-			);
-
-			return results.flat();
-		},
-	);
-	if (payloads.length === 0) return;
-
-	const results = await logger.trace(`send-${metadata.kind}-webpush`, (span) =>
-		Promise.allSettled(
-			payloads.map(({ subscription, ...data }) =>
-				webPush
-					.sendNotification(subscription, JSON.stringify(data), {
-						TTL: Math.max(
-							60 * 60 * 12,
-							dayjs(metadata.endAt).diff(dayjs(), "seconds"),
-						),
-						vapidDetails: {
-							publicKey: VAPID_PUBLIC_KEY,
-							privateKey: VAPID_PRIVATE_KEY,
-							subject: "mailto:eh@example.com",
-						},
-					})
-					.then(() => {
-						span.setAttribute(data.tag, "notified");
-					})
-					.catch((error) => {
-						span.setAttribute(data.tag, `error: ${error}`);
-						throw error;
-					}),
-			),
-		),
-	);
-
-	if (results.some(({ status }) => status === "fulfilled"))
-		await tags.add("notified");
-};

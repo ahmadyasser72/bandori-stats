@@ -149,13 +149,3 @@ export const CHARACTER_TO_BAND: Record<string, number> = {
 	40: 45,
 };
 
-export interface NotifyWhenPlayer {
-	on: { target: "play-again" | "point" | "boated-from"; value: number };
-	subscription: {
-		endpoint: string;
-		expirationTime: number | null;
-		keys: { p256dh: string; auth: string };
-	};
-
-	createdAt: Date;
-}
