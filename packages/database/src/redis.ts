@@ -148,4 +148,3 @@ export const CHARACTER_TO_BAND: Record<string, number> = {
 	39: 45,
 	40: 45,
 };
-

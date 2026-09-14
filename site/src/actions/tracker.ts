@@ -3,10 +3,7 @@ import { ActionError, defineAction } from "astro:actions";
 import { z } from "zod";
 
 import dayjs from "@bandori-stats/bestdori/date";
-import {
-	GBP,
-	redis,
-} from "@bandori-stats/database/redis";
+import { GBP, redis } from "@bandori-stats/database/redis";
 import {
 	getTrackingMetadata,
 	TrackingTarget,
