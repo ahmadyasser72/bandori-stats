@@ -29,5 +29,5 @@ export const githubRedeploy = async (ctx: Context) => {
 	);
 
 	await tags.add("github_redeploy");
-	await redis().set(REDEPLOY_KEY, "", { ex: 60 * 30 });
+	await redis().set(REDEPLOY_KEY, "", { ex: 60 * 60 * 6 });
 };
