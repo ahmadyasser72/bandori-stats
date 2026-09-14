@@ -1,0 +1,113 @@
+---
+import z from "zod";
+
+import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
+import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
+import { db } from "@bandori-stats/database";
+import {
+	getTrackingMetadata,
+	getTrackingReference,
+	TrackingTarget,
+} from "@bandori-stats/database/tracker";
+import GbpCard from "~/components/gbp-card.astro";
+import Icon from "~/components/icon.astro";
+import SheetModal from "~/layouts/sheet-modal.astro";
+
+export const partial = true;
+
+const rank = z.coerce.number().int().positive().parse(Astro.params.rank);
+const params = Astro.locals.parseQuery(TrackingTarget);
+
+const metadata = await Astro.locals.tracing.enterSpan(
+	"fetch-metadata",
+	async (span) => {
+		span.setAttribute("kind", params.kind);
+		span.setAttribute("id", params.id);
+
+		return getTrackingMetadata(params);
+	},
+);
+
+if (!metadata) return new Response(null, { status: 404 });
+
+const history = await Astro.locals.tracing.enterSpan("fetch-history", () =>
+	db()
+		.query.trackerCutoffs.findMany({
+			columns: { id: false, trackingFor: false, trackingId: false },
+			where: { ...getTrackingReference(params), rank },
+			orderBy: { id: "desc" },
+		})
+		.then((snapshots) =>
+			snapshots.map((value, idx) => ({
+				value,
+				previous: snapshots.at(idx + 1),
+			})),
+		),
+);
+
+const isPastData = dayjs().isAfter(metadata.endAt);
+if (Astro.cache.enabled)
+	Astro.cache.set(isPastData ? { maxAge: 60 * 60 } : { maxAge: 30, swr: 30 });
+---
+
+<SheetModal>
+	<h2 class="text-center text-2xl font-medium">
+		Rank {rank} &mdash; History
+	</h2>
+
+	<ul
+		class="timeline timeline-vertical mt-2 max-h-[60vh] w-full max-w-120 overflow-y-auto"
+	>
+		{
+			history.map(
+				({ value: { point, timestamp, name, avatar }, previous }, idx) => (
+					<li>
+						{idx > 0 && <hr class="bg-neutral" />}
+						<div class="timeline-start flex flex-col items-end font-mono">
+							<span class="text-sm">{formatDuration(timestamp)}</span>
+							<span class="text-xs">
+								{dayjs
+									.tz(timestamp, Astro.locals.clientTimezone)
+									.format("MMM DD, hh:mm A")}
+							</span>
+						</div>
+						<div class="timeline-end">
+							<div class="flex items-center gap-2">
+								{avatar && <GbpCard class="scale-75" member={avatar} />}
+								<div class="flex min-w-0 flex-col">
+									<span
+										class="truncate text-sm font-medium text-ellipsis"
+										data-bb={name}
+									>
+										{stripBB(name)}
+									</span>
+
+									<div class="inline-flex items-center font-semibold">
+										{formatNumber(point)}
+										{previous && point > previous.point && (
+											<span class="ml-1 badge px-1.5 badge-xs badge-success">
+												{formatNumber(point - previous.point, {
+													positiveSign: true,
+												})}
+											</span>
+										)}
+									</div>
+								</div>
+							</div>
+						</div>
+						{idx < history.length - 1 && <hr class="bg-neutral" />}
+					</li>
+				),
+			)
+		}
+	</ul>
+
+	{
+		history.length === 0 && (
+			<div class="flex items-center justify-center gap-2 py-16">
+				<Icon class="size-10" name="lucide--x" />
+				<span class="text-lg font-medium">No history found</span>
+			</div>
+		)
+	}
+</SheetModal>

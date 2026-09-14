@@ -9,6 +9,7 @@ import {
 	TrackingTarget,
 } from "@bandori-stats/database/tracker";
 import GbpCard from "~/components/gbp-card.astro";
+import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 
 export const partials = true;
@@ -102,22 +103,40 @@ if (Astro.cache.enabled)
 					</span>
 				</div>
 
-				<div class="flex flex-col text-sm max-sm:list-col-wrap sm:items-end">
-					<span class="inline-flex items-center font-semibold">
-						{formatNumber(latest.point)}
-						{previous && latest.point !== previous.point && (
-							<span
-								class="tooltip tooltip-end ml-1 badge px-1.5 badge-xs tooltip-success underline decoration-dotted badge-success"
-								data-tip={`compared to ${formatDuration(previous.timestamp)}`}
-							>
-								{formatNumber(latest.point - previous.point, {
-									positiveSign: true,
-								})}
-							</span>
-						)}
-					</span>
+				<div class="list-col-wrap grid grid-cols-5 justify-between gap-2 sm:flex">
+					<div class="col-span-3 flex flex-col text-sm">
+						<span class="inline-flex items-center font-semibold">
+							{formatNumber(latest.point)}
+							{previous && latest.point !== previous.point && (
+								<span
+									class="tooltip tooltip-end ml-1 badge px-1.5 badge-xs tooltip-success underline decoration-dotted badge-success"
+									data-tip={`compared to ${formatDuration(previous.timestamp)}`}
+								>
+									{formatNumber(latest.point - previous.point, {
+										positiveSign: true,
+									})}
+								</span>
+							)}
+						</span>
 
-					<span>updated {formatDuration(latest.timestamp)}</span>
+						<span>updated {formatDuration(latest.timestamp)}</span>
+					</div>
+
+					<div class="col-span-full flex gap-1 sm:justify-end">
+						<button
+							hx-get={`/tracker/cutoffs/${latest.rank}/history`}
+							hx-swap="after"
+							hx-target="main"
+							hx-vals={JSON.stringify(params)}
+							data-umami-event="tracker-cutoff-history"
+							data-umami-event-kind={params.kind}
+							data-umami-event-rank={latest.rank}
+							class="btn btn-accent btn-xs max-sm:flex-1 sm:btn-sm"
+						>
+							<IconLoader class="max-sm:size-3" name="lucide--history" />
+							History
+						</button>
+					</div>
 				</div>
 			</div>
 		))

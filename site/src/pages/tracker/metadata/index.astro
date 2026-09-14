@@ -212,14 +212,14 @@ if (Astro.cache.enabled)
 			Display
 		</button>
 		<div
-			class="dropdown dropdown-end"
+			class="dropdown dropdown-end dropdown-top"
 			id="metadata-display-menu"
 			popover
 			style="position-anchor: --anchor-metadata-display-menu"
 		>
 			<ul
 				hx-browser-indicator:inherited="true"
-				hx-swap:inherited="outerHTML transition:true"
+				hx-swap:inherited="outerHTML transition:true show:top"
 				hx-target:inherited="main"
 				hx-vals:inherited={JSON.stringify({ tab: params.kind, id: params.id })}
 				class="menu menu-vertical menu-paged w-64"
