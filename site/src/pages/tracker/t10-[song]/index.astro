@@ -1,5 +1,5 @@
 ---
-import { chunk, uniqBy } from "es-toolkit";
+import { chunk } from "es-toolkit";
 
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
 import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
@@ -43,26 +43,48 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 		trackingFor: "music" as const,
 		trackingId: songId,
 	};
-	const getLatestRank = (rank: number) =>
+	const getLatestRank = (rank: number, exclude?: string[]) =>
 		db().query.trackerSnapshots.findFirst({
 			columns: { trackingFor: false, trackingId: false },
-			where: { ...trackingReference, rank },
+			where: {
+				...trackingReference,
+				rank,
+				...(exclude && { uid: { notIn: exclude } }),
+			},
 			orderBy: { id: "desc" },
 			with: { profile: { where: trackingReference } },
 		});
 
 	const ranks = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-	const top10 = (
-		await db().batch(
-			ranks.map(getLatestRank) as [ReturnType<typeof getLatestRank>],
+	const top10 = await db()
+		.batch(
+			ranks.map((rank) => getLatestRank(rank)) as [
+				ReturnType<typeof getLatestRank>,
+			],
 		)
-	).filter((it) => it !== undefined);
+		.then((snapshots) => snapshots.filter((it) => it !== undefined))
+		.then(async (snapshots) => {
+			const uids = new Set<string>();
+			for (const [idx, { uid, rank }] of snapshots.entries()) {
+				if (uids.has(uid)) {
+					const olderSnapshot = await getLatestRank(rank, [...uids]);
+					if (olderSnapshot) {
+						snapshots[idx] = olderSnapshot;
+						uids.add(olderSnapshot.uid);
+					}
+				}
+
+				uids.add(uid);
+			}
+
+			return snapshots;
+		});
 	if (top10.length === 0) return [];
 	else if (!isActive)
 		return top10.map(
 			(latest) =>
 				({ latest }) as { latest: typeof latest } & Partial<
-					Record<"lastPlayed" | "pointsGained" | "rankHistory", undefined>
+					Record<"lastPlayed" | "pointsGained", undefined>
 				>,
 		);
 
@@ -104,7 +126,7 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 		2,
 	);
 
-	const snapshots = top10.map((latest, idx) => {
+	return top10.map((latest, idx) => {
 		const [lastPlayed = latest, previous] = previousSnapshots[idx] as [
 			Awaited<LastPlayed>,
 			Awaited<PreviousPoint>,
@@ -119,38 +141,6 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 				recentlyPlayed && previous ? latest.point - previous.point : undefined,
 		};
 	});
-
-	const boatedPlayers = new Map<
-		Pick<TrackerSnapshot, "id" | "uid">,
-		Pick<TrackerSnapshot, "rank" | "timestamp">[]
-	>();
-	for (const { latest, lastPlayed } of snapshots) {
-		if (latest.rank > lastPlayed.rank) boatedPlayers.set(lastPlayed, []);
-	}
-
-	if (boatedPlayers.size > 0) {
-		const getRankHistory = ({ id, uid }: Pick<TrackerSnapshot, "id" | "uid">) =>
-			db().query.trackerSnapshots.findMany({
-				columns: { rank: true, timestamp: true },
-				where: { ...trackingReference, uid, id: { gte: id } },
-				orderBy: { id: "asc" },
-			});
-
-		const keys = [...boatedPlayers.keys()];
-		const values = await db().batch(
-			keys.map(getRankHistory) as [ReturnType<typeof getRankHistory>],
-		);
-		for (const [idx, key] of keys.entries())
-			boatedPlayers.set(
-				key,
-				uniqBy(values[idx], ({ rank }) => rank),
-			);
-	}
-
-	return snapshots.map((value) => ({
-		...value,
-		rankHistory: boatedPlayers.get(value.lastPlayed),
-	}));
 });
 
 if (Astro.cache.enabled)
@@ -171,12 +161,7 @@ if (Astro.cache.enabled)
 
 	{
 		players.map(
-			({
-				latest: { profile, ...latest },
-				lastPlayed,
-				pointsGained,
-				rankHistory,
-			}) => (
+			({ latest: { profile, ...latest }, lastPlayed, pointsGained }) => (
 				<div class="list-row items-center">
 					<div class="flex flex-col items-center gap-0.5 font-mono">
 						<span
@@ -242,35 +227,6 @@ if (Astro.cache.enabled)
 
 							{lastPlayed && (
 								<span>updated {formatDuration(lastPlayed.timestamp)}</span>
-							)}
-
-							{rankHistory && (
-								<span>
-									boated{" "}
-									{rankHistory.length === 1 ? (
-										<span class="text-error">
-											{formatDuration(latest.timestamp)}
-										</span>
-									) : (
-										<span class="tooltip tooltip-error text-error underline decoration-dotted sm:tooltip-end">
-											<div class="tooltip-content">
-												<div class="flex flex-col">
-													{rankHistory
-														.slice(1)
-														.map(({ timestamp, rank }, idx) => (
-															<div class="flex justify-between gap-2">
-																<span>
-																	{rankHistory[idx].rank} &rarr; {rank}
-																</span>
-																<span>{formatDuration(timestamp)}</span>
-															</div>
-														))}
-												</div>
-											</div>
-											{formatDuration(latest.timestamp)}
-										</span>
-									)}
-								</span>
 							)}
 						</div>
 

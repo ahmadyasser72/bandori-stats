@@ -36,20 +36,42 @@ const isActive = dayjs().isBefore(metadata.endAt);
 
 const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 	const trackingReference = getTrackingReference(params);
-	const getLatestRank = (rank: number) =>
+	const getLatestRank = (rank: number, exclude?: string[]) =>
 		db().query.trackerSnapshots.findFirst({
 			columns: { trackingFor: false, trackingId: false },
-			where: { ...trackingReference, rank },
+			where: {
+				...trackingReference,
+				rank,
+				...(exclude && { uid: { notIn: exclude } }),
+			},
 			orderBy: { id: "desc" },
 			with: { profile: { where: trackingReference } },
 		});
 
 	const ranks = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-	const top10 = (
-		await db().batch(
-			ranks.map(getLatestRank) as [ReturnType<typeof getLatestRank>],
+	const top10 = await db()
+		.batch(
+			ranks.map((rank) => getLatestRank(rank)) as [
+				ReturnType<typeof getLatestRank>,
+			],
 		)
-	).filter((it) => it !== undefined);
+		.then((snapshots) => snapshots.filter((it) => it !== undefined))
+		.then(async (snapshots) => {
+			const uids = new Set<string>();
+			for (const [idx, { uid, rank }] of snapshots.entries()) {
+				if (uids.has(uid)) {
+					const olderSnapshot = await getLatestRank(rank, [...uids]);
+					if (olderSnapshot) {
+						snapshots[idx] = olderSnapshot;
+						uids.add(olderSnapshot.uid);
+					}
+				}
+
+				uids.add(uid);
+			}
+
+			return snapshots;
+		});
 	if (top10.length === 0) return [];
 	else if (!isActive)
 		return top10.map(
@@ -358,7 +380,6 @@ if (Astro.cache.enabled)
 								<IconLoader class="max-sm:size-3" name="lucide--bar-chart-3" />
 								Statistics
 							</button>
-
 						</div>
 					</div>
 
