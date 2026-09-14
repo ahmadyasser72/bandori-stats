@@ -10,7 +10,6 @@ import {
 	time,
 	TimestampStyles,
 	WebhookClient,
-	type MessageCreateOptions,
 } from "discord.js";
 import { allKeyed, chunk, curry } from "es-toolkit";
 import z from "zod";
@@ -134,29 +133,9 @@ export const discordTracker = schemaTask({
 				items.map(
 					async ({ hourly, daily, thread, webhook, music, metadata }) => {
 						const options = { now, footer: metadata.name };
+						const webhookEmbeds = [] as ReturnType<typeof generateEmbed>[];
 						await Promise.all([
 							(async () => {
-								const sendWebhooks = (payload: MessageCreateOptions) =>
-									Promise.all(
-										webhook.urls.map((url) =>
-											new WebhookClient({ url })
-												.send({
-													...payload,
-													username: client.user?.username,
-													avatarURL: client.user?.avatarURL() ?? undefined,
-												})
-												.catch((error) => {
-													if (
-														error instanceof DiscordAPIError &&
-														error.status === 404
-													)
-														return redis().srem(webhook.key, `"${url}"`);
-
-													throw error;
-												}),
-										),
-									);
-
 								if (hourly.length > 0) {
 									const embed = generateEmbed(hourly, {
 										title: "Hourly Tracker",
@@ -164,10 +143,8 @@ export const discordTracker = schemaTask({
 										...options,
 									});
 
-									await Promise.all([
-										thread.send({ embeds: [embed] }),
-										sendWebhooks({ embeds: [embed] }),
-									]);
+									webhookEmbeds.push(embed);
+									await thread.send({ embeds: [embed] });
 								}
 
 								if (daily.length > 0) {
@@ -177,12 +154,10 @@ export const discordTracker = schemaTask({
 										...options,
 									});
 
-									await Promise.all([
-										thread
-											.send({ embeds: [embed] })
-											.then((message) => message.pin()),
-										sendWebhooks({ embeds: [embed] }),
-									]);
+									webhookEmbeds.push(embed);
+									await thread
+										.send({ embeds: [embed] })
+										.then((message) => message.pin());
 								}
 							})(),
 							music &&
@@ -199,6 +174,7 @@ export const discordTracker = schemaTask({
 											}),
 										);
 
+										webhookEmbeds.push(...embeds);
 										await thread.send({ embeds });
 									}
 
@@ -211,12 +187,35 @@ export const discordTracker = schemaTask({
 											}),
 										);
 
+										webhookEmbeds.push(...embeds);
 										await thread
 											.send({ embeds })
 											.then((message) => message.pin());
 									}
 								})(),
 						]);
+
+						if (webhook.urls.length > 0 && webhookEmbeds.length > 0) {
+							await Promise.all(
+								webhook.urls.map((url) =>
+									new WebhookClient({ url })
+										.send({
+											embeds: webhookEmbeds,
+											username: client.user?.username,
+											avatarURL: client.user?.avatarURL() ?? undefined,
+										})
+										.catch((error) => {
+											if (
+												error instanceof DiscordAPIError &&
+												error.status === 404
+											)
+												return redis().srem(webhook.key, `"${url}"`);
+
+											throw error;
+										}),
+								),
+							);
+						}
 					},
 				),
 			);
