@@ -11,7 +11,7 @@ import {
 	TimestampStyles,
 	WebhookClient,
 } from "discord.js";
-import { allKeyed, chunk, curry } from "es-toolkit";
+import { allKeyed, chunk } from "es-toolkit";
 import z from "zod";
 
 import dayjs from "@bandori-stats/bestdori/date";
@@ -236,27 +236,45 @@ export const getSnapshots = async (
 	trackingReference: TrackingReference,
 	{ since, now }: GetSnapshotsOptions,
 ) => {
-	const getRankAt = curry((reference: dayjs.Dayjs, rank: number) =>
-		db().query.trackerSnapshots.findFirst({
-			where: {
-				...trackingReference,
-				rank,
-				timestamp: { lte: reference.toDate() },
-			},
-			orderBy: { id: "desc" },
+	const ranks = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+	const [top10, previousTop10] = await Promise.all(
+		[now, since].map(async (reference) => {
+			const getLatestRank = (rank: number, exclude?: string[]) =>
+				db().query.trackerSnapshots.findFirst({
+					where: {
+						...trackingReference,
+						rank,
+						timestamp: { lte: reference.toDate() },
+						...(exclude && { uid: { notIn: exclude } }),
+					},
+					orderBy: { id: "desc" },
+				});
+
+			return db()
+				.batch(
+					ranks.map((rank) => getLatestRank(rank)) as [
+						ReturnType<typeof getLatestRank>,
+					],
+				)
+				.then((snapshots) => snapshots.filter((it) => it !== undefined))
+				.then(async (snapshots) => {
+					const uids = new Set<string>();
+					for (const [idx, { uid, rank }] of snapshots.entries()) {
+						if (uids.has(uid)) {
+							const olderSnapshot = await getLatestRank(rank, [...uids]);
+							if (olderSnapshot) {
+								snapshots[idx] = olderSnapshot;
+								uids.add(olderSnapshot.uid);
+							}
+						}
+
+						uids.add(uid);
+					}
+
+					return snapshots;
+				});
 		}),
 	);
-
-	const getLatestRank = getRankAt(now);
-	const getPreviousRank = getRankAt(since);
-	const ranks = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-	const [top10, previousTop10] = chunk(
-		await db().batch([
-			...ranks.map(getLatestRank),
-			...ranks.map(getPreviousRank),
-		] as [ReturnType<typeof getLatestRank>]),
-		10,
-	).map((top10) => top10.filter((it) => it !== undefined));
 	if (top10.length === 0) return [];
 
 	const getBefore = ({ id, uid }: TrackerSnapshot) =>
