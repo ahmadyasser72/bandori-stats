@@ -8,6 +8,7 @@ import {
 	TrackingTarget,
 } from "@bandori-stats/database/tracker";
 import GbpCard from "~/components/gbp-card.astro";
+import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import { IdSchema } from "~/lib/schema";
 
@@ -135,7 +136,7 @@ if (Astro.cache.enabled)
 							data-umami-event-rank={latest.rank}
 							class="btn btn-accent btn-xs max-sm:flex-1 sm:btn-sm"
 						>
-							<Icon class="max-sm:size-3" name="lucide--history" />
+							<IconLoader class="max-sm:size-3" name="lucide--history" />
 							History
 						</button>
 					</div>
