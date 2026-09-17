@@ -40,7 +40,7 @@ export const updateTrackerProfile = schemaTask({
 				z.object({
 					uid: z.string(),
 					trackingReference: TrackingReference,
-					updateBand: z.boolean().default(true),
+					updateBand: z.boolean(),
 				}),
 			)
 			.nonempty(),

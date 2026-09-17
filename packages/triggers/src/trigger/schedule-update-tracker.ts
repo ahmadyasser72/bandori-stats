@@ -227,17 +227,18 @@ export const scheduleUpdateTracker = schedules.task({
 				],
 			);
 
-			const playersToUpdate = inserted.filter(({ point }, idx) => {
-				const previous = previousSnapshots[idx];
-				return !previous || point !== previous.point;
+			await updateTrackerProfile.trigger({
+				players: inserted.map(
+					({ uid, point, trackingFor, trackingId }, idx) => {
+						const previous = previousSnapshots[idx];
+						return {
+							uid,
+							trackingReference: { trackingFor, trackingId },
+							updateBand: !previous || point !== previous.point,
+						};
+					},
+				),
 			});
-			if (playersToUpdate.length > 0)
-				await updateTrackerProfile.trigger({
-					players: playersToUpdate.map(({ uid, trackingFor, trackingId }) => ({
-						uid,
-						trackingReference: { trackingFor, trackingId },
-					})),
-				});
 		}
 
 		for (const [idx, meta] of [event, monthly].entries()) {
