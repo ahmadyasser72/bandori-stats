@@ -240,6 +240,43 @@ export const scheduleUpdateTracker = schedules.task({
 				});
 		}
 
+		for (const [idx, meta] of [event, monthly].entries()) {
+			if (!meta || !now.isSame(meta.endAt, "hours")) continue;
+
+			const tracker = results[idx];
+			if (tracker.status !== "fulfilled" || !tracker.value) continue;
+
+			const { top } = tracker.value;
+			const kind: "event" | "monthly" = idx === 0 ? "event" : "monthly";
+			await updateTrackerProfile.trigger(
+				{
+					players: [
+						...top.t10.map(({ userId }) => ({
+							uid: userId,
+							trackingReference: { trackingFor: kind, trackingId: meta.id },
+							updateBand: false,
+						})),
+						...("musics" in top && top.musics
+							? top.musics.flatMap(({ id, t10 }) =>
+									t10.map(({ userId }) => ({
+										uid: userId,
+										trackingReference: {
+											trackingFor: "music" as const,
+											trackingId: id,
+										},
+										updateBand: false,
+									})),
+								)
+							: []),
+					],
+				},
+				{
+					delay: "1d",
+					idempotencyKey: `${kind}:${meta.id}:last-profile-update`,
+				},
+			);
+		}
+
 		if (abortErrors.length > 0)
 			throw new AbortTaskRunError(abortErrors.join("\n"));
 	},

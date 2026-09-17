@@ -4,7 +4,7 @@ import z from "zod";
 
 import { unwrapRegionTuple } from "@bandori-stats/bestdori/helpers";
 import { Skills } from "@bandori-stats/bestdori/schema/skills";
-import { db, sql } from "@bandori-stats/database";
+import { and, db, eq, sql } from "@bandori-stats/database";
 import {
 	CHARACTER_TO_BAND,
 	GBP,
@@ -37,7 +37,11 @@ export const updateTrackerProfile = schemaTask({
 	schema: z.object({
 		players: z
 			.array(
-				z.object({ uid: z.string(), trackingReference: TrackingReference }),
+				z.object({
+					uid: z.string(),
+					trackingReference: TrackingReference,
+					updateBand: z.boolean().default(true),
+				}),
 			)
 			.nonempty(),
 	}),
@@ -142,8 +146,13 @@ export const updateTrackerProfile = schemaTask({
 			),
 		});
 
-		const values: (typeof trackerSnapshotProfiles.$inferInsert | null)[] =
-			players.map(({ uid, trackingReference }) => {
+		const values: (
+			| typeof trackerSnapshotProfiles.$inferInsert
+			| (Omit<typeof trackerSnapshotProfiles.$inferInsert, "band"> & {
+					band: undefined;
+			  })
+		)[] = players
+			.map(({ uid, trackingReference, updateBand }) => {
 				const profile = profiles.get(uid);
 				if (!profile) return null;
 
@@ -171,26 +180,30 @@ export const updateTrackerProfile = schemaTask({
 								)
 							: null,
 
-					band: {
-						name: profile.mainUserDeck?.deckName!,
-						members: bandMembers,
-						areaItems: bandAreaItems.length > 0 ? bandAreaItems : null,
-						totalStats: profile.publishTotalDeckPowerFlg
-							? calculateTotalBandStats(bandMembers, bandAreaItems)
-							: null,
-					},
+					band: updateBand
+						? {
+								name: profile.mainUserDeck?.deckName!,
+								members: bandMembers,
+								areaItems: bandAreaItems.length > 0 ? bandAreaItems : null,
+								totalStats: profile.publishTotalDeckPowerFlg
+									? calculateTotalBandStats(bandMembers, bandAreaItems)
+									: null,
+							}
+						: undefined,
 
 					titles: Object.values(
 						profile.userProfileDegreeMap?.entries ?? {},
 					).map(({ degreeId }) => degreeId),
 				};
-			});
+			})
+			.filter((value) => value !== null);
 
-		const inserted = await logger.trace("insert-profiles", async (span) => {
-			const snapshotProfiles = values.filter((value) => value !== null);
-			const inserted = await db()
+		const toInsert = values.filter((profile) => profile.band !== undefined);
+		const toUpdate = values.filter((profile) => profile.band === undefined);
+		const results = await db().batch([
+			db()
 				.insert(trackerSnapshotProfiles)
-				.values(snapshotProfiles)
+				.values(toInsert)
 				.onConflictDoUpdate({
 					target: [
 						trackerSnapshotProfiles.uid,
@@ -207,24 +220,24 @@ export const updateTrackerProfile = schemaTask({
 						band: sql.raw(`excluded.${trackerSnapshotProfiles.band.name}`),
 						titles: sql.raw(`excluded.${trackerSnapshotProfiles.titles.name}`),
 					},
-				})
-				.returning({
-					uid: trackerSnapshotProfiles.uid,
-					trackingFor: trackerSnapshotProfiles.trackingFor,
-				});
+				}),
+			...toUpdate.map(({ trackingFor, trackingId, uid, ...value }) =>
+				db()
+					.update(trackerSnapshotProfiles)
+					.set(value)
+					.where(
+						and(
+							eq(trackerSnapshotProfiles.trackingFor, trackingFor),
+							eq(trackerSnapshotProfiles.trackingId, trackingId),
+							eq(trackerSnapshotProfiles.uid, uid),
+						),
+					),
+			),
+		]);
 
-			if (inserted.length > 0) {
-				await tags.add("profile_updated");
-				span.setAttribute(
-					"updated",
-					inserted.map(({ uid, trackingFor }) => `${trackingFor}:${uid}`),
-				);
-			}
-
-			return inserted;
-		});
-
-		if (inserted.length > 0) await githubRedeploy(ctx);
+		if (results.some(({ rowsAffected }) => rowsAffected > 0)) {
+			await githubRedeploy(ctx);
+		}
 	},
 });
 
