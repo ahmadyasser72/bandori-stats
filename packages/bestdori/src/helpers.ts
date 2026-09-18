@@ -44,30 +44,24 @@ export const compareValue = (
 		? getValue(value) - getValue(previousValue)
 		: 0;
 
-const numberFormatter = Intl.NumberFormat("en-US", {
-	maximumFractionDigits: 2,
-});
-const numberFormatterCompact = Intl.NumberFormat("en-US", {
-	notation: "compact",
-	maximumFractionDigits: 2,
-});
+export const formatNumber = (() => {
+	const numberFormatter = Intl.NumberFormat("en-US", {
+		maximumFractionDigits: 2,
+	});
+	const numberFormatterCompact = Intl.NumberFormat("en-US", {
+		notation: "compact",
+		maximumFractionDigits: 2,
+	});
 
-interface FormatNumberOptions {
-	autoCompact?: boolean;
-	positiveSign?: boolean;
-}
-export const formatNumber = (
-	n: number,
-	{ autoCompact = false, positiveSign = false }: FormatNumberOptions = {},
-) => {
-	const { format } =
-		autoCompact && Math.abs(n) >= 100_000
-			? numberFormatterCompact
-			: numberFormatter;
+	return (n: number, options: { compact?: boolean } = {}) => {
+		const { format } =
+			options.compact && Math.abs(n) >= 100_000
+				? numberFormatterCompact
+				: numberFormatter;
 
-	const formatted = format(n);
-	return positiveSign && n > 0 ? `+${formatted}` : formatted;
-};
+		return format(n);
+	};
+})();
 
 export const stripBB = (s?: string) => s?.replace(/\[[^\]]+\]/g, "") as string;
 

@@ -94,9 +94,7 @@ if (Astro.cache.enabled)
 										{formatNumber(point)}
 										{previous && point > previous.point && (
 											<span class="ml-1 badge px-1.5 badge-xs badge-success">
-												{formatNumber(point - previous.point, {
-													positiveSign: true,
-												})}
+												+{formatNumber(point - previous.point)}
 											</span>
 										)}
 									</div>

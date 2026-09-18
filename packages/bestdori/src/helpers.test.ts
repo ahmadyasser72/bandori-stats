@@ -84,22 +84,10 @@ describe("formatNumber", () => {
 	});
 
 	test("compact notation for large numbers", () => {
-		expect(formatNumber(150_000, { autoCompact: true })).toBe("150K");
+		expect(formatNumber(150_000, { compact: true })).toBe("150K");
 	});
 
 	test("no compact for small numbers", () => {
-		expect(formatNumber(99_999, { autoCompact: true })).toBe("99,999");
-	});
-
-	test("adds positive sign", () => {
-		expect(formatNumber(42, { positiveSign: true })).toBe("+42");
-	});
-
-	test("does not add sign for zero", () => {
-		expect(formatNumber(0, { positiveSign: true })).toBe("0");
-	});
-
-	test("does not add sign for negatives", () => {
-		expect(formatNumber(-5, { positiveSign: true })).toBe("-5");
+		expect(formatNumber(99_999, { compact: true })).toBe("99,999");
 	});
 });

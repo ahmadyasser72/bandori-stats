@@ -164,7 +164,7 @@ const StatCell = ({
 						data-tip={
 							delta === 0
 								? displayValue(value)
-								: `${displayValue(previousValue)} to ${displayValue(value)} (${formatNumber(delta, { positiveSign: true })})`
+								: `${displayValue(previousValue)} to ${displayValue(value)} (+${formatNumber(delta)})`
 						}
 					>
 						{displayValue(ratio ?? value)}
@@ -230,7 +230,7 @@ const StatCellDeltaBadge = ({
 					: `from: ${displayValue(previousValue)}`
 			}
 		>
-			{formatNumber(displayDelta, { autoCompact: true, positiveSign: true })}
+			+{formatNumber(displayDelta, { compact: true })}
 			{ratioDelta && "%"}
 		</span>
 	);

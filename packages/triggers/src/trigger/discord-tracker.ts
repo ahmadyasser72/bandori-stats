@@ -373,8 +373,7 @@ const generateEmbed = (
 
 	for (const { current, previous, returning, lastPlayed, delta } of snapshots) {
 		let points = `${formatNumber(current.point)} Pts`;
-		if (delta.point > 0)
-			points += ` (${formatNumber(delta.point, { positiveSign: true })} Pts)`;
+		if (delta.point > 0) points += ` (+${formatNumber(delta.point)} Pts)`;
 
 		embed.addFields({
 			name: [bold(`#${current.rank} ${stripBB(current.name)}`), points].join(

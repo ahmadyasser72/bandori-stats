@@ -117,9 +117,7 @@ if (Astro.cache.enabled)
 									class="tooltip ml-1 badge px-1.5 badge-xs tooltip-success underline decoration-dotted badge-success"
 									data-tip={`compared to ${formatDuration(previous.timestamp)}`}
 								>
-									{formatNumber(latest.point - previous.point, {
-										positiveSign: true,
-									})}
+									+{formatNumber(latest.point - previous.point)}
 								</span>
 							)}
 						</span>

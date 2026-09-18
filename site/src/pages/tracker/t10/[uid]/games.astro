@@ -216,19 +216,19 @@ if (Astro.cache.enabled)
 			{gamesTotal} Games
 		</div>
 		<div class="badge badge-soft badge-md badge-accent">
-			Average: {formatNumber(meanPoints, { positiveSign: true })}
+			Average: +{formatNumber(meanPoints)}
 		</div>
 		<div class="badge badge-soft badge-md badge-accent">
-			Median: {formatNumber(medianPoints, { positiveSign: true })}
+			Median: +{formatNumber(medianPoints)}
 		</div>
 		<div class="badge badge-soft badge-md badge-accent">
-			Min: {formatNumber(minPoints, { positiveSign: true })}
+			Min: +{formatNumber(minPoints)}
 		</div>
 		<div class="badge badge-soft badge-md badge-accent">
-			Max: {formatNumber(maxPoints, { positiveSign: true })}
+			Max: +{formatNumber(maxPoints)}
 		</div>
 		<div class="badge badge-soft badge-md badge-accent">
-			{formatNumber(pointsPerHour, { positiveSign: true })} Pts/hour (estimated)
+			+{formatNumber(pointsPerHour)} Pts/hour (estimated)
 		</div>
 		<div class="badge badge-soft badge-md badge-accent">
 			{formatNumber(averageMinutesPerGame)} Minutes/game (average)
@@ -261,7 +261,7 @@ if (Astro.cache.enabled)
 										: "badge-success",
 								]}
 							>
-								{formatNumber(delta, { positiveSign: true })}
+								+{formatNumber(delta)}
 							</span>
 
 							{delta > outlierCap(params) && (

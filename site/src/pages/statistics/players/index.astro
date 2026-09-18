@@ -103,7 +103,7 @@ const totalStats = await Promise.all(
 					}
 				>
 					<Icon class="size-8" name="lucide--sigma" />
-					{formatNumber(sum, { autoCompact: true })}
+					{formatNumber(sum, { compact: true })}
 				</div>
 			</div>
 			<div class="stat-desc">
@@ -120,7 +120,7 @@ const totalStats = await Promise.all(
 					}
 				>
 					<Icon class="size-3" name="lucide--circle-slash-2" />
-					{formatNumber(average, { autoCompact: true })}
+					{formatNumber(average, { compact: true })}
 				</div>
 				<span class:list={["mx-2 status status-sm", STAT_STATUSES[name]]} />
 				<div

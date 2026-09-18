@@ -31,7 +31,7 @@ const compute = (valueRaw: StatValue, reference: StatValue) => {
 	if (isRatio) value *= 100 / referenceValue;
 
 	let display = value
-		? formatNumber(value, { autoCompact: true })
+		? formatNumber(value, { compact: true })
 		: displayValue(valueRaw);
 	if (isRatio) display += "%";
 
@@ -47,7 +47,7 @@ const delta = compareValue(
 	right.value || Astro.props.right,
 );
 let deltaDisplay = (isRatio ? Math.abs(delta) >= 0.01 : Math.abs(delta) > 0)
-	? formatNumber(Math.abs(delta), { autoCompact: true, positiveSign: true })
+	? `+${formatNumber(Math.abs(delta), { compact: true })}`
 	: "N/A";
 if (delta && isRatio) deltaDisplay += "%";
 

@@ -14,7 +14,7 @@ export const computeStatDeltas = (
 		.filter(([, delta]) => delta > 0)
 		.map(([name, delta]): [typeof name, string] => [
 			name,
-			formatNumber(delta, { autoCompact: true, positiveSign: true }),
+			`+${formatNumber(delta, { compact: true })}`,
 		]);
 
 export const STAT_BADGES = {
