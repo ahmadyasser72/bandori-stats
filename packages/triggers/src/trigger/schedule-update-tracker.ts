@@ -5,6 +5,7 @@ import {
 	tags,
 	wait,
 } from "@trigger.dev/sdk";
+import { __setReplaySessionOutTailImplForTests } from "@trigger.dev/sdk/ai";
 import { allKeyed, countBy, curry, pick, sum, uniqBy } from "es-toolkit";
 
 import dayjs from "@bandori-stats/bestdori/date";
@@ -12,7 +13,6 @@ import { and, db, eq, sql, type TableFilter } from "@bandori-stats/database";
 import { GBP, getRedisData, redis } from "@bandori-stats/database/redis";
 import {
 	trackerCutoffs,
-	trackerSnapshotProfiles,
 	trackerSnapshots,
 	type GbpMetadata,
 } from "@bandori-stats/database/schema";
@@ -178,21 +178,20 @@ export const scheduleUpdateTracker = schedules.task({
 
 			{
 				const references = [] as (TrackingReference & { top: Ranking })[];
-				const [eventTracker, monthlyTracker] = results;
-				if (eventTracker.status === "fulfilled" && eventTracker.value)
-					references.push({
-						trackingFor: "event",
-						trackingId: eventId!,
-						top: eventTracker.value.top,
-					});
-				if (monthlyTracker.status === "fulfilled" && monthlyTracker.value)
-					references.push({
-						trackingFor: "monthly",
-						trackingId: monthlyId!,
-						top: monthlyTracker.value.top,
-					});
+				for (const [idx, meta] of [event, monthly].entries()) {
+					if (!meta || !now.isSame(meta.endAt, "hours")) continue;
 
-				if (references.length > 0) await deleteBannedPlayers(references);
+					const tracker = results[idx];
+					if (tracker.status !== "fulfilled" || !tracker.value) continue;
+
+					references.push({
+						trackingFor: idx === 0 ? "event" : "monthly",
+						trackingId: meta.id,
+						top: tracker.value.top,
+					});
+				}
+
+				if (references.length > 0) await markBannedPlayers(references, now);
 			}
 
 			if (metadatas.length > 0) await discordTracker.trigger({ metadatas });
@@ -479,8 +478,9 @@ const insertSnapshots = async (
 	});
 };
 
-const deleteBannedPlayers = async (
+const markBannedPlayers = async (
 	references: (TrackingReference & { top: Ranking })[],
+	now: dayjs.Dayjs,
 ) => {
 	const filters: TableFilter<typeof trackerSnapshots>[] = [];
 	for (const { top, ...trackingReference } of references) {
@@ -509,20 +509,21 @@ const deleteBannedPlayers = async (
 	const candidates = uniqBy(
 		await db().query.trackerSnapshots.findMany({
 			columns: { trackingFor: true, trackingId: true, uid: true },
-			where: { OR: filters },
+			where: { AND: [{ OR: filters }, { bannedAt: { isNull: true } }] },
 		}),
 		({ trackingFor, trackingId, uid }) =>
 			[trackingFor, trackingId, uid].join(":"),
 	);
 	if (candidates.length === 0) return;
 
-	const deleteSnapshot = ({
+	const markAsBanned = ({
 		trackingFor,
 		trackingId,
 		uid,
 	}: (typeof candidates)[number]) =>
 		db()
-			.delete(trackerSnapshots)
+			.update(trackerSnapshots)
+			.set({ bannedAt: now.toDate() })
 			.where(
 				and(
 					eq(trackerSnapshots.trackingFor, trackingFor),
@@ -530,25 +531,8 @@ const deleteBannedPlayers = async (
 					eq(trackerSnapshots.uid, uid),
 				),
 			);
-	const deleteProfile = ({
-		trackingFor,
-		trackingId,
-		uid,
-	}: (typeof candidates)[number]) =>
-		db()
-			.delete(trackerSnapshotProfiles)
-			.where(
-				and(
-					eq(trackerSnapshotProfiles.trackingFor, trackingFor),
-					eq(trackerSnapshotProfiles.trackingId, trackingId),
-					eq(trackerSnapshotProfiles.uid, uid),
-				),
-			);
 
 	await db().batch(
-		candidates.flatMap((snapshot) => [
-			deleteSnapshot(snapshot),
-			deleteProfile(snapshot),
-		]) as [ReturnType<typeof deleteSnapshot | typeof deleteProfile>],
+		candidates.map(markAsBanned) as [ReturnType<typeof markAsBanned>],
 	);
 };

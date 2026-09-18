@@ -50,6 +50,7 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 				...trackingReference,
 				rank,
 				...(exclude && { uid: { notIn: exclude } }),
+				bannedAt: { isNull: true },
 			},
 			orderBy: { id: "desc" },
 			with: { profile: { where: trackingReference } },

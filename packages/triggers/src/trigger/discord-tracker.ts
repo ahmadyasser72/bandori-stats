@@ -246,6 +246,7 @@ export const getSnapshots = async (
 						rank,
 						timestamp: { lte: reference.toDate() },
 						...(exclude && { uid: { notIn: exclude } }),
+						bannedAt: { isNull: true },
 					},
 					orderBy: { id: "desc" },
 				});

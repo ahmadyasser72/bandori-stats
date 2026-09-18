@@ -119,18 +119,27 @@ export const { trackerSnapshots, trackerCutoffs } = (() => {
 	} as const;
 
 	return {
-		trackerSnapshots: sqliteTable("tracker_snapshots", shared, (t) => [
-			index("idx_snapshot_uid").on(t.trackingFor, t.trackingId, t.uid, t.id),
-			index("idx_snapshot_rank").on(t.trackingFor, t.trackingId, t.rank, t.id),
-			unique("unique_snapshot").on(
-				t.trackingFor,
-				t.trackingId,
-				t.uid,
-				t.name,
-				t.rank,
-				t.point,
-			),
-		]),
+		trackerSnapshots: sqliteTable(
+			"tracker_snapshots",
+			{ ...shared, bannedAt: integer({ mode: "timestamp_ms" }) },
+			(t) => [
+				index("idx_snapshot_uid").on(t.trackingFor, t.trackingId, t.uid, t.id),
+				index("idx_snapshot_rank").on(
+					t.trackingFor,
+					t.trackingId,
+					t.rank,
+					t.id,
+				),
+				unique("unique_snapshot").on(
+					t.trackingFor,
+					t.trackingId,
+					t.uid,
+					t.name,
+					t.rank,
+					t.point,
+				),
+			],
+		),
 		trackerCutoffs: sqliteTable(
 			"tracker_cutoffs",
 			{
