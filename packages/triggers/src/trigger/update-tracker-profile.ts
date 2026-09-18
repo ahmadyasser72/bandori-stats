@@ -199,8 +199,7 @@ export const updateTrackerProfile = schemaTask({
 			.filter((value) => value !== null);
 
 		const toInsert = values.filter((profile) => profile.band !== undefined);
-		const toUpdate = values.filter((profile) => profile.band === undefined);
-		const results = await db().batch([
+		const upsertProfiles = () =>
 			db()
 				.insert(trackerSnapshotProfiles)
 				.values(toInsert)
@@ -220,8 +219,11 @@ export const updateTrackerProfile = schemaTask({
 						band: sql.raw(`excluded.${trackerSnapshotProfiles.band.name}`),
 						titles: sql.raw(`excluded.${trackerSnapshotProfiles.titles.name}`),
 					},
-				}),
-			...toUpdate.map(({ trackingFor, trackingId, uid, ...value }) =>
+				});
+
+		const toUpdate = values.filter((profile) => profile.band === undefined);
+		const updateProfiles = () =>
+			toUpdate.map(({ trackingFor, trackingId, uid, ...value }) =>
 				db()
 					.update(trackerSnapshotProfiles)
 					.set(value)
@@ -232,8 +234,12 @@ export const updateTrackerProfile = schemaTask({
 							eq(trackerSnapshotProfiles.uid, uid),
 						),
 					),
-			),
-		]);
+			);
+
+		const results = await db().batch([
+			...(toInsert.length > 0 ? [upsertProfiles()] : []),
+			...updateProfiles(),
+		] as [ReturnType<typeof upsertProfiles>]);
 
 		if (results.some(({ rowsAffected }) => rowsAffected > 0)) {
 			await githubRedeploy(ctx);
