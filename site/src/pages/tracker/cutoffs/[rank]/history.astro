@@ -3,7 +3,7 @@ import z from "zod";
 
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
 import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
-import { db } from "@bandori-stats/database";
+import { db, sql } from "@bandori-stats/database";
 import {
 	getTrackingMetadata,
 	getTrackingReference,
@@ -33,6 +33,10 @@ if (!metadata) return new Response(null, { status: 404 });
 const history = await Astro.locals.tracing.enterSpan("fetch-history", () =>
 	db()
 		.query.trackerCutoffs.findMany({
+			extras: {
+				pointsPerHour: (t) =>
+					sql<number>`${t.point} / CAST((${t.timestamp} - ${metadata.startAt.getTime()}) / 3600000 AS INTEGER)`,
+			},
 			columns: { id: false, trackingFor: false, trackingId: false },
 			where: { ...getTrackingReference(params), rank },
 			orderBy: { id: "desc" },
@@ -60,7 +64,13 @@ if (Astro.cache.enabled)
 	>
 		{
 			history.map(
-				({ value: { point, timestamp, name, avatar }, previous }, idx) => (
+				(
+					{
+						value: { point, timestamp, name, avatar, pointsPerHour },
+						previous,
+					},
+					idx,
+				) => (
 					<li>
 						{idx > 0 && <hr class="bg-neutral" />}
 						<div class="timeline-start flex flex-col items-end font-mono">
@@ -92,6 +102,10 @@ if (Astro.cache.enabled)
 											</span>
 										)}
 									</div>
+
+									<span class="text-xs">
+										{formatNumber(pointsPerHour)} Pts/hour
+									</span>
 								</div>
 							</div>
 						</div>

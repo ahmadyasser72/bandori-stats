@@ -1,7 +1,7 @@
 ---
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
 import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
-import { db } from "@bandori-stats/database";
+import { db, sql } from "@bandori-stats/database";
 import { GBP, redis } from "@bandori-stats/database/redis";
 import {
 	getTrackingMetadata,
@@ -27,7 +27,11 @@ const metadata = await Astro.locals.tracing.enterSpan(
 );
 if (!metadata) return new Response(null, { status: 404 });
 
-const isActive = dayjs().isBefore(metadata.endAt);
+const now = dayjs();
+const isActive = now.isBefore(metadata.endAt);
+const hoursSince = dayjs(
+	Math.min(now.startOf("hour").valueOf(), metadata.endAt.getTime()),
+).diff(metadata.startAt, "hours");
 
 const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 	const ranks = await redis().zrange<number[]>(
@@ -41,6 +45,7 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 	const trackingReference = getTrackingReference(params);
 	const getCutoffs = (rank: number) =>
 		db().query.trackerCutoffs.findMany({
+			extras: { pointsPerHour: (t) => sql<number>`${t.point} / ${hoursSince}` },
 			columns: { id: false, trackingFor: false, trackingId: false },
 			where: { ...trackingReference, rank },
 			limit: isActive ? 2 : 1,
@@ -48,14 +53,14 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 		});
 
 	return db()
-		.batch([getCutoffs(ranks[0]), ...ranks.slice(1).map(getCutoffs)])
+		.batch(ranks.map(getCutoffs) as [ReturnType<typeof getCutoffs>])
 		.then((entries) =>
 			entries
 				.filter((snapshots) => snapshots.length > 0)
 				.map(([latest, previous]) => ({
 					latest,
 					previous:
-						previous && dayjs().diff(previous.timestamp, "hour") <= 1
+						previous && now.diff(previous.timestamp, "hour") <= 1
 							? previous
 							: undefined,
 				})),
@@ -109,7 +114,7 @@ if (Astro.cache.enabled)
 							{formatNumber(latest.point)}
 							{previous && latest.point !== previous.point && (
 								<span
-									class="tooltip tooltip-end ml-1 badge px-1.5 badge-xs tooltip-success underline decoration-dotted badge-success"
+									class="tooltip ml-1 badge px-1.5 badge-xs tooltip-success underline decoration-dotted badge-success"
 									data-tip={`compared to ${formatDuration(previous.timestamp)}`}
 								>
 									{formatNumber(latest.point - previous.point, {
@@ -119,6 +124,9 @@ if (Astro.cache.enabled)
 							)}
 						</span>
 
+						<span class="text-xs">
+							{formatNumber(latest.pointsPerHour)} Pts/hour
+						</span>
 						<span>updated {formatDuration(latest.timestamp)}</span>
 					</div>
 
