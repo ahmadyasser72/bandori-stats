@@ -12,6 +12,7 @@
 		"@bufbuild/protobuf": "2.15.0",
 		"@isaacs/ttlcache": "2.1.5",
 		"@trigger.dev/sdk": "4.6.3",
+		"ai": "7.0.107",
 		"discord.js": "14.27.0",
 		"es-toolkit": "1.52.0",
 		"random": "5.5.1",
