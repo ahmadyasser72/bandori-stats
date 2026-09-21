@@ -1,4 +1,6 @@
 ---
+import { UMAMI_SITE_ID } from "astro:env/server";
+
 import { capitalize, pick } from "es-toolkit";
 import z from "zod";
 
@@ -117,7 +119,7 @@ if (Astro.cache.enabled)
 		>{
 			song
 				? `${song.title} — ${capitalize(songDisplay)}`
-				: `${capitalize(metadata.kind)} Ranking — ${capitalize(params.display)}`
+				: `${capitalize(metadata.kind)} Ranking — ${params.display === "t10-realtime" ? "T10 (last 1h)" : capitalize(params.display)}`
 		}</span
 	>
 
@@ -203,102 +205,131 @@ if (Astro.cache.enabled)
 			</button>
 		</div>
 
-		<button
-			class="btn w-full btn-secondary btn-sm sm:w-max"
-			popovertarget="metadata-display-menu"
-			style="anchor-name: --anchor-metadata-display-menu"
-		>
-			<IconLoader name="lucide--list" />
-			Display
-		</button>
-		<div
-			class="dropdown dropdown-end dropdown-top"
-			id="metadata-display-menu"
-			popover
-			style="position-anchor: --anchor-metadata-display-menu"
-		>
-			<ul
-				hx-browser-indicator:inherited="true"
-				hx-swap:inherited="outerHTML transition:true show:top"
-				hx-target:inherited="main"
-				hx-vals:inherited={JSON.stringify({ tab: params.kind, id: params.id })}
-				class="menu menu-vertical menu-paged w-64"
+		<div class="join w-full sm:w-max">
+			<button
+				class="btn join-item flex-1 btn-secondary btn-sm"
+				popovertarget="metadata-display-menu"
+				style="anchor-name: --anchor-metadata-display-menu"
 			>
-				<img
-					class="mx-auto my-1 aspect-9/4 h-24"
-					src={getTrackerLogo(params)}
-					loading="lazy"
-				/>
+				<IconLoader name="lucide--list" />
+				Display
+			</button>
+			<div
+				class="dropdown dropdown-end dropdown-top"
+				id="metadata-display-menu"
+				popover
+				style="position-anchor: --anchor-metadata-display-menu"
+			>
+				<ul
+					hx-browser-indicator:inherited="true"
+					hx-swap:inherited="outerHTML transition:true show:top"
+					hx-target:inherited="main"
+					hx-vals:inherited={JSON.stringify({
+						tab: params.kind,
+						id: params.id,
+					})}
+					class="menu menu-vertical menu-paged w-64"
+				>
+					<img
+						class="mx-auto my-1 aspect-9/4 h-24"
+						src={getTrackerLogo(params)}
+						loading="lazy"
+					/>
 
-				{
-					["t10", "cutoffs"].map((value) => (
-						<li>
-							<button
-								hx-get="/tracker"
-								hx-vals:append={JSON.stringify({ display: value })}
-								class:list={[value === params.display && "menu-active"]}
-							>
-								<Icon
-									class="htmx-indicator"
-									name="svg-spinners--90-ring-with-bg"
-								/>
-								{capitalize(params.kind)} Ranking &mdash; {capitalize(value)}
-							</button>
-						</li>
-					))
-				}
-
-				{
-					displayChoices.map(({ label, items, image }) => (
-						<li>
-							<details>
-								<summary
-									class:list={[
-										items.find(({ value }) => value === params.display) &&
-											"menu-active",
-									]}
+					{
+						["t10", "t10-realtime", "cutoffs"].map((value) => (
+							<li>
+								<button
+									hx-get="/tracker"
+									hx-vals:append={JSON.stringify({ display: value })}
+									class:list={[value === params.display && "menu-active"]}
 								>
-									{image && image.kind === "music" && (
-										<img
-											class="aspect-square size-10"
-											src={image.url}
-											loading="lazy"
-										/>
-									)}
-									{label}
-								</summary>
-								<ul>
-									{image && (
-										<img
-											class="mx-auto my-1 aspect-square h-32"
-											src={image.url}
-											loading="lazy"
-										/>
-									)}
+									<Icon
+										class="htmx-indicator"
+										name="svg-spinners--90-ring-with-bg"
+									/>
+									{capitalize(params.kind)} Ranking &mdash;{" "}
+									{value === "t10-realtime"
+										? "T10 (Realtime)"
+										: capitalize(value)}
+								</button>
+							</li>
+						))
+					}
 
-									{items.map((item) => (
-										<li>
-											<button
-												hx-get="/tracker"
-												hx-vals:append={JSON.stringify({ display: item.value })}
-												class:list={[
-													item.value === params.display && "menu-active",
-												]}
-											>
-												<Icon
-													class="htmx-indicator"
-													name="svg-spinners--90-ring-with-bg"
-												/>
-												{label} &mdash; {item.label}
-											</button>
-										</li>
-									))}
-								</ul>
-							</details>
-						</li>
-					))
-				}
-			</ul>
+					{
+						displayChoices.map(({ label, items, image }) => (
+							<li>
+								<details>
+									<summary
+										class:list={[
+											items.find(({ value }) => value === params.display) &&
+												"menu-active",
+										]}
+									>
+										{image && image.kind === "music" && (
+											<img
+												class="aspect-square size-10"
+												src={image.url}
+												loading="lazy"
+											/>
+										)}
+										{label}
+									</summary>
+									<ul>
+										{image && (
+											<img
+												class="mx-auto my-1 aspect-square h-32"
+												src={image.url}
+												loading="lazy"
+											/>
+										)}
+
+										{items.map((item) => (
+											<li>
+												<button
+													hx-get="/tracker"
+													hx-vals:append={JSON.stringify({
+														display: item.value,
+													})}
+													class:list={[
+														item.value === params.display && "menu-active",
+													]}
+												>
+													<Icon
+														class="htmx-indicator"
+														name="svg-spinners--90-ring-with-bg"
+													/>
+													{label} &mdash; {item.label}
+												</button>
+											</li>
+										))}
+									</ul>
+								</details>
+							</li>
+						))
+					}
+				</ul>
+			</div>
+
+			<button
+				hx-get="/tracker/list"
+				hx-browser-indicator="true"
+				hx-on={[
+					import.meta.env.PROD &&
+						UMAMI_SITE_ID &&
+						`htmx:before:request from:self -> umami.track("tracker-reload", { name: "${metadata.name}", kind: "${params.kind}" })`,
+				]
+					.filter(Boolean)
+					.join(";")}
+				hx-swap="outerMorph transition:true"
+				hx-target="#tracker-list"
+				hx-vals={JSON.stringify(params)}
+				class="btn join-item btn-secondary btn-sm"
+			>
+				<IconLoader name="lucide--rotate-ccw" />
+				Refresh
+			</button>
 		</div>
 	</div>
 </div>

@@ -5,7 +5,7 @@ import z from "zod";
 import { TrackingTarget } from "@bandori-stats/database/tracker";
 
 export const DisplaySchema = z.templateLiteral([
-	z.enum(["t10", "cutoffs"]),
+	z.enum(["t10", "t10-realtime", "cutoffs"]),
 	z.templateLiteral(["-", z.number()]).optional(),
 ]);
 
