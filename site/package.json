@@ -22,7 +22,7 @@
 		"@tailwindcss/typography": "0.5.20",
 		"@tailwindcss/vite": "4.3.3",
 		"@tanstack/charts": "0.18.0",
-		"@zumer/snapdom": "2.24.18",
+		"@zumer/snapdom": "3.1.1",
 		"astro": "7.3.3",
 		"clsx": "2.1.1",
 		"d3-scale": "4.0.2",
