@@ -152,7 +152,7 @@ export const scheduleUpdateTracker = schedules.task({
 				const inserted = await insertSnapshots(top, { now, metadata });
 				if (inserted.length === 0) return;
 
-				return { inserted, top };
+				return { metadata, inserted, top };
 			}),
 
 			logger.trace("monthly-tracker", async (span) => {
@@ -174,36 +174,27 @@ export const scheduleUpdateTracker = schedules.task({
 				const inserted = await insertSnapshots(top, { now, metadata });
 				if (inserted.length === 0) return;
 
-				return { inserted, top };
+				return { metadata, inserted, top };
 			}),
 		]);
 
-		if (now.get("minutes") === 0) {
-			{
-				const references = [] as (TrackingReference & { top: Ranking })[];
-				for (const [idx, meta] of [event, monthly].entries()) {
-					if (!meta) continue;
+		const outputs = results
+			.filter((promise) => promise.status === "fulfilled")
+			.filter((promise) => promise.value !== undefined)
+			.map((promise) => promise.value!);
 
-					const tracker = results[idx];
-					if (tracker.status !== "fulfilled" || !tracker.value) continue;
+		if (outputs.length > 0 && now.get("minutes") === 0) {
+			await markBannedPlayers(
+				outputs.map(({ metadata, top }) => ({
+					top,
+					trackingReference: getTrackingReference(metadata),
+				})),
+				now,
+			);
 
-					references.push({
-						trackingFor: idx === 0 ? "event" : "monthly",
-						trackingId: meta.id,
-						top: tracker.value.top,
-					});
-				}
-
-				if (references.length > 0) await markBannedPlayers(references, now);
-			}
-
-			{
-				const metadatas = [] as GbpMetadata[];
-				if (event) metadatas.push({ kind: "event", ...event });
-				if (monthly) metadatas.push({ kind: "monthly", ...monthly });
-
-				if (metadatas.length > 0) await discordTracker.trigger({ metadatas });
-			}
+			await discordTracker.trigger({
+				metadatas: outputs.map(({ metadata }) => metadata),
+			});
 		}
 
 		const errors = results.filter((promise) => promise.status === "rejected");
@@ -214,55 +205,87 @@ export const scheduleUpdateTracker = schedules.task({
 		}
 		if (errors.length > 0) await tags.add("error_settled");
 
-		const inserted = results
-			.filter((promise) => promise.status === "fulfilled")
-			.flatMap(({ value }) => value?.inserted ?? []);
-
+		const inserted = outputs.flatMap(({ inserted }) => inserted);
 		if (inserted.length > 0) {
-			const getPreviousSnapshot = ({
-				id,
-				trackingFor,
-				trackingId,
-				uid,
-			}: (typeof inserted)[number]) =>
-				db().query.trackerSnapshots.findFirst({
-					where: { trackingFor, trackingId, uid, id: { lt: id } },
-					orderBy: { id: "desc" },
-				});
-			const previousSnapshots = await db().batch(
-				inserted.map(getPreviousSnapshot) as [
-					ReturnType<typeof getPreviousSnapshot>,
-				],
+			const snapshots = await logger.trace(
+				"get-previous-snapshots",
+				async (span) => {
+					const getPreviousSnapshot = ({
+						id,
+						trackingFor,
+						trackingId,
+						uid,
+					}: (typeof inserted)[number]) =>
+						db().query.trackerSnapshots.findFirst({
+							where: { trackingFor, trackingId, uid, id: { lt: id } },
+							orderBy: { id: "desc" },
+						});
+					const previousSnapshots = await db().batch(
+						inserted.map(getPreviousSnapshot) as [
+							ReturnType<typeof getPreviousSnapshot>,
+						],
+					);
+
+					const snapshots = inserted.map((value, idx) => {
+						const previous = previousSnapshots.at(idx);
+						return {
+							value,
+							updated: !previous || value.point !== previous.point,
+						};
+					});
+					span.setAttribute("snapshots", JSON.stringify(snapshots));
+
+					return snapshots;
+				},
 			);
 
 			await updateTrackerProfile.trigger({
-				players: inserted.map(
-					({ uid, point, trackingFor, trackingId }, idx) => {
-						const previous = previousSnapshots[idx];
-						return {
-							uid,
-							trackingReference: { trackingFor, trackingId },
-							updateBand: !previous || point !== previous.point,
-						};
-					},
+				players: snapshots.map(
+					({ value: { uid, trackingFor, trackingId }, updated }) => ({
+						uid,
+						trackingReference: { trackingFor, trackingId },
+						updateBand: updated,
+					}),
 				),
 			});
+
+			const updated = snapshots.filter(
+				({ value: { trackingFor }, updated }) =>
+					trackingFor !== "music" && updated,
+			);
+			if (updated.length > 0) {
+				await logger.trace("update-played-since", async (span) => {
+					const keys = updated.map(
+						({ value: { uid, trackingFor, trackingId } }) =>
+							GBP.fromMetadata(
+								{ kind: trackingFor as "event" | "monthly", id: trackingId },
+								uid,
+								"played-since",
+							),
+					);
+					span.setAttribute("key", keys);
+
+					await keys
+						.reduce(
+							(pipe, key) =>
+								pipe.set(key, now.valueOf(), { ex: 60 * 10, nx: true }),
+							redis().pipeline(),
+						)
+						.exec();
+				});
+			}
 		}
 
-		for (const [idx, meta] of [event, monthly].entries()) {
-			if (!meta || !now.isSame(meta.endAt, "hours")) continue;
+		for (const { metadata, top } of outputs) {
+			if (!now.isSame(metadata.endAt, "hours")) continue;
 
-			const tracker = results[idx];
-			if (tracker.status !== "fulfilled" || !tracker.value) continue;
-
-			const { top } = tracker.value;
-			const kind: "event" | "monthly" = idx === 0 ? "event" : "monthly";
+			const trackingReference = getTrackingReference(metadata);
 			await updateTrackerProfile.trigger(
 				{
 					players: [
 						...top.t10.map(({ userId }) => ({
 							uid: userId,
-							trackingReference: { trackingFor: kind, trackingId: meta.id },
+							trackingReference,
 							updateBand: false,
 						})),
 						...("musics" in top && top.musics
@@ -281,7 +304,7 @@ export const scheduleUpdateTracker = schedules.task({
 				},
 				{
 					delay: "1d",
-					idempotencyKey: `${kind}:${meta.id}:last-profile-update`,
+					idempotencyKey: `${metadata.kind}:${metadata.id}:last-profile-update`,
 				},
 			);
 		}
@@ -488,11 +511,14 @@ const insertSnapshots = async (
 };
 
 export const markBannedPlayers = async (
-	references: (TrackingReference & { top: Ranking })[],
+	targets: { top: Ranking; trackingReference: TrackingReference }[],
 	now: dayjs.Dayjs,
 ) => {
 	const conditions = [] as Parameters<typeof or>;
-	for (const { top, trackingFor, trackingId } of references) {
+	for (const {
+		top,
+		trackingReference: { trackingFor, trackingId },
+	} of targets) {
 		conditions.push(
 			and(
 				eq(trackerSnapshots.trackingFor, trackingFor),
@@ -528,7 +554,7 @@ export const markBannedPlayers = async (
 		}
 	}
 
-	await logger.trace("mark-banned", async (span) => {
+	await logger.trace("mark-banned-players", async (span) => {
 		const filter = and(or(...conditions), isNull(trackerSnapshots.bannedAt));
 		span.setAttribute("filter", String(filter?.getSQL()));
 		span.setAttribute("bannedAt", now.toISOString());
