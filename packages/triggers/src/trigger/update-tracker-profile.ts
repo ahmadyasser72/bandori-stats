@@ -7,7 +7,6 @@ import { Skills } from "@bandori-stats/bestdori/schema/skills";
 import { and, db, eq, sql } from "@bandori-stats/database";
 import {
 	CHARACTER_TO_BAND,
-	GBP,
 	getRedisData,
 	redis,
 	type BangDreamAreaItem,
@@ -34,6 +33,7 @@ import { bestdori } from "~/bestdori";
 export const updateTrackerProfile = schemaTask({
 	id: "update-tracker-profile",
 	schema: z.object({
+		version: z.string(),
 		players: z
 			.array(
 				z.object({
@@ -44,10 +44,8 @@ export const updateTrackerProfile = schemaTask({
 			)
 			.nonempty(),
 	}),
-	run: async ({ players }) => {
-		const version = await redis().get<string>(GBP.version);
-		await tags.add(`version_${version ?? "n/a"}`);
-		if (!version) return;
+	run: async ({ players, version }) => {
+		await tags.add(`version_${version}`);
 
 		const profiles = await logger.trace("fetch-profiles", async (span) => {
 			const getFromCache = new Set<string>();

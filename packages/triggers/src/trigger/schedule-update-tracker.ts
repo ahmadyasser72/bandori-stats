@@ -240,6 +240,7 @@ export const scheduleUpdateTracker = schedules.task({
 			);
 
 			await updateTrackerProfile.trigger({
+				version,
 				players: snapshots.map(
 					({ value: { uid, trackingFor, trackingId }, updated }) => ({
 						uid,
@@ -282,6 +283,7 @@ export const scheduleUpdateTracker = schedules.task({
 			const trackingReference = getTrackingReference(metadata);
 			await updateTrackerProfile.trigger(
 				{
+					version,
 					players: [
 						...top.t10.map(({ userId }) => ({
 							uid: userId,
