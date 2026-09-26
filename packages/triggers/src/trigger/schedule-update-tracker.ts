@@ -8,7 +8,16 @@ import {
 import { allKeyed, countBy, curry, pick, sum } from "es-toolkit";
 
 import dayjs from "@bandori-stats/bestdori/date";
-import { and, db, eq, gt, notInArray, or, sql } from "@bandori-stats/database";
+import {
+	and,
+	db,
+	eq,
+	gt,
+	isNull,
+	notInArray,
+	or,
+	sql,
+} from "@bandori-stats/database";
 import { GBP, getRedisData, redis } from "@bandori-stats/database/redis";
 import {
 	trackerCutoffs,
@@ -520,7 +529,7 @@ export const markBannedPlayers = async (
 	}
 
 	await logger.trace("mark-banned", async (span) => {
-		const filter = or(...conditions);
+		const filter = and(or(...conditions), isNull(trackerSnapshots.bannedAt));
 		span.setAttribute("filter", String(filter?.getSQL()));
 		span.setAttribute("bannedAt", now.toISOString());
 		await db()
