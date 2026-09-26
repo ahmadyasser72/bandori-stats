@@ -170,11 +170,6 @@ export const scheduleUpdateTracker = schedules.task({
 		]);
 
 		if (now.get("minutes") === 0) {
-			const metadatas = [] as GbpMetadata[];
-
-			if (event) metadatas.push({ kind: "event", ...event });
-			if (monthly) metadatas.push({ kind: "monthly", ...monthly });
-
 			{
 				const references = [] as (TrackingReference & { top: Ranking })[];
 				for (const [idx, meta] of [event, monthly].entries()) {
@@ -193,7 +188,13 @@ export const scheduleUpdateTracker = schedules.task({
 				if (references.length > 0) await markBannedPlayers(references, now);
 			}
 
-			if (metadatas.length > 0) await discordTracker.trigger({ metadatas });
+			{
+				const metadatas = [] as GbpMetadata[];
+				if (event) metadatas.push({ kind: "event", ...event });
+				if (monthly) metadatas.push({ kind: "monthly", ...monthly });
+
+				if (metadatas.length > 0) await discordTracker.trigger({ metadatas });
+			}
 		}
 
 		const errors = results.filter((promise) => promise.status === "rejected");
@@ -518,8 +519,13 @@ export const markBannedPlayers = async (
 		}
 	}
 
-	await db()
-		.update(trackerSnapshots)
-		.set({ bannedAt: now.toDate() })
-		.where(or(...conditions));
+	await logger.trace("mark-banned", async (span) => {
+		const filter = or(...conditions);
+		span.setAttribute("filter", String(filter?.getSQL()));
+		span.setAttribute("bannedAt", now.toISOString());
+		await db()
+			.update(trackerSnapshots)
+			.set({ bannedAt: now.toDate() })
+			.where(filter);
+	});
 };
