@@ -558,9 +558,10 @@ export const markBannedPlayers = async (
 		const filter = and(or(...conditions), isNull(trackerSnapshots.bannedAt));
 		span.setAttribute("filter", String(filter?.getSQL()));
 		span.setAttribute("bannedAt", now.toISOString());
-		await db()
+		const result = await db()
 			.update(trackerSnapshots)
 			.set({ bannedAt: now.toDate() })
 			.where(filter);
+		span.setAttribute("marked", result.rowsAffected);
 	});
 };
