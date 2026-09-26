@@ -5,11 +5,10 @@ import {
 	tags,
 	wait,
 } from "@trigger.dev/sdk";
-import { __setReplaySessionOutTailImplForTests } from "@trigger.dev/sdk/ai";
-import { allKeyed, countBy, curry, pick, sum, uniqBy } from "es-toolkit";
+import { allKeyed, countBy, curry, pick, sum } from "es-toolkit";
 
 import dayjs from "@bandori-stats/bestdori/date";
-import { and, db, eq, sql, type TableFilter } from "@bandori-stats/database";
+import { and, db, eq, gt, notInArray, or, sql } from "@bandori-stats/database";
 import { GBP, getRedisData, redis } from "@bandori-stats/database/redis";
 import {
 	trackerCutoffs,
@@ -179,7 +178,7 @@ export const scheduleUpdateTracker = schedules.task({
 			{
 				const references = [] as (TrackingReference & { top: Ranking })[];
 				for (const [idx, meta] of [event, monthly].entries()) {
-					if (!meta || !now.isSame(meta.endAt, "hours")) continue;
+					if (!meta) continue;
 
 					const tracker = results[idx];
 					if (tracker.status !== "fulfilled" || !tracker.value) continue;
@@ -478,61 +477,49 @@ const insertSnapshots = async (
 	});
 };
 
-const markBannedPlayers = async (
+export const markBannedPlayers = async (
 	references: (TrackingReference & { top: Ranking })[],
 	now: dayjs.Dayjs,
 ) => {
-	const filters: TableFilter<typeof trackerSnapshots>[] = [];
-	for (const { top, ...trackingReference } of references) {
-		filters.push({
-			...trackingReference,
-			uid: { notIn: top.t10.map(({ userId }) => userId) },
-			point: {
-				gt: Math.min(...top.t10.map(({ point }) => Number(point))),
-			},
-		});
+	const conditions = [] as Parameters<typeof or>;
+	for (const { top, trackingFor, trackingId } of references) {
+		conditions.push(
+			and(
+				eq(trackerSnapshots.trackingFor, trackingFor),
+				eq(trackerSnapshots.trackingId, trackingId),
+				notInArray(
+					trackerSnapshots.uid,
+					top.t10.map(({ userId }) => userId),
+				),
+				gt(
+					trackerSnapshots.point,
+					Math.min(...top.t10.map(({ point }) => Number(point))),
+				),
+			),
+		);
 
-		if (trackingReference.trackingFor === "event" && top.musics) {
+		if (trackingFor === "event" && top.musics) {
 			for (const { id, t10 } of top.musics) {
-				filters.push({
-					trackingFor: "music",
-					trackingId: id,
-					uid: { notIn: t10.map(({ userId }) => userId) },
-					point: {
-						gt: Math.min(...t10.map(({ point }) => Number(point))),
-					},
-				});
+				conditions.push(
+					and(
+						eq(trackerSnapshots.trackingFor, "music"),
+						eq(trackerSnapshots.trackingId, id),
+						notInArray(
+							trackerSnapshots.uid,
+							t10.map(({ userId }) => userId),
+						),
+						gt(
+							trackerSnapshots.point,
+							Math.min(...t10.map(({ point }) => Number(point))),
+						),
+					),
+				);
 			}
 		}
 	}
 
-	const candidates = uniqBy(
-		await db().query.trackerSnapshots.findMany({
-			columns: { trackingFor: true, trackingId: true, uid: true },
-			where: { AND: [{ OR: filters }, { bannedAt: { isNull: true } }] },
-		}),
-		({ trackingFor, trackingId, uid }) =>
-			[trackingFor, trackingId, uid].join(":"),
-	);
-	if (candidates.length === 0) return;
-
-	const markAsBanned = ({
-		trackingFor,
-		trackingId,
-		uid,
-	}: (typeof candidates)[number]) =>
-		db()
-			.update(trackerSnapshots)
-			.set({ bannedAt: now.toDate() })
-			.where(
-				and(
-					eq(trackerSnapshots.trackingFor, trackingFor),
-					eq(trackerSnapshots.trackingId, trackingId),
-					eq(trackerSnapshots.uid, uid),
-				),
-			);
-
-	await db().batch(
-		candidates.map(markAsBanned) as [ReturnType<typeof markAsBanned>],
-	);
+	await db()
+		.update(trackerSnapshots)
+		.set({ bannedAt: now.toDate() })
+		.where(or(...conditions));
 };
