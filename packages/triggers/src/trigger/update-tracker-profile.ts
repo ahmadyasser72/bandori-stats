@@ -30,7 +30,6 @@ import type {
 	UserProfileJson,
 } from "~/bang-dream-gbp/gen/profile_pb";
 import { bestdori } from "~/bestdori";
-import { githubRedeploy } from "~/github";
 
 export const updateTrackerProfile = schemaTask({
 	id: "update-tracker-profile",
@@ -45,7 +44,7 @@ export const updateTrackerProfile = schemaTask({
 			)
 			.nonempty(),
 	}),
-	run: async ({ players }, { ctx }) => {
+	run: async ({ players }) => {
 		const version = await redis().get<string>(GBP.version);
 		await tags.add(`version_${version ?? "n/a"}`);
 		if (!version) return;
@@ -236,14 +235,10 @@ export const updateTrackerProfile = schemaTask({
 					),
 			);
 
-		const results = await db().batch([
+		await db().batch([
 			...(toInsert.length > 0 ? [upsertProfiles()] : []),
 			...updateProfiles(),
 		] as [ReturnType<typeof upsertProfiles>]);
-
-		if (results.some(({ rowsAffected }) => rowsAffected > 0)) {
-			await githubRedeploy(ctx);
-		}
 	},
 });
 

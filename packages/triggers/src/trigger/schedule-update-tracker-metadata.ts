@@ -34,13 +34,12 @@ import {
 import type { TrackingTarget } from "@bandori-stats/database/tracker";
 import { bestdori } from "~/bestdori";
 import { useDiscordBot } from "~/discord";
-import { githubRedeploy } from "~/github";
 
 export const scheduleUpdateTrackerMetadata = schedules.task({
 	id: "schedule-update-tracker-metadata",
 	cron: { pattern: "0 */12 * * *", timezone: GBP_TIMEZONE },
 	machine: "medium-1x",
-	run: async (_, { ctx }) => {
+	run: async () => {
 		const [currentVersion, currentEvent, currentMonthly] = await redis()
 			.pipeline()
 			.get(GBP.version)
@@ -331,14 +330,6 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 		const errors = results.filter((promise) => promise.status === "rejected");
 		for (const { reason } of errors) console.error(reason);
 		if (errors.length > 0) await tags.add("error_settled");
-
-		if (
-			results.some(
-				(promise) => promise.status === "fulfilled" && promise.value === true,
-			)
-		) {
-			await githubRedeploy(ctx);
-		}
 
 		const [newEvent] = results;
 		if (newEvent.status === "fulfilled" && newEvent.value) {
