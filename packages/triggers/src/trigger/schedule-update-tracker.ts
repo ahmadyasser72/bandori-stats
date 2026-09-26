@@ -336,6 +336,8 @@ const insertSnapshots = async (
 		metadata.musics.length > 0 &&
 		!!ranking.musics;
 
+	if (hourlyUpdate) await tags.add(`${metadata.kind}_hourly`);
+
 	const updated = await logger.trace(
 		`update-${metadata.kind}-redis`,
 		async (span) => {
@@ -384,7 +386,7 @@ const insertSnapshots = async (
 	);
 
 	if (updated === 0) return [];
-	else await tags.add(`${metadata.kind}_redis`);
+	else await tags.add(`${metadata.kind}_updated`);
 
 	const toTrackerSnapshot = curry(
 		(
@@ -491,17 +493,11 @@ const insertSnapshots = async (
 				: `${trackingFor}:${trackingId}`;
 
 		const newSnapshotsByKind = countBy(newSnapshots, groupByKind);
-		await tags.add(
-			Object.keys(newSnapshotsByKind).map((kind) => `${kind}_snapshots`),
-		);
 		for (const [kind, count] of Object.entries(newSnapshotsByKind))
 			span.setAttribute(`${kind}:snapshots`, count);
 
 		if (cutoffs.length > 0) {
 			const newCutoffsByKind = countBy(newCutoffs, groupByKind);
-			await tags.add(
-				Object.keys(newCutoffsByKind).map((kind) => `${kind}_cutoffs`),
-			);
 			for (const [kind, count] of Object.entries(newCutoffsByKind))
 				span.setAttribute(`${kind}:cutoffs`, count);
 		}
