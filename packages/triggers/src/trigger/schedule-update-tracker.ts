@@ -264,15 +264,19 @@ export const scheduleUpdateTracker = schedules.task({
 								"played-since",
 							),
 					);
-					span.setAttribute("key", keys);
+					span.setAttribute("keys", keys);
 
-					await keys
+					const responses = await keys
 						.reduce(
-							(pipe, key) =>
-								pipe.set(key, now.valueOf(), { ex: 60 * 10, nx: true }),
-							redis().pipeline(),
+							(pipe, key) => pipe.expire(key, 60 * 30),
+							redis()
+								.multi()
+								.msetnx(
+									Object.fromEntries(keys.map((key) => [key, now.valueOf()])),
+								),
 						)
-						.exec();
+						.exec<number[]>();
+					span.setAttribute("responses", responses);
 				});
 			}
 		}
