@@ -255,27 +255,45 @@ export const scheduleUpdateTracker = schedules.task({
 					trackingFor !== "music" && updated,
 			);
 			if (updated.length > 0) {
-				await logger.trace("update-played-since", async (span) => {
-					const keys = updated.map(
-						({ value: { uid, trackingFor, trackingId } }) =>
+				await logger.trace("update-player-state", async (span) => {
+					const playedSince = Object.fromEntries(
+						updated.map(({ value: { uid, trackingFor, trackingId } }) => [
 							GBP.fromMetadata(
-								{ kind: trackingFor as "event" | "monthly", id: trackingId },
+								{
+									kind: trackingFor as "event" | "monthly",
+									id: trackingId,
+								},
 								uid,
 								"played-since",
 							),
+							now.valueOf(),
+						]),
 					);
-					span.setAttribute("keys", keys);
-
-					const responses = await keys
-						.reduce(
-							(pipe, key) => pipe.expire(key, 60 * 30),
-							redis()
-								.multi()
-								.msetnx(
-									Object.fromEntries(keys.map((key) => [key, now.valueOf()])),
+					const lastPlayed = Object.fromEntries(
+						updated.map(
+							({ value: { uid, trackingFor, trackingId, timestamp } }) => [
+								GBP.fromMetadata(
+									{
+										kind: trackingFor as "event" | "monthly",
+										id: trackingId,
+									},
+									uid,
+									"last-played",
 								),
-						)
-						.exec<number[]>();
+								timestamp.getTime(),
+							],
+						),
+          );
+					
+					span.setAttribute(
+						"states",
+						JSON.stringify({ playedSince, lastPlayed }),
+					);
+
+					const pipe = redis().multi().mset(lastPlayed).msetnx(playedSince);
+					for (const key in playedSince) pipe.expire(key, 60 * 30);
+
+					const responses = await pipe.exec<number[]>();
 					span.setAttribute("responses", responses);
 				});
 			}
