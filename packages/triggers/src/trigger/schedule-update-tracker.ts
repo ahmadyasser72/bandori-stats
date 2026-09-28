@@ -5,7 +5,16 @@ import {
 	tags,
 	wait,
 } from "@trigger.dev/sdk";
-import { allKeyed, countBy, curry, groupBy, pick, sum } from "es-toolkit";
+import {
+	allKeyed,
+	countBy,
+	curry,
+	groupBy,
+	mapValues,
+	mapValuesAsync,
+	pick,
+	sum,
+} from "es-toolkit";
 
 import dayjs from "@bandori-stats/bestdori/date";
 import {
@@ -255,38 +264,35 @@ export const scheduleUpdateTracker = schedules.task({
 					const grouped = groupBy(
 						updated,
 						({ value: { trackingFor, trackingId } }) =>
-							GBP.fromMetadata({
-								kind: trackingFor as "event" | "monthly",
-								id: trackingId,
-							}),
-					);
-
-					const playedSince = Object.fromEntries(
-						await Promise.all(
-							Object.entries(grouped)
-								.map(([key, values]): [string, string[]] => [
-									`${key}:played-since`,
-									values.map(({ value: { uid } }) => uid),
-								])
-								.map(async ([key, uids]) => {
-									const entries: Record<string, number> =
-										(await redis().hmget(key, ...uids)) ?? {};
-									for (const uid of uids) entries[uid] ??= now.valueOf();
-
-									return [key, entries];
-								}),
-						),
-					);
-					const lastPlayed = Object.fromEntries(
-						Object.entries(grouped).map(([key, values]) => [
-							`${key}:last-played`,
-							Object.fromEntries(
-								values.map(({ value: { uid, timestamp } }) => [
-									uid,
-									timestamp.getTime(),
-								]),
+							GBP.fromMetadata(
+								{
+									kind: trackingFor as "event" | "monthly",
+									id: trackingId,
+								},
+								"players",
 							),
-						]),
+					);
+
+					const playedSince = await mapValuesAsync(
+						grouped,
+						async (values, key) => {
+							const keys = values.map(
+								({ value: { uid } }) => `${uid}:played-since`,
+							);
+							const entries: Record<string, number> =
+								(await redis().hmget(key, ...keys)) ?? {};
+							for (const uid of keys) entries[uid] ??= now.valueOf();
+
+							return entries;
+						},
+					);
+					const lastPlayed = mapValues(grouped, (values) =>
+						Object.fromEntries(
+							values.map(({ value: { uid, timestamp } }) => [
+								`${uid}:last-played`,
+								timestamp.getTime(),
+							]),
+						),
 					);
 
 					span.setAttribute(
@@ -294,10 +300,11 @@ export const scheduleUpdateTracker = schedules.task({
 						JSON.stringify({ playedSince, lastPlayed }),
 					);
 
-					const pipe = redis().multi();
-					for (const key in lastPlayed) pipe.hset(key, lastPlayed[key]);
-					for (const key in playedSince)
-						pipe.hsetex(key, { expiration: { ex: 30 * 60 } }, playedSince[key]);
+					const pipe = redis().pipeline();
+					for (const key in grouped)
+						pipe
+							.hset(key, lastPlayed[key])
+							.hsetex(key, { expiration: { ex: 30 * 60 } }, playedSince[key]);
 
 					const responses = await pipe.exec<number[]>();
 					span.setAttribute("responses", responses);
