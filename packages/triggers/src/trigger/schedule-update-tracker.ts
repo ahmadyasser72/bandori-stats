@@ -150,8 +150,6 @@ export const scheduleUpdateTracker = schedules.task({
 
 				const metadata: GbpMetadata = { kind: "event", ...event };
 				const inserted = await insertSnapshots(top, { now, metadata });
-				if (inserted.length === 0) return;
-
 				return { metadata, inserted, top };
 			}),
 
@@ -172,8 +170,6 @@ export const scheduleUpdateTracker = schedules.task({
 				const top = { t10, cutoffs } satisfies Ranking;
 				const metadata: GbpMetadata = { kind: "monthly", ...monthly };
 				const inserted = await insertSnapshots(top, { now, metadata });
-				if (inserted.length === 0) return;
-
 				return { metadata, inserted, top };
 			}),
 		]);
