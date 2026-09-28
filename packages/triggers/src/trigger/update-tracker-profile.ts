@@ -154,11 +154,11 @@ export const updateTrackerProfile = schemaTask({
 				if (!profile) return null;
 
 				const bandAreaItems = (profile.enabledUserAreaItems?.entries ?? []).map(
-					({ areaItemId }) => data.areaItems.get(areaItemId)!,
+					({ areaItemId }) => data.areaItems[areaItemId],
 				);
 				const bandMembers = (profile.mainDeckUserSituations?.entries ?? []).map(
 					(member) =>
-						getBandMember(member, data.cards.get(member.situationId)!, skills),
+						getBandMember(member, data.cards[member.situationId], skills),
 				);
 
 				return {
@@ -173,7 +173,7 @@ export const updateTrackerProfile = schemaTask({
 						profile.userProfileSituation.situationId
 							? getAvatar(
 									profile.userProfileSituation,
-									data.cards.get(profile.userProfileSituation.situationId)!,
+									data.cards[profile.userProfileSituation.situationId],
 								)
 							: null,
 

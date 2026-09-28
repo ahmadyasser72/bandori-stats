@@ -98,7 +98,7 @@ if (Astro.cache.enabled) Astro.cache.set({ maxAge: 60 * 60 });
 								<h3 class="font-medium">Event Gacha Cards</h3>
 								<span class="inline-flex flex-wrap justify-center gap-1">
 									{cards &&
-										[...cards.values()].flatMap((card) =>
+										Object.values(cards).flatMap((card) =>
 											[false, true].map((trained) => (
 												<GbpCard
 													member={{

@@ -10,20 +10,14 @@ import {
 	time,
 	TimestampStyles,
 } from "discord.js";
-import { capitalize, uniq } from "es-toolkit";
+import { capitalize, mapValues, uniq } from "es-toolkit";
 
 import { GBP_TIMEZONE } from "@bandori-stats/bestdori/constants";
 import dayjs from "@bandori-stats/bestdori/date";
 import { formatEventType } from "@bandori-stats/bestdori/helpers";
 import { MasterDB, Versions } from "@bandori-stats/bestdori/schema/misc";
 import { db } from "@bandori-stats/database";
-import {
-	CHARACTER_TO_BAND,
-	GBP,
-	redis,
-	type BangDreamAreaItem,
-	type BangDreamCard,
-} from "@bandori-stats/database/redis";
+import { CHARACTER_TO_BAND, GBP, redis } from "@bandori-stats/database/redis";
 import {
 	gbpEventMusics,
 	gbpEvents,
@@ -333,25 +327,20 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 
 		const [newEvent] = results;
 		if (newEvent.status === "fulfilled" && newEvent.value) {
-			await redis().mset(
-				Object.fromEntries([
-					...Object.entries(data.masterAreaItemMap).map(
-						([id, value]): [string, BangDreamAreaItem] => [
-							GBP.data.AreaItem[id],
-							value,
-						],
+			await redis()
+				.pipeline()
+				.hset(GBP.data.AreaItem, data.masterAreaItemMap)
+				.hset(
+					GBP.data.CharacterSituation,
+					mapValues(
+						data.masterCharacterSituationMap,
+						({ situationSkillId, ...value }) => ({
+							...value,
+							skillId: data.masterSituationSkillMap[situationSkillId].skillId,
+						}),
 					),
-					...Object.entries(data.masterCharacterSituationMap).map(
-						([id, { situationSkillId, ...value }]): [string, BangDreamCard] => [
-							GBP.data.CharacterSituation[id],
-							{
-								...value,
-								skillId: data.masterSituationSkillMap[situationSkillId].skillId,
-							},
-						],
-					),
-				]),
-			);
+				)
+				.exec();
 		}
 	},
 });

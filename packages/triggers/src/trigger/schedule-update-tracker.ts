@@ -283,8 +283,8 @@ export const scheduleUpdateTracker = schedules.task({
 								timestamp.getTime(),
 							],
 						),
-          );
-					
+					);
+
 					span.setAttribute(
 						"states",
 						JSON.stringify({ playedSince, lastPlayed }),
@@ -450,7 +450,7 @@ const insertSnapshots = async (
 					userProfileSituation && userProfileSituation.situationId
 						? getAvatar(
 								userProfileSituation,
-								cards.get(userProfileSituation.situationId)!,
+								cards[userProfileSituation.situationId],
 							)
 						: null,
 			}),

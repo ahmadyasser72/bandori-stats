@@ -1,5 +1,5 @@
 import { Redis } from "@upstash/redis";
-import { mapValues, once, uniq } from "es-toolkit";
+import { allKeyed, mapValues, once, uniq } from "es-toolkit";
 import type z from "zod";
 
 import type {
@@ -43,8 +43,8 @@ export const GBP = {
 	event: idProxy("gbp:event", "current"),
 	monthly: idProxy("gbp:monthly", "current"),
 	data: {
-		AreaItem: idProxy("gbp:data:area-items"),
-		CharacterSituation: idProxy("gbp:data:character-situations"),
+		AreaItem: "gbp:data:area-items",
+		CharacterSituation: "gbp:data:character-situations",
 	},
 
 	fromMetadata: (
@@ -70,32 +70,38 @@ export type BangDreamCard = Omit<
 
 export const getRedisData = async (
 	keys: Partial<Record<"areaItems" | "cards", (number | undefined)[]>>,
-) => {
+): Promise<{
+	areaItems: Record<string, BangDreamAreaItem>;
+	cards: Record<string, BangDreamCard>;
+}> => {
 	const ids = mapValues(keys, (ids) =>
-		uniq(ids?.filter((id): id is number => !!id) ?? []),
+		uniq(ids?.filter((id): id is number => !!id) ?? []).map((id) =>
+			id.toString(),
+		),
 	);
 	ids.areaItems ??= [];
 	ids.cards ??= [];
 
-	const areaItems = new Map<number, BangDreamAreaItem>();
-	const cards = new Map<number, BangDreamCard>();
-	if (ids.areaItems.length > 0 || ids.cards.length > 0) {
-		const results = await redis().mget(
-			...ids.areaItems.map((id) => GBP.data.AreaItem[id]),
-			...ids.cards.map((id) => GBP.data.CharacterSituation[id]),
-		);
-
-		for (const [idx, data] of results.entries()) {
-			const isAreaItem = idx < ids.areaItems.length;
-			const id = isAreaItem
-				? ids.areaItems[idx]
-				: ids.cards[idx - ids.areaItems.length];
-
-			(isAreaItem ? areaItems : cards).set(id, data as never);
-		}
-	}
-
-	return { areaItems, cards };
+	return allKeyed({
+		areaItems:
+			ids.areaItems.length > 0
+				? redis()
+						.hmget<Record<number, BangDreamAreaItem>>(
+							GBP.data.AreaItem,
+							...ids.areaItems,
+						)
+						.then((results) => results ?? {})
+				: {},
+		cards:
+			ids.cards.length > 0
+				? redis()
+						.hmget<Record<number, BangDreamCard>>(
+							GBP.data.CharacterSituation,
+							...ids.cards,
+						)
+						.then((results) => results ?? {})
+				: {},
+	});
 };
 
 export const CHARACTER_TO_BAND: Record<string, number> = {
