@@ -42,6 +42,7 @@ export const GBP = {
 	credentials: "gbp:credentials",
 	event: idProxy("gbp:event", "current"),
 	monthly: idProxy("gbp:monthly", "current"),
+	cache: { Profile: "gbp:cache:profile" },
 	data: {
 		AreaItem: "gbp:data:area-items",
 		CharacterSituation: "gbp:data:character-situations",

@@ -7,6 +7,7 @@ import { Skills } from "@bandori-stats/bestdori/schema/skills";
 import { and, db, eq, sql } from "@bandori-stats/database";
 import {
 	CHARACTER_TO_BAND,
+	GBP,
 	getRedisData,
 	redis,
 	type BangDreamAreaItem,
@@ -48,25 +49,22 @@ export const updateTrackerProfile = schemaTask({
 		await tags.add(`version_${version}`);
 
 		const profiles = await logger.trace("fetch-profiles", async (span) => {
-			const getFromCache = new Set<string>();
+			const uids = new Set<string>();
 			for (const { uid, trackingReference } of players) {
 				if (trackingReference.trackingFor === "music") {
-					getFromCache.delete(uid);
+					uids.delete(uid);
 					span.setAttribute?.(uid, "no-cache");
 				} else {
-					getFromCache.add(uid);
+					uids.add(uid);
 				}
 			}
 
-			const getProfileCacheKey = (uid: string) => `gbp:profile:${uid}`;
-
-			const uids = [...getFromCache];
-			const fromRedis =
-				uids.length > 0
-					? await redis().mget<(UserProfile | null)[]>(
-							...uids.map(getProfileCacheKey),
-						)
-					: [];
+			const cached: Partial<Record<string, UserProfile>> =
+				uids.size > 0
+					? await redis()
+							.hmget<Record<string, UserProfile>>(GBP.cache.Profile, ...uids)
+							.then((results) => results ?? {})
+					: {};
 
 			const USED_FIELDS = [
 				"mainUserDeck",
@@ -82,8 +80,8 @@ export const updateTrackerProfile = schemaTask({
 			type UsedFields = (typeof USED_FIELDS)[number];
 
 			const profiles = new Map<string, Pick<UserProfile, UsedFields>>();
-			for (const [idx, profile] of fromRedis.entries()) {
-				const uid = uids[idx];
+			for (const uid in cached) {
+				const profile = cached[uid];
 				if (profile) {
 					profiles.set(uid, profile);
 					span.setAttribute?.(uid, "cache-hit");
@@ -92,26 +90,21 @@ export const updateTrackerProfile = schemaTask({
 				}
 			}
 
-			const profilesToCache = [] as [
-				string,
-				Pick<UserProfileJson, UsedFields>,
-			][];
+			const toCache = {} as Record<string, Pick<UserProfileJson, UsedFields>>;
 			for (const { uid } of players) {
 				if (profiles.has(uid)) continue;
 
 				const profile = await bangDreamProfile(version, uid);
 				profiles.set(uid, profile);
-				profilesToCache.push([
-					getProfileCacheKey(uid),
-					pick(profile.json, USED_FIELDS),
-				]);
+				toCache[uid] = pick(profile.json, USED_FIELDS);
 			}
 
-			if (profilesToCache.length > 0) {
-				const pipe = redis().pipeline();
-				for (const [key, profile] of profilesToCache)
-					pipe.set(key, profile, { ex: 60 * 60 });
-				await pipe.exec();
+			if (Object.keys(toCache).length > 0) {
+				await redis().hsetex(
+					GBP.cache.Profile,
+					{ expiration: { ex: 60 * 60 } },
+					toCache,
+				);
 			}
 
 			return profiles;
