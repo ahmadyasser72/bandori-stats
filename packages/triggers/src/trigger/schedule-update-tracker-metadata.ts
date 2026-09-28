@@ -201,6 +201,7 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 						];
 
 						const eventThread = await createThread(guild, {
+							metadata: event,
 							forumId,
 							payload,
 							target: { kind: "event" as const, id: eventId },
@@ -239,6 +240,7 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 							];
 
 							const musicThread = await createThread(guild, {
+								metadata: event,
 								forumId,
 								payload: { title, description, image },
 								target: { kind: "event" as const, id: eventId },
@@ -305,6 +307,7 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 
 						const startAt = dayjs(monthly.startAt);
 						const monthlyThread = await createThread(guild, {
+							metadata: monthly,
 							forumId,
 							payload,
 							target: { kind: "monthly" as const, id: monthlyRankingId },
@@ -400,6 +403,7 @@ const createScheduledEvent = (
 	});
 
 interface CreateThreadOptions {
+	metadata: Pick<GbpMetadata, "endAt">;
 	payload: Omit<MetadataPayload, "image"> & { image: Buffer | Buffer[] };
 	forumId: string;
 	target: TrackingTarget;
@@ -409,7 +413,7 @@ interface CreateThreadOptions {
 
 const createThread = async (
 	guild: Guild,
-	{ forumId, target, tags, payload, keySuffix }: CreateThreadOptions,
+	{ metadata, forumId, target, tags, payload, keySuffix }: CreateThreadOptions,
 ) => {
 	const forum = await guild.channels.fetch(forumId);
 	if (!forum || forum.type !== ChannelType.GuildForum)
@@ -434,7 +438,9 @@ const createThread = async (
 			(name) => forum.availableTags.find((tag) => tag.name === name)!.id,
 		),
 	});
-	await redis().set(GBP.fromMetadata(target, keySuffix), thread.id);
+	await redis().set(GBP.fromMetadata(target, keySuffix), thread.id, {
+		pxat: metadata.endAt.getTime(),
+	});
 
 	return thread;
 };
