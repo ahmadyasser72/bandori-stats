@@ -38,13 +38,6 @@ const PROTOBUF = {
 	festival: UserTeamLiveFestivalEventRankingResponseSchema,
 } satisfies Record<MetadataType, GenMessage<Message>>;
 
-type ProtobufOutput<T extends MetadataType> =
-	(typeof PROTOBUF)[T] extends GenMessage<infer O> ? O : never;
-type ProtobufOutputJson<T extends MetadataType> =
-	(typeof PROTOBUF)[T] extends GenMessage<any, { jsonType: infer O }>
-		? O
-		: never;
-
 export class MaintenanceError extends Error {
 	constructor() {
 		super("Server Maintenance");
@@ -102,14 +95,9 @@ export const bangDream = limitAsync(
 				span.setAttribute?.("typeName", schema.typeName);
 
 				const output = fromBinary(schema, response.bytes);
-				return {
-					...(output as unknown as ProtobufOutput<typeof type>),
-					get json() {
-						const json = toJson(schema, output);
-						metadata.root.set(`${type}:${id}`, { path, output: json });
-						return json as ProtobufOutputJson<typeof type>;
-					},
-				};
+				const json = toJson(schema, output);
+				metadata.root.set(`${type}:${id}`, { path, output: json });
+				return output;
 			});
 		});
 	},
@@ -117,13 +105,7 @@ export const bangDream = limitAsync(
 );
 
 export const bangDreamProfile = limitAsync(
-	async (version: string, uid: string) => {
-		const credentials = await redis().json.get<BangDreamCredentials>(
-			GBP.credentials,
-		);
-		if (!credentials?.token)
-			throw new AbortTaskRunError("BanG Dream credentials are missing.");
-
+	async (version: string, credentials: BangDreamCredentials, uid: string) => {
 		const url = new URL(
 			`profile/${uid}`,
 			`https://api.app-bang-dream-gbp.com/api/user/${credentials.uid}/`,
@@ -145,28 +127,20 @@ export const bangDreamProfile = limitAsync(
 		return logger.trace("gbp-profile", async (span) => {
 			span.setAttribute?.("uid", uid);
 
-			await redis().json.del(GBP.credentials, "$.token");
 			const response = await fetchBangDream(url, headers, "PUT");
-
 			const newToken = response.headers.get("x-token");
 			if (!newToken)
 				throw new AbortTaskRunError(
 					`Request to ${url.pathname} not returning new token`,
 				);
-			await redis().json.set(GBP.credentials, "$.token", `"${newToken}"`);
 
 			return logger.trace("parse", async (span) => {
 				span.setAttribute?.("typeName", UserProfileSchema.typeName);
 
 				const output = fromBinary(UserProfileSchema, response.bytes);
-				return {
-					...output,
-					get json() {
-						const json = toJson(UserProfileSchema, output);
-						metadata.root.set(`profile:${uid}`, { output: json });
-						return json;
-					},
-				};
+				const json = toJson(UserProfileSchema, output);
+				metadata.root.set(`profile:${uid}`, { output: json });
+				return { ...output, credentials: { ...credentials, token: newToken } };
 			});
 		});
 	},

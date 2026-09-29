@@ -59,7 +59,7 @@ export const GBP = {
 
 export interface BangDreamCredentials {
 	uid: number;
-	token?: string;
+	token: string;
 	signature: string;
 }
 

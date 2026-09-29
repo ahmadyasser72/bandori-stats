@@ -1,5 +1,5 @@
-import { logger, schemaTask, tags } from "@trigger.dev/sdk";
-import { allKeyed, capitalize, mapValues, pick, sumBy } from "es-toolkit";
+import { AbortTaskRunError, logger, schemaTask, tags } from "@trigger.dev/sdk";
+import { allKeyed, capitalize, mapValues, pick, sumBy, uniq } from "es-toolkit";
 import z from "zod";
 
 import { unwrapRegionTuple } from "@bandori-stats/bestdori/helpers";
@@ -12,6 +12,7 @@ import {
 	redis,
 	type BangDreamAreaItem,
 	type BangDreamCard,
+	type BangDreamCredentials,
 } from "@bandori-stats/database/redis";
 import { trackerSnapshotProfiles } from "@bandori-stats/database/schema";
 import {
@@ -25,10 +26,7 @@ import type {
 	UserProfileSituation,
 	UserSituation,
 } from "~/bang-dream-gbp/gen/common_pb";
-import type {
-	UserProfile,
-	UserProfileJson,
-} from "~/bang-dream-gbp/gen/profile_pb";
+import type { UserProfile } from "~/bang-dream-gbp/gen/profile_pb";
 import { bestdori } from "~/bestdori";
 
 export const updateTrackerProfile = schemaTask({
@@ -50,67 +48,23 @@ export const updateTrackerProfile = schemaTask({
 		await tags.add(`version_${version}`);
 
 		const profiles = await logger.trace("fetch-profiles", async (span) => {
-			const uids = new Set<string>();
-			for (const { uid, trackingReference } of players) {
-				if (trackingReference.trackingFor === "music") {
-					uids.delete(uid);
-					span.setAttribute?.(uid, "no-cache");
-				} else {
-					uids.add(uid);
-				}
-			}
+			let auth = await redis().json.get<BangDreamCredentials>(GBP.credentials);
+			if (!auth)
+				throw new AbortTaskRunError("BanG Dream credentials are missing.");
 
-			const cached: Partial<Record<string, UserProfile>> =
-				uids.size > 0
-					? await redis()
-							.hmget<Record<string, UserProfile>>(GBP.cache.Profile, ...uids)
-							.then((results) => results ?? {})
-					: {};
+			const uids = uniq(players.map(({ uid }) => uid));
+			span.setAttribute("uids", uids);
 
-			const USED_FIELDS = [
-				"mainUserDeck",
-				"userProfileDegreeMap",
-				"enabledUserAreaItems",
-				"mainDeckUserSituations",
-				"userName",
-				"rank",
-				"introduction",
-				"publishTotalDeckPowerFlg",
-				"userProfileSituation",
-			] as const;
-			type UsedFields = (typeof USED_FIELDS)[number];
-
-			const profiles = new Map<string, Pick<UserProfile, UsedFields>>();
-			for (const uid in cached) {
-				const profile = cached[uid];
-				if (profile) {
-					profiles.set(uid, profile);
-					span.setAttribute?.(uid, "cache-hit");
-				} else {
-					span.setAttribute?.(uid, "cache-miss");
-				}
-			}
-
-			const toCache = {} as Record<string, Pick<UserProfileJson, UsedFields>>;
-			for (const { uid } of players) {
-				if (profiles.has(uid)) continue;
-
-				const profile = await bangDreamProfile(version, uid);
+			const profiles = new Map<string, UserProfile>();
+			for (const uid of uids) {
+				const profile = await bangDreamProfile(version, auth, uid);
+				auth = profile.credentials;
 				profiles.set(uid, profile);
-				toCache[uid] = pick(profile.json, USED_FIELDS);
 			}
 
-			if (Object.keys(toCache).length > 0) {
-				await redis().hsetex(
-					GBP.cache.Profile,
-					{ expiration: { ex: 60 * 60 } },
-					toCache,
-				);
-			}
-
+			await redis().json.set(GBP.credentials, "$.token", `"${auth.token}"`);
 			return profiles;
 		});
-		if (profiles.size === 0) return;
 
 		const { data, skills } = await allKeyed({
 			data: logger.trace("fetch-redis-data", (span) => {
