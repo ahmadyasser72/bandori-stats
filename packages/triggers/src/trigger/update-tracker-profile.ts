@@ -33,6 +33,7 @@ import { bestdori } from "~/bestdori";
 
 export const updateTrackerProfile = schemaTask({
 	id: "update-tracker-profile",
+	queue: { concurrencyLimit: 1 },
 	schema: z.object({
 		version: z.string(),
 		players: z
