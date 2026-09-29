@@ -170,12 +170,12 @@ if (Astro.cache.enabled)
 		"hx-on": [
 			import.meta.env.PROD &&
 				UMAMI_SITE_ID &&
-				`htmx:before:request from:self -> umami.track("tracker-poll-realtime", { name: "${metadata.name}", kind: "${params.kind}" })`,
+				`htmx:before:request from:self -> umami.track("tracker-poll-recent", { name: "${metadata.name}", kind: "${params.kind}" })`,
 		]
 			.filter(Boolean)
 			.join(";"),
 		"hx-swap": "outerMorph transition:true",
-		"hx-trigger": `load delay:${dayjs().add(1, "minute").set("seconds", 5).diff(dayjs(), "seconds")}s`,
+		"hx-trigger": "every 60s, visibilitychange from:document",
 		"hx-vals": JSON.stringify({ ...params, poll: true }),
 	}}
 	class="list mt-4 py-1"
@@ -208,7 +208,7 @@ if (Astro.cache.enabled)
 							!recentlyPlayed &&
 							"[:not(:hover):not(:focus)]:grayscale-75 [:not(:hover):not(:focus)]:**:[button]:opacity-25",
 					]}
-					style={`view-transition-name: --realtime-${latest.uid}`}
+					style={`view-transition-name: --recent-${latest.uid}`}
 					tabindex="-1"
 				>
 					<div class="flex flex-col items-center gap-0.5 font-mono">

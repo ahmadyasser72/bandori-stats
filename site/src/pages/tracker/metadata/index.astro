@@ -119,7 +119,7 @@ if (Astro.cache.enabled)
 		>{
 			song
 				? `${song.title} — ${capitalize(songDisplay)}`
-				: `${capitalize(metadata.kind)} Ranking — ${params.display === "t10-realtime" ? "T10 (last 1h)" : capitalize(params.display)}`
+				: `${capitalize(metadata.kind)} Ranking — ${params.display === "t10-recent" ? "T10 (last 1h)" : capitalize(params.display)}`
 		}</span
 	>
 
@@ -237,7 +237,7 @@ if (Astro.cache.enabled)
 					/>
 
 					{
-						["t10", "t10-realtime", "cutoffs"].map((value) => (
+						["t10", "t10-recent", "cutoffs"].map((value) => (
 							<li>
 								<button
 									hx-get="/tracker"
@@ -249,9 +249,7 @@ if (Astro.cache.enabled)
 										name="svg-spinners--90-ring-with-bg"
 									/>
 									{capitalize(params.kind)} Ranking &mdash;{" "}
-									{value === "t10-realtime"
-										? "T10 (Realtime)"
-										: capitalize(value)}
+									{value === "t10-recent" ? "T10 (Recent)" : capitalize(value)}
 								</button>
 							</li>
 						))
