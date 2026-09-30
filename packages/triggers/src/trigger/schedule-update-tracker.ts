@@ -1,10 +1,4 @@
-import {
-	AbortTaskRunError,
-	logger,
-	schedules,
-	tags,
-	wait,
-} from "@trigger.dev/sdk";
+import { logger, metadata, schedules, tags, wait } from "@trigger.dev/sdk";
 import {
 	allKeyed,
 	countBy,
@@ -13,8 +7,9 @@ import {
 	mapValues,
 	mapValuesAsync,
 	pick,
-	sum,
+	zip,
 } from "es-toolkit";
+import { uniqBy } from "es-toolkit/compat";
 
 import dayjs from "@bandori-stats/bestdori/date";
 import {
@@ -31,6 +26,7 @@ import { GBP, getRedisData, redis } from "@bandori-stats/database/redis";
 import {
 	trackerCutoffs,
 	trackerSnapshots,
+	type GbpEventMusic,
 	type GbpMetadata,
 } from "@bandori-stats/database/schema";
 import {
@@ -81,11 +77,12 @@ export const scheduleUpdateTracker = schedules.task({
 		const now = dayjs(timestamp).startOf("minute").add(1, "minute");
 		await wait.until({ date: now.toDate() });
 
-		const results = await Promise.allSettled([
-			logger.trace("event-tracker", async (span) => {
+		const rankings = await Promise.all([
+			logger.trace("fetch-event-ranking", async (span) => {
 				if (!event) return;
 				span.setAttributes?.({
 					id: event.id,
+					type: event.type,
 					startAt: event.startAt.toISOString(),
 					endAt: event.endAt.toISOString(),
 				});
@@ -143,7 +140,7 @@ export const scheduleUpdateTracker = schedules.task({
 
 					return {};
 				})();
-				if (t10.length === 0 && !musics) return;
+				if (t10.length === 0) return;
 
 				const top = {
 					t10,
@@ -158,11 +155,9 @@ export const scheduleUpdateTracker = schedules.task({
 				} satisfies Ranking;
 
 				const metadata: GbpMetadata = { kind: "event", ...event };
-				const inserted = await insertSnapshots(top, { now, metadata });
-				return { metadata, inserted, top };
+				return { metadata, top };
 			}),
-
-			logger.trace("monthly-tracker", async (span) => {
+			logger.trace("fetch-monthly-ranking", async (span) => {
 				if (!monthly) return;
 				span.setAttributes?.({
 					id: monthly.id,
@@ -178,19 +173,187 @@ export const scheduleUpdateTracker = schedules.task({
 
 				const top = { t10, cutoffs } satisfies Ranking;
 				const metadata: GbpMetadata = { kind: "monthly", ...monthly };
-				const inserted = await insertSnapshots(top, { now, metadata });
-				return { metadata, inserted, top };
+				return { metadata, top };
 			}),
 		]);
 
-		const outputs = results
-			.filter((promise) => promise.status === "fulfilled")
-			.filter((promise) => promise.value !== undefined)
-			.map((promise) => promise.value!);
+		const targets = rankings.filter((ranking) => !!ranking);
+		if (targets.length === 0) return;
 
-		if (outputs.length > 0 && now.get("minutes") === 0) {
+		const updateCutoffs = now.get("minutes") === 0;
+		if (updateCutoffs) await tags.add("cutoffs");
+
+		const updated = await logger.trace("update-redis", async (span) => {
+			type Metadata = GbpMetadata | (GbpEventMusic & { kind: "music" });
+			const toInsert = [] as {
+				metadata: Metadata;
+				values: RankingUser[];
+				type: "t10" | "cutoffs";
+			}[];
+
+			const keys = [] as string[];
+			const pipe = redis().pipeline();
+			for (const { metadata, top } of targets) {
+				const base = GBP.fromMetadata(metadata);
+				const addMembers = (
+					suffix: string,
+					metadata: Metadata,
+					players: RankingUser[],
+					type: "t10" | "cutoffs",
+				) => {
+					toInsert.push({ metadata, values: players, type });
+
+					const key = `${base}:${suffix}`;
+					keys.push(key);
+					pipe.zadd(
+						key,
+						{ gt: true, ch: true },
+						...(players.map((it) => ({
+							member: it[type === "cutoffs" ? "userId" : "rank"],
+							score: Number(it.point),
+						})) as [{ member: number; score: number }]),
+					);
+				};
+
+				addMembers("leaderboard", metadata, top.t10, "t10");
+				if (updateCutoffs)
+					addMembers("cutoffs", metadata, top.cutoffs, "cutoffs");
+
+				if (metadata.kind === "event" && "musics" in top && !!top.musics) {
+					for (const [idx, { id, t10, cutoffs }] of top.musics.entries()) {
+						const music = { ...metadata.musics[idx], kind: "music" as const };
+						const musicId = metadata.type === "medley" ? "medley" : id;
+						addMembers(`leaderboard-music:${musicId}`, music, t10, "t10");
+						if (updateCutoffs)
+							addMembers(`cutoffs-music:${musicId}`, music, cutoffs, "cutoffs");
+					}
+				}
+			}
+
+			const changes = await pipe.exec<number[]>();
+			span.setAttributes(Object.fromEntries(zip(keys, changes)));
+
+			return toInsert.filter((_, idx) => changes[idx] > 0);
+		});
+
+		const inserted = await logger.trace("insert-snapshots", async (span) => {
+			if (updated.length === 0) return [];
+
+			const toTrackerSnapshot = curry(
+				(
+					trackingReference: TrackingReference,
+					{ userId, name, rank, point }: RankingUser,
+				): typeof trackerSnapshots.$inferInsert => ({
+					...trackingReference,
+
+					uid: userId,
+					name,
+					rank,
+					point: Number(point),
+					timestamp: now.toDate(),
+				}),
+			);
+			const toTrackerCutoff = await (async () => {
+				if (!updateCutoffs) return;
+
+				const { cards } = await getRedisData({
+					cards: updated
+						.filter(({ type }) => type === "cutoffs")
+						.flatMap(({ values }) =>
+							values.map(
+								({ userProfileSituation }) => userProfileSituation?.situationId,
+							),
+						),
+				});
+				return curry(
+					(
+						trackingReference: TrackingReference,
+						{ name, rank, point, userProfileSituation }: RankingUser,
+					): typeof trackerCutoffs.$inferInsert => ({
+						...trackingReference,
+
+						name,
+						rank,
+						point: Number(point),
+						timestamp: now.toDate(),
+						avatar:
+							userProfileSituation && userProfileSituation.situationId
+								? getAvatar(
+										userProfileSituation,
+										cards[userProfileSituation.situationId],
+									)
+								: null,
+					}),
+				);
+			})();
+
+			const snapshots = [] as (typeof trackerSnapshots.$inferInsert)[];
+			const cutoffs = [] as (typeof trackerCutoffs.$inferInsert)[];
+			for (const { metadata, values, type } of updated) {
+				const trackingReference = {
+					trackingFor: metadata.kind,
+					trackingId: metadata.id,
+				};
+
+				if (type === "t10")
+					snapshots.push(...values.map(toTrackerSnapshot(trackingReference)));
+				else if (type === "cutoffs" && toTrackerCutoff)
+					cutoffs.push(...values.map(toTrackerCutoff(trackingReference)));
+			}
+
+			metadata.set("insert-values", { snapshots, cutoffs } as never);
+			if (snapshots.length === 0 && cutoffs.length === 0) return [];
+
+			const inserted = await allKeyed({
+				snapshots:
+					snapshots.length > 0
+						? db()
+								.insert(trackerSnapshots)
+								.values(snapshots)
+								.onConflictDoNothing()
+								.returning()
+						: [],
+				cutoffs:
+					cutoffs.length > 0
+						? db()
+								.insert(trackerCutoffs)
+								.values(cutoffs)
+								.onConflictDoUpdate({
+									target: [
+										trackerCutoffs.trackingFor,
+										trackerCutoffs.trackingId,
+										trackerCutoffs.rank,
+										trackerCutoffs.point,
+									],
+									set: {
+										name: sql.raw(`excluded.${trackerCutoffs.name.name}`),
+										avatar: sql.raw(`excluded.${trackerCutoffs.avatar.name}`),
+									},
+								})
+								.returning({
+									trackingFor: trackerCutoffs.trackingFor,
+									trackingId: trackerCutoffs.trackingId,
+								})
+						: [],
+			});
+
+			const group = ({ trackingFor, trackingId }: TrackingReference) =>
+				`${trackingFor}:${trackingId}`;
+
+			const updatedSnapshots = countBy(inserted.snapshots, group);
+			for (const kind in updatedSnapshots)
+				span.setAttribute(`${kind}:snapshots`, updatedSnapshots[kind]);
+
+			const updatedCutoffs = countBy(inserted.cutoffs, group);
+			for (const kind in updatedCutoffs)
+				span.setAttribute(`${kind}:cutoffs`, updatedCutoffs[kind]);
+
+			return inserted.snapshots;
+		});
+
+		if (targets.length > 0 && now.get("minutes") === 0) {
 			await markBannedPlayers(
-				outputs.map(({ metadata, top }) => ({
+				targets.map(({ metadata, top }) => ({
 					top,
 					trackingReference: getTrackingReference(metadata),
 				})),
@@ -198,23 +361,14 @@ export const scheduleUpdateTracker = schedules.task({
 			);
 
 			await discordTracker.trigger({
-				metadatas: outputs.map(({ metadata }) => metadata),
+				metadatas: targets.map(({ metadata }) => metadata),
 			});
 		}
 
-		const errors = results.filter((promise) => promise.status === "rejected");
-		const abortErrors = [] as string[];
-		for (const { reason } of errors) {
-			if (reason instanceof AbortTaskRunError) abortErrors.push(reason.message);
-			else console.error(reason);
-		}
-		if (errors.length > 0) await tags.add("error_settled");
-
-		const inserted = outputs.flatMap(({ inserted }) => inserted);
 		if (inserted.length > 0) {
 			const snapshots = await logger.trace(
-				"get-previous-snapshots",
-				async (span) => {
+				"fetch-previous-snapshots",
+				async () => {
 					const getPreviousSnapshot = ({
 						id,
 						trackingFor,
@@ -222,6 +376,7 @@ export const scheduleUpdateTracker = schedules.task({
 						uid,
 					}: (typeof inserted)[number]) =>
 						db().query.trackerSnapshots.findFirst({
+							columns: { point: true },
 							where: { trackingFor, trackingId, uid, id: { lt: id } },
 							orderBy: { id: "desc" },
 						});
@@ -238,7 +393,7 @@ export const scheduleUpdateTracker = schedules.task({
 							updated: !previous || value.point !== previous.point,
 						};
 					});
-					span.setAttribute("snapshots", JSON.stringify(snapshots));
+					metadata.set("inserted", snapshots as never);
 
 					return snapshots;
 				},
@@ -250,7 +405,7 @@ export const scheduleUpdateTracker = schedules.task({
 					({ value: { uid, trackingFor, trackingId }, updated }) => ({
 						uid,
 						trackingReference: { trackingFor, trackingId },
-						updateBand: updated,
+						changed: updated,
 					}),
 				),
 			});
@@ -288,17 +443,14 @@ export const scheduleUpdateTracker = schedules.task({
 					);
 					const lastPlayed = mapValues(grouped, (values) =>
 						Object.fromEntries(
-							values.map(({ value: { uid, timestamp } }) => [
+							values.map(({ value: { uid, rank, timestamp } }) => [
 								`${uid}:last-played`,
-								timestamp.getTime(),
+								{ rank, timestamp: timestamp.getTime() },
 							]),
 						),
 					);
 
-					span.setAttribute(
-						"states",
-						JSON.stringify({ playedSince, lastPlayed }),
-					);
+					metadata.set("players-state", { playedSince, lastPlayed });
 
 					const pipe = redis().pipeline();
 					for (const key in grouped)
@@ -312,7 +464,7 @@ export const scheduleUpdateTracker = schedules.task({
 			}
 		}
 
-		for (const { metadata, top } of outputs) {
+		for (const { metadata, top } of targets) {
 			if (!now.isSame(metadata.endAt, "hours")) continue;
 
 			const trackingReference = getTrackingReference(metadata);
@@ -323,7 +475,7 @@ export const scheduleUpdateTracker = schedules.task({
 						...top.t10.map(({ userId }) => ({
 							uid: userId,
 							trackingReference,
-							updateBand: false,
+							changed: false,
 						})),
 						...("musics" in top && top.musics
 							? top.musics.flatMap(({ id, t10 }) =>
@@ -333,7 +485,7 @@ export const scheduleUpdateTracker = schedules.task({
 											trackingFor: "music" as const,
 											trackingId: id,
 										},
-										updateBand: false,
+										changed: false,
 									})),
 								)
 							: []),
@@ -345,9 +497,6 @@ export const scheduleUpdateTracker = schedules.task({
 				},
 			);
 		}
-
-		if (abortErrors.length > 0)
-			throw new AbortTaskRunError(abortErrors.join("\n"));
 	},
 });
 
@@ -356,192 +505,6 @@ interface Ranking {
 	cutoffs: RankingUser[];
 	musics?: { id: number; t10: RankingUser[]; cutoffs: RankingUser[] }[];
 }
-
-interface InsertSnapshotOptions {
-	now: dayjs.Dayjs;
-	metadata: GbpMetadata;
-}
-
-const insertSnapshots = async (
-	ranking: Ranking,
-	{ now, metadata }: InsertSnapshotOptions,
-) => {
-	const hourlyUpdate = now.get("minutes") === 0;
-	const updateMusics =
-		hourlyUpdate &&
-		metadata.kind === "event" &&
-		metadata.musics.length > 0 &&
-		!!ranking.musics;
-
-	if (hourlyUpdate) await tags.add(`${metadata.kind}_hourly`);
-
-	const updated = await logger.trace(
-		`update-${metadata.kind}-redis`,
-		async (span) => {
-			const added = [] as string[];
-			const pipe = redis().pipeline();
-			const add = (
-				suffix: string | string[],
-				[first, ...rest]: RankingUser[],
-				memberKey: "rank" | "userId",
-			) => {
-				if (!first) return;
-
-				const key = GBP.fromMetadata(
-					metadata,
-					...(Array.isArray(suffix) ? suffix : [suffix]),
-				);
-				added.push(key);
-				pipe.zadd(
-					key,
-					{ gt: true, ch: true },
-					{ member: first[memberKey], score: Number(first.point) },
-					...rest.map((it) => ({
-						member: it[memberKey],
-						score: Number(it.point),
-					})),
-				);
-			};
-
-			add("leaderboard", ranking.t10, "userId");
-			if (hourlyUpdate) add("cutoffs", ranking.cutoffs, "rank");
-
-			if (updateMusics) {
-				for (const { id, t10, cutoffs } of ranking.musics!) {
-					const musicId = metadata.type === "medley" ? "medley" : id.toString();
-					add(["leaderboard-music", musicId], t10, "userId");
-					add(["cutoffs-music", musicId], cutoffs, "rank");
-				}
-			}
-
-			const results = await pipe.exec<number[]>();
-			for (const [idx, key] of added.entries())
-				span.setAttribute(key, results[idx]);
-
-			return sum(results);
-		},
-	);
-
-	if (updated === 0) return [];
-	else await tags.add(`${metadata.kind}_updated`);
-
-	const toTrackerSnapshot = curry(
-		(
-			trackingReference: TrackingReference,
-			{ userId, name, rank, point }: RankingUser,
-		): typeof trackerSnapshots.$inferInsert => ({
-			...trackingReference,
-
-			uid: userId,
-			name,
-			rank,
-			point: Number(point),
-			timestamp: now.toDate(),
-		}),
-	);
-	const toTrackerCutoff = await (async () => {
-		if (!hourlyUpdate) return;
-
-		const { cards } = await getRedisData({
-			cards: [
-				...ranking.cutoffs,
-				...(ranking.musics?.flatMap(({ cutoffs }) => cutoffs) ?? []),
-			].map(({ userProfileSituation }) => userProfileSituation?.situationId),
-		});
-		return curry(
-			(
-				trackingReference: TrackingReference,
-				{ name, rank, point, userProfileSituation }: RankingUser,
-			): typeof trackerCutoffs.$inferInsert => ({
-				...trackingReference,
-
-				name,
-				rank,
-				point: Number(point),
-				timestamp: now.toDate(),
-				avatar:
-					userProfileSituation && userProfileSituation.situationId
-						? getAvatar(
-								userProfileSituation,
-								cards[userProfileSituation.situationId],
-							)
-						: null,
-			}),
-		);
-	})();
-
-	const snapshots = [] as (typeof trackerSnapshots.$inferInsert)[];
-	const cutoffs = [] as (typeof trackerCutoffs.$inferInsert)[];
-
-	{
-		const trackingReference = getTrackingReference(metadata);
-		snapshots.push(...ranking.t10.map(toTrackerSnapshot(trackingReference)));
-		if (toTrackerCutoff)
-			cutoffs.push(...ranking.cutoffs.map(toTrackerCutoff(trackingReference)));
-	}
-
-	if (updateMusics) {
-		for (const music of ranking.musics!) {
-			const trackingReference = {
-				trackingFor: "music" as const,
-				trackingId: music.id,
-			};
-
-			snapshots.push(...music.t10.map(toTrackerSnapshot(trackingReference)));
-			cutoffs.push(...music.cutoffs.map(toTrackerCutoff!(trackingReference)));
-		}
-	}
-
-	return logger.trace(`insert-${metadata.kind}`, async (span) => {
-		const [newSnapshots, newCutoffs] = await db().batch([
-			db()
-				.insert(trackerSnapshots)
-				.values(snapshots)
-				.onConflictDoNothing()
-				.returning(),
-			...(cutoffs.length > 0
-				? [
-						db()
-							.insert(trackerCutoffs)
-							.values(cutoffs)
-							.onConflictDoUpdate({
-								target: [
-									trackerCutoffs.trackingFor,
-									trackerCutoffs.trackingId,
-									trackerCutoffs.rank,
-									trackerCutoffs.point,
-								],
-								set: {
-									name: sql.raw(`excluded.${trackerCutoffs.name.name}`),
-									avatar: sql.raw(`excluded.${trackerCutoffs.avatar.name}`),
-								},
-							})
-							.returning({
-								trackingFor: trackerCutoffs.trackingFor,
-								trackingId: trackerCutoffs.trackingId,
-							}),
-					]
-				: []),
-		]);
-
-		const groupByKind = ({ trackingFor, trackingId }: TrackingReference) =>
-			trackingFor === metadata.kind && trackingId === metadata.id
-				? trackingFor
-				: `${trackingFor}:${trackingId}`;
-
-		const newSnapshotsByKind = countBy(newSnapshots, groupByKind);
-		for (const [kind, count] of Object.entries(newSnapshotsByKind))
-			span.setAttribute(`${kind}:snapshots`, count);
-
-		if (cutoffs.length > 0) {
-			const newCutoffsByKind = countBy(newCutoffs, groupByKind);
-			for (const [kind, count] of Object.entries(newCutoffsByKind))
-				span.setAttribute(`${kind}:cutoffs`, count);
-		}
-
-		return newSnapshots;
-	});
-};
 
 export const markBannedPlayers = async (
 	targets: { top: Ranking; trackingReference: TrackingReference }[],
@@ -591,10 +554,19 @@ export const markBannedPlayers = async (
 		const filter = and(or(...conditions), isNull(trackerSnapshots.bannedAt));
 		span.setAttribute("filter", String(filter?.getSQL()));
 		span.setAttribute("bannedAt", now.toISOString());
-		const result = await db()
+		const results = await db()
 			.update(trackerSnapshots)
 			.set({ bannedAt: now.toDate() })
-			.where(filter);
-		span.setAttribute("marked", result.rowsAffected);
+			.where(filter)
+			.returning({
+				trackingFor: trackerSnapshots.trackingFor,
+				trackingId: trackerSnapshots.trackingId,
+				uid: trackerSnapshots.uid,
+			});
+
+		const updated = uniqBy(results, (value) => Object.values(value).join(":"));
+		if (updated.length === 0) return;
+
+		metadata.set("marked-banned", updated);
 	});
 };

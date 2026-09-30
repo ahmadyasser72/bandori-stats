@@ -3,7 +3,7 @@ import { createDecipheriv } from "node:crypto";
 import { fromBinary, toJson, type Message } from "@bufbuild/protobuf";
 import type { GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { AbortTaskRunError, logger, metadata } from "@trigger.dev/sdk";
-import { limitAsync } from "es-toolkit";
+import { limitAsync, retry } from "es-toolkit";
 import type z from "zod";
 
 import type { GameEventType } from "@bandori-stats/bestdori/schema/misc";
@@ -44,136 +44,141 @@ export class MaintenanceError extends Error {
 	}
 }
 
-export const bangDream = limitAsync(
-	async <T extends MetadataType>(version: string, type: T, id: number) => {
-		const {
-			BANG_DREAM_USER_ID,
-			BANG_DREAM_USER_TOKEN,
-			BANG_DREAM_USER_SIGNATURE,
-		} = process.env;
-		if (
-			!BANG_DREAM_USER_ID ||
-			!BANG_DREAM_USER_TOKEN ||
-			!BANG_DREAM_USER_SIGNATURE
-		)
-			throw new AbortTaskRunError("BanG Dream credentials are missing.");
+export const bangDream = async <T extends MetadataType>(
+	version: string,
+	type: T,
+	id: number,
+) => {
+	const {
+		BANG_DREAM_USER_ID,
+		BANG_DREAM_USER_TOKEN,
+		BANG_DREAM_USER_SIGNATURE,
+	} = process.env;
+	if (
+		!BANG_DREAM_USER_ID ||
+		!BANG_DREAM_USER_TOKEN ||
+		!BANG_DREAM_USER_SIGNATURE
+	)
+		throw new AbortTaskRunError("BanG Dream credentials are missing.");
 
-		let path: string;
-		if (type === "monthly") path = `monthlyranking/${id}/ranking`;
-		else {
-			let typ: string = type;
-			if (type === "live_try") typ = "livetry";
-			if (type === "mission_live") typ = "mission";
-			path = `event/${id}/${typ}/ranking`;
-		}
+	let path: string;
+	if (type === "monthly") path = `monthlyranking/${id}/ranking`;
+	else {
+		let typ: string = type;
+		if (type === "live_try") typ = "livetry";
+		if (type === "mission_live") typ = "mission";
+		path = `event/${id}/${typ}/ranking`;
+	}
 
-		const url = new URL(
-			path,
-			`https://api.app-bang-dream-gbp.com/api/user/${BANG_DREAM_USER_ID}/`,
-		);
+	const url = new URL(
+		path,
+		`https://api.app-bang-dream-gbp.com/api/user/${BANG_DREAM_USER_ID}/`,
+	);
 
-		const headers = {
-			host: "api.app-bang-dream-gbp.com",
-			"user-agent": USER_AGENT,
-			"accept-encoding": "deflate, gzip",
-			"content-type": "application/octet-stream",
-			accept: "application/octet-stream",
-			"x-clientversion": version,
-			"x-signature": BANG_DREAM_USER_SIGNATURE,
-			"x-token": BANG_DREAM_USER_TOKEN,
-			"x-clientplatform": "Android",
-			"x-unity-version": UNITY_VERSION,
-		};
+	const headers = {
+		host: "api.app-bang-dream-gbp.com",
+		"user-agent": USER_AGENT,
+		"accept-encoding": "deflate, gzip",
+		"content-type": "application/octet-stream",
+		accept: "application/octet-stream",
+		"x-clientversion": version,
+		"x-signature": BANG_DREAM_USER_SIGNATURE,
+		"x-token": BANG_DREAM_USER_TOKEN,
+		"x-clientplatform": "Android",
+		"x-unity-version": UNITY_VERSION,
+	};
 
-		return logger.trace("gbp-ranking", async (span) => {
-			span.setAttribute?.("type", type);
-			span.setAttribute?.("id", id);
+	return logger.trace("gbp-ranking", async (span) => {
+		span.setAttribute?.("type", type);
+		span.setAttribute?.("id", id);
 
-			const response = await fetchBangDream(url, headers, "GET");
-			return logger.trace("parse", async (span) => {
-				const schema = PROTOBUF[type];
-				span.setAttribute?.("typeName", schema.typeName);
+		const response = await fetchBangDream(url, headers, "GET");
+		return logger.trace("parse", async (span) => {
+			const schema = PROTOBUF[type];
+			span.setAttribute?.("typeName", schema.typeName);
 
-				const output = fromBinary(schema, response.bytes);
-				const json = toJson(schema, output);
-				metadata.root.set(`${type}:${id}`, { path, output: json });
-				return output;
-			});
+			const output = fromBinary(schema, response.bytes);
+			const json = toJson(schema, output);
+			metadata.root.set(`${type}:${id}`, { path, output: json });
+			return output;
 		});
-	},
-	1,
-);
+	});
+};
 
-export const bangDreamProfile = limitAsync(
-	async (version: string, credentials: BangDreamCredentials, uid: string) => {
-		const url = new URL(
-			`profile/${uid}`,
-			`https://api.app-bang-dream-gbp.com/api/user/${credentials.uid}/`,
-		);
+export const bangDreamProfile = async (
+	version: string,
+	credentials: BangDreamCredentials,
+	uid: string,
+) => {
+	const url = new URL(
+		`profile/${uid}`,
+		`https://api.app-bang-dream-gbp.com/api/user/${credentials.uid}/`,
+	);
 
-		const headers = {
-			host: "api.app-bang-dream-gbp.com",
-			"user-agent": USER_AGENT,
-			"accept-encoding": "deflate, gzip",
-			"content-type": "application/octet-stream",
-			accept: "application/octet-stream",
-			"x-clientversion": version,
-			"x-signature": credentials.signature,
-			"x-token": credentials.token,
-			"x-clientplatform": "Android",
-			"x-unity-version": UNITY_VERSION,
-		};
+	const headers = {
+		host: "api.app-bang-dream-gbp.com",
+		"user-agent": USER_AGENT,
+		"accept-encoding": "deflate, gzip",
+		"content-type": "application/octet-stream",
+		accept: "application/octet-stream",
+		"x-clientversion": version,
+		"x-signature": credentials.signature,
+		"x-token": credentials.token,
+		"x-clientplatform": "Android",
+		"x-unity-version": UNITY_VERSION,
+	};
 
-		return logger.trace("gbp-profile", async (span) => {
-			span.setAttribute?.("uid", uid);
+	return logger.trace("gbp-profile", async (span) => {
+		span.setAttribute?.("uid", uid);
 
-			const response = await fetchBangDream(url, headers, "PUT");
-			const newToken = response.headers.get("x-token");
-			if (!newToken)
+		const response = await fetchBangDream(url, headers, "PUT");
+		const newToken = response.headers.get("x-token");
+		if (!newToken)
+			throw new AbortTaskRunError(
+				`Request to ${url.pathname} not returning new token`,
+			);
+
+		return logger.trace("parse", async (span) => {
+			span.setAttribute?.("typeName", UserProfileSchema.typeName);
+
+			const output = fromBinary(UserProfileSchema, response.bytes);
+			const json = toJson(UserProfileSchema, output);
+			metadata.root.set(`profile:${uid}`, { output: json });
+			return { ...output, credentials: { ...credentials, token: newToken } };
+		});
+	});
+};
+
+const fetchBangDream = limitAsync(
+	async (url: URL, headers: Record<string, string>, method: "GET" | "PUT") =>
+		logger.trace("fetch", async (span) => {
+			span.setAttribute?.("request", `${method}: ${url}`);
+
+			const response = await retry(() => fetch(url, { method, headers }), {
+				retries: 2,
+				delay: 500,
+				shouldRetry: (error) => error instanceof TypeError,
+			});
+			span.setAttribute?.("status", response.status);
+
+			if (!response.ok) {
+				if (response.status === 503) {
+					await redis().set(GBP.maintenance, true, { ex: 60 * 30 });
+					throw new MaintenanceError();
+				}
+
 				throw new AbortTaskRunError(
-					`Request to ${url.pathname} not returning new token`,
+					`${method}: ${url.pathname} failed (${response.status})`,
 				);
-
-			return logger.trace("parse", async (span) => {
-				span.setAttribute?.("typeName", UserProfileSchema.typeName);
-
-				const output = fromBinary(UserProfileSchema, response.bytes);
-				const json = toJson(UserProfileSchema, output);
-				metadata.root.set(`profile:${uid}`, { output: json });
-				return { ...output, credentials: { ...credentials, token: newToken } };
-			});
-		});
-	},
-	1,
-);
-
-const fetchBangDream = async (
-	url: URL,
-	headers: Record<string, string>,
-	method: "GET" | "PUT",
-) =>
-	logger.trace("fetch", async (span) => {
-		span.setAttribute?.("request", `${method}: ${url}`);
-
-		const response = await fetch(url, { method, headers });
-		span.setAttribute?.("status", response.status);
-
-		if (!response.ok) {
-			if (response.status === 503) {
-				await redis().set(GBP.maintenance, true, { ex: 60 * 30 });
-				throw new MaintenanceError();
 			}
 
-			throw new AbortTaskRunError(
-				`${method}: ${url.pathname} failed (${response.status})`,
-			);
-		}
+			const bytes = await response.arrayBuffer().then(decrypt);
+			span.setAttribute?.("size", bytes.byteLength);
 
-		const bytes = await response.arrayBuffer().then(decrypt);
-		span.setAttribute?.("size", bytes.byteLength);
-
-		return { bytes, headers: response.headers };
-	});
+			return { bytes, headers: response.headers };
+		}),
+	1,
+);
 
 const decrypt = (() => {
 	const { BANG_DREAM_AES_KEY, BANG_DREAM_AES_IV } = process.env;

@@ -39,7 +39,7 @@ export const updateTrackerProfile = schemaTask({
 				z.object({
 					uid: z.string(),
 					trackingReference: TrackingReference,
-					updateBand: z.boolean(),
+					changed: z.boolean(),
 				}),
 			)
 			.nonempty(),
@@ -97,7 +97,7 @@ export const updateTrackerProfile = schemaTask({
 					band: undefined;
 			  })
 		)[] = players
-			.map(({ uid, trackingReference, updateBand }) => {
+			.map(({ uid, trackingReference, changed }) => {
 				const profile = profiles.get(uid);
 				if (!profile) return null;
 
@@ -125,7 +125,7 @@ export const updateTrackerProfile = schemaTask({
 								)
 							: null,
 
-					band: updateBand
+					band: changed
 						? {
 								name: profile.mainUserDeck?.deckName!,
 								members: bandMembers,
