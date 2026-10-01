@@ -26,7 +26,6 @@ import { GBP, getRedisData, redis } from "@bandori-stats/database/redis";
 import {
 	trackerCutoffs,
 	trackerSnapshots,
-	type GbpEventMusic,
 	type GbpMetadata,
 } from "@bandori-stats/database/schema";
 import {
@@ -48,7 +47,7 @@ export const scheduleUpdateTracker = schedules.task({
 	run: async ({ timestamp }) => {
 		const [version, eventId, monthlyId, maintenance] = await redis().mget<
 			[string | null, number | null, number | null, true | null]
-		>(GBP.version, GBP.event.current, GBP.monthly.current, GBP.maintenance);
+		>(GBP.version, GBP.event, GBP.monthly, GBP.maintenance);
 
 		await tags.add(`version_${version ?? "n/a"}`);
 		if (!version || (!eventId && !monthlyId)) return;
@@ -184,9 +183,8 @@ export const scheduleUpdateTracker = schedules.task({
 		if (updateCutoffs) await tags.add("cutoffs");
 
 		const updated = await logger.trace("update-redis", async (span) => {
-			type Metadata = GbpMetadata | (GbpEventMusic & { kind: "music" });
 			const toInsert = [] as {
-				metadata: Metadata;
+				trackingReference: TrackingReference;
 				values: RankingUser[];
 				type: "t10" | "cutoffs";
 			}[];
@@ -194,16 +192,14 @@ export const scheduleUpdateTracker = schedules.task({
 			const keys = [] as string[];
 			const pipe = redis().pipeline();
 			for (const { metadata, top } of targets) {
-				const base = GBP.fromMetadata(metadata);
 				const addMembers = (
-					suffix: string,
-					metadata: Metadata,
+					trackingReference: TrackingReference,
 					players: RankingUser[],
 					type: "t10" | "cutoffs",
 				) => {
-					toInsert.push({ metadata, values: players, type });
+					toInsert.push({ trackingReference, values: players, type });
 
-					const key = `${base}:${suffix}`;
+					const key = GBP.from(trackingReference, type);
 					keys.push(key);
 					pipe.zadd(
 						key,
@@ -215,17 +211,15 @@ export const scheduleUpdateTracker = schedules.task({
 					);
 				};
 
-				addMembers("leaderboard", metadata, top.t10, "t10");
-				if (updateCutoffs)
-					addMembers("cutoffs", metadata, top.cutoffs, "cutoffs");
+				const target = getTrackingReference(metadata);
+				addMembers(target, top.t10, "t10");
+				if (updateCutoffs) addMembers(target, top.cutoffs, "cutoffs");
 
 				if (metadata.kind === "event" && "musics" in top && !!top.musics) {
-					for (const [idx, { id, t10, cutoffs }] of top.musics.entries()) {
-						const music = { ...metadata.musics[idx], kind: "music" as const };
-						const musicId = metadata.type === "medley" ? "medley" : id;
-						addMembers(`leaderboard-music:${musicId}`, music, t10, "t10");
-						if (updateCutoffs)
-							addMembers(`cutoffs-music:${musicId}`, music, cutoffs, "cutoffs");
+					for (const { id, t10, cutoffs } of top.musics) {
+						const target = getTrackingReference({ ...metadata, music: id });
+						addMembers(target, t10, "t10");
+						if (updateCutoffs) addMembers(target, cutoffs, "cutoffs");
 					}
 				}
 			}
@@ -289,12 +283,7 @@ export const scheduleUpdateTracker = schedules.task({
 
 			const snapshots = [] as (typeof trackerSnapshots.$inferInsert)[];
 			const cutoffs = [] as (typeof trackerCutoffs.$inferInsert)[];
-			for (const { metadata, values, type } of updated) {
-				const trackingReference = {
-					trackingFor: metadata.kind,
-					trackingId: metadata.id,
-				};
-
+			for (const { trackingReference, values, type } of updated) {
 				if (type === "t10")
 					snapshots.push(...values.map(toTrackerSnapshot(trackingReference)));
 				else if (type === "cutoffs" && toTrackerCutoff)
@@ -322,6 +311,7 @@ export const scheduleUpdateTracker = schedules.task({
 									target: [
 										trackerCutoffs.trackingFor,
 										trackerCutoffs.trackingId,
+										trackerCutoffs.trackingEventId,
 										trackerCutoffs.rank,
 										trackerCutoffs.point,
 									],
@@ -333,17 +323,25 @@ export const scheduleUpdateTracker = schedules.task({
 								.returning({
 									trackingFor: trackerCutoffs.trackingFor,
 									trackingId: trackerCutoffs.trackingId,
+									trackingEventId: trackerCutoffs.trackingEventId,
 								})
 						: [],
 			});
 
-			const group = ({ trackingFor, trackingId }: TrackingReference) =>
-				`${trackingFor}:${trackingId}`;
+			const group = ({
+				trackingFor,
+				trackingId,
+				trackingEventId,
+			}: (typeof inserted.cutoffs)[number]) =>
+				GBP.from({
+					trackingFor,
+					trackingId,
+					trackingEventId: trackingEventId ?? undefined,
+				});
 
 			const updatedSnapshots = countBy(inserted.snapshots, group);
 			for (const kind in updatedSnapshots)
 				span.setAttribute(`${kind}:snapshots`, updatedSnapshots[kind]);
-
 			const updatedCutoffs = countBy(inserted.cutoffs, group);
 			for (const kind in updatedCutoffs)
 				span.setAttribute(`${kind}:cutoffs`, updatedCutoffs[kind]);
@@ -402,9 +400,16 @@ export const scheduleUpdateTracker = schedules.task({
 			await updateTrackerProfile.trigger({
 				version,
 				players: snapshots.map(
-					({ value: { uid, trackingFor, trackingId }, updated }) => ({
+					({
+						value: { uid, trackingFor, trackingId, trackingEventId },
+						updated,
+					}) => ({
 						uid,
-						trackingReference: { trackingFor, trackingId },
+						trackingReference: {
+							trackingFor,
+							trackingId,
+							trackingEventId: trackingEventId ?? undefined,
+						},
 						changed: updated,
 					}),
 				),
@@ -416,16 +421,8 @@ export const scheduleUpdateTracker = schedules.task({
 			);
 			if (updated.length > 0) {
 				await logger.trace("update-player-state", async (span) => {
-					const grouped = groupBy(
-						updated,
-						({ value: { trackingFor, trackingId } }) =>
-							GBP.fromMetadata(
-								{
-									kind: trackingFor as "event" | "monthly",
-									id: trackingId,
-								},
-								"players",
-							),
+					const grouped = groupBy(updated, ({ value }) =>
+						GBP.from(pick(value, ["trackingFor", "trackingId"]), "players"),
 					);
 
 					const playedSince = await mapValuesAsync(
@@ -484,6 +481,7 @@ export const scheduleUpdateTracker = schedules.task({
 										trackingReference: {
 											trackingFor: "music" as const,
 											trackingId: id,
+											trackingEventId: metadata.id,
 										},
 										changed: false,
 									})),
@@ -513,12 +511,15 @@ export const markBannedPlayers = async (
 	const conditions = [] as Parameters<typeof or>;
 	for (const {
 		top,
-		trackingReference: { trackingFor, trackingId },
+		trackingReference: { trackingFor, trackingId, trackingEventId },
 	} of targets) {
 		conditions.push(
 			and(
 				eq(trackerSnapshots.trackingFor, trackingFor),
 				eq(trackerSnapshots.trackingId, trackingId),
+				trackingEventId
+					? eq(trackerSnapshots.trackingEventId, trackingEventId)
+					: isNull(trackerSnapshots.trackingEventId),
 				notInArray(
 					trackerSnapshots.uid,
 					top.t10.map(({ userId }) => userId),

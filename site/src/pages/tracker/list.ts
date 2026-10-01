@@ -4,10 +4,7 @@ import z from "zod";
 
 import { TrackingTarget } from "@bandori-stats/database/tracker";
 
-export const DisplaySchema = z.templateLiteral([
-	z.enum(["t10", "t10-recent", "cutoffs"]),
-	z.templateLiteral(["-", z.number()]).optional(),
-]);
+export const DisplaySchema = z.enum(["t10", "t10-recent", "cutoffs"]);
 
 export const GET: APIRoute = async ({ locals, rewrite }) => {
 	const { display, ...params } = locals.parseQuery(
@@ -17,11 +14,14 @@ export const GET: APIRoute = async ({ locals, rewrite }) => {
 	const search = new URLSearchParams();
 	search.set("id", params.id.toString());
 	search.set("kind", params.kind);
+	if (params.music) search.set("music", params.music.toString());
 	const response = await rewrite(`/tracker/${display}?${search}`);
 
 	response.headers.set(
 		"hx-replace-url",
-		`/tracker?display=${display}&id=${params.id}&tab=${params.kind}`,
+		params.music
+			? `/tracker?display=${display}&id=${params.id}&music=${params.music}&tab=${params.kind}`
+			: `/tracker?display=${display}&id=${params.id}&tab=${params.kind}`,
 	);
 
 	return response;

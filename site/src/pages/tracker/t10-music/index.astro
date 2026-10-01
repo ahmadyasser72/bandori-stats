@@ -7,18 +7,19 @@ import { db } from "@bandori-stats/database";
 import type { TrackerSnapshot } from "@bandori-stats/database/schema";
 import {
 	getTrackingMetadata,
+	getTrackingReference,
 	TrackingTarget,
 } from "@bandori-stats/database/tracker";
 import GbpCard from "~/components/gbp-card.astro";
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
-import { IdSchema } from "~/lib/schema";
 import ProfileDropdown from "~/pages/tracker/_profile-dropdown.astro";
 
 export const partials = true;
 
 const params = Astro.locals.parseQuery(TrackingTarget);
-if (params.kind !== "event") return new Response(null, { status: 404 });
+if (params.kind !== "event" || !params.music)
+	return new Response(null, { status: 404 });
 
 const metadata = await Astro.locals.tracing.enterSpan(
 	"fetch-metadata",
@@ -32,17 +33,13 @@ const metadata = await Astro.locals.tracing.enterSpan(
 if (!metadata || metadata.kind !== "event")
 	return new Response(null, { status: 404 });
 
-const songId = IdSchema.parse(Astro.params.song);
-const song = metadata.musics.find(({ id }) => id === songId);
+const song = metadata.musics.find(({ id }) => id === params.music);
 if (!song) return new Response(null, { status: 404 });
 
 const isActive = dayjs().isBefore(metadata.endAt);
 
 const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
-	const trackingReference = {
-		trackingFor: "music" as const,
-		trackingId: songId,
-	};
+	const trackingReference = getTrackingReference(params);
 	const getLatestRank = (rank: number, exclude?: string[]) =>
 		db().query.trackerSnapshots.findFirst({
 			columns: { trackingFor: false, trackingId: false },
@@ -247,7 +244,7 @@ if (Astro.cache.enabled)
 
 						<div class="col-span-full flex gap-1 sm:justify-end">
 							<button
-								hx-get={`/tracker/t10-${songId}/${latest.uid}/history`}
+								hx-get={`/tracker/t10-music/${latest.uid}/history`}
 								hx-swap="after"
 								hx-target="main"
 								hx-vals={JSON.stringify(params)}

@@ -34,7 +34,7 @@ export const accounts = sqliteTable(
 		lastUpdated: text().$default(() => sql`(CURRENT_DATE)`),
 		disabledAt: text(),
 	},
-	(t) => [index("idx_account_last_updated").on(t.lastUpdated)],
+	(t) => [index("by_last_updated").on(t.lastUpdated)],
 );
 
 export const accountSnapshots = sqliteTable(
@@ -53,10 +53,10 @@ export const accountSnapshots = sqliteTable(
 			.notNull(),
 	},
 	(t) => [
-		index("idx_snapshots_date").on(t.snapshotDate),
-		index("idx_snapshots_account_id").on(t.accountId, t.id),
-		unique("idx_snapshots_account_date").on(t.accountId, t.snapshotDate),
-		unique("idx_snapshots_account_stat").on(t.accountId, t.stats),
+		index("by_date").on(t.snapshotDate),
+		index("by_account").on(t.accountId, t.id),
+		unique().on(t.accountId, t.snapshotDate),
+		unique().on(t.accountId, t.stats),
 	],
 );
 
@@ -110,6 +110,7 @@ export const { trackerSnapshots, trackerCutoffs } = (() => {
 		id: integer().primaryKey({ autoIncrement: true }),
 		trackingFor: text().$type<TrackerKind>().notNull(),
 		trackingId: integer().notNull(),
+		trackingEventId: integer(),
 
 		uid: text().notNull(),
 		name: text().notNull(),
@@ -123,16 +124,24 @@ export const { trackerSnapshots, trackerCutoffs } = (() => {
 			"tracker_snapshots",
 			{ ...shared, bannedAt: integer({ mode: "timestamp_ms" }) },
 			(t) => [
-				index("idx_snapshot_uid").on(t.trackingFor, t.trackingId, t.uid, t.id),
-				index("idx_snapshot_rank").on(
+				index("by_uid").on(
 					t.trackingFor,
 					t.trackingId,
+					t.trackingEventId,
+					t.uid,
+					t.id,
+				),
+				index("by_rank").on(
+					t.trackingFor,
+					t.trackingId,
+					t.trackingEventId,
 					t.rank,
 					t.id,
 				),
-				unique("unique_snapshot").on(
+				unique().on(
 					t.trackingFor,
 					t.trackingId,
+					t.trackingEventId,
 					t.uid,
 					t.name,
 					t.rank,
@@ -146,14 +155,7 @@ export const { trackerSnapshots, trackerCutoffs } = (() => {
 				...omit(shared, ["uid"]),
 				avatar: text({ mode: "json" }).$type<PlayerBandMemberStateless>(),
 			},
-			(t) => [
-				unique("unique_cutoff").on(
-					t.trackingFor,
-					t.trackingId,
-					t.rank,
-					t.point,
-				),
-			],
+			(t) => [unique().on(t.trackingFor, t.trackingId, t.rank, t.point)],
 		),
 	};
 })();
@@ -164,6 +166,7 @@ export const trackerSnapshotProfiles = sqliteTable(
 		id: integer().primaryKey({ autoIncrement: true }),
 		trackingFor: text().$type<TrackerKind>().notNull(),
 		trackingId: integer().notNull(),
+		trackingEventId: integer(),
 
 		uid: text().notNull(),
 		name: text().notNull(),
@@ -173,7 +176,7 @@ export const trackerSnapshotProfiles = sqliteTable(
 		band: text({ mode: "json" }).notNull().$type<PlayerBand>(),
 		titles: text({ mode: "json" }).notNull().$type<number[]>(),
 	},
-	(t) => [unique("idx_tracker_profile").on(t.trackingFor, t.trackingId, t.uid)],
+	(t) => [unique().on(t.trackingFor, t.trackingId, t.trackingEventId, t.uid)],
 );
 
 export type GbpEvent = typeof gbpEvents.$inferSelect;

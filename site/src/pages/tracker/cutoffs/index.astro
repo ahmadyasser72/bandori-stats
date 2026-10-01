@@ -35,7 +35,7 @@ const hoursSince = dayjs(
 
 const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 	const ranks = await redis().zrange<number[]>(
-		GBP.fromMetadata(params, "cutoffs"),
+		GBP.from(params, "cutoffs"),
 		0,
 		-1,
 		{ rev: true },
