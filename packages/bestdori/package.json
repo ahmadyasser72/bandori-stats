@@ -12,12 +12,12 @@
 		"@bandori-stats/database": "workspace:*",
 		"dayjs": "1.11.23",
 		"es-toolkit": "1.52.0",
-		"wasm-vips": "0.0.18",
+		"wasm-vips": "0.0.19",
 		"zod": "4.6.5"
 	},
 	"devDependencies": {
 		"@types/bun": "1.4.2",
-		"@types/node": "26.6.2",
+		"@types/node": "26.6.3",
 		"typescript": "6.0.3"
 	}
 }

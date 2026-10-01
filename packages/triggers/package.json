@@ -9,10 +9,10 @@
 	"dependencies": {
 		"@bandori-stats/bestdori": "workspace:*",
 		"@bandori-stats/database": "workspace:*",
-		"@bufbuild/protobuf": "2.15.0",
+		"@bufbuild/protobuf": "2.16.0",
 		"@isaacs/ttlcache": "2.1.5",
-		"@trigger.dev/sdk": "4.6.3",
-		"ai": "7.0.107",
+		"@trigger.dev/sdk": "4.6.4",
+		"ai": "7.0.126",
 		"discord.js": "14.27.0",
 		"es-toolkit": "1.52.0",
 		"random": "5.5.1",
@@ -20,10 +20,10 @@
 	},
 	"devDependencies": {
 		"@bufbuild/buf": "1.73.0",
-		"@bufbuild/protoc-gen-es": "2.15.0",
-		"@trigger.dev/build": "4.6.3",
-		"@types/node": "26.6.2",
-		"trigger.dev": "4.6.3",
+		"@bufbuild/protoc-gen-es": "2.16.0",
+		"@trigger.dev/build": "4.6.4",
+		"@types/node": "26.6.3",
+		"trigger.dev": "4.6.4",
 		"typescript": "6.0.3"
 	}
 }
