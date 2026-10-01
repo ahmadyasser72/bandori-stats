@@ -45,7 +45,7 @@ export const discordWebhook = defineAction({
 				message: "Webhook URL is invalid!",
 			});
 
-		const key = GBP.fromMetadata(target, "discord-webhook");
+		const key = GBP.from(target, "discord-webhook");
 		const exists = await redis().exists(key);
 		if (exists) {
 			const added = await redis().sadd(key, url);

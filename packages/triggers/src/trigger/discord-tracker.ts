@@ -63,9 +63,9 @@ export const discordTracker = schemaTask({
 							? getSnapshots(trackingReference, { now, since: yesterday })
 							: [],
 
-						thread: getThread(client, metadata, "discord-thread"),
+						thread: getThread(client, metadata),
 						webhook: (async () => {
-							const key = GBP.fromMetadata(metadata, "discord-webhook");
+							const key = GBP.from(metadata, "discord-webhook");
 							const urls = await redis().smembers(key);
 							return { key, urls };
 						})(),
@@ -87,7 +87,7 @@ export const discordTracker = schemaTask({
 									musics.map(async ({ id, title }) => ({
 										title,
 										snapshots: await getSnapshots(
-											{ trackingFor: "music", trackingId: id },
+											getTrackingReference({ ...metadata, music: id }),
 											{ now, since: anHourAgo },
 										).then((snapshots) =>
 											snapshots.filter(
@@ -107,7 +107,7 @@ export const discordTracker = schemaTask({
 											musics.map(async ({ id, title }) => ({
 												title,
 												snapshots: await getSnapshots(
-													{ trackingFor: "music", trackingId: id },
+													getTrackingReference({ ...metadata, music: id }),
 													{ now, since: yesterday },
 												),
 											})),
@@ -116,11 +116,9 @@ export const discordTracker = schemaTask({
 										)
 									: [],
 
-								thread: getThread(
-									client,
-									metadata,
-									"discord-thread-musics",
-								).catch(() => null),
+								thread: getThread(client, { ...metadata, music: 0 }).catch(
+									() => null,
+								),
 							});
 						})(),
 
@@ -412,8 +410,7 @@ const generateEmbed = (
 
 const getThread = async (
 	client: Client,
-	{ kind, id }: TrackingTarget,
-	keySuffix: string,
+	{ kind, id, music }: TrackingTarget,
 ) => {
 	const forumId = process.env[`DISCORD_${kind.toUpperCase()}_TRACKER_FORUM_ID`];
 	if (!forumId)
@@ -423,7 +420,10 @@ const getThread = async (
 	if (!forum || forum.type !== ChannelType.GuildForum)
 		throw new AbortTaskRunError(`${kind} tracker forum doesn't exists.`);
 
-	const key = GBP.fromMetadata({ kind, id }, keySuffix);
+	const key = GBP.from(
+		{ trackingFor: kind, trackingId: id, music },
+		"discord-thread",
+	);
 	const threadId = await redis().get<number>(key);
 	if (!threadId)
 		throw new AbortTaskRunError(`${kind}:${id} thread doesn't exists.`);
