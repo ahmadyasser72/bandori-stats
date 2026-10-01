@@ -6,7 +6,7 @@ import type {
 	GameAreaItem,
 	GameCharacterSituation,
 } from "@bandori-stats/bestdori/schema/misc";
-import type { TrackingTarget } from "./schema/tracker";
+import type { TrackingReference, TrackingTarget } from "./schema/tracker";
 
 export const redis = once(() => {
 	const { UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN } = process.env;
@@ -22,38 +22,33 @@ export const redis = once(() => {
 export const PLAYER_TITLES_SET = "stats:player-titles";
 export const PLAYER_STATS_SORTED_SET_PREFIX = "stats:player-stats";
 
-type Id<P extends string, F extends string> = `${P}:${number | F}` | P;
-const idProxy = <Prefix extends string, Fallback extends string>(
-	prefix: Prefix,
-	fallback?: Fallback,
-) =>
-	new Proxy({} as Record<number | Fallback, Id<Prefix, Fallback>>, {
-		get: (_target, prop): Id<Prefix, Fallback> => {
-			const id = Number(prop);
-			if (Number.isInteger(id) && id > 0) return `${prefix}:${id}`;
-
-			return fallback ? `${prefix}:${fallback}` : prefix;
-		},
-	});
-
 export const GBP = {
 	version: "gbp:version",
 	maintenance: "gbp:maintenance",
 	credentials: "gbp:credentials",
-	event: idProxy("gbp:event", "current"),
-	monthly: idProxy("gbp:monthly", "current"),
-	cache: { Profile: "gbp:cache:profile" },
+	event: "gbp:event:current",
+	monthly: "gbp:monthly:current",
 	data: {
 		AreaItem: "gbp:data:area-items",
 		CharacterSituation: "gbp:data:character-situations",
 	},
 
-	fromMetadata: (
-		{ kind, id }: TrackingTarget,
-		...suffix: (string | number)[]
-	) => {
-		const key = GBP[kind][id];
-		return suffix.length > 0 ? [key, ...suffix].join(":") : key;
+	from: (value: TrackingTarget | TrackingReference, suffix?: string) => {
+		let kind: "event" | "monthly";
+		let id: string;
+		if ("kind" in value && "id" in value) {
+			kind = value.kind;
+			id = value.id.toString();
+		} else {
+			kind = value.trackingFor === "music" ? "event" : value.trackingFor;
+			id =
+				value.trackingFor === "music"
+					? `${value.trackingEventId}:${value.trackingId}`
+					: value.trackingId.toString();
+		}
+
+		const key = GBP[kind].replace("current", id);
+		return suffix ? `${key}:${suffix}` : key;
 	},
 } as const;
 

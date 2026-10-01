@@ -42,6 +42,7 @@ interface DisplayChoice {
 	label: string;
 	image?: { kind: "logo" | "music"; url: string };
 	items: { value: string; label: string }[];
+	music?: number;
 }
 
 const displayChoices = [] as DisplayChoice[];
@@ -52,18 +53,20 @@ if (metadata.kind === "event" && metadata.musics.length > 0) {
 					{
 						label: "Medley Ranking",
 						items: [
-							{ value: "t10-medley", label: "T10" },
-							{ value: "cutoffs-medley", label: "Cutoffs" },
+							{ value: "t10", label: "T10" },
+							{ value: "cutoffs", label: "Cutoffs" },
 						],
+						music: metadata.musics[0].id,
 					},
 				] satisfies typeof displayChoices)
 			: metadata.musics.map(({ id, title }) => ({
 					label: title,
 					image: { kind: "music" as const, url: getSongAlbumCover({ id }) },
 					items: [
-						{ value: `t10-${id}`, label: "T10" },
-						{ value: `cutoffs-${id}`, label: "Cutoffs" },
+						{ value: "t10", label: "T10" },
+						{ value: "cutoffs", label: "Cutoffs" },
 					],
+					music: id,
 				}))),
 	);
 }
@@ -256,8 +259,10 @@ if (Astro.cache.enabled)
 					}
 
 					{
-						displayChoices.map(({ label, items, image }) => (
-							<li>
+						displayChoices.map(({ label, items, image, music }) => (
+							<li
+								hx-vals:append={music ? JSON.stringify({ music }) : undefined}
+							>
 								<details>
 									<summary
 										class:list={[

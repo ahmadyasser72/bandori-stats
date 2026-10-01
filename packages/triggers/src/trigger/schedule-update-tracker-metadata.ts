@@ -37,8 +37,8 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 		const [currentVersion, currentEvent, currentMonthly] = await redis()
 			.pipeline()
 			.get(GBP.version)
-			.exists(GBP.event.current)
-			.exists(GBP.monthly.current)
+			.exists(GBP.event)
+			.exists(GBP.monthly)
 			.exec<[string, ...boolean[]]>();
 
 		const versions = await bestdori({
@@ -92,7 +92,7 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 							bannerAssetBundleName,
 							metadata,
 						});
-					await redis().set(GBP.event.current, eventId, {
+					await redis().set(GBP.event, eventId, {
 						pxat: dayjs(event.endAt).add(1, "hour").valueOf(),
 					});
 					await tags.add(`event_${event.assetBundleName}`);
@@ -205,7 +205,6 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 							forumId,
 							payload,
 							target: { kind: "event" as const, id: eventId },
-							keySuffix: "discord-thread",
 							tags,
 						});
 
@@ -243,8 +242,7 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 								metadata: event,
 								forumId,
 								payload: { title, description, image },
-								target: { kind: "event" as const, id: eventId },
-								keySuffix: "discord-thread-musics",
+								target: { kind: "event" as const, id: eventId, music: 0 },
 								tags,
 							});
 
@@ -282,7 +280,7 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 							name: monthlyRankingName,
 							...monthly,
 						});
-					await redis().set(GBP.monthly.current, monthlyRankingId, {
+					await redis().set(GBP.monthly, monthlyRankingId, {
 						pxat: dayjs(monthly.endAt).add(1, "hour").valueOf(),
 					});
 					await tags.add(`monthly_${monthly.assetBundleName}`);
@@ -311,7 +309,6 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 							forumId,
 							payload,
 							target: { kind: "monthly" as const, id: monthlyRankingId },
-							keySuffix: "discord-thread",
 							tags: [startAt.format("MMMM"), startAt.format("YYYY")],
 						});
 
@@ -407,13 +404,12 @@ interface CreateThreadOptions {
 	payload: Omit<MetadataPayload, "image"> & { image: Buffer | Buffer[] };
 	forumId: string;
 	target: TrackingTarget;
-	keySuffix: string;
 	tags: string[];
 }
 
 const createThread = async (
 	guild: Guild,
-	{ metadata, forumId, target, tags, payload, keySuffix }: CreateThreadOptions,
+	{ metadata, forumId, target, tags, payload }: CreateThreadOptions,
 ) => {
 	const forum = await guild.channels.fetch(forumId);
 	if (!forum || forum.type !== ChannelType.GuildForum)
@@ -438,7 +434,7 @@ const createThread = async (
 			(name) => forum.availableTags.find((tag) => tag.name === name)!.id,
 		),
 	});
-	await redis().set(GBP.fromMetadata(target, keySuffix), thread.id, {
+	await redis().set(GBP.from(target, "discord-thread"), thread.id, {
 		pxat: metadata.endAt.getTime(),
 	});
 
