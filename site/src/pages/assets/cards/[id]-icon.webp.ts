@@ -18,6 +18,7 @@ import {
 import { imageConfig, vips } from "@bandori-stats/bestdori/image";
 import { fetchCards } from "@bandori-stats/bestdori/schema/cards";
 import { db } from "@bandori-stats/database";
+import { GBP, redis } from "@bandori-stats/database/redis";
 
 export const prerender = true;
 
@@ -61,34 +62,12 @@ export const getStaticPaths = (async () => {
 				where: { profileArt: { isNotNull: true } },
 			})
 			.then((accounts) => accounts.map(({ profileArt }) => profileArt!)),
-		db()
-			.query.trackerSnapshotProfiles.findMany({
-				columns: { avatar: true, band: true },
-			})
-			.then((profiles) =>
-				profiles
-					.flatMap(({ avatar, band }) => [avatar, ...band.members])
-					.filter((it) => it !== null),
-			),
-		db()
-			.query.trackerCutoffs.findMany({
-				columns: { avatar: true },
-				where: { avatar: { isNotNull: true } },
-			})
-			.then((cutoffs) => cutoffs.map(({ avatar }) => avatar!)),
-		db()
-			.query.gbpEvents.findMany({ columns: { metadata: true } })
-			.then((events) =>
-				events
-					.map(({ metadata }) =>
-						Object.keys(metadata.members)
-							.map(Number)
-							.map((id) => [
-								{ id, trained: true },
-								{ id, trained: false },
-							]),
-					)
-					.flat(2),
+		redis()
+			.hkeys(GBP.data.CharacterSituation)
+			.then((ids) =>
+				ids
+					.map(Number)
+					.flatMap((id) => [true, false].map((trained) => ({ id, trained }))),
 			),
 	]);
 
