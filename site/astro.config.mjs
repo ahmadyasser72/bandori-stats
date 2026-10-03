@@ -105,6 +105,9 @@ export default defineConfig({
 			__GIT_HASH__: JSON.stringify(GIT_HASH),
 			__GITHUB_URL__: JSON.stringify(GIT_URL),
 		},
+		resolve: {
+			dedupe: ["preact", "preact/compat", "preact/hooks"],
+		},
 	},
 
 	devToolbar: { enabled: false },
