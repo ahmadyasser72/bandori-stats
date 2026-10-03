@@ -16,7 +16,7 @@
 		"@bandori-stats/database": "workspace:*",
 		"@catppuccin/daisyui": "2.1.1",
 		"@iconify-json/line-md": "1.2.16",
-		"@iconify-json/lucide": "1.2.138",
+		"@iconify-json/lucide": "1.2.139",
 		"@iconify-json/svg-spinners": "1.2.4",
 		"@iconify/tailwind4": "1.2.3",
 		"@tailwindcss/typography": "0.5.20",
