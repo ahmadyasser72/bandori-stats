@@ -375,7 +375,7 @@ export const scheduleUpdateTracker = schedules.task({
 						const previous = previousSnapshots.at(idx);
 						return {
 							value,
-							updated: !previous || value.point !== previous.point,
+							pointGained: previous ? value.point - previous.point : 0,
 						};
 					});
 					metadata.set("inserted", snapshots as never);
@@ -389,7 +389,7 @@ export const scheduleUpdateTracker = schedules.task({
 				players: snapshots.map(
 					({
 						value: { uid, trackingFor, trackingId, trackingEventId },
-						updated,
+						pointGained,
 					}) => ({
 						uid,
 						trackingReference: {
@@ -397,18 +397,18 @@ export const scheduleUpdateTracker = schedules.task({
 							trackingId,
 							trackingEventId: trackingEventId ?? undefined,
 						},
-						changed: updated,
+						changed: pointGained !== 0,
 					}),
 				),
 			});
 
-			const updated = snapshots.filter(
-				({ value: { trackingFor }, updated }) =>
-					trackingFor !== "music" && updated,
+			const changed = snapshots.filter(
+				({ value: { trackingFor }, pointGained }) =>
+					trackingFor !== "music" && pointGained > 0,
 			);
-			if (updated.length > 0) {
+			if (changed.length > 0) {
 				await logger.trace("update-player-state", async (span) => {
-					const grouped = groupBy(updated, ({ value }) =>
+					const grouped = groupBy(changed, ({ value }) =>
 						GBP.from(pick(value, ["trackingFor", "trackingId"]), "players"),
 					);
 
@@ -427,9 +427,9 @@ export const scheduleUpdateTracker = schedules.task({
 					);
 					const lastPlayed = mapValues(grouped, (values) =>
 						Object.fromEntries(
-							values.map(({ value: { uid, rank, timestamp } }) => [
+							values.map(({ value: { uid, rank, timestamp }, pointGained }) => [
 								`${uid}:last-played`,
-								{ rank, timestamp: timestamp.getTime() },
+								{ rank, timestamp: timestamp.getTime(), pointGained },
 							]),
 						),
 					);
