@@ -420,10 +420,7 @@ const getThread = async (
 	if (!forum || forum.type !== ChannelType.GuildForum)
 		throw new AbortTaskRunError(`${kind} tracker forum doesn't exists.`);
 
-	const key = GBP.from(
-		{ trackingFor: kind, trackingId: id, music },
-		"discord-thread",
-	);
+	const key = GBP.from({ kind, id, music }, "discord-thread");
 	const threadId = await redis().get<number>(key);
 	if (!threadId)
 		throw new AbortTaskRunError(`${kind}:${id} thread doesn't exists.`);
