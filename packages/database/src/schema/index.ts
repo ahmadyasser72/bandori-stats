@@ -124,31 +124,21 @@ export const { trackerSnapshots, trackerCutoffs } = (() => {
 			"tracker_snapshots",
 			{ ...shared, bannedAt: integer({ mode: "timestamp_ms" }) },
 			(t) => [
-				index("tracker_snapshots_by_uid_1").on(
+				index("tracker_snapshots_by_uid").on(
 					t.trackingFor,
 					t.trackingId,
 					t.trackingEventId,
 					t.uid,
 					t.id,
+					t.timestamp,
 				),
-				index("tracker_snapshots_by_uid_2").on(
-					t.trackingFor,
-					t.trackingId,
-					t.uid,
-					t.id,
-				),
-				index("tracker_snapshots_by_rank_1").on(
+				index("tracker_snapshots_by_rank").on(
 					t.trackingFor,
 					t.trackingId,
 					t.trackingEventId,
 					t.rank,
 					t.id,
-				),
-				index("tracker_snapshots_by_rank_2").on(
-					t.trackingFor,
-					t.trackingId,
-					t.rank,
-					t.id,
+					t.timestamp,
 				),
 				unique().on(
 					t.trackingFor,
@@ -168,16 +158,13 @@ export const { trackerSnapshots, trackerCutoffs } = (() => {
 				avatar: text({ mode: "json" }).$type<PlayerBandMemberStateless>(),
 			},
 			(t) => [
-				index("tracker_cutoffs_by_rank_1").on(
+				index("tracker_cutoffs_by_rank").on(
 					t.trackingFor,
 					t.trackingId,
 					t.trackingEventId,
 					t.rank,
-				),
-				index("tracker_cutoffs_by_rank_2").on(
-					t.trackingFor,
-					t.trackingId,
-					t.rank,
+					t.id,
+					t.timestamp,
 				),
 				unique().on(
 					t.trackingFor,
@@ -207,20 +194,7 @@ export const trackerSnapshotProfiles = sqliteTable(
 		band: text({ mode: "json" }).notNull().$type<PlayerBand>(),
 		titles: text({ mode: "json" }).notNull().$type<number[]>(),
 	},
-	(t) => [
-		index("tracker_snapshot_profiles_by_uid_1").on(
-			t.trackingFor,
-			t.trackingId,
-			t.trackingEventId,
-			t.uid,
-		),
-		index("tracker_snapshot_profiles_by_uid_2").on(
-			t.trackingFor,
-			t.trackingId,
-			t.uid,
-		),
-		unique().on(t.trackingFor, t.trackingId, t.trackingEventId, t.uid),
-	],
+	(t) => [unique().on(t.trackingFor, t.trackingId, t.trackingEventId, t.uid)],
 );
 
 export type GbpEvent = typeof gbpEvents.$inferSelect;

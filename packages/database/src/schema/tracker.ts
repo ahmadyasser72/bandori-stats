@@ -49,7 +49,7 @@ export type TrackerKind = (typeof TRACKER_KIND)[number];
 export const TrackingReference = z.object({
 	trackingFor: z.enum(TRACKER_KIND),
 	trackingId: z.number(),
-	trackingEventId: z.number().optional(),
+	trackingEventId: z.number(),
 });
 export const TrackingTarget = z.object({
 	kind: z.enum(["event", "monthly"]),
@@ -70,6 +70,7 @@ export const getTrackingReference = ({ kind, id, music }: TrackingTarget) =>
 		: {
 				trackingFor: kind,
 				trackingId: id,
+				trackingEventId: 0,
 			}) satisfies TrackingReference;
 
 export const getTrackingMetadata = memoize(

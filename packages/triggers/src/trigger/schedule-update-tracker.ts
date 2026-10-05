@@ -315,16 +315,8 @@ export const scheduleUpdateTracker = schedules.task({
 						: [],
 			});
 
-			const group = ({
-				trackingFor,
-				trackingId,
-				trackingEventId,
-			}: (typeof inserted.cutoffs)[number]) =>
-				GBP.from({
-					trackingFor,
-					trackingId,
-					trackingEventId: trackingEventId ?? undefined,
-				});
+			const group = (value: (typeof inserted.cutoffs)[number]) =>
+				GBP.from(value);
 
 			const updatedSnapshots = countBy(inserted.snapshots, group);
 			for (const kind in updatedSnapshots)
@@ -358,11 +350,18 @@ export const scheduleUpdateTracker = schedules.task({
 						id,
 						trackingFor,
 						trackingId,
+						trackingEventId,
 						uid,
 					}: (typeof inserted)[number]) =>
 						db().query.trackerSnapshots.findFirst({
 							columns: { point: true },
-							where: { trackingFor, trackingId, uid, id: { lt: id } },
+							where: {
+								trackingFor,
+								trackingId,
+								trackingEventId,
+								uid,
+								id: { lt: id },
+							},
 							orderBy: { id: "desc" },
 						});
 					const previousSnapshots = await db().batch(
@@ -392,11 +391,7 @@ export const scheduleUpdateTracker = schedules.task({
 						pointGained,
 					}) => ({
 						uid,
-						trackingReference: {
-							trackingFor,
-							trackingId,
-							trackingEventId: trackingEventId ?? undefined,
-						},
+						trackingReference: { trackingFor, trackingId, trackingEventId },
 						changed: pointGained !== 0,
 					}),
 				),
@@ -409,7 +404,7 @@ export const scheduleUpdateTracker = schedules.task({
 			if (changed.length > 0) {
 				await logger.trace("update-player-state", async (span) => {
 					const grouped = groupBy(changed, ({ value }) =>
-						GBP.from(pick(value, ["trackingFor", "trackingId"]), "players"),
+						GBP.from(value, "players"),
 					);
 
 					const playedSince = await mapValuesAsync(
@@ -504,9 +499,7 @@ export const markBannedPlayers = async (
 			and(
 				eq(trackerSnapshots.trackingFor, trackingFor),
 				eq(trackerSnapshots.trackingId, trackingId),
-				trackingEventId
-					? eq(trackerSnapshots.trackingEventId, trackingEventId)
-					: isNull(trackerSnapshots.trackingEventId),
+				eq(trackerSnapshots.trackingEventId, trackingEventId),
 				notInArray(
 					trackerSnapshots.uid,
 					top.t10.map(({ userId }) => userId),
@@ -524,6 +517,7 @@ export const markBannedPlayers = async (
 					and(
 						eq(trackerSnapshots.trackingFor, "music"),
 						eq(trackerSnapshots.trackingId, id),
+						eq(trackerSnapshots.trackingEventId, trackingEventId),
 						notInArray(
 							trackerSnapshots.uid,
 							t10.map(({ userId }) => userId),
@@ -549,6 +543,7 @@ export const markBannedPlayers = async (
 			.returning({
 				trackingFor: trackerSnapshots.trackingFor,
 				trackingId: trackerSnapshots.trackingId,
+				trackingEventId: trackerSnapshots.trackingEventId,
 				uid: trackerSnapshots.uid,
 			});
 

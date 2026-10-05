@@ -4,7 +4,7 @@ import z from "zod";
 
 import { unwrapRegionTuple } from "@bandori-stats/bestdori/helpers";
 import { Skills } from "@bandori-stats/bestdori/schema/skills";
-import { and, db, eq, isNull, sql } from "@bandori-stats/database";
+import { and, db, eq, sql } from "@bandori-stats/database";
 import {
 	CHARACTER_TO_BAND,
 	GBP,
@@ -178,9 +178,7 @@ export const updateTrackerProfile = schemaTask({
 							and(
 								eq(trackerSnapshotProfiles.trackingFor, trackingFor),
 								eq(trackerSnapshotProfiles.trackingId, trackingId),
-								trackingEventId
-									? eq(trackerSnapshotProfiles.trackingEventId, trackingEventId)
-									: isNull(trackerSnapshotProfiles.trackingEventId),
+								eq(trackerSnapshotProfiles.trackingEventId, trackingEventId!),
 								eq(trackerSnapshotProfiles.uid, uid),
 							),
 						),

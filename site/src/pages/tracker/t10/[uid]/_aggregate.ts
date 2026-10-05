@@ -20,10 +20,14 @@ import type { TrackingTarget } from "@bandori-stats/database/tracker";
 export const outlierCap = ({ kind }: TrackingTarget) =>
 	kind === "monthly" ? 60 : 100_000;
 
-export const createBaseFilter = ({ kind, id }: TrackingTarget, uid: string) =>
+export const createBaseFilter = (
+	{ kind, id, music }: TrackingTarget,
+	uid: string,
+) =>
 	and(
 		eq(trackerSnapshots.trackingFor, kind),
-		eq(trackerSnapshots.trackingId, id),
+		eq(trackerSnapshots.trackingId, music ? music : id),
+		eq(trackerSnapshots.trackingEventId, music ? id : 0),
 		eq(trackerSnapshots.uid, uid),
 	);
 

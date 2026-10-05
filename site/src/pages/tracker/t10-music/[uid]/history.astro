@@ -6,6 +6,7 @@ import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
 import {
 	getTrackingMetadata,
+	getTrackingReference,
 	TrackingTarget,
 } from "@bandori-stats/database/tracker";
 import Icon from "~/components/icon.astro";
@@ -19,6 +20,7 @@ const params = Astro.locals.parseQuery(TrackingTarget);
 if (params.kind !== "event") return new Response(null, { status: 404 });
 
 const songId = IdSchema.parse(Astro.params.song);
+const trackingReference = getTrackingReference(params);
 const { metadata, profile } = await Astro.locals.tracing.enterSpan(
 	"fetch-metadata",
 	async (span) => {
@@ -29,7 +31,7 @@ const { metadata, profile } = await Astro.locals.tracing.enterSpan(
 		return allKeyed({
 			profile: db().query.trackerSnapshotProfiles.findFirst({
 				columns: { name: true },
-				where: { trackingFor: "music", trackingId: songId, uid },
+				where: { ...trackingReference, uid },
 			}),
 			metadata: getTrackingMetadata(params),
 		});
@@ -45,7 +47,7 @@ const history = await Astro.locals.tracing.enterSpan("fetch-history", () =>
 	db()
 		.query.trackerSnapshots.findMany({
 			columns: { id: false, trackingFor: false, trackingId: false, uid: false },
-			where: { trackingFor: "music", trackingId: songId, uid },
+			where: { ...trackingReference, uid },
 			orderBy: { id: "desc" },
 		})
 		.then((snapshots) =>
