@@ -2,9 +2,15 @@ import { register } from "discord-hono";
 
 import { commands, factory } from "./commands";
 
+const { DISCORD_APPLICATION_ID, DISCORD_BOT_TOKEN } = process.env;
+if (!DISCORD_APPLICATION_ID || !DISCORD_BOT_TOKEN)
+	throw new Error("Discord credentials are missing.");
+
+const registerGlobal =
+	process.argv[2] === "--global" || process.argv[2] === "-g";
 register(
 	factory.getCommands(commands),
-	process.env.DISCORD_APPLICATION_ID,
-	process.env.DISCORD_BOT_TOKEN,
-	process.env.DISCORD_GUILD_ID,
+	DISCORD_APPLICATION_ID,
+	DISCORD_BOT_TOKEN,
+	registerGlobal ? undefined : process.env.DISCORD_GUILD_ID,
 );
