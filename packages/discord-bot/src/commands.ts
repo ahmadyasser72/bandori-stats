@@ -54,6 +54,11 @@ export const commands = [
 					params.music && metadata.kind === "event"
 						? metadata.musics.find(({ id }) => id === params.music)
 						: undefined;
+				if (params.music && !music)
+					return c.followup(
+						`${params.kind}:${params.id}:${params.music} doesn't exist.`,
+					);
+
 				const trackingReference = getTrackingReference({
 					...metadata,
 					music: music?.id,
@@ -108,6 +113,11 @@ export const commands = [
 					params.music && metadata.kind === "event"
 						? metadata.musics.find(({ id }) => id === params.music)
 						: undefined;
+				if (params.music && !music)
+					return c.followup(
+						`${params.kind}:${params.id}:${params.music} doesn't exist.`,
+					);
+
 				const trackingReference = getTrackingReference({
 					...metadata,
 					music: music?.id,
