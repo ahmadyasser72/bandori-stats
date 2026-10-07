@@ -1,6 +1,12 @@
-import { createDecipheriv } from "node:crypto";
+import { createCipheriv, createDecipheriv } from "node:crypto";
 
-import { fromBinary, toJson, type Message } from "@bufbuild/protobuf";
+import {
+	fromBinary,
+	fromJson,
+	toBinary,
+	toJson,
+	type Message,
+} from "@bufbuild/protobuf";
 import type { GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { AbortTaskRunError, logger, metadata } from "@trigger.dev/sdk";
 import { limitAsync, retry } from "es-toolkit";
@@ -12,6 +18,10 @@ import {
 	redis,
 	type BangDreamCredentials,
 } from "@bandori-stats/database/redis";
+import {
+	UserAuthRequestSchema,
+	type UserAuthRequestJson,
+} from "./gen/auth-request_pb";
 import { UserChallengeEventRankingResponseSchema } from "./gen/event-challenge_pb";
 import { UserTeamLiveFestivalEventRankingResponseSchema } from "./gen/event-festival_pb";
 import { UserLiveTryEventRankingResponseSchema } from "./gen/event-live_try_pb";
@@ -44,127 +54,158 @@ export class MaintenanceError extends Error {
 	}
 }
 
-export const bangDream = async <T extends MetadataType>(
-	version: string,
-	type: T,
-	id: number,
-) => {
-	const {
-		BANG_DREAM_USER_ID,
-		BANG_DREAM_USER_TOKEN,
-		BANG_DREAM_USER_SIGNATURE,
-	} = process.env;
-	if (
-		!BANG_DREAM_USER_ID ||
-		!BANG_DREAM_USER_TOKEN ||
-		!BANG_DREAM_USER_SIGNATURE
-	)
-		throw new AbortTaskRunError("BanG Dream credentials are missing.");
+const fetch = limitAsync(globalThis.fetch, 1);
 
-	let path: string;
-	if (type === "monthly") path = `monthlyranking/${id}/ranking`;
-	else {
-		let typ: string = type;
-		if (type === "live_try") typ = "livetry";
-		if (type === "mission_live") typ = "mission";
-		path = `event/${id}/${typ}/ranking`;
-	}
+export const bangDream = {
+	leaderboard: async <T extends MetadataType>(
+		version: string,
+		type: T,
+		id: number,
+	) => {
+		const {
+			BANG_DREAM_USER_ID,
+			BANG_DREAM_USER_TOKEN,
+			BANG_DREAM_USER_SIGNATURE,
+		} = process.env;
+		if (
+			!BANG_DREAM_USER_ID ||
+			!BANG_DREAM_USER_TOKEN ||
+			!BANG_DREAM_USER_SIGNATURE
+		)
+			throw new AbortTaskRunError("BanG Dream credentials are missing.");
 
-	const url = new URL(
-		path,
-		`https://api.app-bang-dream-gbp.com/api/user/${BANG_DREAM_USER_ID}/`,
-	);
+		let path: string;
+		if (type === "monthly") path = `monthlyranking/${id}/ranking`;
+		else {
+			let typ: string = type;
+			if (type === "live_try") typ = "livetry";
+			if (type === "mission_live") typ = "mission";
+			path = `event/${id}/${typ}/ranking`;
+		}
 
-	const headers = {
-		host: "api.app-bang-dream-gbp.com",
-		"user-agent": USER_AGENT,
-		"accept-encoding": "deflate, gzip",
-		"content-type": "application/octet-stream",
-		accept: "application/octet-stream",
-		"x-clientversion": version,
-		"x-signature": BANG_DREAM_USER_SIGNATURE,
-		"x-token": BANG_DREAM_USER_TOKEN,
-		"x-clientplatform": "Android",
-		"x-unity-version": UNITY_VERSION,
-	};
+		const auth = {
+			uid: BANG_DREAM_USER_ID,
+			token: BANG_DREAM_USER_TOKEN,
+			signature: BANG_DREAM_USER_SIGNATURE,
+		} satisfies BangDreamCredentials;
+		const url = new URL(
+			path,
+			`https://api.app-bang-dream-gbp.com/api/user/${BANG_DREAM_USER_ID}/`,
+		);
 
-	return logger.trace("gbp-ranking", async (span) => {
-		span.setAttribute?.("type", type);
-		span.setAttribute?.("id", id);
+		return logger.trace("gbp-ranking", async (span) => {
+			span.setAttribute?.("type", type);
+			span.setAttribute?.("id", id);
 
-		const response = await fetchBangDream(url, headers, "GET");
-		return logger.trace("parse", async (span) => {
-			const schema = PROTOBUF[type];
-			span.setAttribute?.("typeName", schema.typeName);
+			const response = await bangDream.fetch("GET", version, url, auth);
+			return logger.trace("parse", async (span) => {
+				const schema = PROTOBUF[type];
+				span.setAttribute?.("typeName", schema.typeName);
 
-			const output = fromBinary(schema, response.bytes);
-			const json = toJson(schema, output);
-			metadata.root.set(`${type}:${id}`, { path, output: json });
-			return output;
+				const output = fromBinary(schema, response.bytes);
+				const json = toJson(schema, output);
+				metadata.root.set(`${type}:${id}`, { path, output: json });
+				return output;
+			});
 		});
-	});
-};
+	},
+	profile: async (version: string, auth: BangDreamCredentials, uid: string) => {
+		const url = new URL(
+			`profile/${uid}`,
+			`https://api.app-bang-dream-gbp.com/api/user/${auth.uid}/`,
+		);
 
-export const bangDreamProfile = async (
-	version: string,
-	credentials: BangDreamCredentials,
-	uid: string,
-) => {
-	const url = new URL(
-		`profile/${uid}`,
-		`https://api.app-bang-dream-gbp.com/api/user/${credentials.uid}/`,
-	);
+		return logger.trace("gbp-profile", async (span) => {
+			span.setAttribute?.("uid", uid);
 
-	const headers = {
-		host: "api.app-bang-dream-gbp.com",
-		"user-agent": USER_AGENT,
-		"accept-encoding": "deflate, gzip",
-		"content-type": "application/octet-stream",
-		accept: "application/octet-stream",
-		"x-clientversion": version,
-		"x-signature": credentials.signature,
-		"x-token": credentials.token,
-		"x-clientplatform": "Android",
-		"x-unity-version": UNITY_VERSION,
-	};
+			const response = await bangDream.fetch("PUT", version, url, auth);
+			const newToken = response.headers.get("x-token");
+			if (!newToken)
+				throw new AbortTaskRunError(
+					`Request to ${url.pathname} not returning new token`,
+				);
 
-	return logger.trace("gbp-profile", async (span) => {
-		span.setAttribute?.("uid", uid);
+			return logger.trace("parse", async (span) => {
+				span.setAttribute?.("typeName", UserProfileSchema.typeName);
 
-		const response = await fetchBangDream(url, headers, "PUT");
-		const newToken = response.headers.get("x-token");
-		if (!newToken)
-			throw new AbortTaskRunError(
-				`Request to ${url.pathname} not returning new token`,
-			);
-
-		return logger.trace("parse", async (span) => {
-			span.setAttribute?.("typeName", UserProfileSchema.typeName);
-
-			const output = fromBinary(UserProfileSchema, response.bytes);
-			const json = toJson(UserProfileSchema, output);
-			metadata.root.set(`profile:${uid}`, { output: json });
-			return { ...output, credentials: { ...credentials, token: newToken } };
+				const output = fromBinary(UserProfileSchema, response.bytes);
+				const json = toJson(UserProfileSchema, output);
+				metadata.root.set(`profile:${uid}`, { output: json });
+				return { ...output, credentials: { ...auth, token: newToken } };
+			});
 		});
-	});
-};
+	},
 
-const fetchBangDream = limitAsync(
-	async (url: URL, headers: Record<string, string>, method: "GET" | "PUT") =>
+	refreshToken: async (version: string, auth: BangDreamCredentials) => {
+		const body = await redis().get<UserAuthRequestJson>(GBP.credentialsRequest);
+		if (!body)
+			throw new AbortTaskRunError("BanG Dream auth request body is missing.");
+
+		const url = new URL(
+			`https://api.app-bang-dream-gbp.com/api/user/${auth.uid}/auth`,
+		);
+		const bytes = toBinary(
+			UserAuthRequestSchema,
+			fromJson(UserAuthRequestSchema, body),
+		);
+		const { headers } = await bangDream.fetch(
+			"PUT",
+			version,
+			url,
+			auth,
+			encrypt(bytes.buffer).buffer,
+		);
+
+		const token = headers.get("x-token");
+		if (!token)
+			throw new AbortTaskRunError("BanG Dream auth request is invalid.");
+
+		return token;
+	},
+
+	fetch: async (
+		method: "GET" | "PUT",
+		version: string,
+		url: URL,
+		auth: BangDreamCredentials,
+		body?: ArrayBuffer,
+	): Promise<{ bytes: Buffer<ArrayBuffer>; headers: Headers }> =>
 		logger.trace("fetch", async (span) => {
 			span.setAttribute?.("request", `${method}: ${url}`);
 
-			const response = await retry(() => fetch(url, { method, headers }), {
-				retries: 2,
-				delay: 500,
-				shouldRetry: (error) => error instanceof TypeError,
-			});
+			const response = await retry(
+				() =>
+					fetch(url, {
+						method,
+						headers: {
+							host: "api.app-bang-dream-gbp.com",
+							"user-agent": USER_AGENT,
+							"accept-encoding": "deflate, gzip",
+							"content-type": "application/octet-stream",
+							accept: "application/octet-stream",
+							"x-clientversion": version,
+							"x-signature": auth.signature,
+							"x-token": auth.token,
+							"x-clientplatform": "Android",
+							"x-unity-version": UNITY_VERSION,
+						},
+						body,
+					}),
+				{
+					retries: 2,
+					delay: 500,
+					shouldRetry: (error) => error instanceof TypeError,
+				},
+			);
 			span.setAttribute?.("status", response.status);
 
 			if (!response.ok) {
 				if (response.status === 503) {
 					await redis().set(GBP.maintenance, true, { ex: 60 * 30 });
 					throw new MaintenanceError();
+				} else if (method !== "GET" && response.status === 403) {
+					auth.token = await bangDream.refreshToken(version, auth);
+					return bangDream.fetch(method, version, url, auth);
 				}
 
 				throw new AbortTaskRunError(
@@ -177,26 +218,39 @@ const fetchBangDream = limitAsync(
 
 			return { bytes, headers: response.headers };
 		}),
-	1,
-);
+};
 
-const decrypt = (() => {
+const { decrypt, encrypt } = (() => {
 	const { BANG_DREAM_AES_KEY, BANG_DREAM_AES_IV } = process.env;
 	if (!BANG_DREAM_AES_KEY || !BANG_DREAM_AES_IV)
 		throw new AbortTaskRunError("BanG Dream decryption keys are missing.");
 
 	const key = Buffer.from(BANG_DREAM_AES_KEY);
 	const iv = Buffer.from(BANG_DREAM_AES_IV);
-	return (data: ArrayBuffer) => {
-		const decipher = createDecipheriv("aes-128-cbc", key, iv);
-		decipher.setAutoPadding(false);
+	return {
+		decrypt: (data: ArrayBuffer) => {
+			const decipher = createDecipheriv("aes-128-cbc", key, iv);
+			decipher.setAutoPadding(false);
 
-		const plain = Buffer.concat([
-			decipher.update(Buffer.from(data)),
-			decipher.final(),
-		]);
+			const plain = Buffer.concat([
+				decipher.update(Buffer.from(data)),
+				decipher.final(),
+			]);
 
-		const paddingLength = plain[plain.length - 1];
-		return plain.subarray(0, plain.length - paddingLength);
+			const paddingLength = plain[plain.length - 1];
+			return plain.subarray(0, plain.length - paddingLength);
+		},
+		encrypt: (data: ArrayBuffer) => {
+			const padding = 16 - (data.byteLength % 16);
+			const padded = Buffer.concat([
+				Buffer.from(data),
+				Buffer.alloc(padding, padding),
+			]);
+
+			const cipher = createCipheriv("aes-128-cbc", key, iv);
+			cipher.setAutoPadding(false);
+
+			return Buffer.concat([cipher.update(padded), cipher.final()]);
+		},
 	};
 })();

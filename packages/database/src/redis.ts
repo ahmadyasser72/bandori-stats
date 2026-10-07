@@ -26,6 +26,7 @@ export const GBP = {
 	version: "gbp:version",
 	maintenance: "gbp:maintenance",
 	credentials: "gbp:credentials",
+	credentialsRequest: "gbp:credentials:request",
 	event: "gbp:event:current",
 	monthly: "gbp:monthly:current",
 	data: {
@@ -53,7 +54,7 @@ export const GBP = {
 } as const;
 
 export interface BangDreamCredentials {
-	uid: number;
+	uid: number | string;
 	token: string;
 	signature: string;
 }

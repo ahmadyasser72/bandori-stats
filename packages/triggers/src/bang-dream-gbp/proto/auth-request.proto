@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+message UserAuthRequest {
+  uint64 userId = 1;
+  string deviceModel = 2;
+  UserUdid udid = 3;
+  string hash1 = 4;
+  string authType = 5;
+}
+
+message UserUdid {
+  string adId = 1;
+  string identifier = 2;
+}

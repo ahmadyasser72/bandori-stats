@@ -92,14 +92,22 @@ export const scheduleUpdateTracker = schedules.task({
 					musics,
 				} = await (async () => {
 					if (event.type === "versus") {
-						const data = await bangDream(version, event.type, event.id);
+						const data = await bangDream.leaderboard(
+							version,
+							event.type,
+							event.id,
+						);
 						return {
 							t10: data.eventPointTopUsers?.entries,
 							cutoffs: data.eventPointBorderUsers?.entries,
 							musics: data.versusMusicRankings,
 						};
 					} else if (event.type === "medley") {
-						const data = await bangDream(version, event.type, event.id);
+						const data = await bangDream.leaderboard(
+							version,
+							event.type,
+							event.id,
+						);
 						return {
 							t10: data.eventPointTopUsers?.entries,
 							cutoffs: data.eventPointBorderUsers?.entries,
@@ -112,20 +120,32 @@ export const scheduleUpdateTracker = schedules.task({
 							],
 						};
 					} else if (event.type === "challenge") {
-						const data = await bangDream(version, event.type, event.id);
+						const data = await bangDream.leaderboard(
+							version,
+							event.type,
+							event.id,
+						);
 						return {
 							t10: data.eventPointTopUsers?.entries,
 							cutoffs: data.eventPointBorderUsers?.entries,
 							musics: data.challengeMusicRankings,
 						};
 					} else if (event.type === "mission_live") {
-						const data = await bangDream(version, event.type, event.id);
+						const data = await bangDream.leaderboard(
+							version,
+							event.type,
+							event.id,
+						);
 						return {
 							t10: data.topUsers?.entries,
 							cutoffs: data.borderUsers?.entries,
 						};
 					} else if (event.type === "live_try" || event.type === "festival") {
-						const data = await bangDream(version, event.type, event.id);
+						const data = await bangDream.leaderboard(
+							version,
+							event.type,
+							event.id,
+						);
 						return {
 							t10: data.topUsers?.entries,
 							cutoffs: data.eventPointBorderUsers?.entries,
@@ -164,7 +184,11 @@ export const scheduleUpdateTracker = schedules.task({
 				});
 				if (now.isBefore(monthly.startAt)) return;
 
-				const data = await bangDream(version, "monthly", monthly.id);
+				const data = await bangDream.leaderboard(
+					version,
+					"monthly",
+					monthly.id,
+				);
 				const t10 = data.monthlyRankingPointTopUsers?.entries ?? [];
 				const cutoffs = data.monthlyRankingPointBorderUsers?.entries ?? [];
 				if (t10.length === 0) return;

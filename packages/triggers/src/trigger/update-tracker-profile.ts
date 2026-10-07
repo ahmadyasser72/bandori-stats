@@ -21,7 +21,7 @@ import {
 	type PlayerBandMember,
 	type PlayerBandMemberStateless,
 } from "@bandori-stats/database/tracker";
-import { bangDreamProfile } from "~/bang-dream-gbp/fetch";
+import { bangDream } from "~/bang-dream-gbp/fetch";
 import type {
 	UserProfileSituation,
 	UserSituation,
@@ -57,7 +57,7 @@ export const updateTrackerProfile = schemaTask({
 
 			const profiles = new Map<string, UserProfile>();
 			for (const uid of uids) {
-				const profile = await bangDreamProfile(version, auth, uid);
+				const profile = await bangDream.profile(version, auth, uid);
 				auth = profile.credentials;
 				profiles.set(uid, profile);
 			}
