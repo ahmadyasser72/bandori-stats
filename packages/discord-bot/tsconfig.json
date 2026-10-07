@@ -2,7 +2,7 @@
 	"extends": "../../tsconfig.base.json",
 	"compilerOptions": {
 		"composite": false,
-		"types": ["node", "../../site/worker-configuration.d.ts"],
+		"types": ["node", "../../site/worker-configuration.d.ts"]
 	},
-	"include": ["**/*"],
+	"include": ["**/*"]
 }
