@@ -406,11 +406,11 @@ const generateEmbed = (
 					);
 				}
 
-				const timestamp = (n: number) =>
+				const timestamp = (ms: number) =>
 					spoiler(
 						[
-							time(n, TimestampStyles.RelativeTime),
-							time(n, TimestampStyles.ShortDateShortTime),
+							time(ms / 1000, TimestampStyles.RelativeTime),
+							time(ms / 1000, TimestampStyles.ShortDateShortTime),
 						].join(" @ "),
 					);
 
