@@ -18,7 +18,7 @@ import dayjs from "@bandori-stats/bestdori/date";
 import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
 import { GameEventType } from "@bandori-stats/bestdori/schema/misc";
 import { db } from "@bandori-stats/database";
-import { GBP, redis } from "@bandori-stats/database/redis";
+import { GBP, redis, type PlayerStates } from "@bandori-stats/database/redis";
 import { type TrackerSnapshot } from "@bandori-stats/database/schema";
 import {
 	getTrackingReference,
@@ -298,46 +298,52 @@ export const getSnapshots = async (
 			},
 			orderBy: { id: "asc" },
 		});
-	const getLastPlayed = ({ id, uid, point }: TrackerSnapshot) =>
-		db().query.trackerSnapshots.findFirst({
-			columns: { point: true, rank: true, timestamp: true },
-			where: {
-				...trackingReference,
-				uid,
-				id: { lte: id },
-				point,
-			},
-			orderBy: { id: "asc" },
-		});
 
-	type Output = ReturnType<typeof getBefore>;
-	const snapshots = chunk(
-		await db().batch(
-			top10.flatMap((it) => [
-				getBefore(it),
-				getWindowStart(it),
-				getLastPlayed(it),
-			]) as [Output, ...Output[]],
-		),
-		3,
-	);
+	const { snapshots, players } = await allKeyed({
+		snapshots: (async () =>
+			chunk(
+				await db().batch(
+					top10.flatMap((it) => [getBefore(it), getWindowStart(it)]) as [
+						ReturnType<typeof getBefore>,
+					],
+				),
+				2,
+			))(),
+		players: (async (): Promise<PlayerStates> =>
+			(trackingReference.trackingFor !== "music" &&
+				(await redis().hmget(
+					GBP.from(trackingReference, "players"),
+					...top10.flatMap(({ uid }) => [
+						GBP.players.lastPlayed(uid),
+						GBP.players.playedSince(uid),
+					]),
+				))) ||
+			{})(),
+	});
 
 	const periodDuration = now.diff(since);
 	const formerTop10 = new Set(previousTop10.map(({ uid }) => uid));
 	const useStale = trackingReference.trackingFor !== "music";
 	return top10.map((current, idx) => {
-		const [beforePeriod, windowStart, lastPlayed = current] = snapshots[idx];
+		const [beforePeriod, windowStart] = snapshots[idx];
 		const stale =
 			useStale &&
 			(!beforePeriod || now.diff(current.timestamp) > periodDuration);
 		const returning = beforePeriod && !formerTop10.has(current.uid);
 		const baseline = stale ? windowStart : beforePeriod;
 
+		const lastPlayed = players[`${current.uid}:last-played`] ?? {
+			rank: current.rank,
+			timestamp: current.timestamp.getTime(),
+			pointGained: 0,
+		};
+
 		return {
 			current,
 			previous: baseline ?? beforePeriod,
 			returning,
 			lastPlayed: lastPlayed.timestamp,
+			playedSince: players[`${current.uid}:played-since`],
 			delta:
 				baseline && (!returning || !useStale)
 					? {
@@ -369,7 +375,14 @@ const generateEmbed = (
 		.setFooter({ text: footer })
 		.setTimestamp(now.toDate());
 
-	for (const { current, previous, returning, lastPlayed, delta } of snapshots) {
+	for (const {
+		current,
+		previous,
+		returning,
+		lastPlayed,
+		playedSince,
+		delta,
+	} of snapshots) {
 		let points = `${formatNumber(current.point)} Pts`;
 		if (delta.point > 0) points += ` (+${formatNumber(delta.point)} Pts)`;
 
@@ -393,11 +406,16 @@ const generateEmbed = (
 					);
 				}
 
-				const timestamp = [
-					time(lastPlayed, TimestampStyles.RelativeTime),
-					time(lastPlayed, TimestampStyles.ShortDateShortTime),
-				].join(" @ ");
-				lines.push(subtext(`last played ${spoiler(timestamp)}`));
+				const timestamp = (n: number) =>
+					spoiler(
+						[
+							time(n, TimestampStyles.RelativeTime),
+							time(n, TimestampStyles.ShortDateShortTime),
+						].join(" @ "),
+					);
+
+				lines.push(subtext(`Last played ${timestamp(lastPlayed)}`));
+				if (playedSince) lines.push(subtext(`since ${timestamp(playedSince)}`));
 
 				return lines.join("\n");
 			})(),

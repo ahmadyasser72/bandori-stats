@@ -1,11 +1,12 @@
 ---
 import { UMAMI_SITE_ID } from "astro:env/server";
 
-import { chunk, uniqBy } from "es-toolkit";
+import { uniqBy } from "es-toolkit";
 
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
 import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
+import { GBP, redis, type PlayerStates } from "@bandori-stats/database/redis";
 import type { TrackerSnapshot } from "@bandori-stats/database/schema";
 import {
 	getTrackingMetadata,
@@ -79,80 +80,64 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 			(latest) =>
 				({ latest }) as { latest: typeof latest } & Partial<
 					Record<
-						"lastPlayed" | "recentlyPlayed" | "pointsGained" | "rankHistory",
+						| "lastPlayed"
+						| "playedSince"
+						| "recentlyPlayed"
+						| "pointsGained"
+						| "rankHistory",
 						undefined
 					>
 				>,
 		);
 
-	const getLastPlayed = ({
-		id,
-		uid,
-		point,
-	}: Pick<TrackerSnapshot, "id" | "uid" | "point">) =>
-		db().query.trackerSnapshots.findFirst({
-			columns: { id: true, uid: true, rank: true, timestamp: true },
-			where: { ...trackingReference, uid, id: { lt: id }, point },
-			orderBy: { id: "asc" },
-		});
-	const getPreviousPoint = ({
-		id,
-		uid,
-		point,
-	}: Pick<TrackerSnapshot, "id" | "uid" | "point">) =>
-		db().query.trackerSnapshots.findFirst({
-			columns: { point: true },
-			where: {
-				...trackingReference,
-				uid,
-				id: { lt: id },
-				point: { ne: point },
-			},
-			orderBy: { id: "desc" },
-		});
-	type LastPlayed = ReturnType<typeof getLastPlayed>;
-	type PreviousPoint = ReturnType<typeof getPreviousPoint>;
+	const players: PlayerStates =
+		(await redis().hmget(
+			GBP.from(params, "players"),
+			...top10.flatMap(({ uid }) => [
+				GBP.players.lastPlayed(uid),
+				GBP.players.playedSince(uid),
+			]),
+		)) ?? {};
 
-	const previousSnapshots = chunk(
-		await db().batch(
-			top10.flatMap((snapshot) => [
-				getLastPlayed(snapshot),
-				getPreviousPoint(snapshot),
-			]) as [LastPlayed | PreviousPoint],
-		),
-		2,
-	);
-
-	const snapshots = top10.map((latest, idx) => {
-		const [lastPlayed = latest, previous] = previousSnapshots[idx] as [
-			Awaited<LastPlayed>,
-			Awaited<PreviousPoint>,
-		];
-
-		const recentlyPlayed = dayjs().diff(lastPlayed.timestamp, "minutes") <= 30;
+	const snapshots = top10.map((latest) => {
+		const lastPlayed = players[`${latest.uid}:last-played`] ?? {
+			rank: latest.rank,
+			timestamp: latest.timestamp.getTime(),
+			pointGained: 0,
+		};
+		const playedSince = players[`${latest.uid}:played-since`];
+		const recentlyPlayed = !!playedSince;
 
 		return {
 			latest,
 			lastPlayed,
+			playedSince,
 			recentlyPlayed,
-			pointsGained:
-				recentlyPlayed && previous ? latest.point - previous.point : undefined,
+			pointsGained: recentlyPlayed ? lastPlayed.pointGained : undefined,
 		};
 	});
 
 	const boatedPlayers = new Map<
-		Pick<TrackerSnapshot, "id" | "uid">,
+		(typeof snapshots)[number],
 		Pick<TrackerSnapshot, "rank" | "timestamp">[]
 	>();
-	for (const { latest, lastPlayed } of snapshots) {
-		if (latest.rank > lastPlayed.rank) boatedPlayers.set(lastPlayed, []);
+	for (const snapshot of snapshots) {
+		const { latest, lastPlayed } = snapshot;
+		if (latest.rank > lastPlayed.rank) boatedPlayers.set(snapshot, []);
 	}
 
 	if (boatedPlayers.size > 0) {
-		const getRankHistory = ({ id, uid }: Pick<TrackerSnapshot, "id" | "uid">) =>
+		const getRankHistory = ({
+			latest,
+			lastPlayed,
+		}: (typeof snapshots)[number]) =>
 			db().query.trackerSnapshots.findMany({
 				columns: { rank: true, timestamp: true },
-				where: { ...trackingReference, uid, id: { gte: id } },
+				where: {
+					...trackingReference,
+					uid: latest.uid,
+					timestamp: { gte: new Date(lastPlayed.timestamp) },
+				},
 				orderBy: { id: "asc" },
 			});
 
@@ -169,7 +154,7 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 
 	return snapshots.map((value) => ({
 		...value,
-		rankHistory: boatedPlayers.get(value.lastPlayed),
+		rankHistory: boatedPlayers.get(value),
 	}));
 });
 
@@ -213,6 +198,7 @@ if (Astro.cache.enabled)
 			({
 				latest: { profile, ...latest },
 				lastPlayed,
+				playedSince,
 				recentlyPlayed,
 				pointsGained,
 				rankHistory,
@@ -289,12 +275,37 @@ if (Astro.cache.enabled)
 							</span>
 
 							{lastPlayed && (
-								<span>played {formatDuration(lastPlayed.timestamp)}</span>
+								<div class="flex max-sm:flex-col sm:gap-1">
+									<span>
+										Last played{" "}
+										<span
+											class="tooltip underline decoration-dotted"
+											data-tip={dayjs
+												.tz(lastPlayed.timestamp, Astro.locals.clientTimezone)
+												.format("MMM DD, hh:mm A")}
+										>
+											{formatDuration(lastPlayed.timestamp)}
+										</span>
+									</span>
+									{playedSince && (
+										<span>
+											since{" "}
+											<span
+												class="tooltip underline decoration-dotted"
+												data-tip={dayjs
+													.tz(playedSince, Astro.locals.clientTimezone)
+													.format("MMM DD, hh:mm A")}
+											>
+												{formatDuration(playedSince)}
+											</span>
+										</span>
+									)}
+								</div>
 							)}
 
 							{rankHistory && (
 								<span>
-									boated{" "}
+									Boated{" "}
 									{rankHistory.length === 1 ? (
 										<span class="text-error">
 											{formatDuration(latest.timestamp)}

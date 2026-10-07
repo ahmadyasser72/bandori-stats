@@ -33,6 +33,10 @@ export const GBP = {
 		AreaItem: "gbp:data:area-items",
 		CharacterSituation: "gbp:data:character-situations",
 	},
+	players: {
+		lastPlayed: (uid: string) => `${uid}:last-played` as const,
+		playedSince: (uid: string) => `${uid}:played-since` as const,
+	},
 
 	from: (value: TrackingTarget | TrackingReference, suffix?: string) => {
 		let kind: "event" | "monthly";
@@ -103,6 +107,17 @@ export const getRedisData = async (
 				: {},
 	});
 };
+
+export interface PlayerLastPlayed {
+	rank: number;
+	timestamp: number;
+	pointGained: number;
+}
+
+export type PlayerStates = Partial<
+	Record<ReturnType<typeof GBP.players.playedSince>, number> &
+		Record<ReturnType<typeof GBP.players.lastPlayed>, PlayerLastPlayed>
+>;
 
 export const CHARACTER_TO_BAND: Record<string, number> = {
 	// Poppin'Party

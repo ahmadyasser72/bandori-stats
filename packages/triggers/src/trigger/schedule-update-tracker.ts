@@ -21,7 +21,12 @@ import {
 	notInArray,
 	or,
 } from "@bandori-stats/database";
-import { GBP, getRedisData, redis } from "@bandori-stats/database/redis";
+import {
+	GBP,
+	getRedisData,
+	redis,
+	type PlayerLastPlayed,
+} from "@bandori-stats/database/redis";
 import {
 	trackerCutoffs,
 	trackerSnapshots,
@@ -434,8 +439,8 @@ export const scheduleUpdateTracker = schedules.task({
 					const playedSince = await mapValuesAsync(
 						grouped,
 						async (values, key) => {
-							const keys = values.map(
-								({ value: { uid } }) => `${uid}:played-since`,
+							const keys = values.map(({ value: { uid } }) =>
+								GBP.players.playedSince(uid),
 							);
 							const entries: Record<string, number> =
 								(await redis().hmget(key, ...keys)) ?? {};
@@ -447,8 +452,12 @@ export const scheduleUpdateTracker = schedules.task({
 					const lastPlayed = mapValues(grouped, (values) =>
 						Object.fromEntries(
 							values.map(({ value: { uid, rank, timestamp }, pointGained }) => [
-								`${uid}:last-played`,
-								{ rank, timestamp: timestamp.getTime(), pointGained },
+								GBP.players.lastPlayed(uid),
+								{
+									rank,
+									timestamp: timestamp.getTime(),
+									pointGained,
+								} satisfies PlayerLastPlayed,
 							]),
 						),
 					);
