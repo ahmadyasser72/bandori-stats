@@ -46,7 +46,7 @@ export const scheduleUpdateTrackerMetadata = schedules.task({
 			schema: Versions,
 			cache: false,
 		});
-		const newVersion = currentVersion !== versions.app;
+		const newVersion = versions.app > currentVersion;
 		if (newVersion) {
 			await redis().set(GBP.version, versions.app);
 			await tags.add(`version_${versions.app}`);
