@@ -6,12 +6,15 @@ import {
 	makeSlashCommand,
 	makeStringOption,
 	type AutocompleteContext,
+	type CommandContext,
 } from "discord-hono";
 import { capitalize } from "es-toolkit";
 
+import dayjs from "@bandori-stats/bestdori/date";
 import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
-import { db, EmptyFilter } from "@bandori-stats/database";
+import { db, EmptyFilter, sql } from "@bandori-stats/database";
 import { GBP, redis, type PlayerStates } from "@bandori-stats/database/redis";
+import type { GbpMetadata } from "@bandori-stats/database/schema";
 import {
 	getTrackingMetadata,
 	getTrackingReference,
@@ -57,59 +60,98 @@ export const commands = [
 				});
 				const snapshots = await getSnapshots(trackingReference);
 
-				const fields = [] as { name: string; value: string }[];
-				for (const { current, lastPlayed, playedSince } of snapshots) {
-					const points = `${formatNumber(current.point)} Pts`;
+				const embed = makeEmbed()
+					.title(metadata.name)
+					.footer({
+						text: music
+							? `${music.title} — T10`
+							: `${capitalize(params.kind)} Ranking — T10`,
+					})
+					.color(0x55ddee)
+					.timestamp(new Date())
+					.thumbnail({ url: getThumbnail(c, trackingReference) })
+					.fields(
+						snapshots.map(({ current, lastPlayed, playedSince }) => ({
+							name: [
+								bold(`#${current.rank} ${stripBB(current.name)}`),
+								`${formatNumber(current.point)} Pts`,
+							].join(" — "),
+							value: (() => {
+								const lines = [] as string[];
 
-					fields.push({
-						name: [
-							bold(`#${current.rank} ${stripBB(current.name)}`),
-							points,
-						].join(" — "),
-						value: (() => {
-							const lines = [] as string[];
+								lines.push(subtext(`played ${formatTimestamp(lastPlayed)}`));
+								if (playedSince)
+									lines.push(subtext(`since ${formatTimestamp(playedSince)}`));
 
-							const timestamp = (ms: number) =>
-								[
-									time(ms / 1000, TimestampStyles.RelativeTime),
-									time(ms / 1000, TimestampStyles.ShortDateShortTime),
-								].join(" @ ");
+								return lines.join("\n");
+							})(),
+						})),
+					);
 
-							lines.push(subtext(`Last played ${timestamp(lastPlayed)}`));
-							if (playedSince)
-								lines.push(subtext(`since ${timestamp(playedSince)}`));
-
-							return lines.join("\n");
-						})(),
-					});
-				}
-
-				return c.followup({
-					embeds: [
-						makeEmbed()
-							.title(metadata.name)
-							.footer({
-								text: music
-									? `${music.title} — T10`
-									: `${capitalize(params.kind)} Ranking — T10`,
-							})
-							.color(0x55ddee)
-							.fields(fields)
-							.timestamp(new Date()),
-					],
-				});
+				return c.followup({ embeds: [embed] });
 			}),
 	),
-	// factory.autocomplete(
-	// 	makeSlashCommand(
-	// 		"cutoffs",
-	// 		"Cutoff points for an event or monthly ranking",
-	// 	).options(options),
-	// 	(c) => autoCompleteTarget(c),
-	// 	(c) => {
-	// 		c;
-	// 	},
-	// ),
+	factory.autocomplete(
+		makeSlashCommand(
+			"cutoffs",
+			"Cutoff points for an event or monthly ranking",
+		).options(options),
+		(c) => autoCompleteTarget(c),
+		(c) =>
+			c.resDefer(async (c) => {
+				const params = c.var as TrackingTarget;
+				const metadata = await getTrackingMetadata(params);
+				if (!metadata)
+					return c.followup(`${params.kind}:${params.id} doesn't exist.`);
+
+				const music =
+					params.music && metadata.kind === "event"
+						? metadata.musics.find(({ id }) => id === params.music)
+						: undefined;
+				const trackingReference = getTrackingReference({
+					...metadata,
+					music: music?.id,
+				});
+				const cutoffs = await getCutoffs(metadata, trackingReference);
+
+				const embed = makeEmbed()
+					.title(metadata.name)
+					.footer({
+						text: music
+							? `${music.title} — Cutoffs`
+							: `${capitalize(params.kind)} Ranking — Cutoffs`,
+					})
+					.color(0x55ddee)
+					.timestamp(new Date())
+					.thumbnail({ url: getThumbnail(c, trackingReference) })
+					.fields(
+						cutoffs.map(({ name, rank, point, timestamp, hourly, daily }) => ({
+							name: [
+								bold(`#${rank} ${stripBB(name)}`),
+								`${formatNumber(point)} Pts`,
+							].join(" — "),
+							value: (() => {
+								const lines = [] as string[];
+
+								if (hourly > 0 && daily > 0)
+									lines.push(
+										[
+											`${formatNumber(daily)} Pts/day`,
+											`${formatNumber(hourly)} Pts/hour`,
+										].join(" / "),
+									);
+								lines.push(
+									subtext(`updated ${formatTimestamp(timestamp.getTime())}`),
+								);
+
+								return lines.join("\n");
+							})(),
+						})),
+					);
+
+				return c.followup({ embeds: [embed] });
+			}),
+	),
 ];
 
 const autoCompleteTarget = async (c: AutocompleteContext) => {
@@ -155,6 +197,12 @@ const autoCompleteTarget = async (c: AutocompleteContext) => {
 
 	return c.resAutocomplete([]);
 };
+
+const formatTimestamp = (ms: number) =>
+	[
+		time(ms / 1000, TimestampStyles.RelativeTime),
+		time(ms / 1000, TimestampStyles.ShortDateShortTime),
+	].join(" @ ");
 
 const getSnapshots = async (trackingReference: TrackingReference) => {
 	const getLatestRank = (rank: number, exclude?: string[]) =>
@@ -217,3 +265,56 @@ const getSnapshots = async (trackingReference: TrackingReference) => {
 		};
 	});
 };
+
+const getCutoffs = async (
+	metadata: GbpMetadata,
+	trackingReference: TrackingReference,
+) => {
+	const ranks = await redis().zrange<number[]>(
+		GBP.from(trackingReference, "cutoffs"),
+		0,
+		-1,
+		{ rev: true },
+	);
+	if (ranks.length === 0) return [];
+
+	const hoursSince = dayjs(
+		Math.min(dayjs().startOf("hour").valueOf(), metadata.endAt.getTime()),
+	).diff(metadata.startAt, "hours");
+	const daysSince = dayjs(Math.min(Date.now(), metadata.endAt.getTime())).diff(
+		metadata.startAt,
+		"days",
+		true,
+	);
+
+	const getCutoffs = (rank: number) =>
+		db().query.trackerCutoffs.findFirst({
+			extras:
+				trackingReference.trackingFor !== "music"
+					? {
+							hourly: (t) => sql<number>`${t.point} / ${hoursSince}`,
+							daily: (t) => sql<number>`${t.point} / ${daysSince}`,
+						}
+					: { hourly: (_) => sql<number>`0`, daily: (_) => sql<number>`0` },
+			columns: { name: true, rank: true, point: true, timestamp: true },
+			where: { ...trackingReference, rank },
+			orderBy: { id: "desc" },
+		});
+
+	return db()
+		.batch(ranks.map(getCutoffs) as [ReturnType<typeof getCutoffs>])
+		.then((snapshots) =>
+			snapshots.filter((snapshot) => snapshot !== undefined),
+		);
+};
+
+const getThumbnail = (
+	context: CommandContext,
+	{ trackingFor, trackingId }: TrackingReference,
+) =>
+	new URL(
+		trackingFor === "music"
+			? `/assets/songs/${trackingId}-cover.webp`
+			: `/assets/tracker/${trackingFor}-${trackingId}-logo.webp`,
+		context.event.request.url,
+	).href;
