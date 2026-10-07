@@ -5,7 +5,6 @@ import { capitalize, pick } from "es-toolkit";
 import z from "zod";
 
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
-import type { GbpEventMusic } from "@bandori-stats/database/schema";
 import {
 	getTrackingMetadata,
 	TrackingTarget,
@@ -13,7 +12,6 @@ import {
 import IconLoader from "~/components/icon-loader.astro";
 import Icon from "~/components/icon.astro";
 import { getSongAlbumCover, getTrackerLogo } from "~/lib/assets";
-import { IdSchema } from "~/lib/schema";
 import { DisplaySchema } from "../list";
 import { DiscordWebhook } from "./_discord-webhook";
 
@@ -32,11 +30,10 @@ const metadata = await Astro.locals.tracing.enterSpan(
 );
 if (!metadata) return new Response(null, { status: 404 });
 
-let song: GbpEventMusic | undefined = undefined;
-const [songDisplay, songIdRaw] = params.display.split("-");
-const songId = IdSchema.catch(0).parse(songIdRaw);
-if (songId !== 0 && metadata.kind === "event")
-	song = metadata.musics.find(({ id }) => id === songId);
+const song =
+	metadata.kind === "event"
+		? metadata.musics.find(({ id }) => id === params.music)
+		: undefined;
 
 interface DisplayChoice {
 	label: string;
@@ -121,7 +118,7 @@ if (Astro.cache.enabled)
 	<span class="-mt-1 text-sm"
 		>{
 			song
-				? `${song.title} — ${capitalize(songDisplay)}`
+				? `${song.title} — ${capitalize(params.display)}`
 				: `${capitalize(metadata.kind)} Ranking — ${params.display === "t10-recent" ? "T10 (last 1h)" : capitalize(params.display)}`
 		}</span
 	>
@@ -260,13 +257,12 @@ if (Astro.cache.enabled)
 
 					{
 						displayChoices.map(({ label, items, image, music }) => (
-							<li
-								hx-vals:append={music ? JSON.stringify({ music }) : undefined}
-							>
+							<li>
 								<details>
 									<summary
 										class:list={[
-											items.find(({ value }) => value === params.display) &&
+											params.music === music &&
+												items.find(({ value }) => value === params.display) &&
 												"menu-active",
 										]}
 									>
@@ -294,9 +290,12 @@ if (Astro.cache.enabled)
 													hx-get="/tracker"
 													hx-vals:append={JSON.stringify({
 														display: item.value,
+														music,
 													})}
 													class:list={[
-														item.value === params.display && "menu-active",
+														params.music === music &&
+															item.value === params.display &&
+															"menu-active",
 													]}
 												>
 													<Icon

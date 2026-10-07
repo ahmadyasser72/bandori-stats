@@ -16,6 +16,7 @@ const params = Astro.locals.parseQuery(
 		tab: z.enum(TABS).catch("event"),
 		id: z.coerce.number().optional(),
 		display: DisplaySchema.optional(),
+		music: z.coerce.number().optional(),
 	}),
 );
 
@@ -151,6 +152,7 @@ const TAB_ICON = {
 			display: params.display,
 			id: params.id,
 			kind: params.tab,
+			music: params.music,
 		})}
 		class="mt-4 flex flex-col items-center gap-1"
 	>
@@ -183,6 +185,7 @@ const TAB_ICON = {
 			display: params.display ?? "t10",
 			id: params.id,
 			kind: params.tab,
+			music: params.music,
 		})}
 		class="list mt-4 py-1"
 		id="tracker-list"
