@@ -227,13 +227,14 @@ export const scheduleUpdateTracker = schedules.task({
 				) => {
 					toInsert.push({ trackingReference, values: players, type });
 
+					const member = type === "cutoffs" ? "rank" : "userId";
 					const key = GBP.from(trackingReference, type);
 					keys.push(key);
 					pipe.zadd(
 						key,
 						{ gt: true, ch: true },
 						...(players.map((it) => ({
-							member: it[type === "cutoffs" ? "userId" : "rank"],
+							member: it[member],
 							score: Number(it.point),
 						})) as [{ member: number; score: number }]),
 					);
