@@ -39,7 +39,10 @@ export const GBP = {
 		let id: string;
 		if ("kind" in value && "id" in value) {
 			kind = value.kind;
-			id = value.id.toString();
+			id =
+				value.music !== undefined
+					? `${value.id}:${value.music}`
+					: value.id.toString();
 		} else {
 			kind = value.trackingFor === "music" ? "event" : value.trackingFor;
 			id =
