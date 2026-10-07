@@ -49,8 +49,8 @@
       "dependencies": {
         "@bandori-stats/bestdori": "workspace:*",
         "@bandori-stats/database": "workspace:*",
+        "@discordjs/formatters": "0.6.2",
         "discord-hono": "0.22.2",
-        "discord.js": "14.27.0",
         "es-toolkit": "1.52.0",
       },
       "devDependencies": {

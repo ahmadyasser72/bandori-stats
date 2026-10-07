@@ -1,3 +1,4 @@
+import { bold, subtext, time, TimestampStyles } from "@discordjs/formatters";
 import {
 	createFactory,
 	makeEmbed,
@@ -6,7 +7,6 @@ import {
 	makeStringOption,
 	type AutocompleteContext,
 } from "discord-hono";
-import { bold, subtext, time, TimestampStyles } from "discord.js";
 import { capitalize } from "es-toolkit";
 
 import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
@@ -45,7 +45,7 @@ export const commands = [
 				const params = c.var as TrackingTarget;
 				const metadata = await getTrackingMetadata(params);
 				if (!metadata)
-					return c.followup(`${params.kind}:${params.id} doesn't exists.`);
+					return c.followup(`${params.kind}:${params.id} doesn't exist.`);
 
 				const music =
 					params.music && metadata.kind === "event"
@@ -121,7 +121,7 @@ const autoCompleteTarget = async (c: AutocompleteContext) => {
 			where: typed
 				? typed.toString().match(/^\d+$/)
 					? { id: Number(typed) }
-					: { name: { like: typed } }
+					: { name: { like: `%${typed}%` } }
 				: EmptyFilter,
 			orderBy: { id: "desc" },
 			limit: 25,
