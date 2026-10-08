@@ -35,7 +35,11 @@ const options = [
 	makeIntegerOption("music", "Music ID").autocomplete(true),
 ];
 
-export const factory = createFactory<{ Bindings: Cloudflare.Env }>();
+interface Env {
+	Bindings: { cf: Cloudflare.Env; SITE_URL: string };
+}
+
+export const factory = createFactory<Env>();
 export const commands = [
 	factory.autocomplete(
 		makeSlashCommand(
@@ -319,12 +323,12 @@ const getCutoffs = async (
 };
 
 const getThumbnail = (
-	context: CommandContext,
+	context: CommandContext<Env>,
 	{ trackingFor, trackingId }: TrackingReference,
 ) =>
 	new URL(
 		trackingFor === "music"
 			? `/assets/songs/${trackingId}-cover.webp`
 			: `/assets/tracker/${trackingFor}-${trackingId}-logo.webp`,
-		context.event.request.url,
+		context.env.SITE_URL,
 	).href;
