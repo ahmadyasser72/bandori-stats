@@ -1,0 +1,23 @@
+{
+	"name": "@bandori-stats/discord-bot",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"check": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@bandori-stats/bestdori": "workspace:*",
+		"@bandori-stats/database": "workspace:*",
+		"@discordjs/formatters": "0.6.2",
+		"discord-hono": "0.22.2",
+		"es-toolkit": "1.52.0"
+	},
+	"devDependencies": {
+		"@types/node": "26.6.4",
+		"discord-api-types": "0.38.56",
+		"typescript": "6.0.3"
+	}
+}

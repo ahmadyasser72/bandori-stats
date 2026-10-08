@@ -84,6 +84,19 @@ export default defineConfig({
 				context: "server",
 			}),
 
+			DISCORD_APPLICATION_ID: envField.string({
+				access: "secret",
+				context: "server",
+			}),
+			DISCORD_BOT_TOKEN: envField.string({
+				access: "secret",
+				context: "server",
+			}),
+			DISCORD_PUBLIC_KEY: envField.string({
+				access: "secret",
+				context: "server",
+			}),
+
 			UMAMI_SITE_ID: envField.string({
 				access: "public",
 				context: "server",
@@ -99,7 +112,7 @@ export default defineConfig({
 
 	vite: {
 		plugins: [BandoriLeaderboard(), DailyHina(), tailwindcss(), zodCompiler()],
-		server: { allowedHosts: ["cat"], hmr: false },
+		server: { allowedHosts: [".trycloudflare.com"], hmr: false },
 
 		define: {
 			__GIT_HASH__: JSON.stringify(GIT_HASH),
