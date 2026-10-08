@@ -19,19 +19,15 @@ import {
 	getTrackingMetadata,
 	getTrackingReference,
 	TrackingReference,
-	type TrackingTarget,
+	TrackingTarget,
 } from "@bandori-stats/database/tracker";
 
 const options = [
-	makeStringOption("kind", "Event or monthly ranking")
-		.required(true)
-		.choices([
-			{ name: "event", value: "event" },
-			{ name: "monthly", value: "monthly" },
-		]),
-	makeIntegerOption("id", "Event or monthly ID")
-		.autocomplete(true)
-		.required(true),
+	makeStringOption("kind", "Event or monthly ranking").choices([
+		{ name: "event", value: "event" },
+		{ name: "monthly", value: "monthly" },
+	]),
+	makeIntegerOption("id", "Event or monthly ID").autocomplete(true),
 	makeIntegerOption("music", "Music ID").autocomplete(true),
 ];
 
@@ -49,24 +45,10 @@ export const commands = [
 		(c) => autoCompleteTarget(c),
 		(c) =>
 			c.resDefer(async (c) => {
-				const params = c.var as TrackingTarget;
-				const metadata = await getTrackingMetadata(params);
-				if (!metadata)
-					return c.followup(`${params.kind}:${params.id} doesn't exist.`);
+				const resolved = await resolveMetadata(c);
+				if (typeof resolved === "string") return c.followup(resolved);
 
-				const music =
-					params.music && metadata.kind === "event"
-						? metadata.musics.find(({ id }) => id === params.music)
-						: undefined;
-				if (params.music && !music)
-					return c.followup(
-						`${params.kind}:${params.id}:${params.music} doesn't exist.`,
-					);
-
-				const trackingReference = getTrackingReference({
-					...metadata,
-					music: music?.id,
-				});
+				const { metadata, music, trackingReference } = resolved;
 				const snapshots = await getSnapshots(trackingReference);
 
 				const embed = makeEmbed()
@@ -74,7 +56,7 @@ export const commands = [
 					.footer({
 						text: music
 							? `${music.title} — T10`
-							: `${capitalize(params.kind)} Ranking — T10`,
+							: `${capitalize(trackingReference.trackingFor)} Ranking — T10`,
 					})
 					.color(0x55ddee)
 					.timestamp(new Date())
@@ -88,7 +70,11 @@ export const commands = [
 							value: (() => {
 								const lines = [] as string[];
 
-								lines.push(subtext(`played ${formatTimestamp(lastPlayed)}`));
+								lines.push(
+									subtext(
+										`${trackingReference.trackingFor === "music" ? "updated" : "played"} ${formatTimestamp(lastPlayed)}`,
+									),
+								);
 								if (playedSince)
 									lines.push(subtext(`since ${formatTimestamp(playedSince)}`));
 
@@ -108,24 +94,10 @@ export const commands = [
 		(c) => autoCompleteTarget(c),
 		(c) =>
 			c.resDefer(async (c) => {
-				const params = c.var as TrackingTarget;
-				const metadata = await getTrackingMetadata(params);
-				if (!metadata)
-					return c.followup(`${params.kind}:${params.id} doesn't exist.`);
+				const resolved = await resolveMetadata(c);
+				if (typeof resolved === "string") return c.followup(resolved);
 
-				const music =
-					params.music && metadata.kind === "event"
-						? metadata.musics.find(({ id }) => id === params.music)
-						: undefined;
-				if (params.music && !music)
-					return c.followup(
-						`${params.kind}:${params.id}:${params.music} doesn't exist.`,
-					);
-
-				const trackingReference = getTrackingReference({
-					...metadata,
-					music: music?.id,
-				});
+				const { metadata, music, trackingReference } = resolved;
 				const cutoffs = await getCutoffs(metadata, trackingReference);
 
 				const embed = makeEmbed()
@@ -133,7 +105,7 @@ export const commands = [
 					.footer({
 						text: music
 							? `${music.title} — Cutoffs`
-							: `${capitalize(params.kind)} Ranking — Cutoffs`,
+							: `${capitalize(trackingReference.trackingFor)} Ranking — Cutoffs`,
 					})
 					.color(0x55ddee)
 					.timestamp(new Date())
@@ -147,13 +119,8 @@ export const commands = [
 							value: (() => {
 								const lines = [] as string[];
 
-								if (hourly > 0 && daily > 0)
-									lines.push(
-										[
-											`${formatNumber(daily)} Pts/day`,
-											`${formatNumber(hourly)} Pts/hour`,
-										].join(" / "),
-									);
+								if (hourly > 0) lines.push(`${formatNumber(hourly)} Pts/hour`);
+								if (daily > 0) lines.push(`${formatNumber(daily)} Pts/day`);
 								lines.push(
 									subtext(`updated ${formatTimestamp(timestamp.getTime())}`),
 								);
@@ -212,11 +179,48 @@ const autoCompleteTarget = async (c: AutocompleteContext) => {
 	return c.resAutocomplete([]);
 };
 
+const resolveMetadata = async (context: CommandContext<Env>) => {
+	const params = TrackingTarget.partial().parse(context.var);
+	params.kind ??= "event";
+	if (!params.id) {
+		const latest = await (params.kind === "event"
+			? db().query.gbpEvents.findFirst({
+					columns: { id: true },
+					where: { snapshots: true },
+					orderBy: { id: "desc" },
+				})
+			: db().query.gbpMonthlyRankings.findFirst({
+					columns: { id: true },
+					where: { snapshots: true },
+					orderBy: { id: "desc" },
+				}));
+
+		if (!latest) return `${params.kind} is empty.`;
+		params.id = latest.id;
+	}
+
+	const metadata = await getTrackingMetadata(params as TrackingTarget);
+	if (!metadata) {
+		return `${params.kind}:${params.id} doesn't exist.`;
+	}
+
+	const music =
+		params.music && metadata.kind === "event"
+			? metadata.musics.find(({ id }) => id === params.music)
+			: undefined;
+	if (params.music && !music) {
+		return `${params.kind}:${params.id}:${params.music} doesn't exist.`;
+	}
+
+	return {
+		metadata,
+		music,
+		trackingReference: getTrackingReference({ ...metadata, music: music?.id }),
+	};
+};
+
 const formatTimestamp = (ms: number) =>
-	[
-		time(ms / 1000, TimestampStyles.RelativeTime),
-		time(ms / 1000, TimestampStyles.ShortDateShortTime),
-	].join(" @ ");
+	time(ms / 1000, TimestampStyles.RelativeTime);
 
 const getSnapshots = async (trackingReference: TrackingReference) => {
 	const getLatestRank = (rank: number, exclude?: string[]) =>
