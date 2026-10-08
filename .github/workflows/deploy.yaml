@@ -63,7 +63,7 @@ jobs:
           DISCORD_INVITE_LINK: ${{ vars.DISCORD_INVITE_LINK }}
 
       - name: Upload site build artifact
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: site
           include-hidden-files: true
@@ -80,7 +80,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
       - uses: ./.github/actions/setup-bun
 
-      - uses: actions/download-artifact@v8.0.1
+      - uses: actions/download-artifact@v8.0.2
         with:
           path: site
 
