@@ -22,7 +22,7 @@
 		"@iconify/tailwind4": "1.2.3",
 		"@tailwindcss/typography": "0.5.20",
 		"@tailwindcss/vite": "4.3.3",
-		"@tanstack/charts": "0.18.0",
+		"@tanstack/charts": "1.1.0",
 		"@zumer/snapdom": "2.24.18",
 		"astro": "7.3.7",
 		"clsx": "2.1.1",
