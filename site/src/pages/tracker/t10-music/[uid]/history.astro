@@ -11,15 +11,14 @@ import {
 } from "@bandori-stats/database/tracker";
 import Icon from "~/components/icon.astro";
 import SheetModal from "~/layouts/sheet-modal.astro";
-import { IdSchema } from "~/lib/schema";
 
 export const partial = true;
 
 const uid = Astro.params.uid!;
 const params = Astro.locals.parseQuery(TrackingTarget);
-if (params.kind !== "event") return new Response(null, { status: 404 });
+if (params.kind !== "event" || !params.music)
+	return new Response(null, { status: 404 });
 
-const songId = IdSchema.parse(Astro.params.song);
 const trackingReference = getTrackingReference(params);
 const { metadata, profile } = await Astro.locals.tracing.enterSpan(
 	"fetch-metadata",
@@ -40,7 +39,7 @@ const { metadata, profile } = await Astro.locals.tracing.enterSpan(
 if (!metadata || metadata.kind !== "event")
 	return new Response(null, { status: 404 });
 
-const song = metadata.musics.find(({ id }) => id === songId);
+const song = metadata.musics.find(({ id }) => id === params.music);
 if (!song) return new Response(null, { status: 404 });
 
 const history = await Astro.locals.tracing.enterSpan("fetch-history", () =>
