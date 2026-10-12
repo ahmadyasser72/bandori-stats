@@ -13,11 +13,11 @@
 		"dayjs": "1.11.23",
 		"es-toolkit": "1.52.0",
 		"wasm-vips": "0.0.19",
-		"zod": "4.6.5"
+		"zod": "4.6.6"
 	},
 	"devDependencies": {
-		"@types/bun": "1.4.2",
-		"@types/node": "26.6.4",
+		"@types/bun": "1.4.3",
+		"@types/node": "26.6.5",
 		"typescript": "6.0.3"
 	}
 }
