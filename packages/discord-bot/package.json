@@ -16,7 +16,7 @@
 		"es-toolkit": "1.52.0"
 	},
 	"devDependencies": {
-		"@types/node": "26.6.4",
+		"@types/node": "26.6.5",
 		"discord-api-types": "0.38.56",
 		"typescript": "6.0.3"
 	}
