@@ -40,6 +40,7 @@ export const scheduleUpdateTracker = schedules.task({
 	id: "schedule-update-tracker",
 	ttl: "1m",
 	cron: { pattern: "* * * * *" },
+	retry: { maxAttempts: 1 },
 	run: async ({ timestamp }) => {
 		const [version, eventId, monthlyId, maintenance] = await redis().mget<
 			[string | null, number | null, number | null, true | null]
