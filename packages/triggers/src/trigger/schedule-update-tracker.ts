@@ -1,7 +1,6 @@
 import { logger, metadata, schedules, tags, wait } from "@trigger.dev/sdk";
 import {
 	allKeyed,
-	countBy,
 	curry,
 	groupBy,
 	mapKeys,
@@ -291,7 +290,7 @@ export const scheduleUpdateTracker = schedules.task({
 			return toInsert;
 		});
 
-		const inserted = await logger.trace("insert-snapshots", async (span) => {
+		const inserted = await logger.trace("insert-snapshots", async () => {
 			if (updated.length === 0) return [];
 
 			const toTrackerSnapshot = curry(
@@ -365,27 +364,9 @@ export const scheduleUpdateTracker = schedules.task({
 						: [],
 				cutoffs:
 					cutoffs.length > 0
-						? db()
-								.insert(trackerCutoffs)
-								.values(cutoffs)
-								.onConflictDoNothing()
-								.returning({
-									trackingFor: trackerCutoffs.trackingFor,
-									trackingId: trackerCutoffs.trackingId,
-									trackingEventId: trackerCutoffs.trackingEventId,
-								})
+						? db().insert(trackerCutoffs).values(cutoffs).onConflictDoNothing()
 						: [],
 			});
-
-			const group = (value: (typeof inserted.cutoffs)[number]) =>
-				GBP.from(value);
-
-			const updatedSnapshots = countBy(inserted.snapshots, group);
-			for (const kind in updatedSnapshots)
-				span.setAttribute(`${kind}:snapshots`, updatedSnapshots[kind]);
-			const updatedCutoffs = countBy(inserted.cutoffs, group);
-			for (const kind in updatedCutoffs)
-				span.setAttribute(`${kind}:cutoffs`, updatedCutoffs[kind]);
 
 			return inserted.snapshots;
 		});
@@ -413,34 +394,47 @@ export const scheduleUpdateTracker = schedules.task({
 				.filter(({ uids }) => uids.length > 0);
 			if (pending.length === 0) return;
 
-			await pending
-				.reduce(
-					(pipe, { trackingReference, type, uids }) =>
-						pipe.zrem(GBP.from(trackingReference, type), ...uids),
-					redis().pipeline(),
-				)
-				.exec();
-			const result = await db()
-				.update(trackerSnapshots)
-				.set({ bannedAt: now.toDate() })
-				.where(
-					or(
-						...pending.map(
-							({
-								trackingReference: { trackingFor, trackingId, trackingEventId },
-								uids,
-							}) =>
-								and(
-									eq(trackerSnapshots.trackingFor, trackingFor),
-									eq(trackerSnapshots.trackingId, trackingId),
-									eq(trackerSnapshots.trackingEventId, trackingEventId),
-									inArray(trackerSnapshots.uid, uids),
-								),
+			span.setAttributes(
+				Object.fromEntries(
+					pending.map(({ trackingReference, uids }) => [
+						GBP.from(trackingReference),
+						uids,
+					]),
+				),
+			);
+
+			await Promise.all([
+				pending
+					.reduce(
+						(pipe, { trackingReference, type, uids }) =>
+							pipe.zrem(GBP.from(trackingReference, type), ...uids),
+						redis().pipeline(),
+					)
+					.exec(),
+				db()
+					.update(trackerSnapshots)
+					.set({ bannedAt: now.toDate() })
+					.where(
+						or(
+							...pending.map(
+								({
+									trackingReference: {
+										trackingFor,
+										trackingId,
+										trackingEventId,
+									},
+									uids,
+								}) =>
+									and(
+										eq(trackerSnapshots.trackingFor, trackingFor),
+										eq(trackerSnapshots.trackingId, trackingId),
+										eq(trackerSnapshots.trackingEventId, trackingEventId),
+										inArray(trackerSnapshots.uid, uids),
+									),
+							),
 						),
 					),
-				);
-
-			span.setAttribute("marked", result.rowsAffected);
+			]);
 		});
 
 		if (targets.length > 0 && now.get("minutes") === 0)
@@ -489,20 +483,7 @@ export const scheduleUpdateTracker = schedules.task({
 				},
 			);
 
-			await updateTrackerProfile.trigger({
-				version,
-				players: snapshots.map(
-					({
-						value: { uid, trackingFor, trackingId, trackingEventId },
-						pointGained,
-					}) => ({
-						uid,
-						trackingReference: { trackingFor, trackingId, trackingEventId },
-						changed: pointGained !== 0,
-					}),
-				),
-			});
-
+			const justPlayed = new Set<string>();
 			const changed = snapshots.filter(
 				({ value: { trackingFor }, pointGained }) =>
 					trackingFor !== "music" && pointGained > 0,
@@ -521,7 +502,12 @@ export const scheduleUpdateTracker = schedules.task({
 							);
 							const entries: Record<string, number> =
 								(await redis().hmget(key, ...keys)) ?? {};
-							for (const uid of keys) entries[uid] ??= now.valueOf();
+							for (const uid of keys) {
+								if (uid in entries) continue;
+
+								justPlayed.add(uid);
+								entries[uid] = now.valueOf();
+							}
 
 							return entries;
 						},
@@ -550,6 +536,25 @@ export const scheduleUpdateTracker = schedules.task({
 					const responses = await pipe.exec<number[]>();
 					span.setAttribute("responses", responses);
 				});
+			}
+
+			const players = snapshots
+				.filter(
+					({ value: { uid, trackingFor } }) =>
+						justPlayed.has(uid) || trackingFor === "music",
+				)
+				.map(
+					({
+						value: { uid, trackingFor, trackingId, trackingEventId },
+						pointGained,
+					}) => ({
+						uid,
+						trackingReference: { trackingFor, trackingId, trackingEventId },
+						changed: pointGained !== 0,
+					}),
+				);
+			if (players.length > 0) {
+				await updateTrackerProfile.trigger({ version, players });
 			}
 		}
 
