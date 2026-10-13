@@ -4,23 +4,16 @@ import {
 	countBy,
 	curry,
 	groupBy,
+	mapKeys,
 	mapValues,
 	mapValuesAsync,
 	pick,
 	zip,
 } from "es-toolkit";
-import { uniqBy } from "es-toolkit/compat";
+import xxhash from "xxhash-wasm";
 
 import dayjs from "@bandori-stats/bestdori/date";
-import {
-	and,
-	db,
-	eq,
-	gt,
-	isNull,
-	notInArray,
-	or,
-} from "@bandori-stats/database";
+import { and, db, eq, inArray, or } from "@bandori-stats/database";
 import {
 	GBP,
 	getRedisData,
@@ -211,11 +204,35 @@ export const scheduleUpdateTracker = schedules.task({
 		if (updateCutoffs) await tags.add("cutoffs");
 
 		const updated = await logger.trace("update-redis", async (span) => {
+			const { h32ToString } = await xxhash();
+
 			const toInsert = [] as {
 				trackingReference: TrackingReference;
 				values: RankingUser[];
 				type: "t10" | "cutoffs";
 			}[];
+
+			const types: ("t10" | "cutoffs")[] = updateCutoffs
+				? ["t10", "cutoffs"]
+				: ["t10"];
+			const rankingHash =
+				(await redis().hmget<Record<string, string>>(
+					GBP.trackerHash,
+					...targets.flatMap(({ metadata }) => {
+						const trackingReference = getTrackingReference(metadata);
+						if (metadata.kind !== "event" || metadata.musics.length === 0)
+							return types.map((type) => GBP.from(trackingReference, type));
+
+						return types.flatMap((type) =>
+							[
+								trackingReference,
+								...metadata.musics.map(({ id }) =>
+									getTrackingReference({ ...metadata, music: id }),
+								),
+							].map((trackingReference) => GBP.from(trackingReference, type)),
+						);
+					}),
+				)) ?? {};
 
 			const keys = [] as string[];
 			const pipe = redis().pipeline();
@@ -225,10 +242,18 @@ export const scheduleUpdateTracker = schedules.task({
 					players: RankingUser[],
 					type: "t10" | "cutoffs",
 				) => {
-					toInsert.push({ trackingReference, values: players, type });
-
 					const member = type === "cutoffs" ? "rank" : "userId";
 					const key = GBP.from(trackingReference, type);
+					const hash = h32ToString(
+						players
+							.map((it) => [it[member], Number(it.point)].join(":"))
+							.join("|"),
+					);
+
+					if (rankingHash[key] === hash) return;
+					else rankingHash[key] = hash;
+
+					toInsert.push({ trackingReference, values: players, type });
 					keys.push(key);
 					pipe.zadd(
 						key,
@@ -253,10 +278,17 @@ export const scheduleUpdateTracker = schedules.task({
 				}
 			}
 
-			const changes = await pipe.exec<number[]>();
-			span.setAttributes(Object.fromEntries(zip(keys, changes)));
+			if (toInsert.length === 0) return [];
 
-			return toInsert.filter((_, idx) => changes[idx] > 0);
+			const changes = await pipe
+				.hset(GBP.trackerHash, rankingHash)
+				.exec<number[]>();
+			span.setAttributes({
+				...Object.fromEntries(zip(keys, changes.slice(0, keys.length))),
+				...mapKeys(rankingHash, (_, key) => `hash:${key}`),
+			});
+
+			return toInsert;
 		});
 
 		const inserted = await logger.trace("insert-snapshots", async (span) => {
@@ -358,19 +390,63 @@ export const scheduleUpdateTracker = schedules.task({
 			return inserted.snapshots;
 		});
 
-		if (targets.length > 0 && now.get("minutes") === 0) {
-			await markBannedPlayers(
-				targets.map(({ metadata, top }) => ({
-					top,
-					trackingReference: getTrackingReference(metadata),
-				})),
-				now,
-			);
+		await logger.trace("mark-banned-players", async (span) => {
+			const updatedT10 = updated.filter(({ type }) => type === "t10");
+			if (updatedT10.length === 0) return [];
 
+			const t10 = await updatedT10
+				.reduce(
+					(pipe, { trackingReference, type }) =>
+						pipe.zrange(GBP.from(trackingReference, type), 0, 9, { rev: true }),
+					redis().pipeline(),
+				)
+				.exec<number[][]>()
+				.then((results) => results.map((values) => values.map(String)));
+			const pending = updatedT10
+				.map(({ values, ...target }, idx) => {
+					const uids = values.map(({ userId }) => userId);
+					return {
+						uids: t10[idx].filter((uid) => !uids.includes(uid)),
+						...target,
+					};
+				})
+				.filter(({ uids }) => uids.length > 0);
+			if (pending.length === 0) return;
+
+			await pending
+				.reduce(
+					(pipe, { trackingReference, type, uids }) =>
+						pipe.zrem(GBP.from(trackingReference, type), ...uids),
+					redis().pipeline(),
+				)
+				.exec();
+			const result = await db()
+				.update(trackerSnapshots)
+				.set({ bannedAt: now.toDate() })
+				.where(
+					or(
+						...pending.map(
+							({
+								trackingReference: { trackingFor, trackingId, trackingEventId },
+								uids,
+							}) =>
+								and(
+									eq(trackerSnapshots.trackingFor, trackingFor),
+									eq(trackerSnapshots.trackingId, trackingId),
+									eq(trackerSnapshots.trackingEventId, trackingEventId),
+									inArray(trackerSnapshots.uid, uids),
+								),
+						),
+					),
+				);
+
+			span.setAttribute("marked", result.rowsAffected);
+		});
+
+		if (targets.length > 0 && now.get("minutes") === 0)
 			await discordTracker.trigger({
 				metadatas: targets.map(({ metadata }) => metadata),
 			});
-		}
 
 		if (inserted.length > 0) {
 			const snapshots = await logger.trace(
@@ -519,71 +595,3 @@ interface Ranking {
 	cutoffs: RankingUser[];
 	musics?: { id: number; t10: RankingUser[]; cutoffs: RankingUser[] }[];
 }
-
-export const markBannedPlayers = async (
-	targets: { top: Ranking; trackingReference: TrackingReference }[],
-	now: dayjs.Dayjs,
-) => {
-	const conditions = [] as Parameters<typeof or>;
-	for (const {
-		top,
-		trackingReference: { trackingFor, trackingId, trackingEventId },
-	} of targets) {
-		conditions.push(
-			and(
-				eq(trackerSnapshots.trackingFor, trackingFor),
-				eq(trackerSnapshots.trackingId, trackingId),
-				eq(trackerSnapshots.trackingEventId, trackingEventId),
-				notInArray(
-					trackerSnapshots.uid,
-					top.t10.map(({ userId }) => userId),
-				),
-				gt(
-					trackerSnapshots.point,
-					Math.min(...top.t10.map(({ point }) => Number(point))),
-				),
-			),
-		);
-
-		if (trackingFor === "event" && top.musics) {
-			for (const { id, t10 } of top.musics) {
-				conditions.push(
-					and(
-						eq(trackerSnapshots.trackingFor, "music"),
-						eq(trackerSnapshots.trackingId, id),
-						eq(trackerSnapshots.trackingEventId, trackingEventId),
-						notInArray(
-							trackerSnapshots.uid,
-							t10.map(({ userId }) => userId),
-						),
-						gt(
-							trackerSnapshots.point,
-							Math.min(...t10.map(({ point }) => Number(point))),
-						),
-					),
-				);
-			}
-		}
-	}
-
-	await logger.trace("mark-banned-players", async (span) => {
-		const filter = and(or(...conditions), isNull(trackerSnapshots.bannedAt));
-		span.setAttribute("filter", String(filter?.getSQL()));
-		span.setAttribute("bannedAt", now.toISOString());
-		const results = await db()
-			.update(trackerSnapshots)
-			.set({ bannedAt: now.toDate() })
-			.where(filter)
-			.returning({
-				trackingFor: trackerSnapshots.trackingFor,
-				trackingId: trackerSnapshots.trackingId,
-				trackingEventId: trackerSnapshots.trackingEventId,
-				uid: trackerSnapshots.uid,
-			});
-
-		const updated = uniqBy(results, (value) => Object.values(value).join(":"));
-		if (updated.length === 0) return;
-
-		metadata.set("marked-banned", updated);
-	});
-};

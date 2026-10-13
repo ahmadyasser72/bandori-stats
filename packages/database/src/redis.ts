@@ -29,6 +29,7 @@ export const GBP = {
 	credentialsRequest: "gbp:credentials:request",
 	event: "gbp:event:current",
 	monthly: "gbp:monthly:current",
+	trackerHash: "gbp:tracker:hash",
 	data: {
 		AreaItem: "gbp:data:area-items",
 		CharacterSituation: "gbp:data:character-situations",

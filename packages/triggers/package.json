@@ -16,6 +16,7 @@
 		"discord.js": "14.27.0",
 		"es-toolkit": "1.52.0",
 		"random": "5.5.1",
+		"xxhash-wasm": "1.1.0",
 		"zod": "4.6.6"
 	},
 	"devDependencies": {
