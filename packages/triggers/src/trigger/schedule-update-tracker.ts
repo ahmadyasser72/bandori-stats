@@ -246,8 +246,8 @@ export const scheduleUpdateTracker = schedules.task({
 					const key = GBP.from(trackingReference, type);
 					const hash = h32ToString(
 						players
-							.map((it) => [it[member], Number(it.point)].join(":"))
-							.join("|"),
+							.map((it) => [it[member], it.name, Number(it.point)].join("|"))
+							.join("\n"),
 					);
 
 					if (rankingHash[key] === hash) return;
