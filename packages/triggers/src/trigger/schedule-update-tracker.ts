@@ -498,16 +498,17 @@ export const scheduleUpdateTracker = schedules.task({
 					const playedSince = await mapValuesAsync(
 						grouped,
 						async (values, key) => {
-							const keys = values.map(({ value: { uid } }) =>
-								GBP.players.playedSince(uid),
-							);
+							const keys = values.map(({ value: { uid } }) => ({
+								key: GBP.players.playedSince(uid),
+								uid,
+							}));
 							const entries: Record<string, number> =
-								(await redis().hmget(key, ...keys)) ?? {};
-							for (const uid of keys) {
-								if (entries[uid]) continue;
+								(await redis().hmget(key, ...keys.map(({ key }) => key))) ?? {};
+							for (const { key, uid } of keys) {
+								if (entries[key]) continue;
 
 								justPlayed.add(uid);
-								entries[uid] = now.valueOf();
+								entries[key] = now.valueOf();
 							}
 
 							return entries;
