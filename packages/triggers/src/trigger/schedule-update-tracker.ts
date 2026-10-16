@@ -561,7 +561,7 @@ export const scheduleUpdateTracker = schedules.task({
 		}
 
 		for (const { metadata, top } of targets) {
-			if (!now.isSame(metadata.endAt, "hours")) continue;
+			if (!now.isSame(metadata.endAt, "minute")) continue;
 
 			const trackingReference = getTrackingReference(metadata);
 			await updateTrackerProfile.trigger(
