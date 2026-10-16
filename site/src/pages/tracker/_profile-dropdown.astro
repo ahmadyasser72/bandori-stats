@@ -107,20 +107,22 @@ const eventPointBonus = (() => {
 
 		<div class="flex w-full justify-between">
 			{
-				profile.band.members.map((member) => (
-					<div class="group contents">
-						<div
-							class="tooltip tooltip-bottom tooltip-info group-nth-[-n+2]:tooltip-start group-nth-last-[-n+2]:tooltip-end before:w-64"
-							data-tip={member.skill}
-						>
-							<div class="tooltip tooltip-info group-nth-[-n+2]:tooltip-start group-nth-last-[-n+2]:tooltip-end">
-								<GbpCardTooltip {member} />
+				[2, 0, 1, 3, 4]
+					.map((idx) => profile.band.members[idx])
+					.map((member) => (
+						<div class="group contents">
+							<div
+								class="tooltip tooltip-bottom tooltip-info group-nth-[-n+2]:tooltip-start group-nth-last-[-n+2]:tooltip-end before:w-64"
+								data-tip={member.skill}
+							>
+								<div class="tooltip tooltip-info group-nth-[-n+2]:tooltip-start group-nth-last-[-n+2]:tooltip-end">
+									<GbpCardTooltip {member} />
 
-								<GbpCard {member} />
+									<GbpCard {member} />
+								</div>
 							</div>
 						</div>
-					</div>
-				))
+					))
 			}
 		</div>
 
