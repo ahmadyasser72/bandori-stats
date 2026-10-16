@@ -22,26 +22,27 @@ import {
 	TrackingTarget,
 } from "@bandori-stats/database/tracker";
 
-const options = [
-	makeStringOption("kind", "Event or monthly ranking").choices([
-		{ name: "event", value: "event" },
-		{ name: "monthly", value: "monthly" },
-	]),
-	makeIntegerOption("id", "Event or monthly ID").autocomplete(true),
-	makeIntegerOption("music", "Music ID").autocomplete(true),
-];
-
 interface Env {
 	Bindings: { cf: Cloudflare.Env; SITE_URL: string };
 }
 
+const slash = <N extends string>(name: N, description: string) =>
+	makeSlashCommand(name, description)
+		.options([
+			makeStringOption("kind", "Event or monthly ranking").choices([
+				{ name: "event", value: "event" },
+				{ name: "monthly", value: "monthly" },
+			]),
+			makeIntegerOption("id", "Event or monthly ID").autocomplete(true),
+			makeIntegerOption("music", "Music ID").autocomplete(true),
+		])
+		.integration_types([0, 1])
+		.contexts([0, 1, 2]);
+
 export const factory = createFactory<Env>();
 export const commands = [
 	factory.autocomplete(
-		makeSlashCommand(
-			"t10",
-			"T10 players for an event or monthly ranking",
-		).options(options),
+		slash("t10", "T10 players for an event or monthly ranking"),
 		(c) => autoCompleteTarget(c),
 		(c) =>
 			c.resDefer(async (c) => {
@@ -87,10 +88,7 @@ export const commands = [
 			}),
 	),
 	factory.autocomplete(
-		makeSlashCommand(
-			"cutoffs",
-			"Cutoff points for an event or monthly ranking",
-		).options(options),
+		slash("cutoffs", "Cutoff points for an event or monthly ranking"),
 		(c) => autoCompleteTarget(c),
 		(c) =>
 			c.resDefer(async (c) => {
