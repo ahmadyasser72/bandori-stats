@@ -504,7 +504,7 @@ export const scheduleUpdateTracker = schedules.task({
 							const entries: Record<string, number> =
 								(await redis().hmget(key, ...keys)) ?? {};
 							for (const uid of keys) {
-								if (uid in entries) continue;
+								if (entries[uid]) continue;
 
 								justPlayed.add(uid);
 								entries[uid] = now.valueOf();
