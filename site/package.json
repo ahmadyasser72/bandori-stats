@@ -10,21 +10,21 @@
 		"dev": "astro dev"
 	},
 	"dependencies": {
-		"@astrojs/cloudflare": "14.3.4",
-		"@astrojs/preact": "6.0.6",
+		"@astrojs/cloudflare": "14.4.2",
+		"@astrojs/preact": "6.1.1",
 		"@bandori-stats/bestdori": "workspace:*",
 		"@bandori-stats/database": "workspace:*",
 		"@bandori-stats/discord-bot": "workspace:*",
 		"@catppuccin/daisyui": "2.1.1",
 		"@iconify-json/line-md": "1.2.16",
-		"@iconify-json/lucide": "1.2.144",
+		"@iconify-json/lucide": "1.2.147",
 		"@iconify-json/svg-spinners": "1.2.4",
 		"@iconify/tailwind4": "1.2.3",
 		"@tailwindcss/typography": "0.5.20",
 		"@tailwindcss/vite": "4.3.3",
 		"@tanstack/charts": "1.1.0",
 		"@zumer/snapdom": "2.24.18",
-		"astro": "7.3.8",
+		"astro": "7.4.2",
 		"clsx": "2.1.1",
 		"d3-scale": "4.0.2",
 		"d3-shape": "3.2.0",
@@ -33,7 +33,7 @@
 		"es-toolkit": "1.52.0",
 		"htmx.org": "4.0.0",
 		"minisearch": "7.2.0",
-		"preact": "11.0.1",
+		"preact": "11.0.2",
 		"pure-web-bottom-sheet": "1.1.1",
 		"random": "5.5.1",
 		"tailwindcss": "4.3.3",
@@ -41,7 +41,7 @@
 		"zod": "4.6.7"
 	},
 	"devDependencies": {
-		"@astrojs/check": "0.9.10",
+		"@astrojs/check": "0.9.12",
 		"@oxvg/napi": "0.0.9",
 		"@types/d3-scale": "4.0.9",
 		"@types/d3-shape": "3.2.0",
@@ -49,7 +49,7 @@
 		"@types/umami-browser": "2.18.1",
 		"favicons": "7.3.1",
 		"typescript": "6.0.3",
-		"wrangler": "4.151.0",
+		"wrangler": "4.152.0",
 		"zod-compiler": "2.0.7"
 	}
 }
