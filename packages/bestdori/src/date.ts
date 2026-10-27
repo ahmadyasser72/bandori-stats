@@ -16,10 +16,11 @@ export default dayjs;
 export const formatDuration = (
 	to: dayjs.ConfigType,
 	base?: dayjs.ConfigType,
+	plain = false,
 ) => {
 	const reference = dayjs(base);
 	const totalMinutes = Math.abs(reference.diff(to, "minutes"));
-	if (totalMinutes < 1) return "just now";
+	if (totalMinutes < 1) return plain ? "instant" : "just now";
 
 	const days = Math.floor(totalMinutes / (60 * 24));
 	const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
@@ -31,5 +32,9 @@ export const formatDuration = (
 	if (minutes) parts.push(`${minutes}m`);
 
 	const duration = parts.join(" ");
-	return reference.isBefore(to) ? `in ${duration}` : `${duration} ago`;
+	return plain
+		? duration
+		: reference.isBefore(to)
+			? `in ${duration}`
+			: `${duration} ago`;
 };

@@ -18,7 +18,7 @@ import dayjs from "@bandori-stats/bestdori/date";
 import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
 import { GameEventType } from "@bandori-stats/bestdori/schema/misc";
 import { db } from "@bandori-stats/database";
-import { GBP, redis, type PlayerStates } from "@bandori-stats/database/redis";
+import { GBP, redis } from "@bandori-stats/database/redis";
 import { type TrackerSnapshot } from "@bandori-stats/database/schema";
 import {
 	getTrackingReference,
@@ -247,6 +247,12 @@ export const getSnapshots = async (
 						bannedAt: { isNull: true },
 					},
 					orderBy: { id: "desc" },
+					with: {
+						session: {
+							where: trackingReference,
+							orderBy: { startAt: "desc" },
+						},
+					},
 				});
 
 			return db()
@@ -299,27 +305,14 @@ export const getSnapshots = async (
 			orderBy: { id: "asc" },
 		});
 
-	const { snapshots, players } = await allKeyed({
-		snapshots: (async () =>
-			chunk(
-				await db().batch(
-					top10.flatMap((it) => [getBefore(it), getWindowStart(it)]) as [
-						ReturnType<typeof getBefore>,
-					],
-				),
-				2,
-			))(),
-		players: (async (): Promise<PlayerStates> =>
-			(trackingReference.trackingFor !== "music" &&
-				(await redis().hmget(
-					GBP.from(trackingReference, "players"),
-					...top10.flatMap(({ uid }) => [
-						GBP.players.lastPlayed(uid),
-						GBP.players.playedSince(uid),
-					]),
-				))) ||
-			{})(),
-	});
+	const snapshots = chunk(
+		await db().batch(
+			top10.flatMap((it) => [getBefore(it), getWindowStart(it)]) as [
+				ReturnType<typeof getBefore>,
+			],
+		),
+		2,
+	);
 
 	const periodDuration = now.diff(since);
 	const formerTop10 = new Set(previousTop10.map(({ uid }) => uid));
@@ -332,18 +325,14 @@ export const getSnapshots = async (
 		const returning = beforePeriod && !formerTop10.has(current.uid);
 		const baseline = stale ? windowStart : beforePeriod;
 
-		const lastPlayed = players[`${current.uid}:last-played`] ?? {
-			rank: current.rank,
-			timestamp: current.timestamp.getTime(),
-			pointGained: 0,
-		};
-
 		return {
 			current,
 			previous: baseline ?? beforePeriod,
 			returning,
-			lastPlayed: lastPlayed.timestamp,
-			playedSince: players[`${current.uid}:played-since`],
+			lastPlayed: current.session!.lastPlayed.timestamp,
+			playedSince:
+				now.diff(current.session!.endAt, "minutes") <= 30 &&
+				current.session!.startAt,
 			delta:
 				baseline && (!returning || !useStale)
 					? {
@@ -415,7 +404,8 @@ const generateEmbed = (
 					);
 
 				lines.push(subtext(`Last played ${timestamp(lastPlayed)}`));
-				if (playedSince) lines.push(subtext(`since ${timestamp(playedSince)}`));
+				if (playedSince)
+					lines.push(subtext(`since ${timestamp(playedSince.getTime())}`));
 
 				return lines.join("\n");
 			})(),

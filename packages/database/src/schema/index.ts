@@ -105,14 +105,17 @@ export const gbpEventMusics = sqliteTable(
 	(t) => [primaryKey({ columns: [t.eventId, t.id] })],
 );
 
-export const { trackerSnapshots, trackerCutoffs } = (() => {
-	const shared = {
+export const { trackerSnapshots, trackerSessions, trackerCutoffs } = (() => {
+	const reference = {
 		id: integer().primaryKey({ autoIncrement: true }),
 		trackingFor: text().$type<TrackerKind>().notNull(),
 		trackingId: integer().notNull(),
 		trackingEventId: integer().notNull().default(0),
-
 		uid: text().notNull(),
+	} as const;
+	const snapshot = {
+		...reference,
+
 		name: text().notNull(),
 		rank: integer().notNull(),
 		point: integer().notNull(),
@@ -122,7 +125,7 @@ export const { trackerSnapshots, trackerCutoffs } = (() => {
 	return {
 		trackerSnapshots: sqliteTable(
 			"tracker_snapshots",
-			{ ...shared, bannedAt: integer({ mode: "timestamp_ms" }) },
+			{ ...snapshot, bannedAt: integer({ mode: "timestamp_ms" }) },
 			(t) => [
 				index("tracker_snapshots_by_uid").on(
 					t.trackingFor,
@@ -151,10 +154,45 @@ export const { trackerSnapshots, trackerCutoffs } = (() => {
 				),
 			],
 		),
+		trackerSessions: sqliteTable(
+			"tracker_sessions",
+			{
+				...reference,
+				games: integer().notNull(),
+				points: integer().notNull(),
+				lastPlayed: text({ mode: "json" })
+					.$type<{
+						rank: number;
+						point: number;
+						gain: number;
+						timestamp: number;
+					}>()
+					.notNull(),
+				startAt: integer({ mode: "timestamp_ms" }).notNull(),
+				endAt: integer({ mode: "timestamp_ms" }).notNull(),
+			},
+			(t) => [
+				index("tracker_sessions_by_uid").on(
+					t.trackingFor,
+					t.trackingId,
+					t.trackingEventId,
+					t.uid,
+					t.id,
+					t.startAt,
+				),
+				unique().on(
+					t.trackingFor,
+					t.trackingId,
+					t.trackingEventId,
+					t.uid,
+					t.startAt,
+				),
+			],
+		),
 		trackerCutoffs: sqliteTable(
 			"tracker_cutoffs",
 			{
-				...omit(shared, ["uid"]),
+				...omit(snapshot, ["uid"]),
 				avatar: text({ mode: "json" }).$type<PlayerBandMemberStateless>(),
 			},
 			(t) => [
@@ -205,6 +243,7 @@ export type GbpMetadata =
 	| ({ kind: "monthly" } & GbpMonthlyRanking);
 
 export type TrackerSnapshot = typeof trackerSnapshots.$inferSelect;
+export type TrackerSession = typeof trackerSessions.$inferSelect;
 export type TrackerCutoff = typeof trackerCutoffs.$inferSelect;
 export type TrackerSnapshotProfile =
 	typeof trackerSnapshotProfiles.$inferSelect;

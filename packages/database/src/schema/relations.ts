@@ -54,5 +54,10 @@ export const relations = defineRelations(schema, (r) => ({
 			to: r.trackerSnapshotProfiles.uid,
 			optional: false,
 		}),
+		session: r.one.trackerSessions({
+			from: r.trackerSnapshots.uid,
+			to: r.trackerSessions.uid,
+			optional: false,
+		}),
 	},
 }));

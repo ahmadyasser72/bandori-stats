@@ -4,7 +4,6 @@ import {
 	curry,
 	groupBy,
 	mapKeys,
-	mapValues,
 	mapValuesAsync,
 	pick,
 	zip,
@@ -12,15 +11,19 @@ import {
 import xxhash from "xxhash-wasm";
 
 import dayjs from "@bandori-stats/bestdori/date";
-import { and, db, eq, inArray, or } from "@bandori-stats/database";
 import {
-	GBP,
-	getRedisData,
-	redis,
-	type PlayerLastPlayed,
-} from "@bandori-stats/database/redis";
+	and,
+	db,
+	eq,
+	getColumns,
+	inArray,
+	or,
+	sql,
+} from "@bandori-stats/database";
+import { GBP, getRedisData, redis } from "@bandori-stats/database/redis";
 import {
 	trackerCutoffs,
+	trackerSessions,
 	trackerSnapshots,
 	type GbpMetadata,
 } from "@bandori-stats/database/schema";
@@ -475,7 +478,7 @@ export const scheduleUpdateTracker = schedules.task({
 						const previous = previousSnapshots.at(idx);
 						return {
 							value,
-							pointGained: previous ? value.point - previous.point : 0,
+							point: previous ? value.point - previous.point : 0,
 						};
 					});
 					metadata.set("inserted", snapshots as never);
@@ -486,57 +489,126 @@ export const scheduleUpdateTracker = schedules.task({
 
 			const justPlayed = new Set<string>();
 			const changed = snapshots.filter(
-				({ value: { trackingFor }, pointGained }) =>
-					trackingFor !== "music" && pointGained > 0,
+				({ value: { trackingFor }, point }) =>
+					trackingFor !== "music" && point > 0,
 			);
 			if (changed.length > 0) {
-				await logger.trace("update-player-state", async (span) => {
-					const grouped = groupBy(changed, ({ value }) =>
+				await logger.trace("update-player-sessions", async () => {
+					const sessions = await mapValuesAsync(
+						groupBy(changed, ({ value }) => GBP.from(value, "players")),
+						async (values, key) => {
+							const players = new Map(
+								values.map((value) => [value.value.uid, value]),
+							);
+							const activeSessions: Record<string, number | null> =
+								(await redis().hmget(key, ...players.keys())) ?? {};
+
+							const sessions = {} as Record<
+								string,
+								typeof trackerSessions.$inferInsert
+							>;
+							const existing = await db().query.trackerSessions.findMany({
+								where: {
+									id: {
+										in: Object.values(activeSessions).filter(
+											(id) => id !== null,
+										),
+									},
+								},
+							});
+
+							for (const session of existing) {
+								const { value, point } = players.get(session.uid)!;
+								session.games += 1;
+								session.points += point;
+								session.lastPlayed = {
+									rank: value.rank,
+									point: value.point,
+									gain: point,
+									timestamp: value.timestamp.getTime(),
+								};
+								session.endAt = value.timestamp;
+
+								sessions[session.uid] = session;
+							}
+
+							for (const [uid, { value, point }] of players.entries()) {
+								if (uid in sessions) continue;
+
+								justPlayed.add(uid);
+								sessions[uid] = {
+									...pick(value, [
+										"trackingFor",
+										"trackingId",
+										"trackingEventId",
+										"uid",
+									]),
+									games: 1,
+									points: point,
+									lastPlayed: {
+										rank: value.rank,
+										point: value.point,
+										gain: point,
+										timestamp: value.timestamp.getTime(),
+									},
+									startAt: value.timestamp,
+									endAt: value.timestamp,
+								};
+							}
+
+							return sessions;
+						},
+					);
+
+					const upserted = await db()
+						.insert(trackerSessions)
+						.values(Object.values(sessions).flatMap(Object.values))
+						.onConflictDoUpdate({
+							target: [
+								trackerSessions.trackingFor,
+								trackerSessions.trackingId,
+								trackerSessions.trackingEventId,
+								trackerSessions.uid,
+								trackerSessions.startAt,
+							],
+							set: {
+								games: sql.raw(`excluded.${trackerSessions.games.name}`),
+								points: sql.raw(`excluded.${trackerSessions.points.name}`),
+								lastPlayed: sql.raw(
+									`excluded.${trackerSessions.lastPlayed.name}`,
+								),
+								endAt: sql.raw(`excluded.${trackerSessions.endAt.name}`),
+							},
+						})
+						.returning(
+							pick(getColumns(trackerSessions), [
+								"id",
+								"trackingFor",
+								"trackingId",
+								"trackingEventId",
+								"uid",
+							]),
+						);
+					metadata.set("players-sessions", {
+						sessions: upserted.map((value) => [
+							GBP.from(value, value.uid),
+							value.id,
+						]),
+					});
+
+					const grouped = groupBy(upserted, (value) =>
 						GBP.from(value, "players"),
 					);
 
-					const playedSince = await mapValuesAsync(
-						grouped,
-						async (values, key) => {
-							const keys = values.map(({ value: { uid } }) => ({
-								key: GBP.players.playedSince(uid),
-								uid,
-							}));
-							const entries: Record<string, number> =
-								(await redis().hmget(key, ...keys.map(({ key }) => key))) ?? {};
-							for (const { key, uid } of keys) {
-								if (entries[key]) continue;
-
-								justPlayed.add(uid);
-								entries[key] = now.valueOf();
-							}
-
-							return entries;
-						},
-					);
-					const lastPlayed = mapValues(grouped, (values) =>
-						Object.fromEntries(
-							values.map(({ value: { uid, rank, timestamp }, pointGained }) => [
-								GBP.players.lastPlayed(uid),
-								{
-									rank,
-									timestamp: timestamp.getTime(),
-									pointGained,
-								} satisfies PlayerLastPlayed,
-							]),
-						),
-					);
-
-					metadata.set("players-state", { playedSince, lastPlayed });
-
 					const pipe = redis().pipeline();
 					for (const key in grouped)
-						pipe
-							.hset(key, lastPlayed[key])
-							.hsetex(key, { expiration: { ex: 30 * 60 } }, playedSince[key]);
+						pipe.hsetex(
+							key,
+							{ expiration: { ex: 30 * 60 } },
+							Object.fromEntries(grouped[key].map(({ id, uid }) => [uid, id])),
+						);
 
-					const responses = await pipe.exec<number[]>();
-					span.setAttribute("responses", responses);
+					await pipe.exec<number[]>();
 				});
 			}
 
@@ -548,11 +620,11 @@ export const scheduleUpdateTracker = schedules.task({
 				.map(
 					({
 						value: { uid, trackingFor, trackingId, trackingEventId },
-						pointGained,
+						point,
 					}) => ({
 						uid,
 						trackingReference: { trackingFor, trackingId, trackingEventId },
-						changed: pointGained !== 0,
+						changed: point !== 0,
 					}),
 				);
 			if (players.length > 0) {

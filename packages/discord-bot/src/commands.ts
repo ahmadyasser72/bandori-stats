@@ -13,7 +13,7 @@ import { capitalize } from "es-toolkit";
 import dayjs from "@bandori-stats/bestdori/date";
 import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
 import { db, EmptyFilter, sql } from "@bandori-stats/database";
-import { GBP, redis, type PlayerStates } from "@bandori-stats/database/redis";
+import { GBP, redis } from "@bandori-stats/database/redis";
 import type { GbpMetadata } from "@bandori-stats/database/schema";
 import {
 	getTrackingMetadata,
@@ -77,7 +77,9 @@ export const commands = [
 									),
 								);
 								if (playedSince)
-									lines.push(subtext(`since ${formatTimestamp(playedSince)}`));
+									lines.push(
+										subtext(`since ${formatTimestamp(playedSince.getTime())}`),
+									);
 
 								return lines.join("\n");
 							})(),
@@ -230,6 +232,12 @@ const getSnapshots = async (trackingReference: TrackingReference) => {
 				bannedAt: { isNull: true },
 			},
 			orderBy: { id: "desc" },
+			with: {
+				session: {
+					where: trackingReference,
+					orderBy: { startAt: "desc" },
+				},
+			},
 		});
 
 	const ranks = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -258,28 +266,13 @@ const getSnapshots = async (trackingReference: TrackingReference) => {
 		});
 	if (top10.length === 0) return [];
 
-	const players: PlayerStates =
-		(await redis().hmget(
-			GBP.from(trackingReference, "players"),
-			...top10.flatMap(({ uid }) => [
-				GBP.players.lastPlayed(uid),
-				GBP.players.playedSince(uid),
-			]),
-		)) ?? {};
-
-	return top10.map((current) => {
-		const lastPlayed = players[`${current.uid}:last-played`] ?? {
-			rank: current.rank,
-			timestamp: current.timestamp.getTime(),
-			pointGained: 0,
-		};
-
-		return {
-			current,
-			lastPlayed: lastPlayed.timestamp,
-			playedSince: players[`${current.uid}:played-since`],
-		};
-	});
+	return top10.map((current) => ({
+		current,
+		lastPlayed: current.session!.lastPlayed.timestamp,
+		playedSince:
+			dayjs().diff(current.session!.endAt, "minutes") <= 30 &&
+			current.session!.startAt,
+	}));
 };
 
 const getCutoffs = async (
