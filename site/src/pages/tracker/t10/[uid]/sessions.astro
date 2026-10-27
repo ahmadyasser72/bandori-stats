@@ -86,28 +86,46 @@ if (Astro.cache.enabled)
 				<li>
 					{idx > 0 && <hr class="bg-neutral" />}
 					<div class="timeline-start flex flex-col items-end font-mono">
-						<span class="text-xs">
-							{dayjs
-								.tz(startAt, Astro.locals.clientTimezone)
-								.format("MMM DD, hh:mm A")}
-						</span>
-						<span class="text-xs">
-							{dayjs
-								.tz(endAt, Astro.locals.clientTimezone)
-								.format("MMM DD, hh:mm A")}
-						</span>
+						{games > 1 ? (
+							<>
+								<span class="text-xs">
+									To:{" "}
+									{dayjs
+										.tz(endAt, Astro.locals.clientTimezone)
+										.format("MMM DD, hh:mm A")}
+								</span>
+								<span class="text-xs">
+									From:{" "}
+									{dayjs
+										.tz(startAt, Astro.locals.clientTimezone)
+										.format("MMM DD, hh:mm A")}
+								</span>
+							</>
+						) : (
+							<span class="text-xs">
+								{dayjs
+									.tz(startAt, Astro.locals.clientTimezone)
+									.format("MMM DD, hh:mm A")}
+							</span>
+						)}
 					</div>
 					<div class="timeline-end">
 						<div class="inline-flex flex-col">
 							<div class="inline-flex items-center font-semibold">
 								{formatNumber(lastPlayed.point)}
-								<span class="ml-1 badge px-1.5 badge-xs badge-success">
-									+{formatNumber(points)}
-								</span>
+								{points > 0 && (
+									<span class="ml-1 badge px-1.5 badge-xs badge-success">
+										+{formatNumber(points)}
+									</span>
+								)}
 							</div>
-							<span class="text-xs text-base-content/67">
-								Played {games} games ({formatDuration(endAt, startAt, true)})
-							</span>
+							{points > 0 && (
+								<span class="text-xs text-base-content/67">
+									{games === 1
+										? "Played once"
+										: `Played ${games} games (${formatDuration(endAt, startAt, true)})`}
+								</span>
+							)}
 						</div>
 					</div>
 					{idx < sessions.length - 1 && <hr class="bg-neutral" />}
