@@ -11,7 +11,7 @@ export const db = once(() => {
 	return drizzle({
 		relations,
 		connection: { url: DATABASE_URL, authToken: DATABASE_AUTH_TOKEN },
-		jit: true,
+		jit: navigator.userAgent !== "Cloudflare-Workers",
 	});
 });
 
