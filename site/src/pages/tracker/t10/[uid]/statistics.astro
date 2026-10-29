@@ -4,7 +4,7 @@ import z from "zod";
 
 import dayjs from "@bandori-stats/bestdori/date";
 import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
-import { db, desc, gt, min, sql, sum } from "@bandori-stats/database";
+import { db, desc, gt, sql, sum } from "@bandori-stats/database";
 import {
 	getTrackingMetadata,
 	getTrackingReference,
@@ -130,22 +130,9 @@ const { gameStatistics, gameByHours, gameByPoints } =
 			gameByPoints: Astro.locals.tracing.enterSpan(
 				"fetch-game-by-points",
 				async () => {
-					const minPoints = await db()
-						.with(gapsCte)
-						.select({ minPoints: min(gapsCte.delta) })
-						.from(gapsCte)
-						.where(cteFilter)
-						.then(([{ minPoints }]) => Number(minPoints ?? 0));
 					const deltaQuery = db()
 						.with(gapsCte)
-						.select({
-							delta:
-								minPoints <= 50
-									? gapsCte.delta
-									: sql<number>`CAST(ROUND((${gapsCte.delta}) / 100.0) * 100 AS INTEGER)`.as(
-											"delta",
-										),
-						})
+						.select({ delta: gapsCte.delta })
 						.from(gapsCte)
 						.where(cteFilter)
 						.as("delta_query");
