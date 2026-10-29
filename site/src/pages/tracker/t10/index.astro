@@ -1,11 +1,12 @@
 ---
 import { UMAMI_SITE_ID } from "astro:env/server";
 
-import { uniqBy } from "es-toolkit";
+import { allKeyed, uniqBy } from "es-toolkit";
 
 import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
 import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
 import { db } from "@bandori-stats/database";
+import { GBP, redis } from "@bandori-stats/database/redis";
 import type { TrackerSnapshot } from "@bandori-stats/database/schema";
 import {
 	getTrackingMetadata,
@@ -21,13 +22,16 @@ export const partials = true;
 
 const params = Astro.locals.parseQuery(TrackingTarget);
 
-const metadata = await Astro.locals.tracing.enterSpan(
+const { metadata, removed } = await Astro.locals.tracing.enterSpan(
 	"fetch-metadata",
 	async (span) => {
 		span.setAttribute("kind", params.kind);
 		span.setAttribute("id", params.id);
 
-		return getTrackingMetadata(params);
+		return allKeyed({
+			metadata: getTrackingMetadata(params),
+			removed: redis().scard(GBP.from(params, "removed")),
+		});
 	},
 );
 if (!metadata) return new Response(null, { status: 404 });
@@ -375,6 +379,26 @@ if (Astro.cache.enabled)
 					{profile && <ProfileDropdown {metadata} {profile} />}
 				</div>
 			),
+		)
+	}
+
+	{
+		removed > 0 && (
+			<div class="divider mt-8">
+				<button
+					hx-get="/tracker/t10/banned"
+					hx-swap="outerHTML scroll:bottom"
+					hx-target="closest .divider"
+					hx-vals={JSON.stringify(params)}
+					data-umami-event="tracker-removed"
+					data-umami-event-kind={params.kind}
+					data-umami-event-name={metadata.name}
+					class="btn mx-auto btn-outline btn-error btn-sm"
+				>
+					<IconLoader name="lucide--user-round-minus" />
+					Display {removed} removed player(s)
+				</button>
+			</div>
 		)
 	}
 </div>

@@ -1,0 +1,184 @@
+---
+import { allKeyed } from "es-toolkit";
+
+import dayjs, { formatDuration } from "@bandori-stats/bestdori/date";
+import { formatNumber, stripBB } from "@bandori-stats/bestdori/helpers";
+import { db } from "@bandori-stats/database";
+import { GBP, redis } from "@bandori-stats/database/redis";
+import {
+	getTrackingMetadata,
+	getTrackingReference,
+	TrackingTarget,
+} from "@bandori-stats/database/tracker";
+import GbpCard from "~/components/gbp-card.astro";
+import IconLoader from "~/components/icon-loader.astro";
+import ProfileDropdown from "~/pages/tracker/_profile-dropdown.astro";
+
+export const partials = true;
+
+const params = Astro.locals.parseQuery(TrackingTarget);
+if (params.kind !== "event" || !params.music)
+	return new Response(null, { status: 404 });
+
+const { metadata, removed } = await Astro.locals.tracing.enterSpan(
+	"fetch-metadata",
+	async (span) => {
+		span.setAttribute("kind", params.kind);
+		span.setAttribute("id", params.id);
+
+		return allKeyed({
+			metadata: getTrackingMetadata(params),
+			removed: redis()
+				.smembers<number[]>(GBP.from(params, "removed"))
+				.then((uids) => uids.map(String)),
+		});
+	},
+);
+if (!metadata || metadata.kind !== "event" || removed.length === 0)
+	return new Response(null, { status: 404 });
+
+const song = metadata.musics.find(({ id }) => id === params.music);
+if (!song) return new Response(null, { status: 404 });
+
+const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
+	const trackingReference = getTrackingReference(params);
+	const getSnapshot = (uid: string) =>
+		db().query.trackerSnapshots.findFirst({
+			columns: { trackingFor: false, trackingId: false },
+			where: { ...trackingReference, uid, bannedAt: { isNotNull: true } },
+			orderBy: { id: "desc" },
+			with: {
+				profile: { where: trackingReference },
+				session: { where: trackingReference, orderBy: { startAt: "desc" } },
+			},
+		});
+
+	return db()
+		.batch(removed.map(getSnapshot) as [ReturnType<typeof getSnapshot>])
+		.then((snapshots) =>
+			snapshots
+				.filter((it) => it !== undefined)
+				.sort((a, b) => b.point - a.point),
+		);
+});
+
+if (Astro.cache.enabled) Astro.cache.set({ maxAge: 60 * 60 });
+---
+
+<div class="divider mt-8 divider-error">{players.length} removed players</div>
+
+{
+	players.map(({ profile, session, ...latest }) => (
+		<div class="list-row items-center">
+			<div class="flex flex-col items-center gap-0.5 font-mono">
+				<span
+					class:list={[
+						"badge size-10 px-0",
+						latest.rank <= 3 ? "badge-secondary" : "badge-ghost",
+					]}
+				>
+					{latest.rank}
+				</span>
+			</div>
+
+			<div class="flex min-w-0 items-center gap-2 list-col-grow">
+				{profile?.avatar && (
+					<GbpCard class="scale-75" member={profile.avatar} />
+				)}
+
+				<span
+					class="flex-1 truncate text-lg font-medium text-ellipsis"
+					data-bb={latest.name}
+				>
+					{stripBB(latest.name)}
+				</span>
+
+				<button
+					data-umami-event="tracker-profile"
+					data-umami-event-kind="music"
+					data-umami-event-name={song.title}
+					data-umami-event-player={stripBB(latest.name)}
+					class="btn btn-info btn-sm max-sm:hidden"
+					disabled={!profile}
+					popovertarget={`profile-${latest.uid}`}
+					style={`anchor-name: --anchor-${latest.uid}-profile`}
+				>
+					<IconLoader name="lucide--id-card" />
+					Profile
+				</button>
+			</div>
+
+			<div class="list-col-wrap grid grid-cols-5 justify-between gap-2 sm:flex">
+				<div class="col-span-3 flex flex-col text-sm">
+					<span class="inline-flex items-center font-semibold">
+						{formatNumber(latest.point)}
+					</span>
+
+					{session?.lastPlayed && (
+						<div class="flex max-sm:flex-col sm:gap-1">
+							<span>
+								Last played{" "}
+								<span
+									class="tooltip underline decoration-dotted"
+									data-tip={dayjs
+										.tz(
+											session.lastPlayed.timestamp,
+											Astro.locals.clientTimezone,
+										)
+										.format("MMM DD, hh:mm A")}
+								>
+									{formatDuration(session.lastPlayed.timestamp)}
+								</span>
+							</span>
+						</div>
+					)}
+
+					<span>
+						removed{" "}
+						<span
+							class="tooltip underline decoration-dotted"
+							data-tip={dayjs
+								.tz(latest.bannedAt!, Astro.locals.clientTimezone)
+								.format("MMM DD, hh:mm A")}
+						>
+							{formatDuration(latest.bannedAt!)}
+						</span>
+					</span>
+				</div>
+
+				<button
+					data-umami-event="tracker-profile"
+					data-umami-event-kind="music"
+					data-umami-event-name={song.title}
+					data-umami-event-player={stripBB(latest.name)}
+					class="btn col-span-2 self-center btn-info btn-sm sm:hidden"
+					disabled={!profile}
+					popovertarget={`profile-${latest.uid}`}
+					style={`anchor-name: --anchor-${latest.uid}-profile`}
+				>
+					<IconLoader name="lucide--id-card" />
+					Profile
+				</button>
+
+				<div class="col-span-full flex gap-1 sm:justify-end">
+					<button
+						hx-get={`/tracker/t10-music/${latest.uid}/history`}
+						hx-swap="after"
+						hx-target="main"
+						hx-vals={JSON.stringify(params)}
+						data-umami-event="tracker-score-history"
+						data-umami-event-kind="music"
+						data-umami-event-name={song.title}
+						data-umami-event-player={stripBB(latest.name)}
+						class="btn btn-accent btn-xs max-sm:flex-1 sm:btn-sm"
+					>
+						<IconLoader class="max-sm:size-3" name="lucide--history" />
+						History
+					</button>
+				</div>
+			</div>
+
+			{profile && <ProfileDropdown {metadata} {profile} />}
+		</div>
+	))
+}

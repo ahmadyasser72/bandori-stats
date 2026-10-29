@@ -411,7 +411,12 @@ export const scheduleUpdateTracker = schedules.task({
 				pending
 					.reduce(
 						(pipe, { trackingReference, type, uids }) =>
-							pipe.zrem(GBP.from(trackingReference, type), ...uids),
+							pipe
+								.zrem(GBP.from(trackingReference, type), ...uids)
+								.sadd(
+									GBP.from(trackingReference, "removed"),
+									...(uids as [string, ...string[]]),
+								),
 						redis().pipeline(),
 					)
 					.exec(),
