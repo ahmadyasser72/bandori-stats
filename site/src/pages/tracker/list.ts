@@ -4,7 +4,7 @@ import z from "zod";
 
 import { TrackingTarget } from "@bandori-stats/database/tracker";
 
-export const DisplaySchema = z.enum(["t10", "t10-recent", "cutoffs"]);
+export const DisplaySchema = z.enum(["t10", "cutoffs"]);
 
 export const GET: APIRoute = async ({ locals, rewrite }) => {
 	const { display, ...params } = locals.parseQuery(
