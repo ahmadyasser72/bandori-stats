@@ -99,12 +99,9 @@ const players = await Astro.locals.tracing.enterSpan("fetch-data", async () => {
 	const snapshots = top10.map((latest) => {
 		const lastPlayed = latest.session!.lastPlayed;
 		const recentlyPlayed = dayjs().diff(latest.session!.endAt, "minutes") <= 30;
-		const playedSince = recentlyPlayed && latest.session!.startAt;
-
 		return {
 			latest,
 			lastPlayed,
-			playedSince,
 			recentlyPlayed,
 			pointsGained: recentlyPlayed ? lastPlayed.gain : undefined,
 		};
@@ -191,7 +188,6 @@ if (Astro.cache.enabled)
 			({
 				latest: { profile, ...latest },
 				lastPlayed,
-				playedSince,
 				recentlyPlayed,
 				pointsGained,
 				rankHistory,
@@ -280,16 +276,32 @@ if (Astro.cache.enabled)
 											{formatDuration(lastPlayed.timestamp)}
 										</span>
 									</span>
-									{playedSince && (
+									{recentlyPlayed && latest.session && (
 										<span>
 											since{" "}
-											<span
-												class="tooltip underline decoration-dotted"
-												data-tip={dayjs
-													.tz(playedSince, Astro.locals.clientTimezone)
-													.format("MMM DD, hh:mm A")}
-											>
-												{formatDuration(playedSince)}
+											<span class="tooltip underline decoration-dotted">
+												<div class="tooltip-content">
+													<div class="flex flex-col items-center">
+														{latest.session.games > 0 && (
+															<>
+																<span>{latest.session.games} games &</span>
+																<span>
+																	{formatNumber(latest.session.points)} Pts
+																	since
+																</span>
+															</>
+														)}
+														<span>
+															{dayjs
+																.tz(
+																	latest.session.startAt,
+																	Astro.locals.clientTimezone,
+																)
+																.format("MMM DD, hh:mm A")}
+														</span>
+													</div>
+												</div>
+												{formatDuration(latest.session.startAt)}
 											</span>
 										</span>
 									)}
