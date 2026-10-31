@@ -12,12 +12,12 @@
 		"@bandori-stats/bestdori": "workspace:*",
 		"@bandori-stats/database": "workspace:*",
 		"@discordjs/formatters": "0.6.2",
-		"discord-hono": "0.22.2",
-		"es-toolkit": "1.52.0"
+		"discord-hono": "0.23.0",
+		"es-toolkit": "1.53.1"
 	},
 	"devDependencies": {
-		"@types/node": "26.6.5",
-		"discord-api-types": "0.38.56",
+		"@types/node": "26.6.6",
+		"discord-api-types": "0.38.57",
 		"typescript": "6.0.3"
 	}
 }
