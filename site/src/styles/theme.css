@@ -52,6 +52,10 @@
 	details:open > summary > .iconify {
 		@apply hidden;
 	}
+
+	details:open > summary.menu-active {
+		@apply bg-base-100 text-base-content hover:bg-base-content/10;
+	}
 }
 
 @utility menu-active {

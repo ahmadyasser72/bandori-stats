@@ -30,14 +30,16 @@ const metadata = await Astro.locals.tracing.enterSpan(
 );
 if (!metadata) return new Response(null, { status: 404 });
 
-const song =
-	metadata.kind === "event"
-		? metadata.musics.find(({ id }) => id === params.music)
+const songs =
+	metadata.kind === "event" && params.music
+		? metadata.type === "medley"
+			? metadata.musics
+			: metadata.musics.filter(({ id }) => id === params.music)
 		: undefined;
 
 interface DisplayChoice {
 	label: string;
-	image?: { kind: "logo" | "music"; url: string };
+	images: string[];
 	items: { value: string; label: string }[];
 	music?: number;
 }
@@ -49,6 +51,7 @@ if (metadata.kind === "event" && metadata.musics.length > 0) {
 			? ([
 					{
 						label: "Medley Ranking",
+						images: metadata.musics.map(({ id }) => getSongAlbumCover({ id })),
 						items: [
 							{ value: "t10", label: "T10" },
 							{ value: "cutoffs", label: "Cutoffs" },
@@ -58,7 +61,7 @@ if (metadata.kind === "event" && metadata.musics.length > 0) {
 				] satisfies typeof displayChoices)
 			: metadata.musics.map(({ id, title }) => ({
 					label: title,
-					image: { kind: "music" as const, url: getSongAlbumCover({ id }) },
+					images: [getSongAlbumCover({ id })],
 					items: [
 						{ value: "t10", label: "T10" },
 						{ value: "cutoffs", label: "Cutoffs" },
@@ -99,11 +102,33 @@ if (Astro.cache.enabled)
 	}}
 	class="mt-4 flex flex-col items-center gap-1"
 >
-	<img
-		class={song ? "aspect-square size-48" : "aspect-9/4 w-64"}
-		src={song ? getSongAlbumCover(song) : getTrackerLogo(params)}
-		alt={`${metadata.assetBundleName} logo`}
-	/>
+	{
+		songs && songs.length > 0 ? (
+			songs.length === 1 ? (
+				<img
+					class="aspect-square size-48"
+					src={getSongAlbumCover(songs[0])}
+					alt={songs[0].jacketImage}
+				/>
+			) : (
+				<div class="flex flex-wrap justify-center gap-2">
+					{songs.map((song) => (
+						<img
+							class="aspect-square size-24 sm:size-36"
+							src={getSongAlbumCover(song)}
+							alt={song.jacketImage}
+						/>
+					))}
+				</div>
+			)
+		) : (
+			<img
+				class="aspect-9/4 w-64"
+				src={getTrackerLogo(params)}
+				alt={`${metadata.assetBundleName} logo`}
+			/>
+		)
+	}
 
 	<h2 class="text-center text-lg font-semibold">
 		<Icon
@@ -115,10 +140,10 @@ if (Astro.cache.enabled)
 		{metadata.name}
 	</h2>
 
-	<span class="-mt-1 text-sm"
+	<span class="-mt-1 text-center text-sm"
 		>{
-			song
-				? `${song.title} — ${capitalize(params.display)}`
+			songs && songs.length > 0
+				? `${songs.map(({ title }) => title).join(" / ")} — ${capitalize(params.display)}`
 				: `${capitalize(metadata.kind)} Ranking — ${capitalize(params.display)}`
 		}</span
 	>
@@ -242,7 +267,9 @@ if (Astro.cache.enabled)
 								<button
 									hx-get="/tracker"
 									hx-vals:append={JSON.stringify({ display: value })}
-									class:list={[value === params.display && "menu-active"]}
+									class:list={[
+										!params.music && value === params.display && "menu-active",
+									]}
 								>
 									<Icon
 										class="htmx-indicator"
@@ -255,7 +282,7 @@ if (Astro.cache.enabled)
 					}
 
 					{
-						displayChoices.map(({ label, items, image, music }) => (
+						displayChoices.map(({ label, items, images, music }) => (
 							<li>
 								<details>
 									<summary
@@ -265,22 +292,28 @@ if (Astro.cache.enabled)
 												"menu-active",
 										]}
 									>
-										{image && image.kind === "music" && (
+										{images.length === 1 && (
 											<img
 												class="aspect-square size-10"
-												src={image.url}
+												src={images[0]}
 												loading="lazy"
 											/>
 										)}
 										{label}
 									</summary>
 									<ul>
-										{image && (
+										{images.length === 1 ? (
 											<img
-												class="mx-auto my-1 aspect-square h-32"
-												src={image.url}
+												class="mx-auto my-1 size-32"
+												src={images[0]}
 												loading="lazy"
 											/>
+										) : (
+											<div class="my-1 flex w-full justify-evenly">
+												{images.map((url) => (
+													<img class="size-16" src={url} loading="lazy" />
+												))}
+											</div>
 										)}
 
 										{items.map((item) => (
