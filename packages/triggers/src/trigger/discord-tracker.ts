@@ -329,9 +329,11 @@ export const getSnapshots = async (
 			current,
 			previous: baseline ?? beforePeriod,
 			returning,
-			lastPlayed: current.session!.lastPlayed.timestamp,
+			lastPlayed:
+				current.session?.lastPlayed.timestamp ?? current.timestamp.getTime(),
 			playedSince:
-				now.diff(current.session!.endAt, "minutes") <= 30 &&
+				current.session &&
+				now.diff(current.session.endAt, "minutes") <= 30 &&
 				current.session!.startAt,
 			delta:
 				baseline && (!returning || !useStale)
@@ -349,7 +351,7 @@ interface GenerateEmbedOptions extends GetSnapshotsOptions {
 	title: string;
 }
 
-const generateEmbed = (
+export const generateEmbed = (
 	snapshots: Awaited<ReturnType<typeof getSnapshots>>,
 	{ footer, title, since, now }: GenerateEmbedOptions,
 ) => {
@@ -416,7 +418,7 @@ const generateEmbed = (
 	return embed;
 };
 
-const getThread = async (
+export const getThread = async (
 	client: Client,
 	{ kind, id, music }: TrackingTarget,
 ) => {
