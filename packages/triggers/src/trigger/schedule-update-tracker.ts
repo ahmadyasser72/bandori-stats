@@ -472,6 +472,16 @@ export const scheduleUpdateTracker = schedules.task({
 								id: { lt: id },
 							},
 							orderBy: { id: "desc" },
+							with: {
+								profile: {
+									columns: { id: true },
+									where: {
+										trackingFor,
+										trackingId,
+										trackingEventId,
+									},
+								},
+							},
 						});
 					const previousSnapshots = await db().batch(
 						inserted.map(getPreviousSnapshot) as [
@@ -482,7 +492,12 @@ export const scheduleUpdateTracker = schedules.task({
 					const snapshots = inserted.map((value, idx) => {
 						const previous = previousSnapshots.at(idx);
 						const point = previous ? value.point - previous.point : 0;
-						return { value, point, changed: !previous || point > 0 };
+						return {
+							value,
+							point,
+							changed: !previous || point > 0,
+							noProfile: !previous?.profile,
+						};
 					});
 					metadata.set("inserted", snapshots as never);
 
@@ -617,17 +632,18 @@ export const scheduleUpdateTracker = schedules.task({
 
 			const players = snapshots
 				.filter(
-					({ value: { uid, trackingFor } }) =>
-						justPlayed.has(uid) || trackingFor === "music",
+					({ value: { uid, trackingFor }, noProfile }) =>
+						noProfile || justPlayed.has(uid) || trackingFor === "music",
 				)
 				.map(
 					({
 						value: { uid, trackingFor, trackingId, trackingEventId },
 						point,
+						noProfile,
 					}) => ({
 						uid,
 						trackingReference: { trackingFor, trackingId, trackingEventId },
-						changed: point !== 0,
+						changed: noProfile || point !== 0,
 					}),
 				);
 			if (players.length > 0) {
