@@ -481,10 +481,8 @@ export const scheduleUpdateTracker = schedules.task({
 
 					const snapshots = inserted.map((value, idx) => {
 						const previous = previousSnapshots.at(idx);
-						return {
-							value,
-							point: previous ? value.point - previous.point : 0,
-						};
+						const point = previous ? value.point - previous.point : 0;
+						return { value, point, changed: !previous || point > 0 };
 					});
 					metadata.set("inserted", snapshots as never);
 
@@ -494,8 +492,8 @@ export const scheduleUpdateTracker = schedules.task({
 
 			const justPlayed = new Set<string>();
 			const changed = snapshots.filter(
-				({ value: { trackingFor }, point }) =>
-					trackingFor !== "music" && point > 0,
+				({ value: { trackingFor }, changed }) =>
+					trackingFor !== "music" && changed,
 			);
 			if (changed.length > 0) {
 				await logger.trace("update-player-sessions", async () => {
